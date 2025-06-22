@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Reference System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            margin-bottom: 40px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-zone.dragover {
+            border-color: #28a745;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .firebase-config {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .config-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            transition: border-color 0.3s ease;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .documents-section {
+            margin-top: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .document-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .document-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .document-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .document-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .document-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 15px;
+            font-size: 0.8em;
+            border-radius: 15px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+            text-align: center;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .github-link {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .github-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .github-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .document-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Document Reference System</h1>
+            <p>Centralized document storage and AI-accessible reference point</p>
+        </div>
+
+        <div class="main-content">
+            <!-- GitHub Repository Link -->
+            <div class="github-link">
+                <p>🔗 <strong>Repository:</strong> <a href="https://github.com/Terence1975-Coder/Leaderboard" target="_blank">github.com/Terence1975-Coder/Leaderboard</a></p>
+            </div>
+
+            <!-- Firebase Configuration -->
+            <div class="firebase-config">
+                <div class="config-title">🔥 Firebase Configuration</div>
+                <input type="text" class="config-input" id="apiKey" placeholder="Firebase API Key">
+                <input type="text" class="config-input" id="authDomain" placeholder="Auth Domain (yourproject.firebaseapp.com)">
+                <input type="text" class="config-input" id="projectId" placeholder="Project ID">
+                <input type="text" class="config-input" id="storageBucket" placeholder="Storage Bucket (yourproject.appspot.com)">
+                <button class="btn" onclick="saveFirebaseConfig()">💾 Save Configuration</button>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">☁️</div>
+                    <div class="upload-text">Drag & Drop Your Documents Here</div>
+                    <div class="upload-subtext">or click to browse files</div>
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                        📁 Select Files
+                    </button>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.doc,.docx,.txt,.md,.json,.csv,.xlsx,.xls">
+                
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+
+            <!-- Documents Section -->
+            <div class="documents-section">
+                <h2 class="section-title">📄 Uploaded Documents</h2>
+                <div class="document-list" id="documentList">
+                    <!-- Documents will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK v9 -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject, getMetadata } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
+        
+        window.firebaseModules = { initializeApp, getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject, getMetadata };
+    </script>
+
+    <script type="module">
+        const { initializeApp, getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject, getMetadata } = window.firebaseModules;
+        
+        let firebaseApp = null;
+        let storage = null;
+        let documents = [];
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            const config = getFirebaseConfig();
+            if (config && config.apiKey) {
+                try {
+                    firebaseApp = initializeApp(config);
+                    storage = getStorage(firebaseApp);
+                    showStatus('Firebase initialized successfully!', 'success');
+                    loadDocuments();
+                } catch (error) {
+                    showStatus('Firebase initialization failed: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Save Firebase configuration
+        function saveFirebaseConfig() {
+            const config = {
+                apiKey: document.getElementById('apiKey').value,
+                authDomain: document.getElementById('authDomain').value,
+                projectId: document.getElementById('projectId').value,
+                storageBucket: document.getElementById('storageBucket').value,
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:abcdef123456"
+            };
+
+            if (!config.apiKey || !config.authDomain || !config.projectId || !config.storageBucket) {
+                showStatus('Please fill in all Firebase configuration fields', 'error');
+                return;
+            }
+
+            // Store in memory for this session
+            window.firebaseConfig = config;
+            showStatus('Firebase configuration saved for this session!', 'success');
+            initializeFirebase();
+        }
+
+        // Get Firebase configuration
+        function getFirebaseConfig() {
+            return window.firebaseConfig || null;
+        }
+
+        // Drag and drop functionality
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        });
+
+        // Handle file uploads
+        async function handleFiles(files) {
+            if (!storage) {
+                showStatus('Please configure Firebase first', 'error');
+                return;
+            }
+
+            if (files.length === 0) return;
+
+            showProgress();
+            const totalFiles = files.length;
+            let completedFiles = 0;
+
+            for (const file of files) {
+                try {
+                    await uploadFile(file);
+                    completedFiles++;
+                    updateProgress((completedFiles / totalFiles) * 100);
+                } catch (error) {
+                    showStatus(`Error uploading ${file.name}: ${error.message}`, 'error');
+                }
+            }
+
+            hideProgress();
+            showStatus(`Successfully uploaded ${completedFiles} of ${totalFiles} files!`, 'success');
+            loadDocuments();
+        }
+
+        // Upload single file
+        function uploadFile(file) {
+            return new Promise((resolve, reject) => {
+                const timestamp = new Date().getTime();
+                const fileName = `${timestamp}_${file.name}`;
+                const storageRef = ref(storage, `documents/${fileName}`);
+                
+                uploadBytes(storageRef, file).then(async (snapshot) => {
+                    try {
+                        const downloadURL = await getDownloadURL(snapshot.ref);
+                        const metadata = await getMetadata(snapshot.ref);
+                        const document = {
+                            name: file.name,
+                            originalName: file.name,
+                            size: file.size,
+                            type: file.type,
+                            uploadDate: new Date().toISOString(),
+                            downloadURL: downloadURL,
+                            storagePath: `documents/${fileName}`
+                        };
+                        documents.push(document);
+                        resolve(document);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }).catch(reject);
+            });
+        }
+
+        // Load documents from Firebase
+        async function loadDocuments() {
+            if (!storage) return;
+
+            try {
+                const listRef = ref(storage, 'documents');
+                const result = await listAll(listRef);
+                
+                documents = [];
+                for (const itemRef of result.items) {
+                    try {
+                        const downloadURL = await getDownloadURL(itemRef);
+                        const metadata = await getMetadata(itemRef);
+                        
+                        const document = {
+                            name: itemRef.name,
+                            originalName: metadata.name || itemRef.name,
+                            size: metadata.size || 0,
+                            type: metadata.contentType || 'unknown',
+                            uploadDate: metadata.timeCreated || new Date().toISOString(),
+                            downloadURL: downloadURL,
+                            storagePath: itemRef.fullPath
+                        };
+                        documents.push(document);
+                    } catch (error) {
+                        console.error('Error loading document:', error);
+                    }
+                }
+                
+                renderDocuments();
+            } catch (error) {
+                showStatus('Error loading documents: ' + error.message, 'error');
+            }
+        }
+
+        // Render documents
+        function renderDocuments() {
+            const documentList = document.getElementById('documentList');
+            
+            if (documents.length === 0) {
+                documentList.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No documents uploaded yet. Start by uploading your first document!</p>';
+                return;
+            }
+
+            documentList.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-name">${doc.originalName}</div>
+                    <div class="document-info">
+                        📁 ${formatFileSize(doc.size)} • 📅 ${formatDate(doc.uploadDate)}
+                    </div>
+                    <div class="document-actions">
+                        <button class="btn btn-small btn-secondary" onclick="viewDocument('${doc.downloadURL}')">
+                            👀 View
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="deleteDocument('${doc.storagePath}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // View document
+        function viewDocument(url) {
+            window.open(url, '_blank');
+        }
+
+        // Delete document
+        async function deleteDocument(storagePath) {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+
+            try {
+                const fileRef = ref(storage, storagePath);
+                await deleteObject(fileRef);
+                showStatus('Document deleted successfully!', 'success');
+                loadDocuments();
+            } catch (error) {
+                showStatus('Error deleting document: ' + error.message, 'error');
+            }
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showProgress() {
+            document.getElementById('progressBar').style.display = 'block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('progressFill').style.width = '0%';
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = `status-message status-${type}`;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Make functions globally accessible
+        window.saveFirebaseConfig = saveFirebaseConfig;
+        window.viewDocument = viewDocument;
+        window.deleteDocument = deleteDocument;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try to initialize Firebase if config exists
+            initializeFirebase();
+        });
+    </script>
+</body>
+</html>
