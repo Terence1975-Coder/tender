@@ -1,178 +1,212 @@
-import React, { useState } from 'react';
-import { Download, Plus, Upload, Users, CheckCircle, XCircle, Clock, Settings, BarChart3 } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bootcamp Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-const AIBootcampDashboard = () => {
-  // State management
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [chatbotName, setChatbotName] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('AI Fundamentals');
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState('');
-  const [modalTitle, setModalTitle] = useState('');
-  const [copyButtonText, setCopyButtonText] = useState('Copy to Clipboard');
+    <script type="text/babel">
+        const { useState } = React;
+        const { 
+            Download, 
+            Plus, 
+            Upload, 
+            Users, 
+            CheckCircle, 
+            XCircle, 
+            Clock, 
+            Settings, 
+            BarChart3 
+        } = lucideReact;
 
-  // Mock data - Replace with your actual data source
-  const applicants = [
-    { 
-      id: 1, 
-      name: 'John Smith', 
-      email: 'john@email.com', 
-      phone: '+1 (555) 123-4567', 
-      date: '2025-01-15', 
-      status: 'passed', 
-      score: 85, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-    },
-    { 
-      id: 2, 
-      name: 'Sarah Johnson', 
-      email: 'sarah@email.com', 
-      phone: '+1 (555) 234-5678', 
-      date: '2025-01-14', 
-      status: 'failed', 
-      score: 45, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
-    },
-    { 
-      id: 3, 
-      name: 'Mike Chen', 
-      email: 'mike@email.com', 
-      phone: '+1 (555) 345-6789', 
-      date: '2025-01-13', 
-      status: 'waitlist', 
-      score: 65, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 4, 
-      name: 'Emily Davis', 
-      email: 'emily@email.com', 
-      phone: '+1 (555) 456-7890', 
-      date: '2025-01-12', 
-      status: 'passed', 
-      score: 92, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 5, 
-      name: 'Alex Rodriguez', 
-      email: 'alex@email.com', 
-      phone: '+1 (555) 567-8901', 
-      date: '2025-01-11', 
-      status: 'passed', 
-      score: 78, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-    },
-    { 
-      id: 6, 
-      name: 'Lisa Wang', 
-      email: 'lisa@email.com', 
-      phone: '+1 (555) 678-9012', 
-      date: '2025-01-10', 
-      status: 'waitlist', 
-      score: 68, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 7, 
-      name: 'David Brown', 
-      email: 'david@email.com', 
-      phone: '+1 (555) 789-0123', 
-      date: '2025-01-09', 
-      status: 'failed', 
-      score: 42, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
-    },
-    { 
-      id: 8, 
-      name: 'Jennifer Lee', 
-      email: 'jennifer@email.com', 
-      phone: '+1 (555) 890-1234', 
-      date: '2025-01-08', 
-      status: 'passed', 
-      score: 89, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
-    }
-  ];
+        const AIBootcampDashboard = () => {
+            // State management
+            const [activeTab, setActiveTab] = useState('overview');
+            const [selectedCategory, setSelectedCategory] = useState('all');
+            const [chatbotName, setChatbotName] = useState('');
+            const [selectedCourse, setSelectedCourse] = useState('AI Fundamentals');
+            const [showModal, setShowModal] = useState(false);
+            const [modalContent, setModalContent] = useState('');
+            const [modalTitle, setModalTitle] = useState('');
+            const [copyButtonText, setCopyButtonText] = useState('Copy to Clipboard');
 
-  const chatbots = [
-    { 
-      id: 1, 
-      name: 'AI Fundamentals Screener', 
-      course: 'AI Fundamentals', 
-      created: '2025-01-01', 
-      active: true 
-    },
-    { 
-      id: 2, 
-      name: 'Machine Learning Screener', 
-      course: 'Machine Learning', 
-      created: '2025-01-05', 
-      active: true 
-    },
-    { 
-      id: 3, 
-      name: 'Data Science Screener', 
-      course: 'Data Science', 
-      created: '2025-01-10', 
-      active: false 
-    }
-  ];
+            // Mock data - Replace with your actual data source
+            const applicants = [
+                { 
+                    id: 1, 
+                    name: 'John Smith', 
+                    email: 'john@email.com', 
+                    phone: '+1 (555) 123-4567', 
+                    date: '2025-01-15', 
+                    status: 'passed', 
+                    score: 85, 
+                    bootcamp: 'AI Fundamentals', 
+                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+                },
+                { 
+                    id: 2, 
+                    name: 'Sarah Johnson', 
+                    email: 'sarah@email.com', 
+                    phone: '+1 (555) 234-5678', 
+                    date: '2025-01-14', 
+                    status: 'failed', 
+                    score: 45, 
+                    bootcamp: 'AI Fundamentals', 
+                    responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
+                },
+                { 
+                    id: 3, 
+                    name: 'Mike Chen', 
+                    email: 'mike@email.com', 
+                    phone: '+1 (555) 345-6789', 
+                    date: '2025-01-13', 
+                    status: 'waitlist', 
+                    score: 65, 
+                    bootcamp: 'AI Fundamentals', 
+                    responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
+                },
+                { 
+                    id: 4, 
+                    name: 'Emily Davis', 
+                    email: 'emily@email.com', 
+                    phone: '+1 (555) 456-7890', 
+                    date: '2025-01-12', 
+                    status: 'passed', 
+                    score: 92, 
+                    bootcamp: 'Machine Learning', 
+                    responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
+                },
+                { 
+                    id: 5, 
+                    name: 'Alex Rodriguez', 
+                    email: 'alex@email.com', 
+                    phone: '+1 (555) 567-8901', 
+                    date: '2025-01-11', 
+                    status: 'passed', 
+                    score: 78, 
+                    bootcamp: 'AI Fundamentals', 
+                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+                },
+                { 
+                    id: 6, 
+                    name: 'Lisa Wang', 
+                    email: 'lisa@email.com', 
+                    phone: '+1 (555) 678-9012', 
+                    date: '2025-01-10', 
+                    status: 'waitlist', 
+                    score: 68, 
+                    bootcamp: 'Machine Learning', 
+                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
+                },
+                { 
+                    id: 7, 
+                    name: 'David Brown', 
+                    email: 'david@email.com', 
+                    phone: '+1 (555) 789-0123', 
+                    date: '2025-01-09', 
+                    status: 'failed', 
+                    score: 42, 
+                    bootcamp: 'AI Fundamentals', 
+                    responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
+                },
+                { 
+                    id: 8, 
+                    name: 'Jennifer Lee', 
+                    email: 'jennifer@email.com', 
+                    phone: '+1 (555) 890-1234', 
+                    date: '2025-01-08', 
+                    status: 'passed', 
+                    score: 89, 
+                    bootcamp: 'Machine Learning', 
+                    responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
+                }
+            ];
 
-  // Calculated statistics
-  const totalApplicants = applicants.length;
-  const passedCount = applicants.filter(a => a.status === 'passed').length;
-  const failedCount = applicants.filter(a => a.status === 'failed').length;
-  const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const chatbots = [
+                { 
+                    id: 1, 
+                    name: 'AI Fundamentals Screener', 
+                    course: 'AI Fundamentals', 
+                    created: '2025-01-01', 
+                    active: true 
+                },
+                { 
+                    id: 2, 
+                    name: 'Machine Learning Screener', 
+                    course: 'Machine Learning', 
+                    created: '2025-01-05', 
+                    active: true 
+                },
+                { 
+                    id: 3, 
+                    name: 'Data Science Screener', 
+                    course: 'Data Science', 
+                    created: '2025-01-10', 
+                    active: false 
+                }
+            ];
 
-  // Filter applicants based on selected category
-  const filteredApplicants = selectedCategory === 'all' 
-    ? applicants 
-    : applicants.filter(a => a.status === selectedCategory);
+            // Calculated statistics
+            const totalApplicants = applicants.length;
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
 
-  // Utility functions
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'passed': return 'text-green-600 bg-green-100';
-      case 'failed': return 'text-red-600 bg-red-100';
-      case 'waitlist': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
+            // Filter applicants based on selected category
+            const filteredApplicants = selectedCategory === 'all' 
+                ? applicants 
+                : applicants.filter(a => a.status === selectedCategory);
 
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'passed': return <CheckCircle className="w-4 h-4" />;
-      case 'failed': return <XCircle className="w-4 h-4" />;
-      case 'waitlist': return <Clock className="w-4 h-4" />;
-      default: return null;
-    }
-  };
+            // Utility functions
+            const getStatusColor = (status) => {
+                switch(status) {
+                    case 'passed': return 'text-green-600 bg-green-100';
+                    case 'failed': return 'text-red-600 bg-red-100';
+                    case 'waitlist': return 'text-yellow-600 bg-yellow-100';
+                    default: return 'text-gray-600 bg-gray-100';
+                }
+            };
 
-  // Event handlers
-  const showExcelData = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
-      ...filteredApplicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
-    ].map(row => row.join(',')).join('\n');
-    
-    setModalTitle(`📊 CSV Data - ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Applicants`);
-    setModalContent(csvContent);
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+            const getStatusIcon = (status) => {
+                switch(status) {
+                    case 'passed': return React.createElement(CheckCircle, { className: "w-4 h-4" });
+                    case 'failed': return React.createElement(XCircle, { className: "w-4 h-4" });
+                    case 'waitlist': return React.createElement(Clock, { className: "w-4 h-4" });
+                    default: return null;
+                }
+            };
 
-  const showIndividualReport = (applicant) => {
-    const reportContent = `AI BOOTCAMP SCREENING REPORT
+            // Event handlers
+            const showExcelData = () => {
+                const csvContent = [
+                    ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
+                    ...filteredApplicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
+                ].map(row => row.join(',')).join('\n');
+                
+                setModalTitle(`📊 CSV Data - ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Applicants`);
+                setModalContent(csvContent);
+                setCopyButtonText('Copy to Clipboard');
+                setShowModal(true);
+            };
+
+            const showIndividualReport = (applicant) => {
+                const reportContent = `AI BOOTCAMP SCREENING REPORT
 ============================
 
 APPLICANT INFORMATION
@@ -199,18 +233,18 @@ ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements f
   'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.'}
 
 Generated on: ${new Date().toLocaleString()}`;
-    
-    setModalTitle(`📋 Screening Report - ${applicant.name}`);
-    setModalContent(reportContent);
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+                
+                setModalTitle(`📋 Screening Report - ${applicant.name}`);
+                setModalContent(reportContent);
+                setCopyButtonText('Copy to Clipboard');
+                setShowModal(true);
+            };
 
-  const handleFileUpload = (event, type) => {
-    const file = event.target.files[0];
-    if (file) {
-      setModalTitle(`✅ File Upload Success`);
-      setModalContent(`${type} file "${file.name}" uploaded successfully!
+            const handleFileUpload = (event, type) => {
+                const file = event.target.files[0];
+                if (file) {
+                    setModalTitle(`✅ File Upload Success`);
+                    setModalContent(`${type} file "${file.name}" uploaded successfully!
 
 File Details:
 - Name: ${file.name}
@@ -224,17 +258,17 @@ Next Steps:
 - Content would be integrated into the system
 
 (This is a demo - in production, the file would be sent to your backend for processing)`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-      // Reset the file input
-      event.target.value = '';
-    }
-  };
+                    setCopyButtonText('Copy to Clipboard');
+                    setShowModal(true);
+                    // Reset the file input
+                    event.target.value = '';
+                }
+            };
 
-  const createChatbot = () => {
-    if (chatbotName.trim()) {
-      setModalTitle('🤖 Chatbot Created Successfully');
-      setModalContent(`Chatbot "${chatbotName}" for ${selectedCourse} created successfully!
+            const createChatbot = () => {
+                if (chatbotName.trim()) {
+                    setModalTitle('🤖 Chatbot Created Successfully');
+                    setModalContent(`Chatbot "${chatbotName}" for ${selectedCourse} created successfully!
 
 Configuration:
 - Name: ${chatbotName}
@@ -256,12 +290,12 @@ Next Steps:
 - Deploy to production
 
 (This is a demo - in production, the chatbot would be configured in your AI platform)`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-      setChatbotName('');
-    } else {
-      setModalTitle('⚠️ Validation Error');
-      setModalContent(`Please enter a chatbot name before creating.
+                    setCopyButtonText('Copy to Clipboard');
+                    setShowModal(true);
+                    setChatbotName('');
+                } else {
+                    setModalTitle('⚠️ Validation Error');
+                    setModalContent(`Please enter a chatbot name before creating.
 
 Required Fields:
 - Chatbot Name: [Required]
@@ -271,38 +305,38 @@ The chatbot name should:
 - Be descriptive and unique
 - Help identify its purpose
 - Follow your naming conventions`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-    }
-  };
+                    setCopyButtonText('Copy to Clipboard');
+                    setShowModal(true);
+                }
+            };
 
-  const handleCategoryExport = (category) => {
-    setSelectedCategory(category);
-    setTimeout(() => {
-      showExcelData();
-    }, 100);
-  };
+            const handleCategoryExport = (category) => {
+                setSelectedCategory(category);
+                setTimeout(() => {
+                    showExcelData();
+                }, 100);
+            };
 
-  const handleCopyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(modalContent);
-      setCopyButtonText('✅ Copied!');
-      setTimeout(() => {
-        setCopyButtonText('Copy to Clipboard');
-      }, 2000);
-    } catch (err) {
-      // Fallback for browsers that don't support clipboard API
-      setCopyButtonText('Select & Copy');
-      setTimeout(() => {
-        setCopyButtonText('Copy to Clipboard');
-      }, 2000);
-    }
-  };
+            const handleCopyToClipboard = async () => {
+                try {
+                    await navigator.clipboard.writeText(modalContent);
+                    setCopyButtonText('✅ Copied!');
+                    setTimeout(() => {
+                        setCopyButtonText('Copy to Clipboard');
+                    }, 2000);
+                } catch (err) {
+                    // Fallback for browsers that don't support clipboard API
+                    setCopyButtonText('Select & Copy');
+                    setTimeout(() => {
+                        setCopyButtonText('Copy to Clipboard');
+                    }, 2000);
+                }
+            };
 
-  const handleChatbotAction = (action, chatbot) => {
-    if (action === 'edit') {
-      setModalTitle(`⚙️ Edit Chatbot - ${chatbot.name}`);
-      setModalContent(`Editing Configuration for: ${chatbot.name}
+            const handleChatbotAction = (action, chatbot) => {
+                if (action === 'edit') {
+                    setModalTitle(`⚙️ Edit Chatbot - ${chatbot.name}`);
+                    setModalContent(`Editing Configuration for: ${chatbot.name}
 
 Current Settings:
 - Name: ${chatbot.name}
@@ -321,9 +355,9 @@ Available Actions:
 - Export configuration
 
 (This is demo functionality - in production, this would open a configuration interface)`);
-    } else if (action === 'delete') {
-      setModalTitle(`🗑️ Delete Chatbot - ${chatbot.name}`);
-      setModalContent(`⚠️ Are you sure you want to delete "${chatbot.name}"?
+                } else if (action === 'delete') {
+                    setModalTitle(`🗑️ Delete Chatbot - ${chatbot.name}`);
+                    setModalContent(`⚠️ Are you sure you want to delete "${chatbot.name}"?
 
 This action will:
 - Permanently remove the chatbot
@@ -340,508 +374,487 @@ Chatbot Details:
 This action CANNOT be undone!
 
 (This is demo functionality - in production, you would confirm this action)`);
-    }
-    
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+                }
+                
+                setCopyButtonText('Copy to Clipboard');
+                setShowModal(true);
+            };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-              <p className="text-gray-600">Manage screening applications and chatbots</p>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={showExcelData}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Show Excel Data</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            return React.createElement('div', { className: "min-h-screen bg-gray-50" },
+                // Header
+                React.createElement('div', { className: "bg-white shadow-sm border-b" },
+                    React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
+                        React.createElement('div', { className: "flex justify-between items-center py-6" },
+                            React.createElement('div', {},
+                                React.createElement('h1', { className: "text-3xl font-bold text-gray-900" }, '🤖 AI Bootcamp Dashboard'),
+                                React.createElement('p', { className: "text-gray-600" }, 'Manage screening applications and chatbots')
+                            ),
+                            React.createElement('div', { className: "flex space-x-3" },
+                                React.createElement('button', {
+                                    onClick: showExcelData,
+                                    className: "bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
+                                },
+                                    React.createElement(Download, { className: "w-4 h-4" }),
+                                    React.createElement('span', {}, 'Show Excel Data')
+                                )
+                            )
+                        )
+                    )
+                ),
 
-      {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {[
-              { id: 'overview', name: 'Overview', icon: BarChart3 },
-              { id: 'applicants', name: 'Applicant Reports', icon: Users },
-              { id: 'chatbots', name: 'Manage Chatbots', icon: Settings }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
-              >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
+                // Navigation Tabs
+                React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
+                    React.createElement('div', { className: "border-b border-gray-200" },
+                        React.createElement('nav', { className: "-mb-px flex space-x-8", "aria-label": "Tabs" },
+                            [
+                                { id: 'overview', name: 'Overview', icon: BarChart3 },
+                                { id: 'applicants', name: 'Applicant Reports', icon: Users },
+                                { id: 'chatbots', name: 'Manage Chatbots', icon: Settings }
+                            ].map((tab) => 
+                                React.createElement('button', {
+                                    key: tab.id,
+                                    onClick: () => setActiveTab(tab.id),
+                                    className: `${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`
+                                },
+                                    React.createElement(tab.icon, { className: "w-4 h-4" }),
+                                    React.createElement('span', {}, tab.name)
+                                )
+                            )
+                        )
+                    )
+                ),
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <Users className="w-8 h-8 text-blue-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Applicants</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalApplicants}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Passed</p>
-                    <p className="text-2xl font-bold text-gray-900">{passedCount}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Failed</p>
-                    <p className="text-2xl font-bold text-gray-900">{failedCount}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <Clock className="w-8 h-8 text-yellow-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Waitlist</p>
-                    <p className="text-2xl font-bold text-gray-900">{waitlistCount}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+                // Main Content
+                React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" },
+                    // Overview Tab
+                    activeTab === 'overview' && React.createElement('div', { className: "space-y-6" },
+                        // Statistics Cards
+                        React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-6" },
+                            React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow" },
+                                React.createElement('div', { className: "flex items-center" },
+                                    React.createElement(Users, { className: "w-8 h-8 text-blue-600" }),
+                                    React.createElement('div', { className: "ml-4" },
+                                        React.createElement('p', { className: "text-sm font-medium text-gray-600" }, 'Total Applicants'),
+                                        React.createElement('p', { className: "text-2xl font-bold text-gray-900" }, totalApplicants)
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow" },
+                                React.createElement('div', { className: "flex items-center" },
+                                    React.createElement(CheckCircle, { className: "w-8 h-8 text-green-600" }),
+                                    React.createElement('div', { className: "ml-4" },
+                                        React.createElement('p', { className: "text-sm font-medium text-gray-600" }, 'Passed'),
+                                        React.createElement('p', { className: "text-2xl font-bold text-gray-900" }, passedCount)
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow" },
+                                React.createElement('div', { className: "flex items-center" },
+                                    React.createElement(XCircle, { className: "w-8 h-8 text-red-600" }),
+                                    React.createElement('div', { className: "ml-4" },
+                                        React.createElement('p', { className: "text-sm font-medium text-gray-600" }, 'Failed'),
+                                        React.createElement('p', { className: "text-2xl font-bold text-gray-900" }, failedCount)
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow" },
+                                React.createElement('div', { className: "flex items-center" },
+                                    React.createElement(Clock, { className: "w-8 h-8 text-yellow-600" }),
+                                    React.createElement('div', { className: "ml-4" },
+                                        React.createElement('p', { className: "text-sm font-medium text-gray-600" }, 'Waitlist'),
+                                        React.createElement('p', { className: "text-2xl font-bold text-gray-900" }, waitlistCount)
+                                    )
+                                )
+                            )
+                        ),
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {applicants.slice(0, 5).map((applicant) => (
-                  <div key={applicant.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
-                            {applicant.name.split(' ').map(n => n[0]).join('')}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{applicant.name}</p>
-                        <p className="text-sm text-gray-500">{applicant.email}</p>
-                        <p className="text-sm text-gray-500">{applicant.phone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm text-gray-500">{applicant.bootcamp}</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(applicant.status)}`}>
-                        {getStatusIcon(applicant.status)}
-                        <span className="ml-1 capitalize">{applicant.status}</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+                        // Recent Activity
+                        React.createElement('div', { className: "bg-white rounded-lg shadow-sm border" },
+                            React.createElement('div', { className: "px-6 py-4 border-b" },
+                                React.createElement('h3', { className: "text-lg font-medium text-gray-900" }, '📝 Recent Applications')
+                            ),
+                            React.createElement('div', { className: "divide-y divide-gray-200" },
+                                applicants.slice(0, 5).map((applicant) =>
+                                    React.createElement('div', {
+                                        key: applicant.id,
+                                        className: "px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                    },
+                                        React.createElement('div', { className: "flex items-center space-x-4" },
+                                            React.createElement('div', { className: "flex-shrink-0" },
+                                                React.createElement('div', { className: "w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center" },
+                                                    React.createElement('span', { className: "text-sm font-medium text-gray-600" },
+                                                        applicant.name.split(' ').map(n => n[0]).join('')
+                                                    )
+                                                )
+                                            ),
+                                            React.createElement('div', {},
+                                                React.createElement('p', { className: "text-sm font-medium text-gray-900" }, applicant.name),
+                                                React.createElement('p', { className: "text-sm text-gray-500" }, applicant.email),
+                                                React.createElement('p', { className: "text-sm text-gray-500" }, applicant.phone)
+                                            )
+                                        ),
+                                        React.createElement('div', { className: "flex items-center space-x-4" },
+                                            React.createElement('span', { className: "text-sm text-gray-500" }, applicant.bootcamp),
+                                            React.createElement('span', {
+                                                className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(applicant.status)}`
+                                            },
+                                                getStatusIcon(applicant.status),
+                                                React.createElement('span', { className: "ml-1 capitalize" }, applicant.status)
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
 
-        {/* Applicants Tab */}
-        {activeTab === 'applicants' && (
-          <div className="space-y-6">
-            {/* Filter Controls */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
-                  <p className="text-sm text-gray-500">Individual reports grouped by status</p>
-                </div>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={showExcelData}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Show All Data</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+                    // Applicants Tab
+                    activeTab === 'applicants' && React.createElement('div', { className: "space-y-6" },
+                        // Filter Controls
+                        React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                            React.createElement('div', { className: "flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0" },
+                                React.createElement('div', {},
+                                    React.createElement('h3', { className: "text-lg font-medium text-gray-900" }, '📊 Applicant Reports'),
+                                    React.createElement('p', { className: "text-sm text-gray-500" }, 'Individual reports grouped by status')
+                                ),
+                                React.createElement('div', { className: "flex space-x-4" },
+                                    React.createElement('button', {
+                                        onClick: showExcelData,
+                                        className: "bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm transition-colors"
+                                    },
+                                        React.createElement(Download, { className: "w-4 h-4" }),
+                                        React.createElement('span', {}, 'Show All Data')
+                                    )
+                                )
+                            )
+                        ),
 
-            {/* Passed Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-green-50 px-6 py-4 border-b border-green-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-green-800 flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    ✅ Passed Applicants ({passedCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('passed')}
-                    className="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'passed').map((applicant) => (
-                    <div key={applicant.id} className="border border-green-200 rounded-lg p-4 bg-green-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
-                        </div>
-                        <span className="text-lg font-bold text-green-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                        // Passed Applicants Section
+                        React.createElement('div', { className: "bg-white shadow-sm border rounded-lg overflow-hidden" },
+                            React.createElement('div', { className: "bg-green-50 px-6 py-4 border-b border-green-200" },
+                                React.createElement('div', { className: "flex items-center justify-between" },
+                                    React.createElement('h3', { className: "text-lg font-medium text-green-800 flex items-center" },
+                                        React.createElement(CheckCircle, { className: "w-5 h-5 mr-2" }),
+                                        `✅ Passed Applicants (${passedCount})`
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => handleCategoryExport('passed'),
+                                        className: "text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors"
+                                    },
+                                        React.createElement(Download, { className: "w-4 h-4" }),
+                                        React.createElement('span', {}, 'Export Data')
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "p-6" },
+                                React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" },
+                                    applicants.filter(a => a.status === 'passed').map((applicant) =>
+                                        React.createElement('div', {
+                                            key: applicant.id,
+                                            className: "border border-green-200 rounded-lg p-4 bg-green-50 hover:shadow-md transition-shadow"
+                                        },
+                                            React.createElement('div', { className: "flex items-start justify-between mb-3" },
+                                                React.createElement('div', { className: "flex-grow" },
+                                                    React.createElement('h4', { className: "font-medium text-gray-900" }, applicant.name),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.email),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.phone)
+                                                ),
+                                                React.createElement('span', { className: "text-lg font-bold text-green-600" }, `${applicant.score}%`)
+                                            ),
+                                            React.createElement('div', { className: "flex items-center justify-between text-sm text-gray-500 mb-3" },
+                                                React.createElement('span', {}, applicant.bootcamp),
+                                                React.createElement('span', {}, applicant.date)
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: () => showIndividualReport(applicant),
+                                                className: "w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2 text-sm transition-colors"
+                                            },
+                                                React.createElement(Download, { className: "w-4 h-4" }),
+                                                React.createElement('span', {}, 'View Report')
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
 
-            {/* Waitlist Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-yellow-800 flex items-center">
-                    <Clock className="w-5 h-5 mr-2" />
-                    ⏳ Waitlist Applicants ({waitlistCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('waitlist')}
-                    className="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'waitlist').map((applicant) => (
-                    <div key={applicant.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
-                        </div>
-                        <span className="text-lg font-bold text-yellow-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                        // Waitlist Applicants Section
+                        React.createElement('div', { className: "bg-white shadow-sm border rounded-lg overflow-hidden" },
+                            React.createElement('div', { className: "bg-yellow-50 px-6 py-4 border-b border-yellow-200" },
+                                React.createElement('div', { className: "flex items-center justify-between" },
+                                    React.createElement('h3', { className: "text-lg font-medium text-yellow-800 flex items-center" },
+                                        React.createElement(Clock, { className: "w-5 h-5 mr-2" }),
+                                        `⏳ Waitlist Applicants (${waitlistCount})`
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => handleCategoryExport('waitlist'),
+                                        className: "text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors"
+                                    },
+                                        React.createElement(Download, { className: "w-4 h-4" }),
+                                        React.createElement('span', {}, 'Export Data')
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "p-6" },
+                                React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" },
+                                    applicants.filter(a => a.status === 'waitlist').map((applicant) =>
+                                        React.createElement('div', {
+                                            key: applicant.id,
+                                            className: "border border-yellow-200 rounded-lg p-4 bg-yellow-50 hover:shadow-md transition-shadow"
+                                        },
+                                            React.createElement('div', { className: "flex items-start justify-between mb-3" },
+                                                React.createElement('div', { className: "flex-grow" },
+                                                    React.createElement('h4', { className: "font-medium text-gray-900" }, applicant.name),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.email),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.phone)
+                                                ),
+                                                React.createElement('span', { className: "text-lg font-bold text-yellow-600" }, `${applicant.score}%`)
+                                            ),
+                                            React.createElement('div', { className: "flex items-center justify-between text-sm text-gray-500 mb-3" },
+                                                React.createElement('span', {}, applicant.bootcamp),
+                                                React.createElement('span', {}, applicant.date)
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: () => showIndividualReport(applicant),
+                                                className: "w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 flex items-center justify-center space-x-2 text-sm transition-colors"
+                                            },
+                                                React.createElement(Download, { className: "w-4 h-4" }),
+                                                React.createElement('span', {}, 'View Report')
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
 
-            {/* Failed Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-red-50 px-6 py-4 border-b border-red-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-red-800 flex items-center">
-                    <XCircle className="w-5 h-5 mr-2" />
-                    ❌ Failed Applicants ({failedCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('failed')}
-                    className="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'failed').map((applicant) => (
-                    <div key={applicant.id} className="border border-red-200 rounded-lg p-4 bg-red-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
-                        </div>
-                        <span className="text-lg font-bold text-red-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                        // Failed Applicants Section
+                        React.createElement('div', { className: "bg-white shadow-sm border rounded-lg overflow-hidden" },
+                            React.createElement('div', { className: "bg-red-50 px-6 py-4 border-b border-red-200" },
+                                React.createElement('div', { className: "flex items-center justify-between" },
+                                    React.createElement('h3', { className: "text-lg font-medium text-red-800 flex items-center" },
+                                        React.createElement(XCircle, { className: "w-5 h-5 mr-2" }),
+                                        `❌ Failed Applicants (${failedCount})`
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => handleCategoryExport('failed'),
+                                        className: "text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors"
+                                    },
+                                        React.createElement(Download, { className: "w-4 h-4" }),
+                                        React.createElement('span', {}, 'Export Data')
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "p-6" },
+                                React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" },
+                                    applicants.filter(a => a.status === 'failed').map((applicant) =>
+                                        React.createElement('div', {
+                                            key: applicant.id,
+                                            className: "border border-red-200 rounded-lg p-4 bg-red-50 hover:shadow-md transition-shadow"
+                                        },
+                                            React.createElement('div', { className: "flex items-start justify-between mb-3" },
+                                                React.createElement('div', { className: "flex-grow" },
+                                                    React.createElement('h4', { className: "font-medium text-gray-900" }, applicant.name),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.email),
+                                                    React.createElement('p', { className: "text-sm text-gray-600" }, applicant.phone)
+                                                ),
+                                                React.createElement('span', { className: "text-lg font-bold text-red-600" }, `${applicant.score}%`)
+                                            ),
+                                            React.createElement('div', { className: "flex items-center justify-between text-sm text-gray-500 mb-3" },
+                                                React.createElement('span', {}, applicant.bootcamp),
+                                                React.createElement('span', {}, applicant.date)
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: () => showIndividualReport(applicant),
+                                                className: "w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-2 text-sm transition-colors"
+                                            },
+                                                React.createElement(Download, { className: "w-4 h-4" }),
+                                                React.createElement('span', {}, 'View Report')
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
 
-        {/* Chatbots Tab */}
-        {activeTab === 'chatbots' && (
-          <div className="space-y-6">
-            {/* Create New Chatbot */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chatbot Name
-                  </label>
-                  <input
-                    type="text"
-                    value={chatbotName}
-                    onChange={(e) => setChatbotName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Enter chatbot name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course/Bootcamp
-                  </label>
-                  <select 
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  >
-                    <option>AI Fundamentals</option>
-                    <option>Machine Learning</option>
-                    <option>Data Science</option>
-                    <option>Deep Learning</option>
-                    <option>Computer Vision</option>
-                    <option>Natural Language Processing</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4">
-                <button 
-                  onClick={createChatbot}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create Chatbot</span>
-                </button>
-              </div>
-            </div>
+                    // Chatbots Tab
+                    activeTab === 'chatbots' && React.createElement('div', { className: "space-y-6" },
+                        // Create New Chatbot
+                        React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                            React.createElement('h3', { className: "text-lg font-medium text-gray-900 mb-4" }, '🤖 Create New Screening Chatbot'),
+                            React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+                                React.createElement('div', {},
+                                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, 'Chatbot Name'),
+                                    React.createElement('input', {
+                                        type: "text",
+                                        value: chatbotName,
+                                        onChange: (e) => setChatbotName(e.target.value),
+                                        className: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors",
+                                        placeholder: "Enter chatbot name"
+                                    })
+                                ),
+                                React.createElement('div', {},
+                                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-2" }, 'Course/Bootcamp'),
+                                    React.createElement('select', {
+                                        value: selectedCourse,
+                                        onChange: (e) => setSelectedCourse(e.target.value),
+                                        className: "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    },
+                                        React.createElement('option', {}, 'AI Fundamentals'),
+                                        React.createElement('option', {}, 'Machine Learning'),
+                                        React.createElement('option', {}, 'Data Science'),
+                                        React.createElement('option', {}, 'Deep Learning'),
+                                        React.createElement('option', {}, 'Computer Vision'),
+                                        React.createElement('option', {}, 'Natural Language Processing')
+                                    )
+                                )
+                            ),
+                            React.createElement('div', { className: "mt-4" },
+                                React.createElement('button', {
+                                    onClick: createChatbot,
+                                    className: "bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+                                },
+                                    React.createElement(Plus, { className: "w-4 h-4" }),
+                                    React.createElement('span', {}, 'Create Chatbot')
+                                )
+                            )
+                        ),
 
-            {/* Upload Script */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
-                <p className="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
-                <input 
-                  type="file" 
-                  id="script-upload"
-                  className="hidden" 
-                  accept=".js,.json,.txt" 
-                  onChange={(e) => handleFileUpload(e, 'Script')}
-                />
-                <button 
-                  onClick={() => document.getElementById('script-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
-                >
-                  Choose File
-                </button>
-              </div>
-            </div>
+                        // Upload Script
+                        React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                            React.createElement('h3', { className: "text-lg font-medium text-gray-900 mb-4" }, '📝 Upload New Script'),
+                            React.createElement('div', { className: "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors" },
+                                React.createElement(Upload, { className: "w-12 h-12 text-gray-400 mx-auto mb-4" }),
+                                React.createElement('p', { className: "text-sm text-gray-600 mb-2" }, 'Drop your script file here or click to upload'),
+                                React.createElement('p', { className: "text-xs text-gray-500 mb-4" }, 'Supported formats: .js, .json, .txt'),
+                                React.createElement('input', {
+                                    type: "file",
+                                    id: "script-upload",
+                                    style: { display: 'none' },
+                                    accept: ".js,.json,.txt",
+                                    onChange: (e) => handleFileUpload(e, 'Script')
+                                }),
+                                React.createElement('button', {
+                                    onClick: () => document.getElementById('script-upload').click(),
+                                    className: "bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
+                                }, 'Choose File')
+                            )
+                        ),
 
-            {/* Upload Course Info */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
-                <p className="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
-                <input 
-                  type="file" 
-                  id="course-upload"
-                  className="hidden" 
-                  accept=".pdf,.doc,.docx,.txt" 
-                  onChange={(e) => handleFileUpload(e, 'Course Info')}
-                />
-                <button 
-                  onClick={() => document.getElementById('course-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
-                >
-                  Choose File
-                </button>
-              </div>
-            </div>
+                        // Upload Course Info
+                        React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                            React.createElement('h3', { className: "text-lg font-medium text-gray-900 mb-4" }, '📚 Upload Bootcamp/Course Info'),
+                            React.createElement('div', { className: "border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors" },
+                                React.createElement(Upload, { className: "w-12 h-12 text-gray-400 mx-auto mb-4" }),
+                                React.createElement('p', { className: "text-sm text-gray-600 mb-2" }, 'Drop your course information file here or click to upload'),
+                                React.createElement('p', { className: "text-xs text-gray-500 mb-4" }, 'Supported formats: .pdf, .doc, .docx, .txt'),
+                                React.createElement('input', {
+                                    type: "file",
+                                    id: "course-upload",
+                                    style: { display: 'none' },
+                                    accept: ".pdf,.doc,.docx,.txt",
+                                    onChange: (e) => handleFileUpload(e, 'Course Info')
+                                }),
+                                React.createElement('button', {
+                                    onClick: () => document.getElementById('course-upload').click(),
+                                    className: "bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
+                                }, 'Choose File')
+                            )
+                        ),
 
-            {/* Existing Chatbots */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Course
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {chatbots.map((chatbot) => (
-                      <tr key={chatbot.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {chatbot.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {chatbot.course}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {chatbot.created}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'
-                          }`}>
-                            {chatbot.active ? '🟢 Active' : '🔴 Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button 
-                            onClick={() => handleChatbotAction('edit', chatbot)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleChatbotAction('delete', chatbot)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                        // Existing Chatbots
+                        React.createElement('div', { className: "bg-white shadow-sm border rounded-lg overflow-hidden" },
+                            React.createElement('div', { className: "px-6 py-4 border-b" },
+                                React.createElement('h3', { className: "text-lg font-medium text-gray-900" }, '🤖 Existing Chatbots')
+                            ),
+                            React.createElement('div', { className: "overflow-x-auto" },
+                                React.createElement('table', { className: "min-w-full divide-y divide-gray-200" },
+                                    React.createElement('thead', { className: "bg-gray-50" },
+                                        React.createElement('tr', {},
+                                            React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, 'Name'),
+                                            React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, 'Course'),
+                                            React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, 'Created'),
+                                            React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, 'Status'),
+                                            React.createElement('th', { className: "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, 'Actions')
+                                        )
+                                    ),
+                                    React.createElement('tbody', { className: "bg-white divide-y divide-gray-200" },
+                                        chatbots.map((chatbot) =>
+                                            React.createElement('tr', {
+                                                key: chatbot.id,
+                                                className: "hover:bg-gray-50 transition-colors"
+                                            },
+                                                React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" }, chatbot.name),
+                                                React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm text-gray-900" }, chatbot.course),
+                                                React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm text-gray-900" }, chatbot.created),
+                                                React.createElement('td', { className: "px-6 py-4 whitespace-nowrap" },
+                                                    React.createElement('span', {
+                                                        className: `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'
+                                                        }`
+                                                    }, chatbot.active ? '🟢 Active' : '🔴 Inactive')
+                                                ),
+                                                React.createElement('td', { className: "px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2" },
+                                                    React.createElement('button', {
+                                                        onClick: () => handleChatbotAction('edit', chatbot),
+                                                        className: "text-blue-600 hover:text-blue-900 transition-colors"
+                                                    }, 'Edit'),
+                                                    React.createElement('button', {
+                                                        onClick: () => handleChatbotAction('delete', chatbot),
+                                                        className: "text-red-600 hover:text-red-900 transition-colors"
+                                                    }, 'Delete')
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
 
-      {/* Enhanced Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b bg-gray-50">
-              <h2 className="text-xl font-semibold text-gray-900">{modalTitle}</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 overflow-auto max-h-[70vh]">
-              <textarea
-                value={modalContent}
-                readOnly
-                className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none"
-                placeholder="Content will appear here..."
-              />
-              <div className="mt-4 flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save
-                </p>
-                <button
-                  onClick={handleCopyToClipboard}
-                  className={`px-4 py-2 rounded-md text-sm text-white transition-colors ${
-                    copyButtonText === '✅ Copied!' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {copyButtonText}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+                // Enhanced Modal
+                showModal && React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" },
+                    React.createElement('div', { className: "bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl" },
+                        React.createElement('div', { className: "flex justify-between items-center p-6 border-b bg-gray-50" },
+                            React.createElement('h2', { className: "text-xl font-semibold text-gray-900" }, modalTitle),
+                            React.createElement('button', {
+                                onClick: () => setShowModal(false),
+                                className: "text-gray-400 hover:text-gray-600 transition-colors"
+                            },
+                                React.createElement(XCircle, { className: "w-6 h-6" })
+                            )
+                        ),
+                        React.createElement('div', { className: "p-6 overflow-auto max-h-[70vh]" },
+                            React.createElement('textarea', {
+                                value: modalContent,
+                                readOnly: true,
+                                className: "w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none",
+                                placeholder: "Content will appear here..."
+                            }),
+                            React.createElement('div', { className: "mt-4 flex justify-between items-center" },
+                                React.createElement('p', { className: "text-sm text-gray-600" }, '💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save'),
+                                React.createElement('button', {
+                                    onClick: handleCopyToClipboard,
+                                    className: `px-4 py-2 rounded-md text-sm text-white transition-colors ${
+                                        copyButtonText === '✅ Copied!' 
+                                            ? 'bg-green-600 hover:bg-green-700' 
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                    }`
+                                }, copyButtonText)
+                            )
+                        )
+                    )
+                )
+            );
+        };
 
-export default AIBootcampDashboard;
+        // Render the app
+        ReactDOM.render(React.createElement(AIBootcampDashboard), document.getElementById('root'));
+    </script>
+</body>
+</html>
