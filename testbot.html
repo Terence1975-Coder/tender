@@ -1,22 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  Download, 
-  Plus, 
-  Upload, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Settings, 
-  BarChart3 
-} from 'lucide-react';
+import { Download, Plus, Upload, Users, CheckCircle, XCircle, Clock, Settings, BarChart3 } from 'lucide-react';
 
-/**
- * AI Bootcamp Dashboard Component
- * 
- * A comprehensive dashboard for managing AI bootcamp applications and screening chatbots.
- * Features include applicant management, report generation, and chatbot configuration.
- */
 const AIBootcampDashboard = () => {
   // State management
   const [activeTab, setActiveTab] = useState('overview');
@@ -29,7 +13,7 @@ const AIBootcampDashboard = () => {
   const [copyButtonText, setCopyButtonText] = useState('Copy to Clipboard');
 
   // Mock data - Replace with your actual data source
-  const [applicants] = useState([
+  const applicants = [
     { 
       id: 1, 
       name: 'John Smith', 
@@ -118,9 +102,9 @@ const AIBootcampDashboard = () => {
       bootcamp: 'Machine Learning', 
       responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
     }
-  ]);
+  ];
 
-  const [chatbots] = useState([
+  const chatbots = [
     { 
       id: 1, 
       name: 'AI Fundamentals Screener', 
@@ -142,7 +126,7 @@ const AIBootcampDashboard = () => {
       created: '2025-01-10', 
       active: false 
     }
-  ]);
+  ];
 
   // Calculated statistics
   const totalApplicants = applicants.length;
@@ -175,19 +159,19 @@ const AIBootcampDashboard = () => {
   };
 
   // Event handlers
-  const downloadExcel = () => {
+  const showExcelData = () => {
     const csvContent = [
       ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
       ...filteredApplicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
     ].map(row => row.join(',')).join('\n');
     
-    setModalTitle(`CSV Data - ${selectedCategory} Applicants`);
+    setModalTitle(`📊 CSV Data - ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Applicants`);
     setModalContent(csvContent);
     setCopyButtonText('Copy to Clipboard');
     setShowModal(true);
   };
 
-  const downloadIndividualReport = (applicant) => {
+  const showIndividualReport = (applicant) => {
     const reportContent = `AI BOOTCAMP SCREENING REPORT
 ============================
 
@@ -216,7 +200,7 @@ ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements f
 
 Generated on: ${new Date().toLocaleString()}`;
     
-    setModalTitle(`Screening Report - ${applicant.name}`);
+    setModalTitle(`📋 Screening Report - ${applicant.name}`);
     setModalContent(reportContent);
     setCopyButtonText('Copy to Clipboard');
     setShowModal(true);
@@ -225,23 +209,68 @@ Generated on: ${new Date().toLocaleString()}`;
   const handleFileUpload = (event, type) => {
     const file = event.target.files[0];
     if (file) {
-      setModalTitle(`File Upload Success`);
-      setModalContent(`${type} file "${file.name}" uploaded successfully!\n\nFile details:\n- Name: ${file.name}\n- Size: ${(file.size / 1024).toFixed(2)} KB\n- Type: ${file.type}\n\n(This is a demo - in a real app, this would be processed on the server)`);
+      setModalTitle(`✅ File Upload Success`);
+      setModalContent(`${type} file "${file.name}" uploaded successfully!
+
+File Details:
+- Name: ${file.name}
+- Size: ${(file.size / 1024).toFixed(2)} KB
+- Type: ${file.type}
+- Last Modified: ${new Date(file.lastModified).toLocaleString()}
+
+Next Steps:
+- File would be processed by the server
+- Validation checks would be performed
+- Content would be integrated into the system
+
+(This is a demo - in production, the file would be sent to your backend for processing)`);
       setCopyButtonText('Copy to Clipboard');
       setShowModal(true);
+      // Reset the file input
+      event.target.value = '';
     }
   };
 
   const createChatbot = () => {
     if (chatbotName.trim()) {
-      setModalTitle('Chatbot Created Successfully');
-      setModalContent(`Chatbot "${chatbotName}" for ${selectedCourse} created successfully!\n\nConfiguration:\n- Name: ${chatbotName}\n- Course: ${selectedCourse}\n- Created: ${new Date().toLocaleString()}\n- Status: Active\n\n(This is a demo)`);
+      setModalTitle('🤖 Chatbot Created Successfully');
+      setModalContent(`Chatbot "${chatbotName}" for ${selectedCourse} created successfully!
+
+Configuration:
+- Name: ${chatbotName}
+- Course: ${selectedCourse}
+- Created: ${new Date().toLocaleString()}
+- Status: Active
+- ID: CB${Date.now().toString().slice(-6)}
+
+Features Enabled:
+✓ Applicant Screening
+✓ Automated Responses
+✓ Score Calculation
+✓ Report Generation
+
+Next Steps:
+- Configure screening questions
+- Set passing thresholds
+- Test with sample applicants
+- Deploy to production
+
+(This is a demo - in production, the chatbot would be configured in your AI platform)`);
       setCopyButtonText('Copy to Clipboard');
       setShowModal(true);
       setChatbotName('');
     } else {
-      setModalTitle('Validation Error');
-      setModalContent('Please enter a chatbot name before creating.');
+      setModalTitle('⚠️ Validation Error');
+      setModalContent(`Please enter a chatbot name before creating.
+
+Required Fields:
+- Chatbot Name: [Required]
+- Course Selection: [Selected: ${selectedCourse}]
+
+The chatbot name should:
+- Be descriptive and unique
+- Help identify its purpose
+- Follow your naming conventions`);
       setCopyButtonText('Copy to Clipboard');
       setShowModal(true);
     }
@@ -250,8 +279,71 @@ Generated on: ${new Date().toLocaleString()}`;
   const handleCategoryExport = (category) => {
     setSelectedCategory(category);
     setTimeout(() => {
-      downloadExcel();
+      showExcelData();
     }, 100);
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(modalContent);
+      setCopyButtonText('✅ Copied!');
+      setTimeout(() => {
+        setCopyButtonText('Copy to Clipboard');
+      }, 2000);
+    } catch (err) {
+      // Fallback for browsers that don't support clipboard API
+      setCopyButtonText('Select & Copy');
+      setTimeout(() => {
+        setCopyButtonText('Copy to Clipboard');
+      }, 2000);
+    }
+  };
+
+  const handleChatbotAction = (action, chatbot) => {
+    if (action === 'edit') {
+      setModalTitle(`⚙️ Edit Chatbot - ${chatbot.name}`);
+      setModalContent(`Editing Configuration for: ${chatbot.name}
+
+Current Settings:
+- Name: ${chatbot.name}
+- Course: ${chatbot.course}
+- Created: ${chatbot.created}
+- Status: ${chatbot.active ? 'Active' : 'Inactive'}
+- Applications Processed: ${Math.floor(Math.random() * 100) + 20}
+- Success Rate: ${Math.floor(Math.random() * 30) + 70}%
+
+Available Actions:
+- Update name and description
+- Modify screening questions
+- Adjust scoring criteria
+- Change status (Active/Inactive)
+- View performance analytics
+- Export configuration
+
+(This is demo functionality - in production, this would open a configuration interface)`);
+    } else if (action === 'delete') {
+      setModalTitle(`🗑️ Delete Chatbot - ${chatbot.name}`);
+      setModalContent(`⚠️ Are you sure you want to delete "${chatbot.name}"?
+
+This action will:
+- Permanently remove the chatbot
+- Delete all configuration data
+- Stop any active screening sessions
+- Archive historical data
+
+Chatbot Details:
+- Course: ${chatbot.course}
+- Created: ${chatbot.created}
+- Status: ${chatbot.active ? 'Active' : 'Inactive'}
+- Applications Processed: ${Math.floor(Math.random() * 100) + 20}
+
+This action CANNOT be undone!
+
+(This is demo functionality - in production, you would confirm this action)`);
+    }
+    
+    setCopyButtonText('Copy to Clipboard');
+    setShowModal(true);
   };
 
   return (
@@ -261,13 +353,13 @@ Generated on: ${new Date().toLocaleString()}`;
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">AI Bootcamp Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
               <p className="text-gray-600">Manage screening applications and chatbots</p>
             </div>
             <div className="flex space-x-3">
               <button
-                onClick={downloadExcel}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                onClick={showExcelData}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span>Show Excel Data</span>
@@ -293,7 +385,7 @@ Generated on: ${new Date().toLocaleString()}`;
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
               >
                 <tab.icon className="w-4 h-4" />
                 <span>{tab.name}</span>
@@ -310,7 +402,7 @@ Generated on: ${new Date().toLocaleString()}`;
           <div className="space-y-6">
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <Users className="w-8 h-8 text-blue-600" />
                   <div className="ml-4">
@@ -319,7 +411,7 @@ Generated on: ${new Date().toLocaleString()}`;
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                   <div className="ml-4">
@@ -328,7 +420,7 @@ Generated on: ${new Date().toLocaleString()}`;
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <XCircle className="w-8 h-8 text-red-600" />
                   <div className="ml-4">
@@ -337,7 +429,7 @@ Generated on: ${new Date().toLocaleString()}`;
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                 <div className="flex items-center">
                   <Clock className="w-8 h-8 text-yellow-600" />
                   <div className="ml-4">
@@ -351,11 +443,11 @@ Generated on: ${new Date().toLocaleString()}`;
             {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">Recent Applications</h3>
+                <h3 className="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
               </div>
               <div className="divide-y divide-gray-200">
                 {applicants.slice(0, 5).map((applicant) => (
-                  <div key={applicant.id} className="px-6 py-4 flex items-center justify-between">
+                  <div key={applicant.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -391,13 +483,13 @@ Generated on: ${new Date().toLocaleString()}`;
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Applicant Reports</h3>
+                  <h3 className="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
                   <p className="text-sm text-gray-500">Individual reports grouped by status</p>
                 </div>
                 <div className="flex space-x-4">
                   <button
-                    onClick={downloadExcel}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm"
+                    onClick={showExcelData}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm transition-colors"
                   >
                     <Download className="w-4 h-4" />
                     <span>Show All Data</span>
@@ -412,21 +504,21 @@ Generated on: ${new Date().toLocaleString()}`;
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-green-800 flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Passed Applicants ({passedCount})
+                    ✅ Passed Applicants ({passedCount})
                   </h3>
                   <button 
                     onClick={() => handleCategoryExport('passed')}
-                    className="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1"
+                    className="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Show Data</span>
+                    <span>Export Data</span>
                   </button>
                 </div>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {applicants.filter(a => a.status === 'passed').map((applicant) => (
-                    <div key={applicant.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div key={applicant.id} className="border border-green-200 rounded-lg p-4 bg-green-50 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-grow">
                           <h4 className="font-medium text-gray-900">{applicant.name}</h4>
@@ -440,11 +532,11 @@ Generated on: ${new Date().toLocaleString()}`;
                         <span>{applicant.date}</span>
                       </div>
                       <button
-                        onClick={() => downloadIndividualReport(applicant)}
-                        className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2 text-sm"
+                        onClick={() => showIndividualReport(applicant)}
+                        className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2 text-sm transition-colors"
                       >
                         <Download className="w-4 h-4" />
-                        <span>Show Report</span>
+                        <span>View Report</span>
                       </button>
                     </div>
                   ))}
@@ -458,21 +550,21 @@ Generated on: ${new Date().toLocaleString()}`;
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-yellow-800 flex items-center">
                     <Clock className="w-5 h-5 mr-2" />
-                    Waitlist Applicants ({waitlistCount})
+                    ⏳ Waitlist Applicants ({waitlistCount})
                   </h3>
                   <button 
                     onClick={() => handleCategoryExport('waitlist')}
-                    className="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1"
+                    className="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Show Data</span>
+                    <span>Export Data</span>
                   </button>
                 </div>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {applicants.filter(a => a.status === 'waitlist').map((applicant) => (
-                    <div key={applicant.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                    <div key={applicant.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-grow">
                           <h4 className="font-medium text-gray-900">{applicant.name}</h4>
@@ -486,11 +578,11 @@ Generated on: ${new Date().toLocaleString()}`;
                         <span>{applicant.date}</span>
                       </div>
                       <button
-                        onClick={() => downloadIndividualReport(applicant)}
-                        className="w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 flex items-center justify-center space-x-2 text-sm"
+                        onClick={() => showIndividualReport(applicant)}
+                        className="w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 flex items-center justify-center space-x-2 text-sm transition-colors"
                       >
                         <Download className="w-4 h-4" />
-                        <span>Show Report</span>
+                        <span>View Report</span>
                       </button>
                     </div>
                   ))}
@@ -504,21 +596,21 @@ Generated on: ${new Date().toLocaleString()}`;
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-red-800 flex items-center">
                     <XCircle className="w-5 h-5 mr-2" />
-                    Failed Applicants ({failedCount})
+                    ❌ Failed Applicants ({failedCount})
                   </h3>
                   <button 
                     onClick={() => handleCategoryExport('failed')}
-                    className="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1"
+                    className="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Show Data</span>
+                    <span>Export Data</span>
                   </button>
                 </div>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {applicants.filter(a => a.status === 'failed').map((applicant) => (
-                    <div key={applicant.id} className="border border-red-200 rounded-lg p-4 bg-red-50">
+                    <div key={applicant.id} className="border border-red-200 rounded-lg p-4 bg-red-50 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-grow">
                           <h4 className="font-medium text-gray-900">{applicant.name}</h4>
@@ -532,11 +624,11 @@ Generated on: ${new Date().toLocaleString()}`;
                         <span>{applicant.date}</span>
                       </div>
                       <button
-                        onClick={() => downloadIndividualReport(applicant)}
-                        className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-2 text-sm"
+                        onClick={() => showIndividualReport(applicant)}
+                        className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-2 text-sm transition-colors"
                       >
                         <Download className="w-4 h-4" />
-                        <span>Show Report</span>
+                        <span>View Report</span>
                       </button>
                     </div>
                   ))}
@@ -551,7 +643,7 @@ Generated on: ${new Date().toLocaleString()}`;
           <div className="space-y-6">
             {/* Create New Chatbot */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Screening Chatbot</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -561,7 +653,7 @@ Generated on: ${new Date().toLocaleString()}`;
                     type="text"
                     value={chatbotName}
                     onChange={(e) => setChatbotName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Enter chatbot name"
                   />
                 </div>
@@ -572,19 +664,21 @@ Generated on: ${new Date().toLocaleString()}`;
                   <select 
                     value={selectedCourse}
                     onChange={(e) => setSelectedCourse(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
                     <option>AI Fundamentals</option>
                     <option>Machine Learning</option>
                     <option>Data Science</option>
                     <option>Deep Learning</option>
+                    <option>Computer Vision</option>
+                    <option>Natural Language Processing</option>
                   </select>
                 </div>
               </div>
               <div className="mt-4">
                 <button 
                   onClick={createChatbot}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Chatbot</span>
@@ -594,10 +688,11 @@ Generated on: ${new Date().toLocaleString()}`;
 
             {/* Upload Script */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Upload New Script</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
+                <p className="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
                 <input 
                   type="file" 
                   id="script-upload"
@@ -607,7 +702,7 @@ Generated on: ${new Date().toLocaleString()}`;
                 />
                 <button 
                   onClick={() => document.getElementById('script-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm"
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
                 >
                   Choose File
                 </button>
@@ -616,10 +711,11 @@ Generated on: ${new Date().toLocaleString()}`;
 
             {/* Upload Course Info */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Bootcamp/Course Info</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
+                <p className="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
                 <input 
                   type="file" 
                   id="course-upload"
@@ -629,7 +725,7 @@ Generated on: ${new Date().toLocaleString()}`;
                 />
                 <button 
                   onClick={() => document.getElementById('course-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm"
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
                 >
                   Choose File
                 </button>
@@ -639,89 +735,81 @@ Generated on: ${new Date().toLocaleString()}`;
             {/* Existing Chatbots */}
             <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
               <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">Existing Chatbots</h3>
+                <h3 className="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
               </div>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Course
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {chatbots.map((chatbot) => (
-                    <tr key={chatbot.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {chatbot.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {chatbot.course}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {chatbot.created}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'
-                        }`}>
-                          {chatbot.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button 
-                          onClick={() => {
-                            setModalTitle(`Edit Chatbot - ${chatbot.name}`);
-                            setModalContent(`Editing ${chatbot.name}\n\nCurrent Configuration:\n- Name: ${chatbot.name}\n- Course: ${chatbot.course}\n- Created: ${chatbot.created}\n- Status: ${chatbot.active ? 'Active' : 'Inactive'}\n\n(This is demo functionality - in a real app, this would open an edit form)`);
-                            setCopyButtonText('Copy to Clipboard');
-                            setShowModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setModalTitle(`Delete Chatbot - ${chatbot.name}`);
-                            setModalContent(`Are you sure you want to delete "${chatbot.name}"?\n\nThis action cannot be undone.\n\nChatbot Details:\n- Course: ${chatbot.course}\n- Created: ${chatbot.created}\n- Status: ${chatbot.active ? 'Active' : 'Inactive'}\n\n(This is demo functionality)`);
-                            setCopyButtonText('Copy to Clipboard');
-                            setShowModal(true);
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Course
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {chatbots.map((chatbot) => (
+                      <tr key={chatbot.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {chatbot.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {chatbot.course}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {chatbot.created}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'
+                          }`}>
+                            {chatbot.active ? '🟢 Active' : '🔴 Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                          <button 
+                            onClick={() => handleChatbotAction('edit', chatbot)}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleChatbotAction('delete', chatbot)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal for displaying content */}
+      {/* Enhanced Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-6 border-b">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-6 border-b bg-gray-50">
               <h2 className="text-xl font-semibold text-gray-900">{modalTitle}</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -730,27 +818,18 @@ Generated on: ${new Date().toLocaleString()}`;
               <textarea
                 value={modalContent}
                 readOnly
-                className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50"
+                className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none"
                 placeholder="Content will appear here..."
               />
               <div className="mt-4 flex justify-between items-center">
                 <p className="text-sm text-gray-600">
-                  Select all content above (Ctrl+A) and copy (Ctrl+C) to save
+                  💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save
                 </p>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(modalContent).then(() => {
-                      setCopyButtonText('Copied!');
-                      setTimeout(() => {
-                        setCopyButtonText('Copy to Clipboard');
-                      }, 2000);
-                    }).catch(() => {
-                      // Fallback if clipboard API fails
-                    });
-                  }}
-                  className={`px-4 py-2 rounded-md text-sm text-white ${
-                    copyButtonText === 'Copied!' 
-                      ? 'bg-green-600' 
+                  onClick={handleCopyToClipboard}
+                  className={`px-4 py-2 rounded-md text-sm text-white transition-colors ${
+                    copyButtonText === '✅ Copied!' 
+                      ? 'bg-green-600 hover:bg-green-700' 
                       : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
