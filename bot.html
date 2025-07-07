@@ -119,30 +119,63 @@
                 opacity: 0;
             }
 
+            // Assessment Panel Toggle
+            toggleAssessmentPanel() {
+                const panel = document.getElementById('assessmentPanel');
+                panel.classList.toggle('collapsed');
+                
+                const isCollapsed = panel.classList.contains('collapsed');
+                console.log(`📊 Assessment panel ${isCollapsed ? 'collapsed' : 'expanded'}`);
+            }
+
             // Firebase Integration Methods
             initializeFirebase() {
                 try {
-                    if (typeof firebase !== 'undefined') {
-                        this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    // Check if Firebase is available
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        this.addMessage('bot', '⚠️ <strong>Firebase Offline:</strong> Running in local mode. Cloud features disabled.');
+                        return;
+                    }
+
+                    // Check if already initialized
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
                         this.database = firebase.database();
                         this.updateFirebaseStatus('connected');
-                        console.log('🔥 Firebase initialized successfully');
-                        
-                        // Auto-save every 60 seconds
-                        setInterval(() => {
-                            if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
-                                this.autoSaveCandidate();
-                            }
-                        }, 60000);
-                        
-                    } else {
-                        console.log('🔥 Firebase not available - running in offline mode');
-                        this.updateFirebaseStatus('disconnected');
+                        return;
                     }
+
+                    // Initialize Firebase
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    // Test the connection
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                            this.addMessage('bot', '✅ <strong>Firebase Connected:</strong> Cloud storage is now active!');
+                        } else {
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                    
+                    // Auto-save every 60 seconds
+                    setInterval(() => {
+                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                            this.autoSaveCandidate();
+                        }
+                    }, 60000);
+                        
                 } catch (error) {
                     console.error('🔥 Firebase initialization failed:', error);
                     this.updateFirebaseStatus('disconnected');
                     console.log('Continuing in offline mode');
+                    this.addMessage('bot', `❌ <strong>Firebase Error:</strong> ${error.message}<br>Running in offline mode.`);
                 }
             }
 
@@ -546,9 +579,61 @@
             background: white;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding: 20px;
             font-size: 14px;
             max-height: 80vh;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .assessment-header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .assessment-content {
+            padding: 20px;
+            max-height: calc(80vh - 60px);
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .assessment-panel.collapsed .assessment-content {
+            display: none;
+        }
+
+        .assessment-panel.collapsed {
+            max-height: 60px;
+        }
+
+        .collapse-indicator {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .assessment-panel.collapsed .collapse-indicator {
+            transform: rotate(180deg);
+        }
+
+        .personal-details-form {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .form-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #e0e0e0;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
@@ -720,11 +805,16 @@
             }
             
             .assessment-panel {
+                position: relative;
                 width: 100%;
-                border-left: none;
-                border-top: 1px solid #e0e0e0;
-                height: 200px;
+                right: auto;
+                top: auto;
+                margin: 10px 0;
                 order: 2;
+            }
+            
+            .assessment-panel.collapsed {
+                margin: 5px 0;
             }
             
             .chat-section {
@@ -739,6 +829,15 @@
             .audio-controls {
                 flex-direction: column;
                 gap: 5px;
+            }
+
+            .form-container {
+                max-height: 50vh;
+                margin: 10px 0;
+            }
+
+            .personal-details-form {
+                max-height: 45vh;
             }
         }
     </style>
@@ -807,67 +906,72 @@
                 </div>
             </div>
 
-            <div class="assessment-panel">
-                <h3>📊 Live Assessment</h3>
-                
-                <!-- Cloud Controls -->
-                <div class="cloud-controls">
-                    <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
-                        ☁️ Save
-                    </button>
-                    <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
-                        📥 Load
-                    </button>
-                    <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
-                        📊 Stats
-                    </button>
+            <div class="assessment-panel" id="assessmentPanel">
+                <div class="assessment-header" onclick="window.chatBot.toggleAssessmentPanel()">
+                    <h3>📊 Live Assessment</h3>
+                    <span class="collapse-indicator">▼</span>
                 </div>
                 
-                <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
-                    <strong>🎉 Production Features:</strong><br>
-                    • 📊 Direct dashboard integration working<br>
-                    • ☁️ Firebase cloud storage active<br>
-                    • 🔍 Internet location fact-checking<br>
-                    • 💬 Course Q&A with source references<br>
-                    • 🔊 Smart audio for assessment questions<br>
-                    • 📋 Live candidate tracking<br>
-                    • 📊 Complete assessment history
-                </div>
-                
-                <div class="criteria-item" id="location">
-                    <span>📍 Location:</span>
-                    <span>Pending</span>
-                </div>
-                
-                <div class="criteria-item" id="ukResidency">
-                    <span>🇬🇧 UK Residency:</span>
-                    <span>Pending</span>
-                </div>
-                
-                <div class="criteria-item" id="funding">
-                    <span>💰 Funding Status:</span>
-                    <span>Pending</span>
-                </div>
-                
-                <div class="criteria-item" id="english">
-                    <span>🗣️ English Level:</span>
-                    <span>Pending</span>
-                </div>
-                
-                <div style="margin-top: 15px;">
-                    <strong>Overall Score:</strong>
-                    <div class="score-bar">
-                        <div class="score-fill" id="scoreFill" style="width: 0%"></div>
+                <div class="assessment-content">
+                    <!-- Cloud Controls -->
+                    <div class="cloud-controls">
+                        <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
+                            ☁️ Save
+                        </button>
+                        <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
+                            📥 Load
+                        </button>
+                        <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
+                            📊 Stats
+                        </button>
                     </div>
-                    <div style="text-align: center; margin-top: 5px;">
-                        <span id="scoreText">0/10</span>
+                    
+                    <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
+                        <strong>🎉 Production Features:</strong><br>
+                        • 📊 Direct dashboard integration working<br>
+                        • ☁️ Firebase cloud storage active<br>
+                        • 🔍 Internet location fact-checking<br>
+                        • 💬 Course Q&A with source references<br>
+                        • 🔊 Smart audio for assessment questions<br>
+                        • 📋 Live candidate tracking<br>
+                        • 📊 Complete assessment history
                     </div>
-                </div>
-                
-                <div id="finalReport" class="final-report hidden">
-                    <h4>📋 Final Assessment</h4>
-                    <div id="recommendation" class="recommendation"></div>
-                    <div id="reportDetails"></div>
+                    
+                    <div class="criteria-item" id="location">
+                        <span>📍 Location:</span>
+                        <span>Pending</span>
+                    </div>
+                    
+                    <div class="criteria-item" id="ukResidency">
+                        <span>🇬🇧 UK Residency:</span>
+                        <span>Pending</span>
+                    </div>
+                    
+                    <div class="criteria-item" id="funding">
+                        <span>💰 Funding Status:</span>
+                        <span>Pending</span>
+                    </div>
+                    
+                    <div class="criteria-item" id="english">
+                        <span>🗣️ English Level:</span>
+                        <span>Pending</span>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <strong>Overall Score:</strong>
+                        <div class="score-bar">
+                            <div class="score-fill" id="scoreFill" style="width: 0%"></div>
+                        </div>
+                        <div style="text-align: center; margin-top: 5px;">
+                            <span id="scoreText">0/10</span>
+                        </div>
+                    </div>
+                    
+                    <div id="finalReport" class="final-report hidden">
+                        <h4>📋 Final Assessment</h4>
+                        <div id="recommendation" class="recommendation"></div>
+                        <div id="reportDetails"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -965,8 +1069,12 @@
                 };
                 
                 this.initAudio();
-                this.initializeFirebase();
                 this.init();
+                
+                // Initialize Firebase after a brief delay to ensure DOM is ready
+                setTimeout(() => {
+                    this.initializeFirebase();
+                }, 500);
             }
 
             initAudio() {
@@ -1039,13 +1147,17 @@
             }
 
             init() {
+                // Show initial message
                 this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
                 
+                // Show initial response options
                 setTimeout(() => {
-                    this.addMessage('bot', '🌟 <strong>Enhanced Experience:</strong><br>• Optimized layout - no scrolling needed<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features and professional audio output');
-                }, 3000);
+                    this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
+                }, 1500);
                 
-                this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
+                setTimeout(() => {
+                    this.addMessage('bot', '🌟 <strong>Enhanced Experience:</strong><br>• Optimized layout - collapsible assessment panel<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features and professional audio output<br>• Firebase cloud storage for all assessments');
+                }, 3000);
             }
 
             addMessage(sender, message) {
@@ -1834,65 +1946,64 @@ Are you still interested in progressing with this opportunity?`);
                         this.responseButtons.innerHTML = '';
                         this.textInputRow.style.display = 'none';
                         
-                        // Create individual input fields
+                        // Create individual input fields with better scrolling
                         const inputContainer = document.createElement('div');
                         inputContainer.id = 'personalDetailsContainer';
-                        inputContainer.style.cssText = `
-                            background: #f8f9fa;
-                            border-radius: 15px;
-                            padding: 20px;
-                            margin: 15px 0;
-                            border: 2px solid #e0e0e0;
-                        `;
+                        inputContainer.className = 'form-container';
                         
                         inputContainer.innerHTML = `
-                            <h4 style="color: #2c3e50; margin-bottom: 15px; text-align: center;">📋 Personal Details</h4>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
-                                    👤 First Name:
-                                </label>
-                                <input type="text" id="firstName" placeholder="Enter your first name" 
-                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                            </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
-                                    👥 Surname:
-                                </label>
-                                <input type="text" id="surname" placeholder="Enter your surname" 
-                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                            </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
-                                    📱 Mobile Number:
-                                </label>
-                                <input type="tel" id="mobile" placeholder="07123456789" 
-                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                            </div>
-                            
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
-                                    📧 Email Address:
-                                </label>
-                                <input type="email" id="email" placeholder="your.email@example.com" 
-                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
-                            </div>
-                            
-                            <div style="text-align: center;">
-                                <button onclick="window.chatBot.submitPersonalDetails()" 
-                                        style="background: #27ae60; color: white; border: none; padding: 15px 30px; 
-                                               border-radius: 25px; font-size: 16px; cursor: pointer; font-weight: bold;
-                                               transition: background 0.3s ease;">
-                                    📅 Book My Interview
-                                </button>
+                            <div class="personal-details-form">
+                                <h4 style="color: #2c3e50; margin-bottom: 15px; text-align: center;">📋 Personal Details</h4>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                        👤 First Name:
+                                    </label>
+                                    <input type="text" id="firstName" placeholder="Enter your first name" 
+                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                        👥 Surname:
+                                    </label>
+                                    <input type="text" id="surname" placeholder="Enter your surname" 
+                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                </div>
+                                
+                                <div style="margin-bottom: 15px;">
+                                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                        📱 Mobile Number:
+                                    </label>
+                                    <input type="tel" id="mobile" placeholder="07123456789" 
+                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                </div>
+                                
+                                <div style="margin-bottom: 25px;">
+                                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                        📧 Email Address:
+                                    </label>
+                                    <input type="email" id="email" placeholder="your.email@example.com" 
+                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                </div>
+                                
+                                <div style="text-align: center; padding: 15px 0;">
+                                    <button onclick="window.chatBot.submitPersonalDetails()" 
+                                            style="background: #27ae60; color: white; border: none; padding: 15px 30px; 
+                                                   border-radius: 25px; font-size: 16px; cursor: pointer; font-weight: bold;
+                                                   transition: background 0.3s ease; width: 100%; max-width: 250px;">
+                                        📅 Book My Interview
+                                    </button>
+                                </div>
                             </div>
                         `;
                         
                         // Add the container to the input section
                         const inputSection = document.querySelector('.input-section');
                         inputSection.appendChild(inputContainer);
+                        
+                        // Ensure the form is visible and scrollable
+                        inputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         
                         this.currentStep = 'collectDetails';
                     }, 1000);
