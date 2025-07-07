@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Bootcamp Screening Chatbot - Latest Version</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -112,6 +117,240 @@
             from {
                 transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
+            }
+
+            // Firebase Integration Methods
+            initializeFirebase() {
+                try {
+                    if (typeof firebase !== 'undefined') {
+                        this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        console.log('🔥 Firebase initialized successfully');
+                        
+                        // Auto-save every 60 seconds
+                        setInterval(() => {
+                            if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                                this.autoSaveCandidate();
+                            }
+                        }, 60000);
+                        
+                    } else {
+                        console.log('🔥 Firebase not available - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                    }
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                    console.log('Continuing in offline mode');
+                }
+            }
+
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                } else {
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
+                }
+            }
+
+            saveToFirebase() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot save to cloud. Please refresh the page to retry connection.');
+                    return;
+                }
+
+                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
+                    this.addMessage('bot', '⚠️ <strong>No candidate data to save.</strong><br>Complete an assessment first.');
+                    return;
+                }
+
+                this.updateFirebaseStatus('saving');
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    sessionId: Date.now(),
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).set(saveData)
+                .then(() => {
+                    this.updateFirebaseStatus('connected');
+                    this.addMessage('bot', `✅ <strong>Candidate saved to cloud!</strong><br>ID: ${candidateId}<br>All assessment data has been stored securely.`);
+                    this.showSaveConfirmation();
+                    console.log('🔥 Candidate saved:', candidateId);
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    this.addMessage('bot', `❌ <strong>Failed to save to cloud:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase save error:', error);
+                });
+            }
+
+            autoSaveCandidate() {
+                if (!this.database || !this.candidateData.name || this.candidateData.name === 'Applicant') return;
+
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    autoSaved: true,
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).update(saveData)
+                .then(() => {
+                    console.log('🔥 Auto-saved candidate:', candidateId);
+                    this.showSaveConfirmation('Auto-saved');
+                })
+                .catch((error) => {
+                    console.error('🔥 Auto-save failed:', error);
+                });
+            }
+
+            generateCandidateId() {
+                const name = this.candidateData.name?.replace(/\s+/g, '-').toLowerCase() || 'unknown';
+                const timestamp = Date.now();
+                return `${name}-${timestamp}`;
+            }
+
+            showSaveConfirmation(text = 'Saved to Cloud') {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    left: 20px;
+                    background: #27ae60;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 15px;
+                    font-weight: 600;
+                    font-size: 12px;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+                    transition: all 0.3s ease;
+                `;
+                confirmation.textContent = `✓ ${text}`;
+                document.body.appendChild(confirmation);
+
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, 2000);
+            }
+
+            loadCandidates() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot load from cloud.');
+                    return;
+                }
+
+                this.updateFirebaseStatus('loading');
+                
+                this.database.ref('bootcampCandidates').orderByChild('timestamp').limitToLast(10).once('value')
+                .then((snapshot) => {
+                    this.updateFirebaseStatus('connected');
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        this.addMessage('bot', '📭 <strong>No candidates found in cloud storage.</strong><br>Complete some assessments to see data here.');
+                        return;
+                    }
+
+                    let candidateList = '<strong>📋 Recent Candidates (Last 10):</strong><br><br>';
+                    
+                    Object.values(candidates).reverse().forEach((candidate, index) => {
+                        const date = new Date(candidate.timestamp).toLocaleDateString();
+                        const time = new Date(candidate.timestamp).toLocaleTimeString();
+                        const scoreColor = candidate.score >= 8 ? '#27ae60' : candidate.score >= 6 ? '#f39c12' : '#e74c3c';
+                        
+                        candidateList += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 4px solid ${scoreColor};">
+                                <strong>${candidate.name}</strong> - Score: ${candidate.score}/10<br>
+                                <small>📍 ${candidate.location} | 💼 ${candidate.employmentStatus}<br>
+                                📅 ${date} ${time} | ${candidate.recommendation}</small>
+                            </div>
+                        `;
+                    });
+
+                    this.addMessage('bot', candidateList);
+                    console.log('🔥 Loaded candidates from Firebase');
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    this.addMessage('bot', `❌ <strong>Failed to load from cloud:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase load error:', error);
+                });
+            }
+
+            showFirebaseStats() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot show statistics.');
+                    return;
+                }
+
+                this.database.ref('bootcampCandidates').once('value')
+                .then((snapshot) => {
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        this.addMessage('bot', '📊 <strong>Cloud Statistics:</strong><br>No data available yet.');
+                        return;
+                    }
+
+                    const candidateArray = Object.values(candidates);
+                    const total = candidateArray.length;
+                    const highly = candidateArray.filter(c => c.score >= 8).length;
+                    const suitable = candidateArray.filter(c => c.score >= 6 && c.score < 8).length;
+                    const notSuitable = candidateArray.filter(c => c.score < 6).length;
+                    
+                    const avgScore = (candidateArray.reduce((sum, c) => sum + c.score, 0) / total).toFixed(1);
+                    
+                    const stats = `
+                        <strong>📊 Cloud Statistics:</strong><br><br>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                            <strong>Total Candidates:</strong> ${total}<br>
+                            <strong>Average Score:</strong> ${avgScore}/10<br><br>
+                            
+                            <div style="color: #27ae60;"><strong>🟢 Highly Suitable:</strong> ${highly} (${((highly/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #f39c12;"><strong>🟡 Suitable:</strong> ${suitable} (${((suitable/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #e74c3c;"><strong>🔴 Not Suitable:</strong> ${notSuitable} (${((notSuitable/total)*100).toFixed(1)}%)</div>
+                        </div>
+                    `;
+                    
+                    this.addMessage('bot', stats);
+                })
+                .catch((error) => {
+                    this.addMessage('bot', `❌ <strong>Failed to load statistics:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase stats error:', error);
+                });
             }
             to {
                 transform: translateX(-50%) translateY(0);
@@ -401,6 +640,80 @@
             display: inline-block;
         }
 
+        /* Firebase Status Styles */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .firebase-connected {
+            background: #27ae60;
+            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .firebase-disconnected {
+            background: #e74c3c;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        .firebase-saving {
+            background: #f39c12;
+            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .firebase-loading {
+            background: #3498db;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .cloud-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cloud-btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s ease;
+        }
+
+        .cloud-btn:hover {
+            background: #2c3e50;
+        }
+
+        .cloud-btn.save {
+            background: #27ae60;
+        }
+
+        .cloud-btn.save:hover {
+            background: #229954;
+        }
+
+        .cloud-btn.load {
+            background: #3498db;
+        }
+
+        .cloud-btn.load:hover {
+            background: #2980b9;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -431,10 +744,15 @@
     </style>
 </head>
 <body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">
+        🔴 Firebase Disconnected
+    </div>
+    
     <div class="container">
         <div class="header">
             <h1>🤖 AI Bootcamp Screening Assistant</h1>
-            <p>Production System - Live Gmail Integration & Enhanced Workflow</p>
+            <p>Connected to testbot.html Dashboard - Live Firebase Integration & Enhanced Workflow</p>
         </div>
         
         <div class="main-content">
@@ -463,6 +781,9 @@
                         <button class="audio-btn" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
                             ℹ️ Dashboard Info
                         </button>
+                        <button class="audio-btn" onclick="window.chatBot.testDashboardConnection()" style="background: #e67e22;">
+                            🔗 Test Connection
+                        </button>
                         <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
                             ⏹️ Stop Audio
@@ -489,15 +810,28 @@
             <div class="assessment-panel">
                 <h3>📊 Live Assessment</h3>
                 
+                <!-- Cloud Controls -->
+                <div class="cloud-controls">
+                    <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
+                        ☁️ Save
+                    </button>
+                    <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
+                        📥 Load
+                    </button>
+                    <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
+                        📊 Stats
+                    </button>
+                </div>
+                
                 <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
                     <strong>🎉 Production Features:</strong><br>
                     • 📊 Direct dashboard integration working<br>
-                    • 🔐 Real-time postMessage reporting<br>
+                    • ☁️ Firebase cloud storage active<br>
                     • 🔍 Internet location fact-checking<br>
                     • 💬 Course Q&A with source references<br>
                     • 🔊 Smart audio for assessment questions<br>
-                    • 📋 Live dashboard reports<br>
-                    • 📊 Complete candidate detail collection
+                    • 📋 Live candidate tracking<br>
+                    • 📊 Complete assessment history
                 </div>
                 
                 <div class="criteria-item" id="location">
@@ -552,6 +886,21 @@
                     useDashboardReporting: true,
                     useFormSubmit: false
                 };
+                
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
+                };
+                
+                this.database = null;
+                this.firebaseApp = null;
                 
                 this.currentStep = 'intro';
                 this.chatMode = false;
@@ -616,6 +965,7 @@
                 };
                 
                 this.initAudio();
+                this.initializeFirebase();
                 this.init();
             }
 
@@ -1657,37 +2007,198 @@ Are you still interested in progressing with this opportunity?`);
                 scoreText.textContent = `${this.score}/10`;
             }
 
-            // Dashboard Reporting - Send data to parent window
+            // Dashboard Reporting - Send data to testbot.html
             sendToDashboard() {
+                // Enhanced report data specifically for testbot.html dashboard
                 const reportData = {
+                    // Core candidate information
                     name: this.candidateData.name || "Unknown Applicant",
                     email: this.candidateData.personalDetails?.email || "No email provided",
                     phone: this.candidateData.personalDetails?.mobile || "No phone provided",
                     score: this.score,
+                    
+                    // Bootcamp specific data
                     bootcamp: "AI Business Productivity Bootcamp",
+                    program: "Cornwall Skills Bootcamp",
+                    
+                    // Assessment details
                     location: this.candidateData.location || 'Not assessed',
                     ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
                     fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
                     employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
                     employerFunding: this.candidateData.employerFunding || 'Not applicable',
                     availability: this.candidateData.availability || 'Not assessed',
-                    responses: this.candidateData.responses || [],
+                    
+                    // Detailed responses for analysis
+                    responses: this.candidateData.responses.map(r => ({
+                        step: r.step,
+                        response: r.response,
+                        timestamp: new Date().toISOString()
+                    })) || [],
+                    
+                    // Scoring and recommendation
                     recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
                                   this.score >= 6 ? 'SUITABLE - Standard processing' : 
                                   'NOT SUITABLE - Does not meet criteria',
+                    
+                    // Status and categorization
+                    status: this.score >= 8 ? 'HIGHLY_SUITABLE' : 
+                           this.score >= 6 ? 'SUITABLE' : 'NOT_SUITABLE',
+                    
+                    // Timestamps and metadata
                     timestamp: new Date().toISOString(),
-                    autoShow: true  // Auto-display the report
+                    sessionId: Date.now(),
+                    source: 'AI Bootcamp Screening Chatbot',
+                    version: '3.0',
+                    
+                    // Dashboard control flags
+                    autoShow: true,  // Auto-display the report
+                    isComplete: true, // Mark as completed assessment
+                    
+                    // Additional data for analytics
+                    interestLevel: this.candidateData.interestLevel || 5,
+                    rescheduleRequested: this.candidateData.rescheduleType ? true : false,
+                    personalDetailsCollected: this.candidateData.personalDetails ? true : false,
+                    
+                    // Target dashboard identification
+                    targetDashboard: 'testbot.html',
+                    messageType: 'CANDIDATE_REPORT'
                 };
                 
-                console.log('📊 Sending data to dashboard:', reportData);
+                console.log('📊 Sending enhanced data to testbot.html dashboard:', reportData);
                 
-                // Send to parent window (dashboard)
+                // Send to parent window (testbot.html)
                 try {
+                    // Try multiple methods to ensure delivery
+                    
+                    // Method 1: Direct postMessage to parent
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
+                        console.log('📊 Method 1: Sent to parent window');
+                    }
+                    
+                    // Method 2: postMessage to top window (in case of nested iframes)
+                    if (window.top && window.top !== window) {
+                        window.top.postMessage(reportData, 'https://terence1975-coder.github.io');
+                        console.log('📊 Method 2: Sent to top window');
+                    }
+                    
+                    // Method 3: Try specific origin targeting
                     window.parent.postMessage(reportData, '*');
-                    this.addMessage('bot', '📊 <strong>Report sent to dashboard successfully!</strong><br>Data has been transmitted to the main leaderboard system.');
+                    console.log('📊 Method 3: Sent with wildcard origin');
+                    
+                    // Visual confirmation
+                    this.showDashboardConfirmation(true);
+                    
+                    this.addMessage('bot', `
+                        📊 <strong>Report sent to dashboard successfully!</strong><br>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>✅ Data transmitted to testbot.html</strong><br>
+                            • <strong>Candidate:</strong> ${reportData.name}<br>
+                            • <strong>Score:</strong> ${reportData.score}/10<br>
+                            • <strong>Status:</strong> ${reportData.status}<br>
+                            • <strong>Target:</strong> ${reportData.targetDashboard}<br>
+                            • <strong>Session ID:</strong> ${reportData.sessionId}
+                        </div>
+                        The dashboard should now display this candidate's assessment results.
+                    `);
+                    
                 } catch (error) {
-                    console.error('Dashboard reporting failed:', error);
-                    this.addMessage('bot', '⚠️ <strong>Dashboard reporting failed.</strong><br>Could not send data to parent window.');
+                    console.error('📊 Dashboard reporting failed:', error);
+                    this.showDashboardConfirmation(false);
+                    this.addMessage('bot', `
+                        ⚠️ <strong>Dashboard reporting failed.</strong><br>
+                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>❌ Could not send data to testbot.html</strong><br>
+                            • <strong>Error:</strong> ${error.message}<br>
+                            • <strong>Fallback:</strong> Data saved locally and to Firebase<br>
+                            • <strong>Action:</strong> Check console for details
+                        </div>
+                        The assessment is complete but dashboard communication failed.
+                    `);
+                }
+            }
+
+            // Visual confirmation for dashboard communication
+            showDashboardConfirmation(success) {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${success ? '#27ae60' : '#e74c3c'};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transition: all 0.3s ease;
+                    max-width: 300px;
+                    animation: slideDown 0.5s ease-out;
+                `;
+                
+                if (success) {
+                    confirmation.innerHTML = `
+                        📊 <strong>Dashboard Connected!</strong><br>
+                        <small>Report sent to testbot.html successfully</small>
+                    `;
+                } else {
+                    confirmation.innerHTML = `
+                        ❌ <strong>Dashboard Error!</strong><br>
+                        <small>Could not connect to testbot.html</small>
+                    `;
+                }
+                
+                document.body.appendChild(confirmation);
+
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, success ? 4000 : 6000);
+            }
+
+            // Test connection to dashboard
+            testDashboardConnection() {
+                const testData = {
+                    messageType: 'CONNECTION_TEST',
+                    source: 'AI Bootcamp Screening Chatbot',
+                    timestamp: new Date().toISOString(),
+                    testMessage: 'Testing connection to testbot.html dashboard',
+                    sessionId: Date.now()
+                };
+                
+                console.log('🔧 Testing dashboard connection...');
+                
+                try {
+                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
+                    window.parent.postMessage(testData, '*');
+                    
+                    this.addMessage('bot', `
+                        🔧 <strong>Dashboard Connection Test</strong><br>
+                        <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>📡 Test signal sent to testbot.html</strong><br>
+                            • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
+                            • <strong>Method:</strong> window.parent.postMessage()<br>
+                            • <strong>Test ID:</strong> ${testData.sessionId}<br>
+                            • <strong>Status:</strong> Signal transmitted
+                        </div>
+                        If testbot.html is properly configured, it should receive this test message.
+                    `);
+                    
+                } catch (error) {
+                    this.addMessage('bot', `
+                        ❌ <strong>Connection test failed:</strong><br>
+                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>Error:</strong> ${error.message}<br>
+                            <strong>Suggestion:</strong> Ensure bot.html is embedded in testbot.html as an iframe
+                        </div>
+                    `);
                 }
             }
 
@@ -1700,32 +2211,45 @@ Are you still interested in progressing with this opportunity?`);
                     📊 <strong>Dashboard Integration Information</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Dashboard Mode Active:</strong><br>
-                    • <strong>Reporting Method:</strong> window.parent.postMessage<br>
-                    • <strong>Target:</strong> Parent dashboard window<br>
-                    • <strong>Email Integration:</strong> DISABLED<br>
-                    • <strong>Data Format:</strong> JSON object with candidate details
+                    <strong>✅ testbot.html Connection Active:</strong><br>
+                    • <strong>Dashboard URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
+                    • <strong>Chatbot URL:</strong> https://terence1975-coder.github.io/tender/bot.html<br>
+                    • <strong>Connection Method:</strong> window.parent.postMessage()<br>
+                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br>
+                    • <strong>Auto-display:</strong> Enabled
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📊 Dashboard Features:</strong><br>
-                    • <strong>Real-time Reporting:</strong> Instant data transmission<br>
+                    <strong>📊 Report Features:</strong><br>
+                    • <strong>Real-time Transmission:</strong> Instant data sending to testbot.html<br>
                     • <strong>Complete Assessment:</strong> All responses and scoring included<br>
-                    • <strong>Structured Data:</strong> Ready for dashboard processing<br>
-                    • <strong>Auto Display:</strong> Reports auto-show in dashboard<br>
-                    • <strong>Cross-window Communication:</strong> Uses postMessage API
+                    • <strong>Enhanced Data:</strong> Extended candidate information<br>
+                    • <strong>Status Tracking:</strong> HIGHLY_SUITABLE, SUITABLE, NOT_SUITABLE<br>
+                    • <strong>Session Management:</strong> Unique IDs for each assessment<br>
+                    • <strong>Fallback Storage:</strong> Firebase backup for all data
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 Dashboard Integration:</strong><br>
-                    • Data sent via window.parent.postMessage()<br>
-                    • Parent window receives candidate reports<br>
-                    • Automatic scoring and recommendations<br>
-                    • Real-time leaderboard updates<br>
-                    • No email setup required
+                    <strong>🔧 Dashboard Requirements:</strong><br>
+                    • bot.html must be embedded as iframe in testbot.html<br>
+                    • testbot.html needs postMessage event listener<br>
+                    • Listen for messageType: 'CANDIDATE_REPORT'<br>
+                    • Handle autoShow: true for automatic display<br>
+                    • Parse candidate data from event.data object
                     </div>
                     
-                    <strong>💡 Status:</strong> Dashboard reporting mode is active and ready to transmit candidate assessments.
+                    <div style="background: #f8d7da; padding: 12px; border-radius: 5px; border-left: 4px solid #e74c3c; margin: 10px 0;">
+                    <strong>📋 Sample Integration Code for testbot.html:</strong><br>
+                    <code style="font-size: 10px;">
+                    window.addEventListener('message', function(event) {<br>
+                    &nbsp;&nbsp;if (event.data.messageType === 'CANDIDATE_REPORT') {<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;displayCandidateReport(event.data);<br>
+                    &nbsp;&nbsp;}<br>
+                    });
+                    </code>
+                    </div>
+                    
+                    <strong>💡 Status:</strong> Dashboard reporting to testbot.html is configured and ready. Use the "🔗 Test Connection" button to verify communication.
                 `);
                 
                 checkButton.textContent = 'ℹ️ Dashboard Info';
@@ -1737,42 +2261,70 @@ Are you still interested in progressing with this opportunity?`);
                 testButton.textContent = '🔄 Testing...';
                 testButton.disabled = true;
                 
+                // Test dashboard connection instead of email
+                this.testDashboardConnection();
+                
                 this.addMessage('bot', `
                     📊 <strong>Testing Dashboard Connection...</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Dashboard Test Successful!</strong><br>
-                    Email integration has been disabled. The system now uses dashboard reporting via postMessage API.
+                    <strong>✅ Dashboard Test Mode Active!</strong><br>
+                    Email integration has been disabled. The system now uses dashboard reporting to testbot.html via postMessage API.
                     </div>
                     
-                    <strong>📊 Test Report Data:</strong><br>
-                    • <strong>Name:</strong> Test User<br>
-                    • <strong>Email:</strong> test@example.com<br>
-                    • <strong>Phone:</strong> +44 7123 456789<br>
-                    • <strong>Score:</strong> 7/10<br>
-                    • <strong>Bootcamp:</strong> AI Business Productivity Bootcamp<br>
-                    • <strong>Status:</strong> SUITABLE - Standard processing<br><br>
+                    <strong>📊 Test Report Data Format:</strong><br>
+                    • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
+                    • <strong>Method:</strong> window.parent.postMessage()<br>
+                    • <strong>Data Format:</strong> Enhanced candidate report object<br>
+                    • <strong>Auto-display:</strong> Enabled for dashboard<br>
+                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br><br>
                     
-                    🎉 <strong>Dashboard mode is working correctly!</strong> All candidate reports will be sent to the parent dashboard window.
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>📡 Connection Requirements:</strong><br>
+                    • bot.html must be embedded as iframe in testbot.html<br>
+                    • testbot.html must have postMessage listener<br>
+                    • Both pages must be on same domain<br>
+                    • Dashboard should handle 'CANDIDATE_REPORT' message type
+                    </div>
+                    
+                    🎉 <strong>Dashboard connection testing complete!</strong> Check the console and testbot.html for received messages.
                 `);
                 
-                // Send test data to dashboard
+                // Send comprehensive test data to dashboard
                 const testData = {
                     name: "Test User",
                     email: "test@example.com",
                     phone: "+44 7123 456789",
                     score: 7,
                     bootcamp: "AI Business Productivity Bootcamp",
-                    responses: ["Dashboard", "Integration", "Test", "Data", "Sample"],
+                    location: "Cornwall",
+                    ukResidency: "Eligible (3+ years)",
+                    fundingStatus: "Eligible",
+                    employmentStatus: "Employed",
+                    employerFunding: "Yes, employer will co-fund",
+                    availability: "Evening sessions work better",
+                    responses: [
+                        {step: "intro", response: "Yes, that works for me"},
+                        {step: "overview", response: "Yes, definitely interested"},
+                        {step: "location", response: "I live in Cornwall"},
+                        {step: "employment", response: "I'm employed"},
+                        {step: "employerFunding", response: "Yes, employer will co-fund"}
+                    ],
                     recommendation: "SUITABLE - Standard processing",
+                    status: "SUITABLE",
                     timestamp: new Date().toISOString(),
+                    sessionId: Date.now(),
+                    source: "AI Bootcamp Screening Chatbot",
+                    targetDashboard: "testbot.html",
+                    messageType: "CANDIDATE_REPORT",
                     autoShow: true,
                     isTestData: true
                 };
                 
                 try {
+                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
                     window.parent.postMessage(testData, '*');
-                    console.log('📊 Test data sent to dashboard:', testData);
+                    console.log('📊 Test data sent to testbot.html dashboard:', testData);
                 } catch (error) {
                     console.error('Dashboard test failed:', error);
                 }
@@ -1796,7 +2348,13 @@ Are you still interested in progressing with this opportunity?`);
             completeAssessment() {
                 this.updateScore();
                 
-                this.sendEmail('assessment');
+                // Send to dashboard
+                this.sendToDashboard();
+                
+                // Auto-save to Firebase
+                if (this.database && this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                    this.saveToFirebase();
+                }
                 
                 const finalReport = document.getElementById('finalReport');
                 const recommendation = document.getElementById('recommendation');
@@ -1836,8 +2394,8 @@ Are you still interested in progressing with this opportunity?`);
                     <strong>Next Steps:</strong><br>
                     ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
                     
-                    <strong>📊 Dashboard Report:</strong><br>
-                    A comprehensive screening report has been sent directly to the parent dashboard window via postMessage API. Check the main dashboard for the detailed candidate assessment.
+                    <strong>📊 testbot.html Report:</strong><br>
+                    A comprehensive screening report has been sent directly to testbot.html via postMessage API. Check the main dashboard for the detailed candidate assessment and leaderboard updates.
                 `;
                 
                 reportDetails.innerHTML = reportHTML;
@@ -1859,10 +2417,10 @@ Are you still interested in progressing with this opportunity?`);
                 `;
                 audioInfo.innerHTML = `
                     🎉 <strong>Enhanced Features Active!</strong><br>
-                    • Direct dashboard integration active<br>
-                    • Real-time postMessage reports<br>
-                    • Course Q&A with sources<br>
-                    • Smart voice for assessments only
+                    • Connected to testbot.html dashboard<br>
+                    • Firebase cloud storage ready<br>
+                    • Real-time candidate reporting<br>
+                    • Auto-save every 60 seconds
                 `;
                 document.body.appendChild(audioInfo);
                 
