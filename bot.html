@@ -179,6 +179,79 @@
                 }
             }
 
+            // Firebase Integration Methods - Moved up to ensure proper class scope
+            initializeFirebase() {
+                try {
+                    console.log('🔥 Starting Firebase initialization...');
+                    
+                    // Check if Firebase is available
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        this.addMessage('bot', '⚠️ <strong>Firebase Offline:</strong> Running in local mode. Cloud features disabled.');
+                        return;
+                    }
+
+                    // Check if already initialized
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        return;
+                    }
+
+                    // Initialize Firebase
+                    console.log('🔥 Initializing Firebase with config...');
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    // Test the connection
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                            this.addMessage('bot', '✅ <strong>Firebase Connected:</strong> Cloud storage is now active!');
+                        } else {
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                    
+                    // Auto-save every 60 seconds
+                    setInterval(() => {
+                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                            this.autoSaveCandidate();
+                        }
+                    }, 60000);
+                        
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                    console.log('Continuing in offline mode');
+                    this.addMessage('bot', `❌ <strong>Firebase Error:</strong> ${error.message}<br>Running in offline mode.`);
+                }
+            }
+
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                } else {
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
+                }
+            }
+
             updateFirebaseStatus(status) {
                 const statusElement = document.getElementById('firebase-status');
                 if (!statusElement) return;
@@ -1071,10 +1144,15 @@
                 this.initAudio();
                 this.init();
                 
-                // Initialize Firebase after a brief delay to ensure DOM is ready
-                setTimeout(() => {
-                    this.initializeFirebase();
-                }, 500);
+                // Initialize Firebase after DOM is ready
+                if (typeof this.initializeFirebase === 'function') {
+                    setTimeout(() => {
+                        this.initializeFirebase();
+                    }, 500);
+                } else {
+                    console.error('🔥 initializeFirebase method not found');
+                    this.updateFirebaseStatus('disconnected');
+                }
             }
 
             initAudio() {
@@ -2118,6 +2196,15 @@ Are you still interested in progressing with this opportunity?`);
                 scoreText.textContent = `${this.score}/10`;
             }
 
+            // Assessment Panel Toggle
+            toggleAssessmentPanel() {
+                const panel = document.getElementById('assessmentPanel');
+                panel.classList.toggle('collapsed');
+                
+                const isCollapsed = panel.classList.contains('collapsed');
+                console.log(`📊 Assessment panel ${isCollapsed ? 'collapsed' : 'expanded'}`);
+            }
+
             // Dashboard Reporting - Send data to testbot.html
             sendToDashboard() {
                 // Enhanced report data specifically for testbot.html dashboard
@@ -2274,32 +2361,79 @@ Are you still interested in progressing with this opportunity?`);
                 }, success ? 4000 : 6000);
             }
 
-            // Test connection to dashboard
+            // Test connection to testbot.html dashboard
             testDashboardConnection() {
+                console.log('🔧 Testing connection to testbot.html...');
+                
                 const testData = {
                     messageType: 'CONNECTION_TEST',
                     source: 'AI Bootcamp Screening Chatbot',
+                    fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
+                    toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
                     timestamp: new Date().toISOString(),
-                    testMessage: 'Testing connection to testbot.html dashboard',
-                    sessionId: Date.now()
+                    testMessage: 'Testing sync between bot.html and testbot.html',
+                    sessionId: Date.now(),
+                    sync: {
+                        windowParent: window.parent !== window,
+                        windowTop: window.top !== window,
+                        currentURL: window.location.href,
+                        userAgent: navigator.userAgent.substring(0, 50) + '...'
+                    }
                 };
                 
-                console.log('🔧 Testing dashboard connection...');
-                
                 try {
-                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
+                    // Test all communication methods
+                    let methodResults = [];
+                    
+                    // Method 1: Parent window
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
+                        methodResults.push('✅ Parent window communication available');
+                    } else {
+                        methodResults.push('❌ Parent window not available (not in iframe?)');
+                    }
+                    
+                    // Method 2: Top window
+                    if (window.top && window.top !== window) {
+                        window.top.postMessage(testData, 'https://terence1975-coder.github.io');
+                        methodResults.push('✅ Top window communication available');
+                    } else {
+                        methodResults.push('❌ Top window not available');
+                    }
+                    
+                    // Method 3: Wildcard
                     window.parent.postMessage(testData, '*');
+                    methodResults.push('✅ Wildcard origin attempted');
                     
                     this.addMessage('bot', `
-                        🔧 <strong>Dashboard Connection Test</strong><br>
+                        🔧 <strong>testbot.html Connection Test</strong><br>
                         <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>📡 Test signal sent to testbot.html</strong><br>
-                            • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                            • <strong>Method:</strong> window.parent.postMessage()<br>
+                            <strong>📡 Connection Status:</strong><br>
+                            ${methodResults.join('<br>')}<br><br>
+                            
+                            <strong>📊 Test Data Sent:</strong><br>
+                            • <strong>From:</strong> bot.html<br>
+                            • <strong>To:</strong> testbot.html<br>
                             • <strong>Test ID:</strong> ${testData.sessionId}<br>
-                            • <strong>Status:</strong> Signal transmitted
+                            • <strong>Message Type:</strong> CONNECTION_TEST<br>
+                            • <strong>Current URL:</strong> ${window.location.href}
                         </div>
-                        If testbot.html is properly configured, it should receive this test message.
+                        
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>🔍 For testbot.html to receive this:</strong><br>
+                            1. Ensure bot.html is embedded as iframe in testbot.html<br>
+                            2. Add this listener to testbot.html:<br>
+                            <code style="font-size: 10px; background: #f8f9fa; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">
+                            window.addEventListener('message', function(event) {<br>
+                            &nbsp;&nbsp;console.log('Received from bot.html:', event.data);<br>
+                            &nbsp;&nbsp;if (event.data.messageType === 'CONNECTION_TEST') {<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;alert('Connection test successful!');<br>
+                            &nbsp;&nbsp;}<br>
+                            });
+                            </code>
+                        </div>
+                        
+                        Check browser console in testbot.html for received messages.
                     `);
                     
                 } catch (error) {
@@ -2307,7 +2441,7 @@ Are you still interested in progressing with this opportunity?`);
                         ❌ <strong>Connection test failed:</strong><br>
                         <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
                             <strong>Error:</strong> ${error.message}<br>
-                            <strong>Suggestion:</strong> Ensure bot.html is embedded in testbot.html as an iframe
+                            <strong>Suggestion:</strong> Ensure bot.html is properly embedded in testbot.html
                         </div>
                     `);
                 }
@@ -2516,26 +2650,66 @@ Are you still interested in progressing with this opportunity?`);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            window.chatBot = new ChatBot();
+            try {
+                console.log('🚀 Initializing AI Bootcamp Screening Chatbot...');
+                
+                // Initialize chatbot
+                window.chatBot = new ChatBot();
+                console.log('✅ ChatBot instance created successfully');
+                
+                // Check Firebase availability
+                if (typeof firebase !== 'undefined') {
+                    console.log('✅ Firebase SDK loaded successfully');
+                } else {
+                    console.log('⚠️ Firebase SDK not loaded - will run in offline mode');
+                }
+                
+                // Check window context for dashboard sync
+                if (window.parent !== window) {
+                    console.log('✅ Running in iframe - dashboard sync available');
+                } else {
+                    console.log('ℹ️ Running standalone - dashboard sync may be limited');
+                }
+                
+            } catch (error) {
+                console.error('❌ ChatBot initialization failed:', error);
+                
+                // Show error in UI
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: #e74c3c; color: white; padding: 20px; border-radius: 10px;
+                    z-index: 9999; max-width: 400px; text-align: center;
+                `;
+                errorDiv.innerHTML = `
+                    <h3>❌ Initialization Error</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()" style="background: white; color: #e74c3c; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                        Reload Page
+                    </button>
+                `;
+                document.body.appendChild(errorDiv);
+            }
             
+            // Show startup notification
             setTimeout(() => {
-                const audioInfo = document.createElement('div');
-                audioInfo.style.cssText = `
+                const startupInfo = document.createElement('div');
+                startupInfo.style.cssText = `
                     position: fixed; bottom: 20px; left: 20px;
                     background: #27ae60; color: white; padding: 10px 15px;
                     border-radius: 10px; font-size: 12px; max-width: 220px;
                     z-index: 1000; animation: slideUp 0.5s ease-out;
                 `;
-                audioInfo.innerHTML = `
-                    🎉 <strong>Enhanced Features Active!</strong><br>
+                startupInfo.innerHTML = `
+                    🎉 <strong>System Ready!</strong><br>
                     • Connected to testbot.html dashboard<br>
-                    • Firebase cloud storage ready<br>
+                    • Firebase cloud storage initialized<br>
                     • Real-time candidate reporting<br>
                     • Auto-save every 60 seconds
                 `;
-                document.body.appendChild(audioInfo);
+                document.body.appendChild(startupInfo);
                 
-                setTimeout(() => audioInfo.remove(), 4000);
+                setTimeout(() => startupInfo.remove(), 4000);
             }, 2000);
         });
         
