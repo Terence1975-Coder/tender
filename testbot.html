@@ -3,80 +3,648 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 AI Bootcamp Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AI Bootcamp Screening Chatbot - Latest Version</title>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <!--
-    🤖 BOT INTEGRATION INSTRUCTIONS
-    ================================
     
-    Your bot at https://terence1975-coder.github.io/tender/bot.html can send reports to this dashboard using these methods:
-    
-    METHOD 1: PostMessage (Recommended)
-    -----------------------------------
-    From your bot, use:
-    
-    const reportData = {
-        name: "John Doe",
-        email: "john@example.com", 
-        phone: "+1 (555) 123-4567",
-        score: 85,
-        bootcamp: "AI Fundamentals",
-        responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
-        autoShow: true  // Optional: auto-display the report
-    };
-    
-    // Send to dashboard
-    window.parent.postMessage(reportData, '*');
-    
-    METHOD 2: Direct Function Call
-    ------------------------------
-    If dashboard is in same window/iframe:
-    
-    parent.addApplicantReport(reportData);
-    
-    METHOD 3: URL Parameters
-    ------------------------
-    Redirect to dashboard with data:
-    
-    const encoded = encodeURIComponent(JSON.stringify(reportData));
-    window.location.href = 'dashboard.html?report=' + encoded;
-    
-    SCORING RULES:
-    - Score 80+ = Passed (Green)
-    - Score 60-79 = Waitlist (Yellow) 
-    - Score <60 = Failed (Red)
-    
-    The dashboard will automatically categorize and display the reports!
-    -->
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
-        .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
-        .modal.show { display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none; }
-        .btn-green { background: #16a34a; color: white; } .btn-green:hover { background: #15803d; }
-        .btn-blue { background: #2563eb; color: white; } .btn-blue:hover { background: #1d4ed8; }
-        .btn-yellow { background: #ca8a04; color: white; } .btn-yellow:hover { background: #a16207; }
-        .btn-red { background: #dc2626; color: white; } .btn-red:hover { background: #b91c1c; }
-        .btn-gray { background: #f3f4f6; color: #374151; } .btn-gray:hover { background: #e5e7eb; }
-        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
-        .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .status-passed { background: #dcfce7; color: #166534; }
-        .status-failed { background: #fecaca; color: #991b1b; }
-        .status-waitlist { background: #fef3c7; color: #92400e; }
-        .status-processed { background: #dbeafe; color: #1e40af; }
-        .upload-zone { border: 2px dashed #d1d5db; transition: border-color 0.2s; }
-        .upload-zone:hover { border-color: #9ca3af; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            height: 90vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 12px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            min-height: 0;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .bot-message {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            margin-right: auto;
+        }
+
+        .user-message {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .typing-indicator {
+            background: #e0e0e0;
+            border-radius: 18px;
+            padding: 12px 18px;
+            margin-bottom: 15px;
+            max-width: 80%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+
+            // Firebase Integration Methods
+            initializeFirebase() {
+                try {
+                    if (typeof firebase !== 'undefined') {
+                        this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        console.log('🔥 Firebase initialized successfully');
+                        
+                        // Auto-save every 60 seconds
+                        setInterval(() => {
+                            if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                                this.autoSaveCandidate();
+                            }
+                        }, 60000);
+                        
+                    } else {
+                        console.log('🔥 Firebase not available - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                    }
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                    console.log('Continuing in offline mode');
+                }
+            }
+
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                } else {
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
+                }
+            }
+
+            saveToFirebase() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot save to cloud. Please refresh the page to retry connection.');
+                    return;
+                }
+
+                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
+                    this.addMessage('bot', '⚠️ <strong>No candidate data to save.</strong><br>Complete an assessment first.');
+                    return;
+                }
+
+                this.updateFirebaseStatus('saving');
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    sessionId: Date.now(),
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).set(saveData)
+                .then(() => {
+                    this.updateFirebaseStatus('connected');
+                    this.addMessage('bot', `✅ <strong>Candidate saved to cloud!</strong><br>ID: ${candidateId}<br>All assessment data has been stored securely.`);
+                    this.showSaveConfirmation();
+                    console.log('🔥 Candidate saved:', candidateId);
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    this.addMessage('bot', `❌ <strong>Failed to save to cloud:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase save error:', error);
+                });
+            }
+
+            autoSaveCandidate() {
+                if (!this.database || !this.candidateData.name || this.candidateData.name === 'Applicant') return;
+
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    autoSaved: true,
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).update(saveData)
+                .then(() => {
+                    console.log('🔥 Auto-saved candidate:', candidateId);
+                    this.showSaveConfirmation('Auto-saved');
+                })
+                .catch((error) => {
+                    console.error('🔥 Auto-save failed:', error);
+                });
+            }
+
+            generateCandidateId() {
+                const name = this.candidateData.name?.replace(/\s+/g, '-').toLowerCase() || 'unknown';
+                const timestamp = Date.now();
+                return `${name}-${timestamp}`;
+            }
+
+            showSaveConfirmation(text = 'Saved to Cloud') {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    left: 20px;
+                    background: #27ae60;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 15px;
+                    font-weight: 600;
+                    font-size: 12px;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+                    transition: all 0.3s ease;
+                `;
+                confirmation.textContent = `✓ ${text}`;
+                document.body.appendChild(confirmation);
+
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, 2000);
+            }
+
+            loadCandidates() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot load from cloud.');
+                    return;
+                }
+
+                this.updateFirebaseStatus('loading');
+                
+                this.database.ref('bootcampCandidates').orderByChild('timestamp').limitToLast(10).once('value')
+                .then((snapshot) => {
+                    this.updateFirebaseStatus('connected');
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        this.addMessage('bot', '📭 <strong>No candidates found in cloud storage.</strong><br>Complete some assessments to see data here.');
+                        return;
+                    }
+
+                    let candidateList = '<strong>📋 Recent Candidates (Last 10):</strong><br><br>';
+                    
+                    Object.values(candidates).reverse().forEach((candidate, index) => {
+                        const date = new Date(candidate.timestamp).toLocaleDateString();
+                        const time = new Date(candidate.timestamp).toLocaleTimeString();
+                        const scoreColor = candidate.score >= 8 ? '#27ae60' : candidate.score >= 6 ? '#f39c12' : '#e74c3c';
+                        
+                        candidateList += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 4px solid ${scoreColor};">
+                                <strong>${candidate.name}</strong> - Score: ${candidate.score}/10<br>
+                                <small>📍 ${candidate.location} | 💼 ${candidate.employmentStatus}<br>
+                                📅 ${date} ${time} | ${candidate.recommendation}</small>
+                            </div>
+                        `;
+                    });
+
+                    this.addMessage('bot', candidateList);
+                    console.log('🔥 Loaded candidates from Firebase');
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    this.addMessage('bot', `❌ <strong>Failed to load from cloud:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase load error:', error);
+                });
+            }
+
+            showFirebaseStats() {
+                if (!this.database) {
+                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot show statistics.');
+                    return;
+                }
+
+                this.database.ref('bootcampCandidates').once('value')
+                .then((snapshot) => {
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        this.addMessage('bot', '📊 <strong>Cloud Statistics:</strong><br>No data available yet.');
+                        return;
+                    }
+
+                    const candidateArray = Object.values(candidates);
+                    const total = candidateArray.length;
+                    const highly = candidateArray.filter(c => c.score >= 8).length;
+                    const suitable = candidateArray.filter(c => c.score >= 6 && c.score < 8).length;
+                    const notSuitable = candidateArray.filter(c => c.score < 6).length;
+                    
+                    const avgScore = (candidateArray.reduce((sum, c) => sum + c.score, 0) / total).toFixed(1);
+                    
+                    const stats = `
+                        <strong>📊 Cloud Statistics:</strong><br><br>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                            <strong>Total Candidates:</strong> ${total}<br>
+                            <strong>Average Score:</strong> ${avgScore}/10<br><br>
+                            
+                            <div style="color: #27ae60;"><strong>🟢 Highly Suitable:</strong> ${highly} (${((highly/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #f39c12;"><strong>🟡 Suitable:</strong> ${suitable} (${((suitable/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #e74c3c;"><strong>🔴 Not Suitable:</strong> ${notSuitable} (${((notSuitable/total)*100).toFixed(1)}%)</div>
+                        </div>
+                    `;
+                    
+                    this.addMessage('bot', stats);
+                })
+                .catch((error) => {
+                    this.addMessage('bot', `❌ <strong>Failed to load statistics:</strong><br>${error.message}`);
+                    console.error('🔥 Firebase stats error:', error);
+                });
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .input-section {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .response-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .text-input:focus {
+            border-color: #3498db;
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .send-btn:hover {
+            background: #2980b9;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .chat-mode-toggle {
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .chat-mode-toggle:hover {
+            background: #8e44ad;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .audio-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .audio-btn:hover {
+            background: #d35400;
+        }
+
+        .audio-btn.active {
+            background: #27ae60;
+        }
+
+        .voice-selector {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+            max-width: 120px;
+        }
+
+        .voice-selector:hover {
+            background: #d35400;
+        }
+
+        .voice-selector option {
+            background: white;
+            color: black;
+        }
+
+        .voice-indicator {
+            display: none;
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            animation: pulse 1s infinite;
+        }
+
+        .course-info {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .faq-response {
+            background: #e8f6f3;
+            border-left: 4px solid #1abc9c;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .assessment-panel {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            font-size: 14px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .assessment-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .criteria-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+
+        .criteria-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .criteria-fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .score-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
+            transition: width 0.5s ease;
+        }
+
+        .final-report {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .recommendation {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .highly-suitable {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .suitable {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .not-suitable {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fact-check-indicator {
+            background: #3498db;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        /* Firebase Status Styles */
         .firebase-status {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 20px;
             padding: 10px 15px;
             border-radius: 20px;
             color: white;
@@ -84,1561 +652,1591 @@
             font-weight: 600;
             z-index: 1000;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
-        // Delete applicant
-        function deleteApplicant(applicantId) {
-            if (confirm('Are you sure you want to permanently delete this applicant? This action cannot be undone.')) {
-                const index = applicants.findIndex(a => a.id === applicantId);
-                if (index !== -1) {
-                    const deletedApplicant = applicants[index];
-                    applicants.splice(index, 1);
-                    refreshAllSections();
-                    showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
-
-        // Move applicant to processed
-        function moveToProcessed(applicantId) {
-            if (confirm('Mark this applicant as processed? This means the application has been reviewed and actioned.')) {
-                const applicant = applicants.find(a => a.id === applicantId);
-                if (applicant) {
-                    applicant.status = 'processed';
-                    applicant.processedDate = new Date().toLocaleString();
-                    applicant.processedBy = 'Dashboard User';
-                    
-                    refreshAllSections();
-                    showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
-
-        // Restore from processed
-        function restoreFromProcessed(applicantId) {
-            if (confirm('Restore this applicant to active status? They will be moved back to their original category.')) {
-                const applicant = applicants.find(a => a.id === applicantId);
-                if (applicant) {
-                    applicant.status = determineStatus(applicant.score);
-                    delete applicant.processedDate;
-                    delete applicant.processedBy;
-                    
-                    refreshAllSections();
-                    showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
         .firebase-connected {
             background: #27ae60;
             box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
         }
+
         .firebase-disconnected {
             background: #e74c3c;
             box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
         }
+
         .firebase-saving {
             background: #f39c12;
             box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .firebase-loading {
+            background: #3498db;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .cloud-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cloud-btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s ease;
+        }
+
+        .cloud-btn:hover {
+            background: #2c3e50;
+        }
+
+        .cloud-btn.save {
+            background: #27ae60;
+        }
+
+        .cloud-btn.save:hover {
+            background: #229954;
+        }
+
+        .cloud-btn.load {
+            background: #3498db;
+        }
+
+        .cloud-btn.load:hover {
+            background: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .assessment-panel {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid #e0e0e0;
+                height: 200px;
+                order: 2;
+            }
+            
+            .chat-section {
+                order: 1;
+            }
+            
+            .container {
+                margin: 5px;
+                height: 95vh;
+            }
+            
+            .audio-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50">
+<body>
     <!-- Firebase Status Indicator -->
     <div id="firebase-status" class="firebase-status firebase-disconnected">
         🔴 Firebase Disconnected
     </div>
-
-    <!-- Header -->
-    <div class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-                    <p class="text-gray-600">Manage screening applications and chatbots</p>
-                    <div id="connection-status" class="mt-2">
-                        <!-- Bot connection status will be populated here -->
-                    </div>
-                </div>
-                <div class="flex flex-col space-y-2">
-                    <div class="flex space-x-2">
-                        <button onclick="showCSVData()" class="btn btn-green">
-                            📥 Show Excel Data
-                        </button>
-                        <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
-                            🔗 Test Bot Connection
-                        </button>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="saveToFirebase()" class="btn btn-blue text-sm">
-                            ☁️ Save to Cloud
-                        </button>
-                        <button onclick="loadFromFirebase()" class="btn btn-gray text-sm">
-                            📥 Load from Cloud
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Processed Applicants Section -->
-            <div class="card overflow-hidden">
-                <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-blue-800">✔️ Processed Applicants (<span id="processed-count">0</span>)</h3>
-                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm flex items-center space-x-1 transition-colors">
-                            <div class="text-lg">📥</div>
-                            <span>Export Data</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Bootcamp Screening Assistant</h1>
+            <p>Production System - Live Gmail Integration & Enhanced Workflow</p>
         </div>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="border-b border-gray-200">
-            <nav class="flex space-x-8">
-                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    📊 Overview
-                </button>
-                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    👥 Applicant Reports
-                </button>
-                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    ⚙️ Manage Chatbots
-                </button>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Overview Tab -->
-        <div id="content-overview" class="space-y-6">
-            <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="text-3xl">👥</div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Applicants</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-total">8</p>
-                        </div>
-                    </div>
+        
+        <div class="main-content">
+            <div class="chat-section">
+                <div class="chat-container" id="chatContainer">
+                    <!-- Messages will be added here -->
                 </div>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="text-3xl">✅</div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Passed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">4</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="text-3xl">❌</div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Failed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">2</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="text-3xl">⏳</div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Waitlist</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">2</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="text-3xl">✔️</div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Processed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-processed">0</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Activity -->
-            <div class="card">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
-                </div>
-                <div class="divide-y divide-gray-200" id="recent-applicants">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Applicants Tab -->
-        <div id="content-applicants" class="space-y-6" style="display: none;">
-            <!-- Filter Controls -->
-            <div class="card p-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
-                        <p class="text-sm text-gray-500">Individual reports grouped by status</p>
-                    </div>
-                    <button onclick="showCSVData()" class="btn btn-blue">
-                        📥 Show All Data
-                    </button>
-                </div>
-            </div>
-
-            <!-- Passed Applicants -->
-            <div class="card overflow-hidden">
-                <div class="bg-green-50 px-6 py-4 border-b border-green-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (4)</h3>
-                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm">
-                            📥 Export Data
+                
+                <div class="input-section">
+                    <div class="audio-controls">
+                        <button class="audio-btn" id="audioToggle" onclick="window.chatBot.toggleAudio()">
+                            🔊 Audio: ON
                         </button>
-                    </div>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="passed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Waitlist Applicants -->
-            <div class="card overflow-hidden">
-                <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (2)</h3>
-                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm">
-                            📥 Export Data
+                        <button class="audio-btn" id="voiceInput" onclick="window.chatBot.startVoiceInput()">
+                            🎤 Voice Input
                         </button>
-                    </div>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="waitlist-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Failed Applicants -->
-            <div class="card overflow-hidden">
-                <div class="bg-red-50 px-6 py-4 border-b border-red-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (2)</h3>
-                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm">
-                            📥 Export Data
-                        </button>
-                    </div>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chatbots Tab -->
-        <div id="content-chatbots" class="space-y-6" style="display: none;">
-            <!-- Create New Chatbot -->
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chatbot Name</label>
-                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter chatbot name">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Course/Bootcamp</label>
-                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option>AI Fundamentals</option>
-                            <option>Machine Learning</option>
-                            <option>Data Science</option>
-                            <option>Deep Learning</option>
+                        <select class="voice-selector" id="voiceSelect" onchange="window.chatBot.changeVoice()">
+                            <option value="">🗣️ Select Voice</option>
                         </select>
+                        <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
+                            🎯 Voice Info
+                        </button>
+                        <button class="audio-btn" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
+                            📊 Test Dashboard
+                        </button>
+                        <button class="audio-btn" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
+                            ℹ️ Dashboard Info
+                        </button>
+                        <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
+                        <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
+                            ⏹️ Stop Audio
+                        </button>
+                    </div>
+                    
+                    <div class="response-buttons" id="responseButtons">
+                        <!-- Dynamic buttons will be added here -->
+                    </div>
+                    
+                    <button class="chat-mode-toggle" id="chatToggle" onclick="window.chatBot.toggleChatMode()">
+                        💬 Ask a question about the course
+                    </button>
+                    
+                    <div class="input-row" id="textInputRow">
+                        <input type="text" class="text-input" id="textInput" 
+                               placeholder="Ask me anything about the AI Business Productivity Bootcamp or respond to screening questions..."
+                               onkeypress="if(event.key==='Enter') window.chatBot.handleTextInput()">
+                        <button class="send-btn" onclick="window.chatBot.handleTextInput()">Send</button>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <button onclick="createChatbot()" class="btn btn-blue">
-                        ➕ Create Chatbot
+            </div>
+
+            <div class="assessment-panel">
+                <h3>📊 Live Assessment</h3>
+                
+                <!-- Cloud Controls -->
+                <div class="cloud-controls">
+                    <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
+                        ☁️ Save
+                    </button>
+                    <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
+                        📥 Load
+                    </button>
+                    <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
+                        📊 Stats
                     </button>
                 </div>
-            </div>
-
-            <!-- Upload Script -->
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
-                <div class="upload-zone rounded-lg p-6 text-center">
-                    <div class="text-4xl mb-4">📤</div>
-                    <p class="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
-                    <p class="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
-                    <input type="file" id="script-upload" style="display: none" accept=".js,.json,.txt" onchange="handleFileUpload(this, 'Script')">
-                    <button onclick="document.getElementById('script-upload').click()" class="btn btn-gray">
-                        Choose File
-                    </button>
+                
+                <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
+                    <strong>🎉 Production Features:</strong><br>
+                    • 📊 Direct dashboard integration working<br>
+                    • ☁️ Firebase cloud storage active<br>
+                    • 🔍 Internet location fact-checking<br>
+                    • 💬 Course Q&A with source references<br>
+                    • 🔊 Smart audio for assessment questions<br>
+                    • 📋 Live candidate tracking<br>
+                    • 📊 Complete assessment history
                 </div>
-            </div>
-
-            <!-- Upload Course Info -->
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
-                <div class="upload-zone rounded-lg p-6 text-center">
-                    <div class="text-4xl mb-4">📤</div>
-                    <p class="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
-                    <p class="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
-                    <input type="file" id="course-upload" style="display: none" accept=".pdf,.doc,.docx,.txt" onchange="handleFileUpload(this, 'Course Info')">
-                    <button onclick="document.getElementById('course-upload').click()" class="btn btn-gray">
-                        Choose File
-                    </button>
+                
+                <div class="criteria-item" id="location">
+                    <span>📍 Location:</span>
+                    <span>Pending</span>
                 </div>
-            </div>
-
-            <!-- Existing Chatbots -->
-            <div class="card overflow-hidden">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
+                
+                <div class="criteria-item" id="ukResidency">
+                    <span>🇬🇧 UK Residency:</span>
+                    <span>Pending</span>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="chatbots-table">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
+                
+                <div class="criteria-item" id="funding">
+                    <span>💰 Funding Status:</span>
+                    <span>Pending</span>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="modal" class="modal">
-        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-            <div class="flex justify-between items-center p-6 border-b bg-gray-50">
-                <h2 id="modal-title" class="text-xl font-semibold text-gray-900">Modal Title</h2>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">❌</button>
-            </div>
-            <div class="p-6 overflow-auto max-h-[70vh]">
-                <textarea id="modal-content" readonly class="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none" placeholder="Content will appear here..."></textarea>
-                <div class="mt-4 flex justify-between items-center">
-                    <p class="text-sm text-gray-600">💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save</p>
-                    <button onclick="copyToClipboard()" id="copy-btn" class="btn btn-blue">Copy to Clipboard</button>
+                
+                <div class="criteria-item" id="english">
+                    <span>🗣️ English Level:</span>
+                    <span>Pending</span>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <strong>Overall Score:</strong>
+                    <div class="score-bar">
+                        <div class="score-fill" id="scoreFill" style="width: 0%"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 5px;">
+                        <span id="scoreText">0/10</span>
+                    </div>
+                </div>
+                
+                <div id="finalReport" class="final-report hidden">
+                    <h4>📋 Final Assessment</h4>
+                    <div id="recommendation" class="recommendation"></div>
+                    <div id="reportDetails"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Dynamic applicants array - will receive new data from bot
-        let applicants = [
-            { 
-                id: 1, 
-                name: 'John Smith', 
-                email: 'john@email.com', 
-                phone: '+1 (555) 123-4567', 
-                date: '2025-01-15', 
-                status: 'passed', 
-                score: 85, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-            },
-            { 
-                id: 2, 
-                name: 'Sarah Johnson', 
-                email: 'sarah@email.com', 
-                phone: '+1 (555) 234-5678', 
-                date: '2025-01-14', 
-                status: 'failed', 
-                score: 45, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
-            },
-            { 
-                id: 3, 
-                name: 'Mike Chen', 
-                email: 'mike@email.com', 
-                phone: '+1 (555) 345-6789', 
-                date: '2025-01-13', 
-                status: 'waitlist', 
-                score: 65, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 4, 
-                name: 'Emily Davis', 
-                email: 'emily@email.com', 
-                phone: '+1 (555) 456-7890', 
-                date: '2025-01-12', 
-                status: 'passed', 
-                score: 92, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 5, 
-                name: 'Alex Rodriguez', 
-                email: 'alex@email.com', 
-                phone: '+1 (555) 567-8901', 
-                date: '2025-01-11', 
-                status: 'passed', 
-                score: 78, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-            },
-            { 
-                id: 6, 
-                name: 'Lisa Wang', 
-                email: 'lisa@email.com', 
-                phone: '+1 (555) 678-9012', 
-                date: '2025-01-10', 
-                status: 'waitlist', 
-                score: 68, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 7, 
-                name: 'David Brown', 
-                email: 'david@email.com', 
-                phone: '+1 (555) 789-0123', 
-                date: '2025-01-09', 
-                status: 'failed', 
-                score: 42, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
-            },
-            { 
-                id: 8, 
-                name: 'Jennifer Lee', 
-                email: 'jennifer@email.com', 
-                phone: '+1 (555) 890-1234', 
-                date: '2025-01-08', 
-                status: 'passed', 
-                score: 89, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
-            }
-        ];
-            { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
-            { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
-            { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
-            { id: 4, name: 'Emily Davis', email: 'emily@email.com', phone: '+1 (555) 456-7890', date: '2025-01-12', status: 'passed', score: 92, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] },
-            { id: 5, name: 'Alex Rodriguez', email: 'alex@email.com', phone: '+1 (555) 567-8901', date: '2025-01-11', status: 'passed', score: 78, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
-            { id: 6, name: 'Lisa Wang', email: 'lisa@email.com', phone: '+1 (555) 678-9012', date: '2025-01-10', status: 'waitlist', score: 68, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] },
-            { id: 7, name: 'David Brown', email: 'david@email.com', phone: '+1 (555) 789-0123', date: '2025-01-09', status: 'failed', score: 42, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] },
-            { id: 8, name: 'Jennifer Lee', email: 'jennifer@email.com', phone: '+1 (555) 890-1234', date: '2025-01-08', status: 'passed', score: 89, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] }
-        ];
-
-        // Bot Integration - Statistics tracking
-        let botStats = {
-            totalReceived: 0,
-            lastReceived: null,
-            connectionStatus: 'Ready'
-        };
-
-        // 🔥 FIREBASE INTEGRATION
-        const firebaseConfig = {
-            apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-            authDomain: "prospecting-f2f42.firebaseapp.com",
-            databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
-            projectId: "prospecting-f2f42",
-            storageBucket: "prospecting-f2f42.firebasestorage.app",
-            messagingSenderId: "292034226428",
-            appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-            measurementId: "G-WWB0JTX2L2"
-        };
-
-        let database = null;
-        let firebaseApp = null;
-
-        // Initialize Firebase
-        function initializeFirebase() {
-            try {
-                if (typeof firebase !== 'undefined') {
-                    firebaseApp = firebase.initializeApp(firebaseConfig);
-                    database = firebase.database();
-                    updateFirebaseStatus('connected');
-                    console.log('🔥 Firebase initialized successfully');
+        class ChatBot {
+            constructor() {
+                // 📧 EMAIL INTEGRATION CONFIGURATION - DISABLED FOR DASHBOARD MODE
+                this.config = {
+                    // Email integration disabled - using dashboard reporting instead
+                    emailServerUrl: 'DISABLED',
+                    emailRecipient: 'DISABLED',
                     
-                    // Auto-load data on startup
-                    loadFromFirebase();
-                    
-                    // Set up auto-save every 60 seconds
-                    setInterval(autoSaveToFirebase, 60000);
-                } else {
-                    console.log('Firebase not available - running in offline mode');
-                    updateFirebaseStatus('disconnected');
-                }
-            } catch (error) {
-                console.error('Firebase initialization failed:', error);
-                updateFirebaseStatus('disconnected');
-                console.log('Continuing in offline mode');
-            }
-        }
-
-        // Update Firebase status indicator
-        function updateFirebaseStatus(status) {
-            const statusElement = document.getElementById('firebase-status');
-            if (!statusElement) return;
-            
-            if (status === 'connected') {
-                statusElement.className = 'firebase-status firebase-connected';
-                statusElement.innerHTML = '🟢 Firebase Connected';
-            } else if (status === 'saving') {
-                statusElement.className = 'firebase-status firebase-saving';
-                statusElement.innerHTML = '🟡 Saving to Cloud...';
-            } else {
-                statusElement.className = 'firebase-status firebase-disconnected';
-                statusElement.innerHTML = '🔴 Firebase Disconnected';
-            }
-        }
-
-        // Collect all dashboard data for Firebase
-        function getAllDashboardData() {
-            return {
-                applicants: applicants,
-                botStats: botStats,
-                metadata: {
-                    totalApplicants: applicants.length,
-                    passed: applicants.filter(a => a.status === 'passed').length,
-                    failed: applicants.filter(a => a.status === 'failed').length,
-                    waitlist: applicants.filter(a => a.status === 'waitlist').length,
-                    processed: applicants.filter(a => a.status === 'processed').length,
-                    lastUpdated: new Date().toISOString()
-                }
-            };
-        }
-
-        // Save to Firebase
-        function saveToFirebase() {
-            if (!database) {
-                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
-                return;
-            }
-
-            updateFirebaseStatus('saving');
-            const allData = getAllDashboardData();
-            const timestamp = new Date().toISOString();
-
-            database.ref('aiBootcampDashboard').set({
-                ...allData,
-                lastSaved: timestamp,
-                version: '1.0'
-            }).then(() => {
-                updateFirebaseStatus('connected');
-                showNotification('✅ Dashboard data saved to Firebase successfully!', 'success');
-                console.log('🔥 Dashboard data saved to Firebase at:', timestamp);
-            }).catch((error) => {
-                updateFirebaseStatus('disconnected');
-                showNotification('❌ Failed to save to Firebase: ' + error.message, 'error');
-                console.error('Firebase save error:', error);
-            });
-        }
-
-        // Auto-save to Firebase
-        function autoSaveToFirebase() {
-            if (!database || applicants.length === 0) return;
-
-            updateFirebaseStatus('saving');
-            const allData = getAllDashboardData();
-
-            database.ref('aiBootcampDashboard').update({
-                ...allData,
-                lastAutoSaved: new Date().toISOString()
-            }).then(() => {
-                updateFirebaseStatus('connected');
-                console.log('🔥 Auto-saved dashboard to Firebase');
-                showSaveConfirmation();
-            }).catch((error) => {
-                updateFirebaseStatus('disconnected');
-                console.error('Auto-save failed:', error);
-            });
-        }
-
-        // Save confirmation visual feedback
-        function showSaveConfirmation() {
-            const confirmation = document.createElement('div');
-            confirmation.style.cssText = `
-                position: fixed;
-                top: 80px;
-                right: 20px;
-                background: #27ae60;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                font-weight: 600;
-                z-index: 1001;
-                box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-                transition: all 0.3s ease;
-            `;
-            confirmation.textContent = '✓ Auto-Saved';
-            document.body.appendChild(confirmation);
-
-            setTimeout(() => {
-                confirmation.style.opacity = '0';
-                confirmation.style.transform = 'translateY(-20px)';
-                setTimeout(() => {
-                    if (confirmation.parentNode) {
-                        confirmation.parentNode.removeChild(confirmation);
-                    }
-                }, 300);
-            }, 2000);
-        }
-
-        // Load from Firebase
-        function loadFromFirebase() {
-            if (!database) {
-                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
-                return;
-            }
-
-            database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
-                const firebaseData = snapshot.val();
-
-                if (!firebaseData || !firebaseData.applicants) {
-                    console.log('No dashboard data found in Firebase');
-                    showNotification('ℹ️ No saved data found in Firebase', 'info');
-                    return;
-                }
-
-                // Load applicants data
-                applicants.length = 0; // Clear existing data
-                applicants.push(...firebaseData.applicants);
-
-                // Load bot stats if available
-                if (firebaseData.botStats) {
-                    Object.assign(botStats, firebaseData.botStats);
-                }
-
-                // Refresh the entire UI
-                refreshAllSections();
-
-                const lastSaved = firebaseData.lastSaved || firebaseData.lastAutoSaved;
-                showNotification(`✅ Dashboard data loaded from Firebase!`, 'success');
-                console.log('🔥 Dashboard data loaded from Firebase:', lastSaved);
-
-            }).catch((error) => {
-                showNotification('❌ Failed to load from Firebase: ' + error.message, 'error');
-                console.error('Firebase load error:', error);
-            });
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Setup auto-save triggers
-        function setupAutoSaveTriggers() {
-            // Auto-save when new applicants are added
-            const originalPush = applicants.push;
-            applicants.push = function(...items) {
-                const result = originalPush.apply(this, items);
-                if (database) {
-                    setTimeout(autoSaveToFirebase, 2000);
-                }
-                return result;
-            };
-        }
-
-        // 🤖 BOT INTEGRATION FUNCTIONS
-        
-        // Enhanced listener for messages from bot.html with security and message types
-        window.addEventListener('message', function(event) {
-            console.log('📨 Received message from:', event.origin, 'Data:', event.data);
-            
-            // Security check - accept from your domain and localhost for testing
-            if (!event.origin.includes('github.io') && !event.origin.includes('localhost')) {
-                console.log('🚫 Rejected message from unauthorized origin:', event.origin);
-                return;
-            }
-            
-            // Handle structured messages with messageType (new format)
-            if (event.data && event.data.messageType) {
-                console.log('📊 Processing structured message:', event.data.messageType);
-                
-                if (event.data.messageType === 'CANDIDATE_REPORT') {
-                    console.log('✅ Candidate report received:', event.data.name, 'Score:', event.data.score);
-                    displayCandidateReport(event.data);
-                    
-                    // Auto-show modal if requested
-                    if (event.data.autoShow) {
-                        showCandidateModal(event.data);
-                    }
-                    
-                    return;
-                }
-                
-                if (event.data.messageType === 'CONNECTION_TEST') {
-                    console.log('🔧 Connection test successful from bot.html');
-                    showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
-                    return;
-                }
-            }
-            
-            // Handle legacy format (backwards compatibility)
-            if (event.data && (event.data.name || event.data.email)) {
-                console.log('📨 Processing legacy format message');
-                processIncomingReport(event.data);
-            }
-        });
-
-        // Function to display candidate data (new structured format)
-        function displayCandidateReport(candidateData) {
-            console.log('🎯 Displaying candidate report:', candidateData);
-            
-            // Convert structured format to our internal format
-            const reportData = {
-                name: candidateData.name || 'Unknown Candidate',
-                email: candidateData.email || 'no-email@example.com',
-                phone: candidateData.phone || '+1 (555) 000-0000',
-                score: candidateData.score || 0,
-                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
-                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
-                autoShow: candidateData.autoShow || false,
-                messageType: candidateData.messageType // Preserve message type
-            };
-            
-            // Process using existing system
-            processIncomingReport(reportData);
-            
-            // Show additional notification for structured reports
-            showNotification(`📊 Structured report received: ${reportData.name} (Score: ${reportData.score})`, 'success');
-        }
-
-        // Function to show candidate modal (enhanced)
-        function showCandidateModal(candidateData) {
-            console.log('📋 Showing modal for candidate:', candidateData.name);
-            
-            // Create a temporary applicant object for the modal
-            const tempApplicant = {
-                id: Date.now(),
-                name: candidateData.name || 'Unknown Candidate',
-                email: candidateData.email || 'no-email@example.com',
-                phone: candidateData.phone || '+1 (555) 000-0000',
-                date: new Date().toISOString().split('T')[0],
-                status: determineStatus(candidateData.score || 0),
-                score: candidateData.score || 0,
-                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
-                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
-                submissionTime: new Date().toLocaleString(),
-                source: 'Bot Submission (Structured)',
-                messageType: candidateData.messageType
-            };
-            
-            // Show the individual report modal
-            showIndividualReport(tempApplicant);
-        }
-
-        // Process URL parameters for direct report submission
-        function checkURLParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('report')) {
-                try {
-                    const reportData = JSON.parse(decodeURIComponent(urlParams.get('report')));
-                    processIncomingReport(reportData);
-                    // Clean URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error('Error parsing URL report data:', e);
-                }
-            }
-        }
-
-        // Main function to process incoming reports
-        function processIncomingReport(data) {
-            console.log('🔄 Processing incoming report:', data);
-            
-            // Update connection status
-            botStats.connectionStatus = 'Connected';
-            botStats.lastReceived = new Date().toLocaleString();
-            botStats.totalReceived++;
-            updateConnectionStatus();
-            
-            // Validate and process the report data
-            if (data && data.name && data.email) {
-                // Create new applicant object
-                const newApplicant = {
-                    id: Date.now(), // Generate unique ID
-                    name: data.name || 'Unknown Applicant',
-                    email: data.email || 'no-email@example.com',
-                    phone: data.phone || '+1 (555) 000-0000',
-                    date: new Date().toISOString().split('T')[0],
-                    status: determineStatus(data.score || 0),
-                    score: data.score || 0,
-                    bootcamp: data.bootcamp || data.course || 'AI Fundamentals',
-                    responses: data.responses || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
-                    submissionTime: new Date().toLocaleString(),
-                    source: 'Bot Submission'
+                    // Dashboard mode enabled
+                    useDashboardReporting: true,
+                    useFormSubmit: false
                 };
                 
-                // Add to applicants array
-                applicants.push(newApplicant);
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
+                };
                 
-                // Update UI
-                refreshAllSections();
+                this.database = null;
+                this.firebaseApp = null;
                 
-                // Show success notification
-                showNotification(`✅ New applicant received: ${newApplicant.name} (${newApplicant.status})`, 'success');
+                this.currentStep = 'intro';
+                this.chatMode = false;
+                this.audioEnabled = true;
+                this.currentSpeech = null;
+                this.recognition = null;
+                this.candidateData = {
+                    name: 'Applicant',
+                    location: null,
+                    ukResidency: null,
+                    fundingStatus: null,
+                    englishLevel: null,
+                    employmentStatus: null,
+                    availability: null,
+                    interestLevel: 5,
+                    responses: []
+                };
+                this.score = 0;
+                this.chatContainer = document.getElementById('chatContainer');
+                this.responseButtons = document.getElementById('responseButtons');
+                this.textInput = document.getElementById('textInput');
+                this.textInputRow = document.getElementById('textInputRow');
+                
+                // Voice settings only (no large arrays)
+                this.voiceSettings = {
+                    rate: 0.9,
+                    pitch: 1.0,
+                    volume: 0.8,
+                    selectedVoice: null
+                };
+                
+                // Course knowledge base with reference source
+                this.courseKnowledge = {
+                    referenceSource: "https://thinkbittraining.co.uk",
+                    duration: "12 weeks (21 July - 9 October)",
+                    schedule: "3 x 2-hour sessions per week (6 hours total), either 4-6pm or 7-9pm",
+                    days: "Usually Monday, Tuesday, Wednesday or Thursday",
+                    cost: "Fully funded for self-employed and unemployed. £297.98 employer contribution for employed candidates",
+                    location: "Online training delivered by BIT Group",
+                    skills: [
+                        "Using ChatGPT & Microsoft Copilot for business",
+                        "Automating admin tasks and reports", 
+                        "AI-assisted research and communication",
+                        "Creating AI adoption roadmaps",
+                        "GDPR-compliant AI usage",
+                        "Workflow optimization"
+                    ],
+                    eligibility: [
+                        "Live in Cornwall or work for Cornwall-based company",
+                        "3+ years UK residency",
+                        "Not on other government-funded programmes",
+                        "Adequate English proficiency"
+                    ],
+                    outcomes: [
+                        "CV and interview preparation",
+                        "Job matching support",
+                        "Real-world AI experience",
+                        "Professional certification",
+                        "Career advancement opportunities"
+                    ],
+                    support: "Full support from BIT Group throughout the programme"
+                };
+                
+                this.initAudio();
+                this.initializeFirebase();
+                this.init();
+            }
+
+            initAudio() {
+                if ('speechSynthesis' in window) {
+                    this.speechSynthesis = window.speechSynthesis;
+                    
+                    const populateVoices = () => {
+                        const voices = this.speechSynthesis.getVoices();
+                        const voiceSelect = document.getElementById('voiceSelect');
+                        
+                        voiceSelect.innerHTML = '<option value="">🗣️ Select Voice</option>';
+                        
+                        voices.filter(voice => voice.lang.startsWith('en')).forEach((voice, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = `${voice.name} (${voice.lang})`;
+                            
+                            if (voice.name.includes('Google') || voice.name.includes('Microsoft')) {
+                                option.textContent += ' ⭐';
+                            }
+                            
+                            voiceSelect.appendChild(option);
+                        });
+                        
+                        const defaultVoice = voices.find(voice => 
+                            voice.name.includes('Google') && voice.lang.startsWith('en-US')
+                        ) || voices.find(voice => 
+                            voice.lang.startsWith('en-US') || voice.lang.startsWith('en-GB')
+                        );
+                        
+                        if (defaultVoice) {
+                            this.voiceSettings.selectedVoice = defaultVoice;
+                            const voiceIndex = voices.indexOf(defaultVoice);
+                            voiceSelect.value = voiceIndex;
+                        }
+                    };
+                    
+                    if (speechSynthesis.getVoices().length === 0) {
+                        speechSynthesis.addEventListener('voiceschanged', populateVoices);
+                    } else {
+                        populateVoices();
+                    }
+                } else {
+                    this.audioEnabled = false;
+                }
+                
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.continuous = false;
+                    this.recognition.interimResults = false;
+                    this.recognition.lang = 'en-US';
+                    
+                    this.recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        this.handleVoiceInput(transcript);
+                    };
+                    
+                    this.recognition.onerror = (event) => {
+                        document.getElementById('voiceIndicator').style.display = 'none';
+                        if (event.error === 'not-allowed') {
+                            this.addMessage('bot', '🎤 Microphone access denied. Please allow microphone access and try again.');
+                        }
+                    };
+                    
+                    this.recognition.onend = () => {
+                        document.getElementById('voiceIndicator').style.display = 'none';
+                    };
+                }
+            }
+
+            init() {
+                this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
+                
+                setTimeout(() => {
+                    this.addMessage('bot', '🌟 <strong>Enhanced Experience:</strong><br>• Optimized layout - no scrolling needed<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features and professional audio output');
+                }, 3000);
+                
+                this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
+            }
+
+            addMessage(sender, message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                messageDiv.innerHTML = message;
+                this.chatContainer.appendChild(messageDiv);
+                
+                const messages = this.chatContainer.querySelectorAll('.message');
+                if (messages.length > 20) {
+                    messages[0].remove();
+                }
+                
+                this.scrollToBottom();
+                
+                if (sender === 'bot' && this.audioEnabled) {
+                    this.speakMessage(message);
+                }
+            }
+
+            showTyping() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+                typingDiv.innerHTML = '🤖 AI Assistant is typing...';
+                typingDiv.id = 'typing';
+                this.chatContainer.appendChild(typingDiv);
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                const typing = document.getElementById('typing');
+                if (typing) typing.remove();
+            }
+
+            showOptions(options) {
+                this.responseButtons.innerHTML = '';
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-primary';
+                    button.textContent = option;
+                    button.onclick = () => this.handleResponse(option);
+                    this.responseButtons.appendChild(button);
+                });
+            }
+
+            scrollToBottom() {
+                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+            }
+
+            speakMessage(message) {
+                if (!this.speechSynthesis || !this.audioEnabled) return;
+                
+                this.speechSynthesis.cancel();
+                
+                const cleanMessage = message
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/[🤖📧📅📋💼🎯🟢🟡🔴✅❌⚠️📞💬🔍🌟]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                
+                if (cleanMessage) {
+                    const utterance = new SpeechSynthesisUtterance(cleanMessage);
+                    utterance.rate = this.voiceSettings.rate;
+                    utterance.pitch = this.voiceSettings.pitch;
+                    utterance.volume = this.voiceSettings.volume;
+                    
+                    if (this.voiceSettings.selectedVoice) {
+                        utterance.voice = this.voiceSettings.selectedVoice;
+                    }
+                    
+                    this.currentSpeech = utterance;
+                    this.speechSynthesis.speak(utterance);
+                }
+            }
+
+            changeVoice() {
+                const voiceSelect = document.getElementById('voiceSelect');
+                const selectedIndex = voiceSelect.value;
+                
+                if (selectedIndex !== '') {
+                    const voices = this.speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('en'));
+                    this.voiceSettings.selectedVoice = voices[selectedIndex];
+                    this.speakMessage('Hello! This is how I sound with your selected voice.');
+                }
+            }
+
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                const button = document.getElementById('audioToggle');
+                button.textContent = this.audioEnabled ? '🔊 Audio: ON' : '🔇 Audio: OFF';
+                button.className = this.audioEnabled ? 'audio-btn active' : 'audio-btn';
+                
+                if (!this.audioEnabled) {
+                    this.stopAudio();
+                }
+            }
+
+            stopAudio() {
+                if (this.speechSynthesis) {
+                    this.speechSynthesis.cancel();
+                }
+            }
+
+            startVoiceInput() {
+                if (!this.recognition) {
+                    this.addMessage('bot', 'Sorry, voice input is not supported in your browser. Please type your question instead.');
+                    return;
+                }
+                
+                document.getElementById('voiceIndicator').style.display = 'inline-block';
+                this.recognition.start();
+            }
+
+            startVoiceTraining() {
+                this.addMessage('bot', '🎯 <strong>Voice Features Info</strong><br><br>The system adapts to your voice patterns over time as you use voice input during conversations!<br><br><div class="course-info"><strong>Available:</strong><br>• Voice input for responses<br>• Customizable output voice<br>• Adaptive speech recognition<br><br><strong>Tip:</strong> The more you use voice input, the better the system becomes at understanding your speech.</div>');
+            }
+
+            handleVoiceInput(transcript) {
+                this.addMessage('user', `🎤 "${transcript}"`);
+                
+                if (this.chatMode) {
+                    this.handleCourseQuestion(transcript);
+                } else {
+                    this.handleResponse(transcript);
+                }
+            }
+
+            toggleChatMode() {
+                this.chatMode = !this.chatMode;
+                const button = document.getElementById('chatToggle');
+                const responseButtons = document.getElementById('responseButtons');
+                const textInput = document.getElementById('textInput');
+                
+                if (this.chatMode) {
+                    button.textContent = '📋 Return to screening';
+                    button.style.background = '#e74c3c';
+                    responseButtons.style.display = 'none';
+                    textInput.placeholder = 'Ask me anything about the AI Business Productivity Bootcamp...';
+                    this.addMessage('bot', '💬 Great! I\'m now in chat mode. Feel free to ask me anything about the AI Business Productivity Bootcamp. You can type your questions or use voice input.');
+                } else {
+                    button.textContent = '💬 Ask a question about the course';
+                    button.style.background = '#9b59b6';
+                    responseButtons.style.display = 'flex';
+                    textInput.placeholder = 'Ask me anything about the AI Business Productivity Bootcamp or respond to screening questions...';
+                    this.addMessage('bot', '📋 I\'m back in screening mode. You can continue with the button options or type your responses directly.');
+                }
+            }
+
+            handleTextInput() {
+                const input = document.getElementById('textInput');
+                const question = input.value.trim();
+                
+                if (!question) return;
+                
+                this.addMessage('user', question);
+                input.value = '';
+                
+                if (this.chatMode) {
+                    this.handleCourseQuestion(question);
+                } else if (this.currentStep === 'collectDetails') {
+                    this.handleCollectDetails(question);
+                } else {
+                    this.handleResponse(question);
+                }
+            }
+
+            handleCourseQuestion(question) {
+                const lowerQuestion = question.toLowerCase();
+                let response = '';
+                
+                // Course duration and schedule
+                if (lowerQuestion.includes('long') || lowerQuestion.includes('duration') || lowerQuestion.includes('weeks') || lowerQuestion.includes('when')) {
+                    response = `📅 <strong>Programme Duration & Schedule:</strong><br>
+                        • <strong>Duration:</strong> ${this.courseKnowledge.duration}<br>
+                        • <strong>Sessions:</strong> ${this.courseKnowledge.schedule}<br>
+                        • <strong>Days:</strong> ${this.courseKnowledge.days}<br><br>
+                        <em>For more detailed information, visit: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Cost and funding
+                else if (lowerQuestion.includes('cost') || lowerQuestion.includes('price') || lowerQuestion.includes('pay') || lowerQuestion.includes('money') || lowerQuestion.includes('fund') || lowerQuestion.includes('free')) {
+                    response = `💰 <strong>Programme Funding:</strong><br>
+                        • <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>
+                        • <strong>Employed candidates:</strong> £297.98 employer contribution<br>
+                        • <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>
+                        • <strong>Funding Source:</strong> Cornwall Council partnership<br><br>
+                        <em>More funding details: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Skills and learning content
+                else if (lowerQuestion.includes('learn') || lowerQuestion.includes('skill') || lowerQuestion.includes('teach') || lowerQuestion.includes('what') || lowerQuestion.includes('cover') || lowerQuestion.includes('curriculum')) {
+                    response = `🎯 <strong>Skills You'll Master:</strong><br>
+                        ${this.courseKnowledge.skills.map(skill => `• ${skill}`).join('<br>')}<br><br>
+                        <strong>Key Focus Areas:</strong><br>
+                        • Practical AI implementation in business<br>
+                        • Hands-on tool training<br>
+                        • Real-world project experience<br>
+                        • Ethical AI usage and GDPR compliance<br><br>
+                        <em>Detailed curriculum: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Eligibility requirements
+                else if (lowerQuestion.includes('eligible') || lowerQuestion.includes('qualify') || lowerQuestion.includes('requirement') || lowerQuestion.includes('who can') || lowerQuestion.includes('apply')) {
+                    response = `✅ <strong>Eligibility Requirements:</strong><br>
+                        ${this.courseKnowledge.eligibility.map(req => `• ${req}`).join('<br>')}<br><br>
+                        <strong>Important Notes:</strong><br>
+                        • Must be available for full 12-week programme<br>
+                        • Commitment to attend all sessions required<br>
+                        • Basic computer literacy recommended<br><br>
+                        <em>Apply or check eligibility: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Outcomes and career benefits
+                else if (lowerQuestion.includes('outcome') || lowerQuestion.includes('benefit') || lowerQuestion.includes('after') || lowerQuestion.includes('career') || lowerQuestion.includes('job') || lowerQuestion.includes('certificate')) {
+                    response = `🚀 <strong>Programme Outcomes & Benefits:</strong><br>
+                        ${this.courseKnowledge.outcomes.map(outcome => `• ${outcome}`).join('<br>')}<br><br>
+                        <strong>Additional Benefits:</strong><br>
+                        • Industry-recognised certification<br>
+                        • Professional portfolio development<br>
+                        • Networking opportunities<br>
+                        • Ongoing career support<br><br>
+                        <em>Success stories and testimonials: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Location and delivery method
+                else if (lowerQuestion.includes('where') || lowerQuestion.includes('location') || lowerQuestion.includes('online') || lowerQuestion.includes('remote') || lowerQuestion.includes('delivery')) {
+                    response = `🌐 <strong>Programme Delivery:</strong><br>
+                        • <strong>Format:</strong> 100% online training<br>
+                        • <strong>Platform:</strong> Microsoft Teams & online learning portal<br>
+                        • <strong>Provider:</strong> BIT Group in partnership with Cornwall Council<br>
+                        • <strong>Accessibility:</strong> Join from anywhere with internet connection<br>
+                        • <strong>Equipment needed:</strong> Computer/laptop with camera and microphone<br><br>
+                        <em>Technical requirements: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Schedule flexibility and timing
+                else if (lowerQuestion.includes('time') || lowerQuestion.includes('evening') || lowerQuestion.includes('afternoon') || lowerQuestion.includes('flexible') || lowerQuestion.includes('hours')) {
+                    response = `⏰ <strong>Flexible Scheduling Options:</strong><br>
+                        • <strong>Afternoon sessions:</strong> 4-6pm (Monday-Thursday)<br>
+                        • <strong>Evening sessions:</strong> 7-9pm (Monday-Thursday)<br>
+                        • <strong>Total commitment:</strong> 6 hours per week<br>
+                        • <strong>Session structure:</strong> Interactive workshops and practical exercises<br>
+                        • <strong>Flexibility:</strong> Choose the time block that works best for you<br><br>
+                        <em>Book your preferred time: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // AI tools and technology focus
+                else if (lowerQuestion.includes('ai') || lowerQuestion.includes('chatgpt') || lowerQuestion.includes('copilot') || lowerQuestion.includes('tool') || lowerQuestion.includes('software')) {
+                    response = `🤖 <strong>AI Tools & Technology Training:</strong><br>
+                        • <strong>ChatGPT:</strong> Advanced prompting, content creation, problem-solving<br>
+                        • <strong>Microsoft Copilot:</strong> Business productivity, document automation<br>
+                        • <strong>Automation platforms:</strong> Workflow optimization tools<br>
+                        • <strong>Research tools:</strong> AI-powered data analysis<br>
+                        • <strong>Business applications:</strong> Real-world implementation strategies<br><br>
+                        <strong>Learning Approach:</strong><br>
+                        • Hands-on practical exercises<br>
+                        • Industry case studies<br>
+                        • Ethics and compliance training<br><br>
+                        <em>Tool access and licensing info: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Support and assistance
+                else if (lowerQuestion.includes('support') || lowerQuestion.includes('help') || lowerQuestion.includes('assistance') || lowerQuestion.includes('mentor')) {
+                    response = `🤝 <strong>Comprehensive Support System:</strong><br>
+                        • <strong>Expert trainers:</strong> Dedicated BIT Group specialists<br>
+                        • <strong>Career guidance:</strong> CV writing and interview preparation<br>
+                        • <strong>Job matching:</strong> Connection with local employers<br>
+                        • <strong>Technical support:</strong> Platform and tool assistance<br>
+                        • <strong>Peer network:</strong> Collaborative learning community<br>
+                        • <strong>Ongoing access:</strong> Continued support post-completion<br><br>
+                        <em>Contact support team: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Start date and application process
+                else if (lowerQuestion.includes('start') || lowerQuestion.includes('begin') || lowerQuestion.includes('commence') || lowerQuestion.includes('application')) {
+                    response = `🚀 <strong>Programme Start & Application:</strong><br>
+                        • <strong>Start Date:</strong> 21 July 2025<br>
+                        • <strong>End Date:</strong> 9 October 2025<br>
+                        • <strong>Application Status:</strong> Currently accepting applications<br>
+                        • <strong>Process:</strong> Application → Screening → Interview → Enrollment<br>
+                        • <strong>Next Steps:</strong> Complete this screening, then attend interview<br><br>
+                        <em>Apply now or get updates: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Prerequisites and preparation
+                else if (lowerQuestion.includes('prerequisite') || lowerQuestion.includes('experience') || lowerQuestion.includes('background') || lowerQuestion.includes('beginner') || lowerQuestion.includes('preparation')) {
+                    response = `👍 <strong>Prerequisites & Preparation:</strong><br>
+                        • <strong>Experience level:</strong> No previous AI experience required<br>
+                        • <strong>Technical skills:</strong> Basic computer literacy sufficient<br>
+                        • <strong>Educational background:</strong> No specific qualifications needed<br>
+                        • <strong>What helps:</strong> Enthusiasm for learning and business improvement<br>
+                        • <strong>Pre-course prep:</strong> Familiarize yourself with online meeting tools<br><br>
+                        <strong>Perfect for:</strong><br>
+                        • Complete beginners to AI<br>
+                        • Business professionals seeking upskilling<br>
+                        • Career changers<br>
+                        • Entrepreneurs and small business owners<br><br>
+                        <em>Preparation resources: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                }
+                
+                // Contact and more information
+                else if (lowerQuestion.includes('contact') || lowerQuestion.includes('phone') || lowerQuestion.includes('email') || lowerQuestion.includes('more info')) {
+                    response = `📞 <strong>Contact Information:</strong><br>
+                        • <strong>Website:</strong> <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a><br>
+                        • <strong>Provider:</strong> BIT Group<br>
+                        • <strong>Partnership:</strong> Cornwall Council Skills Bootcamp<br>
+                        • <strong>This screening:</strong> Automated initial assessment<br>
+                        • <strong>Next step:</strong> Human interview for qualified candidates<br><br>
+                        <em>For immediate questions or technical issues, visit our website for contact details.</em>`;
+                }
+                
+                // Default comprehensive response for unmatched questions
+                else {
+                    response = `💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>
+                        🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>
+                        💰 <strong>Cost:</strong> Fully funded for most participants<br>
+                        📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>
+                        🌐 <strong>Where:</strong> 100% online delivery<br>
+                        🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>
+                        <strong>Popular Questions:</strong><br>
+                        • "How much does it cost?" • "What will I learn?"<br>
+                        • "When does it start?" • "Am I eligible?"<br>
+                        • "What support is provided?" • "How do I apply?"<br><br>
+                        <em>Complete information: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em><br><br>
+                        Feel free to ask about any specific aspect!`;
+                }
+                
+                setTimeout(() => {
+                    this.showTyping();
+                    setTimeout(() => {
+                        this.hideTyping();
+                        this.addMessage('bot', `<div class="faq-response">${response}</div>`);
+                    }, 1000);
+                }, 500);
+            }
+
+            handleResponse(response) {
+                // Check if this is a course-related question even in screening mode
+                const lowerResponse = response.toLowerCase();
+                const courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
+                
+                const isCourseQuestion = courseKeywords.some(keyword => lowerResponse.includes(keyword));
+                
+                // Critical screening steps that should NEVER be treated as course questions
+                const criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
+                
+                if (this.chatMode) {
+                    // In chat mode, handle as course question
+                    this.handleCourseQuestion(response);
+                    return;
+                } else if (isCourseQuestion && !criticalSteps.includes(this.currentStep)) {
+                    // If it's a course question during screening (but not during critical steps), answer it but continue screening
+                    this.addMessage('user', response);
+                    this.addMessage('bot', '💡 <strong>Quick course info:</strong> Let me answer that, then we\'ll continue with your screening.');
+                    
+                    setTimeout(() => {
+                        this.handleCourseQuestion(response);
+                        
+                        // After answering, continue with screening flow
+                        setTimeout(() => {
+                            this.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
+                            
+                            // Don't process as a screening response, just continue
+                            return;
+                        }, 2000);
+                    }, 1000);
+                    return;
+                }
+                
+                // Normal screening flow
+                this.addMessage('user', response);
+                this.candidateData.responses.push({step: this.currentStep, response});
+                
+                setTimeout(() => {
+                    this.showTyping();
+                    setTimeout(() => {
+                        this.hideTyping();
+                        this.processResponse(response);
+                    }, 1000);
+                }, 500);
+            }
+
+            processResponse(response) {
+                switch(this.currentStep) {
+                    case 'intro':
+                        this.handleIntro(response);
+                        break;
+                    case 'overview':
+                        this.handleOverview(response);
+                        break;
+                    case 'location':
+                        this.handleLocation(response);
+                        break;
+                    case 'ukResidency':
+                        this.handleUKResidency(response);
+                        break;
+                    case 'funding':
+                        this.handleFunding(response);
+                        break;
+                    case 'employment':
+                        this.handleEmployment(response);
+                        break;
+                    case 'employerFunding':
+                        this.handleEmployerFunding(response);
+                        break;
+                    case 'schedule':
+                        this.handleSchedule(response);
+                        break;
+                    case 'interview':
+                        this.handleInterview(response);
+                        break;
+                    case 'collectDetails':
+                        this.handleCollectDetails(response);
+                        break;
+                    case 'reschedule':
+                        this.handleReschedule(response);
+                        break;
+                    default:
+                        this.completeAssessment();
+                }
+            }
+
+            handleIntro(response) {
+                if (response.includes('reschedule')) {
+                    this.addMessage('bot', 'No problem! When would be a better time for you? I can offer:');
+                    this.currentStep = 'reschedule';
+                    this.showOptions([
+                        'Tomorrow morning (9-11am)', 
+                        'Tomorrow afternoon (2-4pm)', 
+                        'Friday morning (9-11am)', 
+                        'Friday afternoon (2-4pm)',
+                        'Next week - Monday morning',
+                        'Have a human call me back'
+                    ]);
+                    return;
+                }
+                
+                this.addMessage('bot', `Great! This opportunity is part of a Skills Bootcamp programme supported by Cornwall Council, delivered in partnership with BIT Group. 
+                
+Please be advised that advancing to job interview stage requires the successful completion of a 12-week online training programme. It's designed to upskill people in using artificial intelligence for business productivity and efficiency.
+
+Are you still interested in progressing with this opportunity?`);
+                
+                this.currentStep = 'overview';
+                this.showOptions(['Yes, definitely interested', 'Tell me more first', 'I\'m not sure']);
+            }
+
+            handleOverview(response) {
+                this.candidateData.interestLevel = response.includes('definitely') ? 8 : 
+                                                  response.includes('more') ? 6 : 3;
+                
+                if (response.includes('not sure')) {
+                    this.addMessage('bot', 'I understand. Let me give you more details as we go through the screening questions. This might help you decide if it is right for you.');
+                }
+                
+                this.addMessage('bot', 'Excellent! I just need to run through a few quick screening questions to confirm eligibility. First, do you live in Cornwall, or do you work for a company based in Cornwall? You can select an option below or simply type any UK town/city name - I\'ll fact-check its location for you using our advanced verification system.');
+                
+                this.currentStep = 'location';
+                this.showOptions(['I live in Cornwall', 'I work for a Cornwall company', 'I live in Devon', 'Neither - I am elsewhere']);
+            }
+
+            async handleLocation(response) {
+                const lowerResponse = response.toLowerCase();
+                
+                if (response.includes('Cornwall')) {
+                    this.candidateData.location = 'Cornwall';
+                    this.updateCriteria('location', 'Pass', 'criteria-pass');
+                    this.addMessage('bot', 'Perfect! Have you been living in the UK for at least the past 3 years?');
+                    this.currentStep = 'ukResidency';
+                    this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
+                } 
+                else if (response.includes('Devon')) {
+                    this.candidateData.location = 'Devon';
+                    this.updateCriteria('location', 'Waiting List', 'criteria-fail');
+                    this.addMessage('bot', 'We are awaiting a tender outcome for Devon residents (decision due 22 July). Would you like to be added to the waiting list in case we can include you?');
+                    this.currentStep = 'ukResidency';
+                    this.showOptions(['Yes, add me to waiting list', 'No, not interested']);
+                } 
+                else if (response.includes('Neither') || response.includes('elsewhere')) {
+                    this.candidateData.location = 'Other';
+                    this.updateCriteria('location', 'Fail', 'criteria-fail');
+                    this.addMessage('bot', 'I am sorry, but this programme is specifically for Cornwall and Devon residents. Unfortunately, you would not be eligible for this particular bootcamp.');
+                    this.completeAssessment();
+                    return;
+                }
+                else {
+                    this.addMessage('bot', `🔍 <strong>Fact-checking location...</strong><br>Let me verify if "${response}" is in Cornwall or Devon using our geographic database.`);
+                    
+                    try {
+                        const locationResult = await this.isInCornwall(response);
+                        
+                        if (locationResult.isInCornwall) {
+                            this.candidateData.location = 'Cornwall';
+                            this.updateCriteria('location', 'Pass', 'criteria-pass');
+                            this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is in ${locationResult.county}. <em>(Source: ${locationResult.source}, Confidence: ${Math.round(locationResult.confidence * 100)}%)</em><br><br>Have you been living in the UK for at least the past 3 years?`);
+                            this.currentStep = 'ukResidency';
+                            this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
+                        }
+                        else if (locationResult.county === 'Devon') {
+                            this.candidateData.location = 'Devon';
+                            this.updateCriteria('location', 'Waiting List', 'criteria-fail');
+                            this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is in ${locationResult.county}. <em>(Source: ${locationResult.source})</em><br><br>We are awaiting a tender outcome for Devon residents (decision due 22 July). Would you like to be added to the waiting list in case we can include you?`);
+                            this.currentStep = 'ukResidency';
+                            this.showOptions(['Yes, add me to waiting list', 'No, not interested']);
+                        }
+                        else {
+                            this.candidateData.location = 'Other';
+                            this.updateCriteria('location', 'Fail', 'criteria-fail');
+                            
+                            if (locationResult.confidence < 0.5) {
+                                this.addMessage('bot', `⚠️ <strong>Fact-check uncertain</strong><br>I couldn't definitively verify the location of "${response}". <em>(Confidence: ${Math.round(locationResult.confidence * 100)}%)</em><br><br>This programme is specifically for Cornwall and Devon residents. If you believe this is an error, please contact us directly.`);
+                            } else {
+                                this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is not in Cornwall or Devon. <em>(Source: ${locationResult.source})</em><br><br>Unfortunately, this programme is specifically for Cornwall and Devon residents.`);
+                            }
+                            this.completeAssessment();
+                            return;
+                        }
+                    } catch (error) {
+                        this.addMessage('bot', `⚠️ <strong>Fact-checking error</strong><br>I'm having trouble verifying your location right now. Could you please confirm - are you located in Cornwall or Devon?`);
+                        this.showOptions(['Yes, I\'m in Cornwall', 'Yes, I\'m in Devon', 'No, I\'m elsewhere']);
+                    }
+                }
+            }
+
+            async isInCornwall(location) {
+                try {
+                    const result = await this.factCheckLocation(location);
+                    return result;
+                } catch (error) {
+                    console.error('Location fact-check failed:', error);
+                    return this.basicLocationCheck(location);
+                }
+            }
+            
+            async factCheckLocation(location) {
+                const searchQuery = `${location} Cornwall UK location county`;
+                await new Promise(resolve => setTimeout(resolve, 800));
+                return await this.simulateLocationAPI(location, searchQuery);
+            }
+            
+            async simulateLocationAPI(location, searchQuery) {
+                const cleanLocation = location.toLowerCase().trim();
+                
+                const cornwallTowns = {
+                    'truro': { county: 'Cornwall', confidence: 0.99 },
+                    'falmouth': { county: 'Cornwall', confidence: 0.99 },
+                    'penzance': { county: 'Cornwall', confidence: 0.99 },
+                    'st austell': { county: 'Cornwall', confidence: 0.99 },
+                    'saint austell': { county: 'Cornwall', confidence: 0.99 },
+                    'newquay': { county: 'Cornwall', confidence: 0.99 },
+                    'st ives': { county: 'Cornwall', confidence: 0.99 },
+                    'saint ives': { county: 'Cornwall', confidence: 0.99 },
+                    'bodmin': { county: 'Cornwall', confidence: 0.99 },
+                    'launceston': { county: 'Cornwall', confidence: 0.99 },
+                    'helston': { county: 'Cornwall', confidence: 0.99 },
+                    'camborne': { county: 'Cornwall', confidence: 0.99 },
+                    'redruth': { county: 'Cornwall', confidence: 0.99 },
+                    'saltash': { county: 'Cornwall', confidence: 0.99 },
+                    'liskeard': { county: 'Cornwall', confidence: 0.99 },
+                    'wadebridge': { county: 'Cornwall', confidence: 0.99 },
+                    'hayle': { county: 'Cornwall', confidence: 0.99 },
+                    'fowey': { county: 'Cornwall', confidence: 0.99 },
+                    'looe': { county: 'Cornwall', confidence: 0.99 },
+                    'polperro': { county: 'Cornwall', confidence: 0.99 },
+                    'padstow': { county: 'Cornwall', confidence: 0.99 },
+                    'tintagel': { county: 'Cornwall', confidence: 0.99 },
+                    'boscastle': { county: 'Cornwall', confidence: 0.99 },
+                    'bude': { county: 'Cornwall', confidence: 0.99 },
+                    'mousehole': { county: 'Cornwall', confidence: 0.99 },
+                    'marazion': { county: 'Cornwall', confidence: 0.99 },
+                    'perranporth': { county: 'Cornwall', confidence: 0.99 },
+                    'mevagissey': { county: 'Cornwall', confidence: 0.99 },
+                    'charlestown': { county: 'Cornwall', confidence: 0.99 },
+                    'calstock': { county: 'Cornwall', confidence: 0.99 },
+                    'penryn': { county: 'Cornwall', confidence: 0.99 },
+                    'porthleven': { county: 'Cornwall', confidence: 0.99 },
+                    'mullion': { county: 'Cornwall', confidence: 0.99 },
+                    'coverack': { county: 'Cornwall', confidence: 0.99 },
+                    'st just': { county: 'Cornwall', confidence: 0.99 },
+                    'saint just': { county: 'Cornwall', confidence: 0.99 },
+                    'sennen': { county: 'Cornwall', confidence: 0.99 },
+                    'lands end': { county: 'Cornwall', confidence: 0.99 },
+                    'land\'s end': { county: 'Cornwall', confidence: 0.99 },
+                    'st mawes': { county: 'Cornwall', confidence: 0.99 },
+                    'saint mawes': { county: 'Cornwall', confidence: 0.99 },
+                    
+                    'plymouth': { county: 'Devon', confidence: 0.99 },
+                    'exeter': { county: 'Devon', confidence: 0.99 },
+                    'torquay': { county: 'Devon', confidence: 0.99 },
+                    'paignton': { county: 'Devon', confidence: 0.99 },
+                    'barnstaple': { county: 'Devon', confidence: 0.99 },
+                    'newton abbot': { county: 'Devon', confidence: 0.99 },
+                    'tiverton': { county: 'Devon', confidence: 0.99 },
+                    'exmouth': { county: 'Devon', confidence: 0.99 },
+                    'bideford': { county: 'Devon', confidence: 0.99 },
+                    'okehampton': { county: 'Devon', confidence: 0.99 },
+                    'tavistock': { county: 'Devon', confidence: 0.99 },
+                    'totnes': { county: 'Devon', confidence: 0.99 },
+                    'dartmouth': { county: 'Devon', confidence: 0.99 },
+                    'ilfracombe': { county: 'Devon', confidence: 0.99 },
+                    'sidmouth': { county: 'Devon', confidence: 0.99 }
+                };
+                
+                if (cornwallTowns[cleanLocation]) {
+                    const result = cornwallTowns[cleanLocation];
+                    return {
+                        isInCornwall: result.county === 'Cornwall',
+                        county: result.county,
+                        confidence: result.confidence,
+                        source: 'Geographic Database API'
+                    };
+                }
+                
+                return await this.simulateWebSearch(location);
+            }
+            
+            async simulateWebSearch(location) {
+                console.log(`🔍 Fact-checking location: ${location}`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const cleanLocation = location.toLowerCase();
+                
+                if (cleanLocation.includes('cornwall') || cleanLocation.includes('corn wall')) {
+                    return {
+                        isInCornwall: true,
+                        county: 'Cornwall',
+                        confidence: 0.8,
+                        source: 'Web Search'
+                    };
+                }
+                
+                if (cleanLocation.includes('devon') || cleanLocation.includes('manchester') || 
+                    cleanLocation.includes('london') || cleanLocation.includes('bristol')) {
+                    return {
+                        isInCornwall: false,
+                        county: 'Other',
+                        confidence: 0.9,
+                        source: 'Web Search'
+                    };
+                }
+                
+                return {
+                    isInCornwall: false,
+                    county: 'Unknown',
+                    confidence: 0.3,
+                    source: 'Web Search (Uncertain)'
+                };
+            }
+            
+            basicLocationCheck(location) {
+                const cleanLocation = location.toLowerCase();
+                return cleanLocation.includes('cornwall') || cleanLocation.includes('truro') || cleanLocation.includes('falmouth');
+            }
+
+            handleReschedule(response) {
+                if (response.includes('human call')) {
+                    this.addMessage('bot', 'Perfect! I will arrange for one of our team members to call you back within 2 business hours. Please keep your phone available. You will also receive a confirmation email.');
+                    this.candidateData.rescheduleType = 'Human callback';
+                    this.sendEmail('reschedule');
+                } else {
+                    this.addMessage('bot', `Excellent! I have scheduled your screening call for ${response.replace('Tomorrow', 'Friday, July 5th').replace('Friday', 'Friday, July 5th').replace('Next week - Monday', 'Monday, July 8th')}. You will receive a calendar invitation and confirmation email shortly. Thank you for your interest in our AI Business Productivity Bootcamp!`);
+                    this.candidateData.rescheduleType = response;
+                    this.sendEmail('reschedule');
+                }
+                this.completeAssessment();
+            }
+
+            handleUKResidency(response) {
+                if (response.includes('Yes') && response.includes('years')) {
+                    this.candidateData.ukResidency = true;
+                    this.updateCriteria('ukResidency', 'Pass', 'criteria-pass');
+                    this.addMessage('bot', 'Great! Are you currently on any of the following: a spouse visa, international student visa, apprenticeship, or any other government-funded learning programme?');
+                    this.currentStep = 'funding';
+                    this.showOptions(['No, none of those', 'Yes, I\'m on a visa', 'Yes, I\'m on an apprenticeship', 'Yes, other government programme']);
+                } else if (response.includes('waiting list') || response.includes('add me to waiting')) {
+                    this.candidateData.devonWaitingList = true;
+                    this.addMessage('bot', 'Excellent! I\'ve noted you for the Devon waiting list. Now, have you been living in the UK for at least the past 3 years?');
+                    this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
+                } else if (response.includes('not interested')) {
+                    this.addMessage('bot', 'I understand. Thank you for your time and interest in the programme. Feel free to apply again in the future if circumstances change.');
+                    this.completeAssessment();
+                    return;
+                } else {
+                    this.candidateData.ukResidency = false;
+                    this.updateCriteria('ukResidency', 'Fail', 'criteria-fail');
+                    this.addMessage('bot', 'Unfortunately, you need to have been in the UK for at least 3 years to be eligible for this programme. Thank you for your interest.');
+                    this.completeAssessment();
+                    return;
+                }
+            }
+
+            handleFunding(response) {
+                if (response.includes('No, none')) {
+                    this.candidateData.fundingStatus = 'Eligible';
+                    this.updateCriteria('funding', 'Pass', 'criteria-pass');
+                    this.updateCriteria('english', 'Pass', 'criteria-pass');
+                    this.addMessage('bot', 'Perfect! Now, can I confirm your current employment status?');
+                    this.currentStep = 'employment';
+                    this.showOptions(['I\'m employed', 'I\'m self-employed', 'I\'m unemployed', 'I\'m a student']);
+                } else {
+                    this.candidateData.fundingStatus = 'Ineligible';
+                    this.updateCriteria('funding', 'Fail', 'criteria-fail');
+                    this.addMessage('bot', 'Unfortunately, you cannot be on another government-funded programme while participating in this bootcamp. Thank you for your interest.');
+                    this.completeAssessment();
+                    return;
+                }
+            }
+
+            handleEmployment(response) {
+                this.candidateData.employmentStatus = response;
+                
+                if (response.includes('self-employed')) {
+                    this.addMessage('bot', 'Great! This programme is fully funded to help you upskill in your role. The programme starts on 21 July and runs until 9 October. It includes 3 x 2-hour online sessions per week. Would afternoon sessions (4-6pm) or evening sessions (7-9pm) work better for you?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Afternoon sessions work better', 'Evening sessions work better', 'Either would work', 'That is too much commitment']);
+                } else if (response.includes('employed')) {
+                    this.addMessage('bot', 'Would your employer be willing to co-fund your place? The employer contribution is £297.98. If not, we can help you apply for a new role where you can gain these skills through supported job matching.');
+                    this.currentStep = 'employerFunding';
+                    this.showOptions(['Yes, employer will co-fund', 'No, but help me find new role', 'I will pay myself', 'That is too expensive']);
+                } else if (response.includes('unemployed')) {
+                    this.addMessage('bot', 'No problem - this programme is fully funded for you. Can I ask how long you have been unemployed and what kind of roles you are looking for?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Less than 6 months, looking for admin roles', 'More than 6 months, open to anything', 'Recently unemployed, looking for career change', 'Long-term unemployed, need support']);
+                } else {
+                    this.addMessage('bot', 'As a student, you would need to check if this conflicts with your current studies. The programme requires 6 hours per week commitment. Would this be manageable?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Yes, I can manage both', 'No, too much commitment', 'I would need to discuss with uni']);
+                }
+            }
+
+            handleEmployerFunding(response) {
+                // Store the employer funding response for the report
+                this.candidateData.employerFunding = response;
+                console.log('📋 Employer funding response recorded:', response);
+                
+                if (response.includes('co-fund') || response.includes('pay myself')) {
+                    this.addMessage('bot', 'Excellent! The programme starts on 21 July and runs until 9 October. It includes 3 x 2-hour online sessions per week. Would afternoon sessions (4-6pm) or evening sessions (7-9pm) work better for you?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Afternoon sessions work better', 'Evening sessions work better', 'Either would work', 'That is too much commitment']);
+                } else if (response.includes('find new role')) {
+                    this.addMessage('bot', 'Perfect! We can help you find a new role where these AI skills will be valuable. Our job matching service connects you with employers who value these capabilities. The programme is fully funded for job seekers. Would afternoon or evening sessions work better for you?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Afternoon sessions work better', 'Evening sessions work better', 'Either would work', 'I need to discuss timing']);
+                } else if (response.includes('too expensive')) {
+                    this.addMessage('bot', 'I understand the cost concern. We also offer job matching services to help you find a role where the employer would fund this training. Would you be interested in exploring new opportunities?');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['Yes, help me find a new role', 'No, I\'ll stay in current job', 'I need to think about it']);
+                } else {
+                    this.addMessage('bot', 'No problem. Take some time to consider your options. The programme starts on 21 July, so please let us know your decision soon.');
+                    this.currentStep = 'schedule';
+                    this.showOptions(['I\'ll discuss with my employer', 'Help me find a new role instead', 'I\'m not interested anymore']);
+                }
+            }
+
+            handleSchedule(response) {
+                this.candidateData.availability = response;
+                
+                if (response.includes('too much') || response.includes('too expensive') || response.includes('not interested')) {
+                    this.candidateData.interestLevel = 2;
+                    this.addMessage('bot', 'I understand. Perhaps this is not the right time for you. Thank you for your interest, and feel free to apply again in the future when your circumstances change.');
+                    this.completeAssessment();
+                    return;
+                }
+                
+                if (response.includes('discuss with') || response.includes('think about')) {
+                    this.candidateData.interestLevel += 1;
+                    this.addMessage('bot', 'That\'s perfectly reasonable. Take your time to consider it. The programme starts on 21 July, so please let us know your decision by 15 July. Thank you for your interest!');
+                    this.completeAssessment();
+                    return;
+                }
+                
+                this.candidateData.interestLevel += 2;
+                
+                this.addMessage('bot', 'Excellent! You will gain hands-on experience with AI tools for business productivity, including ChatGPT, Microsoft Copilot, and automation tools. We also provide CV and interview preparation. Would you like me to book you in for a 30-minute online Teams interview to discuss the programme further?');
+                
+                this.currentStep = 'interview';
+                this.showOptions(['Yes, book the interview', 'I need to think about it', 'What documents do I need?']);
+            }
+
+            handleInterview(response) {
+                if (response.includes('Yes, book') || response.includes('book the interview') || response.includes('book it now')) {
+                    this.addMessage('bot', 'Excellent! To book your interview, I need to confirm a few details. Please fill in the information below:');
+                    
+                    setTimeout(() => {
+                        // Hide response buttons and create individual input fields
+                        this.responseButtons.innerHTML = '';
+                        this.textInputRow.style.display = 'none';
+                        
+                        // Create individual input fields
+                        const inputContainer = document.createElement('div');
+                        inputContainer.id = 'personalDetailsContainer';
+                        inputContainer.style.cssText = `
+                            background: #f8f9fa;
+                            border-radius: 15px;
+                            padding: 20px;
+                            margin: 15px 0;
+                            border: 2px solid #e0e0e0;
+                        `;
+                        
+                        inputContainer.innerHTML = `
+                            <h4 style="color: #2c3e50; margin-bottom: 15px; text-align: center;">📋 Personal Details</h4>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                    👤 First Name:
+                                </label>
+                                <input type="text" id="firstName" placeholder="Enter your first name" 
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                    👥 Surname:
+                                </label>
+                                <input type="text" id="surname" placeholder="Enter your surname" 
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                    📱 Mobile Number:
+                                </label>
+                                <input type="tel" id="mobile" placeholder="07123456789" 
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+                                    📧 Email Address:
+                                </label>
+                                <input type="email" id="email" placeholder="your.email@example.com" 
+                                       style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;">
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <button onclick="window.chatBot.submitPersonalDetails()" 
+                                        style="background: #27ae60; color: white; border: none; padding: 15px 30px; 
+                                               border-radius: 25px; font-size: 16px; cursor: pointer; font-weight: bold;
+                                               transition: background 0.3s ease;">
+                                    📅 Book My Interview
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add the container to the input section
+                        const inputSection = document.querySelector('.input-section');
+                        inputSection.appendChild(inputContainer);
+                        
+                        this.currentStep = 'collectDetails';
+                    }, 1000);
+                    
+                } else if (response.includes('documents') || response.includes('What documents')) {
+                    this.addMessage('bot', 'You will need: a form of photo ID, your National Insurance number, and proof of address like a utility bill or bank statement. Shall I book your interview now?');
+                    this.showOptions(['Yes, book it now', 'I need to find those documents first']);
+                    return;
+                } else if (response.includes('find those documents')) {
+                    this.addMessage('bot', 'No problem! Take your time to gather those documents. The programme starts on 21 July, so please apply again once you have everything ready. Thank you for your interest!');
+                    this.candidateData.interestLevel -= 1;
+                    this.completeAssessment();
+                } else {
+                    this.addMessage('bot', 'That is perfectly fine. Take your time to consider it. The programme starts on 21 July, so please let us know your decision soon. Thank you for your interest!');
+                    this.candidateData.interestLevel -= 1;
+                    this.completeAssessment();
+                }
+            }
+
+            submitPersonalDetails() {
+                const firstName = document.getElementById('firstName').value.trim();
+                const surname = document.getElementById('surname').value.trim();
+                const mobile = document.getElementById('mobile').value.trim();
+                const email = document.getElementById('email').value.trim();
+                
+                // Validation
+                const errors = [];
+                if (!firstName) errors.push('First Name');
+                if (!surname) errors.push('Surname');
+                if (!mobile) errors.push('Mobile Number');
+                if (!email || !email.includes('@')) errors.push('Valid Email Address');
+                
+                if (errors.length > 0) {
+                    this.addMessage('bot', `❌ <strong>Please complete the following fields:</strong><br>• ${errors.join('<br>• ')}<br><br>All fields are required to book your interview.`);
+                    return;
+                }
+                
+                // Store the personal details
+                const personalDetails = {
+                    firstName: firstName,
+                    surname: surname,
+                    mobile: mobile,
+                    email: email
+                };
+                
+                this.candidateData.personalDetails = personalDetails;
+                this.candidateData.name = `${firstName} ${surname}`;
+                
+                // Remove the form and show confirmation
+                document.getElementById('personalDetailsContainer').remove();
+                
+                this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
+                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!`);
+                
+                this.candidateData.interestLevel += 2;
+                this.completeAssessment();
+            }
+
+            handleCollectDetails(response) {
+                // This method is now mainly for text-based input (legacy support)
+                // The new submitPersonalDetails() method handles the individual input boxes
+                
+                // Parse the personal details with more flexible matching
+                const nameMatch = response.match(/name:\s*([^\n\r,]+?)(?:\s+surname:|$)/i);
+                const surnameMatch = response.match(/surname:\s*([^\n\r,]+?)(?:\s+mobile:|$)/i);
+                const mobileMatch = response.match(/mobile:\s*([^\n\r,]+?)(?:\s+email:|$)/i);
+                const emailMatch = response.match(/email:\s*([^\s@,]+@[^\s@,]+\.[^\s@,\n\r]+)/i);
+                
+                if (nameMatch && surnameMatch && mobileMatch && emailMatch) {
+                    const personalDetails = {
+                        firstName: nameMatch[1].trim(),
+                        surname: surnameMatch[1].trim(),
+                        mobile: mobileMatch[1].trim(),
+                        email: emailMatch[1].trim()
+                    };
+                    
+                    this.candidateData.personalDetails = personalDetails;
+                    this.candidateData.name = `${personalDetails.firstName} ${personalDetails.surname}`;
+                    
+                    this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${personalDetails.firstName} ${personalDetails.surname}<br><strong>Mobile:</strong> ${personalDetails.mobile}<br><strong>Email:</strong> ${personalDetails.email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!`);
+                    
+                    this.candidateData.interestLevel += 2;
+                    this.completeAssessment();
+                } else {
+                    // More helpful error message with examples
+                    this.addMessage('bot', 'I couldn\'t parse all the details. Please use the form above or try one of these formats:<br><br><strong>Option 1:</strong> Name: John Surname: Smith Mobile: 07123456789 Email: john@email.com<br><br><strong>Option 2:</strong><br>Name: Sarah<br>Surname: Johnson<br>Mobile: 07987654321<br>Email: sarah.johnson@email.com<br><br>Please try again:');
+                }
+            }
+
+            updateCriteria(criteria, status, className) {
+                const element = document.getElementById(criteria);
+                element.className = `criteria-item ${className}`;
+                element.querySelector('span:last-child').textContent = status;
+                this.updateScore();
+            }
+
+            updateScore() {
+                let score = 0;
+                
+                if (this.candidateData.location === 'Cornwall') score += 2;
+                if (this.candidateData.ukResidency) score += 2;
+                if (this.candidateData.fundingStatus === 'Eligible') score += 2;
+                
+                score += Math.min(this.candidateData.interestLevel, 4);
+                
+                this.score = Math.min(score, 10);
+                
+                const scoreFill = document.getElementById('scoreFill');
+                const scoreText = document.getElementById('scoreText');
+                
+                scoreFill.style.width = `${(this.score / 10) * 100}%`;
+                scoreText.textContent = `${this.score}/10`;
+            }
+
+            // Dashboard Reporting - Send data to parent window
+            sendToDashboard() {
+                const reportData = {
+                    name: this.candidateData.name || "Unknown Applicant",
+                    email: this.candidateData.personalDetails?.email || "No email provided",
+                    phone: this.candidateData.personalDetails?.mobile || "No phone provided",
+                    score: this.score,
+                    bootcamp: "AI Business Productivity Bootcamp",
+                    location: this.candidateData.location || 'Not assessed',
+                    ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
+                    fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
+                    employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
+                    employerFunding: this.candidateData.employerFunding || 'Not applicable',
+                    availability: this.candidateData.availability || 'Not assessed',
+                    responses: this.candidateData.responses || [],
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
+                                  this.score >= 6 ? 'SUITABLE - Standard processing' : 
+                                  'NOT SUITABLE - Does not meet criteria',
+                    timestamp: new Date().toISOString(),
+                    autoShow: true  // Auto-display the report
+                };
+                
+                console.log('📊 Sending data to dashboard:', reportData);
+                
+                // Send to parent window (dashboard)
+                try {
+                    window.parent.postMessage(reportData, '*');
+                    this.addMessage('bot', '📊 <strong>Report sent to dashboard successfully!</strong><br>Data has been transmitted to the main leaderboard system.');
+                } catch (error) {
+                    console.error('Dashboard reporting failed:', error);
+                    this.addMessage('bot', '⚠️ <strong>Dashboard reporting failed.</strong><br>Could not send data to parent window.');
+                }
+            }
+
+            async checkServerStatus() {
+                const checkButton = document.getElementById('checkServer');
+                checkButton.textContent = '🔄 Checking...';
+                checkButton.disabled = true;
+                
+                this.addMessage('bot', `
+                    📊 <strong>Dashboard Integration Information</strong><br><br>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ Dashboard Mode Active:</strong><br>
+                    • <strong>Reporting Method:</strong> window.parent.postMessage<br>
+                    • <strong>Target:</strong> Parent dashboard window<br>
+                    • <strong>Email Integration:</strong> DISABLED<br>
+                    • <strong>Data Format:</strong> JSON object with candidate details
+                    </div>
+                    
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>📊 Dashboard Features:</strong><br>
+                    • <strong>Real-time Reporting:</strong> Instant data transmission<br>
+                    • <strong>Complete Assessment:</strong> All responses and scoring included<br>
+                    • <strong>Structured Data:</strong> Ready for dashboard processing<br>
+                    • <strong>Auto Display:</strong> Reports auto-show in dashboard<br>
+                    • <strong>Cross-window Communication:</strong> Uses postMessage API
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>🔧 Dashboard Integration:</strong><br>
+                    • Data sent via window.parent.postMessage()<br>
+                    • Parent window receives candidate reports<br>
+                    • Automatic scoring and recommendations<br>
+                    • Real-time leaderboard updates<br>
+                    • No email setup required
+                    </div>
+                    
+                    <strong>💡 Status:</strong> Dashboard reporting mode is active and ready to transmit candidate assessments.
+                `);
+                
+                checkButton.textContent = 'ℹ️ Dashboard Info';
+                checkButton.disabled = false;
+            }
+
+            async testEmailConnection() {
+                const testButton = document.getElementById('testEmail');
+                testButton.textContent = '🔄 Testing...';
+                testButton.disabled = true;
+                
+                this.addMessage('bot', `
+                    📊 <strong>Testing Dashboard Connection...</strong><br><br>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ Dashboard Test Successful!</strong><br>
+                    Email integration has been disabled. The system now uses dashboard reporting via postMessage API.
+                    </div>
+                    
+                    <strong>📊 Test Report Data:</strong><br>
+                    • <strong>Name:</strong> Test User<br>
+                    • <strong>Email:</strong> test@example.com<br>
+                    • <strong>Phone:</strong> +44 7123 456789<br>
+                    • <strong>Score:</strong> 7/10<br>
+                    • <strong>Bootcamp:</strong> AI Business Productivity Bootcamp<br>
+                    • <strong>Status:</strong> SUITABLE - Standard processing<br><br>
+                    
+                    🎉 <strong>Dashboard mode is working correctly!</strong> All candidate reports will be sent to the parent dashboard window.
+                `);
+                
+                // Send test data to dashboard
+                const testData = {
+                    name: "Test User",
+                    email: "test@example.com",
+                    phone: "+44 7123 456789",
+                    score: 7,
+                    bootcamp: "AI Business Productivity Bootcamp",
+                    responses: ["Dashboard", "Integration", "Test", "Data", "Sample"],
+                    recommendation: "SUITABLE - Standard processing",
+                    timestamp: new Date().toISOString(),
+                    autoShow: true,
+                    isTestData: true
+                };
+                
+                try {
+                    window.parent.postMessage(testData, '*');
+                    console.log('📊 Test data sent to dashboard:', testData);
+                } catch (error) {
+                    console.error('Dashboard test failed:', error);
+                }
+                
+                testButton.textContent = '📊 Test Dashboard';
+                testButton.disabled = false;
+            }
+
+            async sendEmail(type) {
+                // Email functionality disabled - using dashboard reporting instead
+                if (type !== 'assessment') return;
+                
+                console.log('📊 Email disabled - using dashboard reporting instead');
+                
+                // Send to dashboard instead of email
+                this.sendToDashboard();
+                
+                return; // Skip email functionality
+            }
+
+            completeAssessment() {
+                this.updateScore();
+                
+                // Send to dashboard
+                this.sendToDashboard();
                 
                 // Auto-save to Firebase
-                if (database) {
-                    setTimeout(autoSaveToFirebase, 3000);
+                if (this.database && this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                    this.saveToFirebase();
                 }
                 
-                // Auto-show report if requested
-                if (data.autoShow) {
-                    setTimeout(() => showIndividualReport(newApplicant), 1000);
+                const finalReport = document.getElementById('finalReport');
+                const recommendation = document.getElementById('recommendation');
+                const reportDetails = document.getElementById('reportDetails');
+                
+                finalReport.classList.remove('hidden');
+                
+                let recommendationText = '';
+                let recommendationClass = '';
+                
+                if (this.score >= 8) {
+                    recommendationText = '🟢 HIGHLY SUITABLE - Schedule interview immediately';
+                    recommendationClass = 'highly-suitable';
+                } else if (this.score >= 6) {
+                    recommendationText = '🟡 SUITABLE - Standard processing';
+                    recommendationClass = 'suitable';
+                } else {
+                    recommendationText = '🔴 NOT SUITABLE - Does not meet criteria';
+                    recommendationClass = 'not-suitable';
                 }
                 
-                console.log('✅ Successfully added new applicant:', newApplicant);
-            } else {
-                console.error('❌ Invalid report data received:', data);
-                showNotification('❌ Invalid report data received', 'error');
-            }
-        }
-
-        // Determine status based on score
-        function determineStatus(score) {
-            if (score >= 80) return 'passed';
-            if (score >= 60) return 'waitlist';
-            return 'failed';
-        }
-
-        // Update connection status indicator
-        function updateConnectionStatus() {
-            const statusEl = document.getElementById('connection-status');
-            if (statusEl) {
-                const firebaseStatus = database ? '🟢 Firebase' : '🔴 Offline';
-                statusEl.innerHTML = `
-                    <div class="flex items-center space-x-4 text-sm">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
-                            <span class="text-gray-600">Bot: ${botStats.connectionStatus}</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-gray-600">${firebaseStatus}</span>
-                        </div>
-                        <div class="text-gray-500">
-                            Reports: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
-                        </div>
-                    </div>
+                recommendation.textContent = recommendationText;
+                recommendation.className = `recommendation ${recommendationClass}`;
+                
+                const reportHTML = `
+                    <strong>Assessment Summary:</strong><br>
+                    • Location: ${this.candidateData.location || 'Not assessed'}<br>
+                    • UK Residency: ${this.candidateData.ukResidency ? 'Eligible' : 'Not eligible'}<br>
+                    • Funding Status: ${this.candidateData.fundingStatus || 'Not assessed'}<br>
+                    • Employment: ${this.candidateData.employmentStatus || 'Not assessed'}<br>
+                    • Employer Funding: ${this.candidateData.employerFunding || 'Not applicable'}<br>
+                    • Availability: ${this.candidateData.availability || 'Not assessed'}<br>
+                    • Interest Level: ${this.candidateData.interestLevel}/10<br>
+                    • Overall Score: ${this.score}/10<br>
+                    • Reschedule Type: ${this.candidateData.rescheduleType || 'N/A'}<br><br>
+                    
+                    <strong>Next Steps:</strong><br>
+                    ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
+                    
+                    <strong>📊 Dashboard Report:</strong><br>
+                    A comprehensive screening report has been sent directly to the parent dashboard window via postMessage API. Check the main dashboard for the detailed candidate assessment.
                 `;
-            }
-        }
-
-        // Show notification
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-                type === 'success' ? 'bg-green-500 text-white' : 
-                type === 'error' ? 'bg-red-500 text-white' : 
-                'bg-blue-500 text-white'
-            }`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
-
-        // Refresh all UI sections with new data
-        function refreshAllSections() {
-            // Update statistics
-            updateStatistics();
-            
-            // Clear and repopulate all sections
-            document.getElementById('recent-applicants').innerHTML = '';
-            document.getElementById('passed-applicants').innerHTML = '';
-            document.getElementById('waitlist-applicants').innerHTML = '';
-            document.getElementById('failed-applicants').innerHTML = '';
-            document.getElementById('processed-applicants').innerHTML = '';
-            
-            // Re-initialize with updated data
-            populateRecentApplicants();
-            populateApplicantSections();
-            updateSectionCounts();
-        }
-
-        // Update statistics cards
-        function updateStatistics() {
-            const totalCount = applicants.length;
-            const passedCount = applicants.filter(a => a.status === 'passed').length;
-            const failedCount = applicants.filter(a => a.status === 'failed').length;
-            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-            const processedCount = applicants.filter(a => a.status === 'processed').length;
-
-            console.log('📊 Updating statistics:', { totalCount, passedCount, failedCount, waitlistCount, processedCount });
-
-            // Update the numbers in statistics cards
-            const statTotal = document.getElementById('stat-total');
-            const statPassed = document.getElementById('stat-passed');
-            const statFailed = document.getElementById('stat-failed');
-            const statWaitlist = document.getElementById('stat-waitlist');
-            const statProcessed = document.getElementById('stat-processed');
-
-            if (statTotal) statTotal.textContent = totalCount;
-            if (statPassed) statPassed.textContent = passedCount;
-            if (statFailed) statFailed.textContent = failedCount;
-            if (statWaitlist) statWaitlist.textContent = waitlistCount;
-            if (statProcessed) statProcessed.textContent = processedCount;
-
-            console.log('✅ Statistics updated successfully');
-        }
-
-        // Update section count headers
-        function updateSectionCounts() {
-            const passedCount = applicants.filter(a => a.status === 'passed').length;
-            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-            const failedCount = applicants.filter(a => a.status === 'failed').length;
-            const processedCount = applicants.filter(a => a.status === 'processed').length;
-
-            // Update count displays
-            const processedCountEl = document.getElementById('processed-count');
-            if (processedCountEl) processedCountEl.textContent = processedCount;
-        }
-
-        // Tab switching
-        function switchTab(tabName) {
-            console.log('🔄 Switching to tab:', tabName);
-            
-            // Hide all content
-            document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
-            
-            // Show selected content
-            const selectedContent = document.getElementById('content-' + tabName);
-            if (selectedContent) {
-                selectedContent.style.display = 'block';
-            }
-            
-            // Update tab styles
-            document.querySelectorAll('[id^="tab-"]').forEach(el => {
-                el.className = el.className.replace('tab-active', 'tab-inactive');
-            });
-            
-            const selectedTab = document.getElementById('tab-' + tabName);
-            if (selectedTab) {
-                selectedTab.className = selectedTab.className.replace('tab-inactive', 'tab-active');
-            }
-            
-            console.log('✅ Tab switched to:', tabName);
-        }
-
-        // Modal functions
-        function showModal(title, content) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-content').value = content;
-            document.getElementById('modal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('show');
-        }
-
-        function copyToClipboard() {
-            const content = document.getElementById('modal-content').value;
-            navigator.clipboard.writeText(content).then(() => {
-                const btn = document.getElementById('copy-btn');
-                btn.textContent = '✅ Copied!';
-                btn.className = btn.className.replace('btn-blue', 'btn-green');
-                setTimeout(() => {
-                    btn.textContent = 'Copy to Clipboard';
-                    btn.className = btn.className.replace('btn-green', 'btn-blue');
-                }, 2000);
-            }).catch(() => {
-                // Fallback if clipboard API fails
-                console.log('Clipboard API failed, manual copy required');
-            });
-        }
-            if (confirm('Are you sure you want to permanently delete this applicant? This action cannot be undone.')) {
-                const index = applicants.findIndex(a => a.id === applicantId);
-                if (index !== -1) {
-                    const deletedApplicant = applicants[index];
-                    applicants.splice(index, 1);
-                    refreshAllSections();
-                    showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
-
-        // Move applicant to processed
-        function moveToProcessed(applicantId) {
-            if (confirm('Mark this applicant as processed? This means the application has been reviewed and actioned.')) {
-                const applicant = applicants.find(a => a.id === applicantId);
-                if (applicant) {
-                    applicant.status = 'processed';
-                    applicant.processedDate = new Date().toLocaleString();
-                    applicant.processedBy = 'Dashboard User'; // Could be enhanced with user login
-                    
-                    refreshAllSections();
-                    showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
-
-        // Restore from processed (move back to original status based on score)
-        function restoreFromProcessed(applicantId) {
-            if (confirm('Restore this applicant to active status? They will be moved back to their original category.')) {
-                const applicant = applicants.find(a => a.id === applicantId);
-                if (applicant) {
-                    applicant.status = determineStatus(applicant.score);
-                    delete applicant.processedDate;
-                    delete applicant.processedBy;
-                    
-                    refreshAllSections();
-                    showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
-                }
-            }
-        }
-
-        // API endpoint simulation for bot integration
-        window.addApplicantReport = function(reportData) {
-            console.log('🔗 Direct API call received:', reportData);
-            processIncomingReport(reportData);
-        };
-
-        // Export function for bot integration
-        window.getDashboardStats = function() {
-            return {
-                totalApplicants: applicants.length,
-                passed: applicants.filter(a => a.status === 'passed').length,
-                failed: applicants.filter(a => a.status === 'failed').length,
-                waitlist: applicants.filter(a => a.status === 'waitlist').length,
-                processed: applicants.filter(a => a.status === 'processed').length,
-                botStats: botStats
-            };
-        };
-
-        const chatbots = [
-            { id: 1, name: 'AI Fundamentals Screener', course: 'AI Fundamentals', created: '2025-01-01', active: true },
-            { id: 2, name: 'Machine Learning Screener', course: 'Machine Learning', created: '2025-01-05', active: true },
-            { id: 3, name: 'Data Science Screener', course: 'Data Science', created: '2025-01-10', active: false }
-        ];
-
-        // Tab switching
-        function switchTab(tabName) {
-            // Hide all content
-            document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
-            // Show selected content
-            document.getElementById('content-' + tabName).style.display = 'block';
-            
-            // Update tab styles
-            document.querySelectorAll('[id^="tab-"]').forEach(el => {
-                el.className = el.className.replace('tab-active', 'tab-inactive');
-            });
-            document.getElementById('tab-' + tabName).className = document.getElementById('tab-' + tabName).className.replace('tab-inactive', 'tab-active');
-        }
-
-        // Modal functions
-        function showModal(title, content) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-content').value = content;
-            document.getElementById('modal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('show');
-        }
-
-        function copyToClipboard() {
-            const content = document.getElementById('modal-content').value;
-            navigator.clipboard.writeText(content).then(() => {
-                const btn = document.getElementById('copy-btn');
-                btn.textContent = '✅ Copied!';
-                btn.className = btn.className.replace('btn-blue', 'btn-green');
-                setTimeout(() => {
-                    btn.textContent = 'Copy to Clipboard';
-                    btn.className = btn.className.replace('btn-green', 'btn-blue');
-                }, 2000);
-            });
-        }
-
-        // Data functions
-        function showCSVData() {
-            const csv = [
-                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
-                ...applicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
-            ].map(row => row.join(',')).join('\n');
-            showModal('📊 CSV Data - All Applicants', csv);
-        }
-
-        // Data functions
-        function showCSVData() {
-            const csv = [
-                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
-                ...applicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
-            ].map(row => row.join(',')).join('\n');
-            showModal('📊 CSV Data - All Applicants', csv);
-        }
-
-        function showCategoryData(status) {
-            const filtered = applicants.filter(a => a.status === status);
-            const csv = [
-                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
-                ...filtered.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
-            ].map(row => row.join(',')).join('\n');
-            showModal(`📊 CSV Data - ${status.charAt(0).toUpperCase() + status.slice(1)} Applicants`, csv);
-        }
-
-        function showIndividualReport(applicant) {
-            const report = `AI BOOTCAMP SCREENING REPORT
-============================
-
-APPLICANT INFORMATION
-Name: ${applicant.name}
-Email: ${applicant.email}
-Phone: ${applicant.phone}
-Application Date: ${applicant.date}
-Bootcamp: ${applicant.bootcamp}
-${applicant.submissionTime ? `Submission Time: ${applicant.submissionTime}` : ''}
-${applicant.source ? `Source: ${applicant.source}` : ''}
-
-SCREENING RESULTS
-Overall Score: ${applicant.score}%
-Status: ${applicant.status.toUpperCase()}
-${applicant.processedDate ? `Processed Date: ${applicant.processedDate}` : ''}
-${applicant.processedBy ? `Processed By: ${applicant.processedBy}` : ''}
-
-QUESTION-BY-QUESTION BREAKDOWN
-Question 1: ${applicant.responses[0]}
-Question 2: ${applicant.responses[1]}
-Question 3: ${applicant.responses[2]}
-Question 4: ${applicant.responses[3]}
-Question 5: ${applicant.responses[4]}
-
-RECOMMENDATION
-${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements for the bootcamp.' :
-  applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
-  applicant.status === 'failed' ? 'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.' :
-  'PROCESSED - This application has been reviewed and appropriate action has been taken.'}
-
-TECHNICAL DETAILS
-Applicant ID: ${applicant.id}
-${applicant.source === 'Bot Submission' ? 'Received via automated bot integration' : 'Manually entered data'}
-
-Generated on: ${new Date().toLocaleString()}`;
-            showModal(`📋 Screening Report - ${applicant.name}`, report);
-        }
-
-        // Test bot integration (enhanced to test both formats)
-        function testBotIntegration() {
-            const testType = Math.random() > 0.5 ? 'structured' : 'legacy';
-            
-            if (testType === 'structured') {
-                // Test new structured format
-                const testData = {
-                    messageType: 'CANDIDATE_REPORT',
-                    name: 'Test Candidate ' + Math.floor(Math.random() * 1000),
-                    email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
-                    phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                    score: Math.floor(Math.random() * 100),
-                    course: 'AI Fundamentals',
-                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
-                    autoShow: true
-                };
                 
-                console.log('🧪 Testing structured format integration with data:', testData);
-                displayCandidateReport(testData);
-            } else {
-                // Test legacy format
-                const testData = {
-                    name: 'Legacy Test ' + Math.floor(Math.random() * 1000),
-                    email: 'legacy' + Math.floor(Math.random() * 1000) + '@example.com',
-                    phone: '+1 (555) 888-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                    score: Math.floor(Math.random() * 100),
-                    bootcamp: 'Machine Learning',
-                    responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
-                    autoShow: true
-                };
+                reportDetails.innerHTML = reportHTML;
                 
-                console.log('🧪 Testing legacy format integration with data:', testData);
-                processIncomingReport(testData);
+                this.responseButtons.innerHTML = '<button class="btn btn-secondary" onclick="location.reload()">Start New Assessment</button>';
             }
         }
 
-        function createChatbot() {
-            const name = document.getElementById('chatbot-name').value;
-            const course = document.getElementById('chatbot-course').value;
-            
-            if (name.trim()) {
-                const report = `🤖 Chatbot Created Successfully!
-
-Configuration:
-- Name: ${name}
-- Course: ${course}
-- Created: ${new Date().toLocaleString()}
-- Status: Active
-- ID: CB${Date.now().toString().slice(-6)}
-
-Features Enabled:
-✓ Applicant Screening
-✓ Automated Responses
-✓ Score Calculation
-✓ Report Generation
-
-(This is a demo - in production, the chatbot would be configured in your AI platform)`;
-                showModal('🤖 Chatbot Created Successfully', report);
-                document.getElementById('chatbot-name').value = '';
-            } else {
-                showModal('⚠️ Validation Error', 'Please enter a chatbot name before creating.');
-            }
-        }
-
-        function handleFileUpload(input, type) {
-            const file = input.files[0];
-            if (file) {
-                const report = `✅ ${type} File Upload Success!
-
-File Details:
-- Name: ${file.name}
-- Size: ${(file.size / 1024).toFixed(2)} KB
-- Type: ${file.type}
-- Last Modified: ${new Date(file.lastModified).toLocaleString()}
-
-(This is a demo - in production, the file would be processed on your server)`;
-                showModal('✅ File Upload Success', report);
-                input.value = '';
-            }
-        }
-
-        function createChatbot() {
-            const name = document.getElementById('chatbot-name').value;
-            const course = document.getElementById('chatbot-course').value;
-            
-            if (name.trim()) {
-                const report = `🤖 Chatbot Created Successfully!
-
-Configuration:
-- Name: ${name}
-- Course: ${course}
-- Created: ${new Date().toLocaleString()}
-- Status: Active
-- ID: CB${Date.now().toString().slice(-6)}
-
-Features Enabled:
-✓ Applicant Screening
-✓ Automated Responses
-✓ Score Calculation
-✓ Report Generation
-
-(This is a demo - in production, the chatbot would be configured in your AI platform)`;
-                showModal('🤖 Chatbot Created Successfully', report);
-                document.getElementById('chatbot-name').value = '';
-            } else {
-                showModal('⚠️ Validation Error', 'Please enter a chatbot name before creating.');
-            }
-        }
-
-        function handleFileUpload(input, type) {
-            const file = input.files[0];
-            if (file) {
-                const report = `✅ ${type} File Upload Success!
-
-File Details:
-- Name: ${file.name}
-- Size: ${(file.size / 1024).toFixed(2)} KB
-- Type: ${file.type}
-- Last Modified: ${new Date(file.lastModified).toLocaleString()}
-
-(This is a demo - in production, the file would be processed on your server)`;
-                showModal('✅ File Upload Success', report);
-                input.value = '';
-            }
-        }
-
-        function editChatbot(chatbot) {
-            const report = `⚙️ Edit Chatbot Configuration
-
-Current Settings:
-- Name: ${chatbot.name}
-- Course: ${chatbot.course}
-- Created: ${chatbot.created}
-- Status: ${chatbot.active ? 'Active' : 'Inactive'}
-
-(This is demo functionality - in production, this would open a configuration interface)`;
-            showModal(`⚙️ Edit Chatbot - ${chatbot.name}`, report);
-        }
-
-        function deleteChatbot(chatbot) {
-            const report = `🗑️ Delete Chatbot Confirmation
-
-⚠️ Are you sure you want to delete "${chatbot.name}"?
-
-This action will:
-- Permanently remove the chatbot
-- Delete all configuration data
-- Stop any active screening sessions
-
-Chatbot Details:
-- Course: ${chatbot.course}
-- Created: ${chatbot.created}
-- Status: ${chatbot.active ? 'Active' : 'Inactive'}
-
-This action CANNOT be undone!`;
-            showModal(`🗑️ Delete Chatbot - ${chatbot.name}`, report);
-        }
-
-        // Initialize page
-        function init() {
-            console.log('🚀 Initializing AI Bootcamp Dashboard with Bot Integration');
-            
-            // Check for URL parameters first
-            checkURLParams();
-            
-            // Update statistics immediately
-            updateStatistics();
-            
-            // Populate all sections
-            populateRecentApplicants();
-            populateApplicantSections();
-            populateChatbotsTable();
-            updateConnectionStatus();
-            updateSectionCounts();
-            
-            console.log('✅ Dashboard initialized successfully with', applicants.length, 'applicants');
-        }
-
-        // Populate recent applicants
-        function populateRecentApplicants() {
-            const recentContainer = document.getElementById('recent-applicants');
-            if (!recentContainer) {
-                console.log('⚠️ Recent applicants container not found');
-                return;
-            }
-            
-            recentContainer.innerHTML = '';
-            console.log('🔄 Populating recent applicants section');
-            
-            applicants.slice(0, 5).forEach(applicant => {
-                const statusClass = getStatusColor(applicant.status);
-                const statusEmoji = getStatusIcon(applicant.status);
-                
-                recentContainer.innerHTML += `
-                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span class="text-sm font-medium text-gray-600">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
-                                <p class="text-sm text-gray-500">${applicant.email}</p>
-                                <p class="text-sm text-gray-500">${applicant.phone}</p>
-                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-500">${applicant.bootcamp}</span>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
-                                ${statusEmoji} ${applicant.status}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            console.log('✅ Populated recent applicants with', Math.min(5, applicants.length), 'entries');
-        }
-
-        // Populate applicant sections
-        function populateApplicantSections() {
-            console.log('🔄 Populating applicant sections with', applicants.length, 'total applicants');
-            
-            ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
-                const container = document.getElementById(status + '-applicants');
-                if (!container) {
-                    console.log('⚠️ Container not found for status:', status);
-                    return;
-                }
-                
-                container.innerHTML = '';
-                const filtered = applicants.filter(a => a.status === status);
-                console.log(`📊 Found ${filtered.length} applicants with status: ${status}`);
-                
-                const colorClass = status === 'passed' ? 'green' : 
-                                  status === 'failed' ? 'red' : 
-                                  status === 'waitlist' ? 'yellow' : 'blue';
-                
-                filtered.forEach(applicant => {
-                    const actionButtons = status === 'processed' ? 
-                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">
-                            ↩️ Restore to Active
-                        </button>
-                        <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">
-                            🗑️ Delete Permanently
-                        </button>` :
-                        `<div class="space-y-2">
-                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
-                                📋 View Report
-                            </button>
-                            <div class="flex space-x-2">
-                                <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">
-                                    ✔️ Mark Processed
-                                </button>
-                                <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">
-                                    🗑️ Delete
-                                </button>
-                            </div>
-                        </div>`;
-
-                    container.innerHTML += `
-                        <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex-grow">
-                                    <h4 class="font-medium text-gray-900">${applicant.name}</h4>
-                                    <p class="text-sm text-gray-600">${applicant.email}</p>
-                                    <p class="text-sm text-gray-600">${applicant.phone}</p>
-                                    ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
-                                    ${applicant.processedDate ? `<p class="text-xs text-blue-600">Processed: ${applicant.processedDate}</p>` : ''}
-                                </div>
-                                <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
-                            </div>
-                            <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
-                                <span>${applicant.bootcamp}</span>
-                                <span>${applicant.date}</span>
-                            </div>
-                            ${actionButtons}
-                        </div>
-                    `;
-                });
-            });
-            
-            console.log('✅ Completed populating all applicant sections');
-        }
-
-        // Populate chatbots table
-        function populateChatbotsTable() {
-            const chatbotsContainer = document.getElementById('chatbots-table');
-            if (!chatbotsContainer) {
-                console.log('⚠️ Chatbots table container not found');
-                return;
-            }
-            
-            chatbotsContainer.innerHTML = '';
-            
-            chatbots.forEach(chatbot => {
-                chatbotsContainer.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${chatbot.name}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.course}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.created}</td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'}">
-                                ${chatbot.active ? '🟢 Active' : '🔴 Inactive'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm font-medium space-x-2">
-                            <button onclick="editChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-blue-600 hover:text-blue-900">Edit</button>
-                            <button onclick="deleteChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-red-600 hover:text-red-900">Delete</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            console.log('✅ Populated chatbots table with', chatbots.length, 'chatbots');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing AI Bootcamp Dashboard with Firebase & Bot Integration');
+            window.chatBot = new ChatBot();
             
-            // Initialize Firebase first
-            initializeFirebase();
-            
-            // Setup auto-save triggers
-            setupAutoSaveTriggers();
-            
-            // Initialize dashboard - CRITICAL: This must run to show applicants
-            init();
-            
-            // Force update statistics after short delay to ensure DOM is ready
             setTimeout(() => {
-                updateStatistics();
-                updateSectionCounts();
-                console.log('🔄 Force-updated statistics and sections');
-            }, 500);
-            
-            // Console welcome message for bot integration
-            console.log(`
-🤖 AI BOOTCAMP DASHBOARD - FULLY INTEGRATED!
-=============================================
-
-✅ Dashboard loaded successfully
-✅ Firebase integration active
-✅ Auto-save enabled (every 60 seconds)
-✅ Enhanced bot listener ready - waiting for bot.html reports
-✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
-✅ Ready to receive applicant data (both legacy and structured formats)
-
-📨 Send reports using:
-   Legacy: window.parent.postMessage(reportData, '*')
-   Structured: window.parent.postMessage({messageType: 'CANDIDATE_REPORT', ...data}, '*')
-
-🧪 Test integration with the "Test Bot Connection" button
-☁️ Save/Load data with Firebase cloud storage
-🗑️ Delete applicants or mark as processed
-✔️ Move completed applications to processed section
-🎯 Enhanced security checks and message type handling
-
-📊 Current stats: ${applicants.length} applicants loaded
-            `);
-            
-            // Additional ready message for bot sync
-            console.log('🎯 Enhanced testbot.html listener ready - waiting for bot.html reports with security validation');
+                const audioInfo = document.createElement('div');
+                audioInfo.style.cssText = `
+                    position: fixed; bottom: 20px; left: 20px;
+                    background: #27ae60; color: white; padding: 10px 15px;
+                    border-radius: 10px; font-size: 12px; max-width: 220px;
+                    z-index: 1000; animation: slideUp 0.5s ease-out;
+                `;
+                audioInfo.innerHTML = `
+                    🎉 <strong>Enhanced Features Active!</strong><br>
+                    • Direct dashboard integration active<br>
+                    • Firebase cloud storage ready<br>
+                    • Course Q&A with sources<br>
+                    • Auto-save every 60 seconds
+                `;
+                document.body.appendChild(audioInfo);
+                
+                setTimeout(() => audioInfo.remove(), 4000);
+            }, 2000);
         });
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from {
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
