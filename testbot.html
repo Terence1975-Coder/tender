@@ -404,6 +404,95 @@
     <script>
         // Dynamic applicants array - will receive new data from bot
         let applicants = [
+            { 
+                id: 1, 
+                name: 'John Smith', 
+                email: 'john@email.com', 
+                phone: '+1 (555) 123-4567', 
+                date: '2025-01-15', 
+                status: 'passed', 
+                score: 85, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+            },
+            { 
+                id: 2, 
+                name: 'Sarah Johnson', 
+                email: 'sarah@email.com', 
+                phone: '+1 (555) 234-5678', 
+                date: '2025-01-14', 
+                status: 'failed', 
+                score: 45, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
+            },
+            { 
+                id: 3, 
+                name: 'Mike Chen', 
+                email: 'mike@email.com', 
+                phone: '+1 (555) 345-6789', 
+                date: '2025-01-13', 
+                status: 'waitlist', 
+                score: 65, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 4, 
+                name: 'Emily Davis', 
+                email: 'emily@email.com', 
+                phone: '+1 (555) 456-7890', 
+                date: '2025-01-12', 
+                status: 'passed', 
+                score: 92, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 5, 
+                name: 'Alex Rodriguez', 
+                email: 'alex@email.com', 
+                phone: '+1 (555) 567-8901', 
+                date: '2025-01-11', 
+                status: 'passed', 
+                score: 78, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+            },
+            { 
+                id: 6, 
+                name: 'Lisa Wang', 
+                email: 'lisa@email.com', 
+                phone: '+1 (555) 678-9012', 
+                date: '2025-01-10', 
+                status: 'waitlist', 
+                score: 68, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 7, 
+                name: 'David Brown', 
+                email: 'david@email.com', 
+                phone: '+1 (555) 789-0123', 
+                date: '2025-01-09', 
+                status: 'failed', 
+                score: 42, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
+            },
+            { 
+                id: 8, 
+                name: 'Jennifer Lee', 
+                email: 'jennifer@email.com', 
+                phone: '+1 (555) 890-1234', 
+                date: '2025-01-08', 
+                status: 'passed', 
+                score: 89, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
+            }
+        ];
             { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
             { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
             { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
@@ -850,12 +939,22 @@
             const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
             const processedCount = applicants.filter(a => a.status === 'processed').length;
 
+            console.log('📊 Updating statistics:', { totalCount, passedCount, failedCount, waitlistCount, processedCount });
+
             // Update the numbers in statistics cards
-            document.getElementById('stat-total').textContent = totalCount;
-            document.getElementById('stat-passed').textContent = passedCount;
-            document.getElementById('stat-failed').textContent = failedCount;
-            document.getElementById('stat-waitlist').textContent = waitlistCount;
-            document.getElementById('stat-processed').textContent = processedCount;
+            const statTotal = document.getElementById('stat-total');
+            const statPassed = document.getElementById('stat-passed');
+            const statFailed = document.getElementById('stat-failed');
+            const statWaitlist = document.getElementById('stat-waitlist');
+            const statProcessed = document.getElementById('stat-processed');
+
+            if (statTotal) statTotal.textContent = totalCount;
+            if (statPassed) statPassed.textContent = passedCount;
+            if (statFailed) statFailed.textContent = failedCount;
+            if (statWaitlist) statWaitlist.textContent = waitlistCount;
+            if (statProcessed) statProcessed.textContent = processedCount;
+
+            console.log('✅ Statistics updated successfully');
         }
 
         // Update section count headers
@@ -999,6 +1098,15 @@
             showModal('📊 CSV Data - All Applicants', csv);
         }
 
+        // Data functions
+        function showCSVData() {
+            const csv = [
+                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
+                ...applicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
+            ].map(row => row.join(',')).join('\n');
+            showModal('📊 CSV Data - All Applicants', csv);
+        }
+
         function showCategoryData(status) {
             const filtered = applicants.filter(a => a.status === status);
             const csv = [
@@ -1129,6 +1237,51 @@ File Details:
             }
         }
 
+        function createChatbot() {
+            const name = document.getElementById('chatbot-name').value;
+            const course = document.getElementById('chatbot-course').value;
+            
+            if (name.trim()) {
+                const report = `🤖 Chatbot Created Successfully!
+
+Configuration:
+- Name: ${name}
+- Course: ${course}
+- Created: ${new Date().toLocaleString()}
+- Status: Active
+- ID: CB${Date.now().toString().slice(-6)}
+
+Features Enabled:
+✓ Applicant Screening
+✓ Automated Responses
+✓ Score Calculation
+✓ Report Generation
+
+(This is a demo - in production, the chatbot would be configured in your AI platform)`;
+                showModal('🤖 Chatbot Created Successfully', report);
+                document.getElementById('chatbot-name').value = '';
+            } else {
+                showModal('⚠️ Validation Error', 'Please enter a chatbot name before creating.');
+            }
+        }
+
+        function handleFileUpload(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const report = `✅ ${type} File Upload Success!
+
+File Details:
+- Name: ${file.name}
+- Size: ${(file.size / 1024).toFixed(2)} KB
+- Type: ${file.type}
+- Last Modified: ${new Date(file.lastModified).toLocaleString()}
+
+(This is a demo - in production, the file would be processed on your server)`;
+                showModal('✅ File Upload Success', report);
+                input.value = '';
+            }
+        }
+
         function editChatbot(chatbot) {
             const report = `⚙️ Edit Chatbot Configuration
 
@@ -1168,19 +1321,29 @@ This action CANNOT be undone!`;
             // Check for URL parameters first
             checkURLParams();
             
+            // Update statistics immediately
+            updateStatistics();
+            
             // Populate all sections
             populateRecentApplicants();
             populateApplicantSections();
             populateChatbotsTable();
             updateConnectionStatus();
+            updateSectionCounts();
             
-            console.log('✅ Dashboard initialized successfully');
+            console.log('✅ Dashboard initialized successfully with', applicants.length, 'applicants');
         }
 
         // Populate recent applicants
         function populateRecentApplicants() {
             const recentContainer = document.getElementById('recent-applicants');
+            if (!recentContainer) {
+                console.log('⚠️ Recent applicants container not found');
+                return;
+            }
+            
             recentContainer.innerHTML = '';
+            console.log('🔄 Populating recent applicants section');
             
             applicants.slice(0, 5).forEach(applicant => {
                 const statusClass = getStatusColor(applicant.status);
@@ -1208,14 +1371,25 @@ This action CANNOT be undone!`;
                     </div>
                 `;
             });
+            
+            console.log('✅ Populated recent applicants with', Math.min(5, applicants.length), 'entries');
         }
 
         // Populate applicant sections
         function populateApplicantSections() {
+            console.log('🔄 Populating applicant sections with', applicants.length, 'total applicants');
+            
             ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
                 const container = document.getElementById(status + '-applicants');
+                if (!container) {
+                    console.log('⚠️ Container not found for status:', status);
+                    return;
+                }
+                
                 container.innerHTML = '';
                 const filtered = applicants.filter(a => a.status === status);
+                console.log(`📊 Found ${filtered.length} applicants with status: ${status}`);
+                
                 const colorClass = status === 'passed' ? 'green' : 
                                   status === 'failed' ? 'red' : 
                                   status === 'waitlist' ? 'yellow' : 'blue';
@@ -1263,11 +1437,18 @@ This action CANNOT be undone!`;
                     `;
                 });
             });
+            
+            console.log('✅ Completed populating all applicant sections');
         }
 
         // Populate chatbots table
         function populateChatbotsTable() {
             const chatbotsContainer = document.getElementById('chatbots-table');
+            if (!chatbotsContainer) {
+                console.log('⚠️ Chatbots table container not found');
+                return;
+            }
+            
             chatbotsContainer.innerHTML = '';
             
             chatbots.forEach(chatbot => {
@@ -1288,6 +1469,8 @@ This action CANNOT be undone!`;
                     </tr>
                 `;
             });
+            
+            console.log('✅ Populated chatbots table with', chatbots.length, 'chatbots');
         }
 
         // Close modal when clicking outside
@@ -1305,8 +1488,15 @@ This action CANNOT be undone!`;
             // Setup auto-save triggers
             setupAutoSaveTriggers();
             
-            // Initialize dashboard
+            // Initialize dashboard - CRITICAL: This must run to show applicants
             init();
+            
+            // Force update statistics after short delay to ensure DOM is ready
+            setTimeout(() => {
+                updateStatistics();
+                updateSectionCounts();
+                console.log('🔄 Force-updated statistics and sections');
+            }, 500);
             
             // Console welcome message for bot integration
             console.log(`
