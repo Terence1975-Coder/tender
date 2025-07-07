@@ -70,6 +70,7 @@
         .status-passed { background: #dcfce7; color: #166534; }
         .status-failed { background: #fecaca; color: #991b1b; }
         .status-waitlist { background: #fef3c7; color: #92400e; }
+        .status-processed { background: #dbeafe; color: #1e40af; }
         .upload-zone { border: 2px dashed #d1d5db; transition: border-color 0.2s; }
         .upload-zone:hover { border-color: #9ca3af; }
         .firebase-status {
@@ -134,6 +135,24 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Processed Applicants Section -->
+            <div class="card overflow-hidden">
+                <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-blue-800">✔️ Processed Applicants (<span id="processed-count">0</span>)</h3>
+                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm flex items-center space-x-1 transition-colors">
+                            <div class="text-lg">📥</div>
+                            <span>Export Data</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -159,13 +178,13 @@
         <!-- Overview Tab -->
         <div id="content-overview" class="space-y-6">
             <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <div class="card p-6">
                     <div class="flex items-center">
                         <div class="text-3xl">👥</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Applicants</p>
-                            <p class="text-2xl font-bold text-gray-900">8</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-total">8</p>
                         </div>
                     </div>
                 </div>
@@ -174,7 +193,7 @@
                         <div class="text-3xl">✅</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Passed</p>
-                            <p class="text-2xl font-bold text-gray-900">4</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">4</p>
                         </div>
                     </div>
                 </div>
@@ -183,7 +202,7 @@
                         <div class="text-3xl">❌</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Failed</p>
-                            <p class="text-2xl font-bold text-gray-900">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">2</p>
                         </div>
                     </div>
                 </div>
@@ -192,7 +211,16 @@
                         <div class="text-3xl">⏳</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Waitlist</p>
-                            <p class="text-2xl font-bold text-gray-900">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">2</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">✔️</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Processed</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-processed">0</p>
                         </div>
                     </div>
                 </div>
@@ -460,6 +488,7 @@
                     passed: applicants.filter(a => a.status === 'passed').length,
                     failed: applicants.filter(a => a.status === 'failed').length,
                     waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                    processed: applicants.filter(a => a.status === 'processed').length,
                     lastUpdated: new Date().toISOString()
                 }
             };
@@ -594,14 +623,92 @@
 
         // 🤖 BOT INTEGRATION FUNCTIONS
         
-        // Listen for reports from bot.html
+        // Enhanced listener for messages from bot.html with security and message types
         window.addEventListener('message', function(event) {
-            // Security check - only accept from your domain
-            if (event.origin.includes('github.io')) {
-                console.log('📨 Received data from bot:', event.data);
+            console.log('📨 Received message from:', event.origin, 'Data:', event.data);
+            
+            // Security check - accept from your domain and localhost for testing
+            if (!event.origin.includes('github.io') && !event.origin.includes('localhost')) {
+                console.log('🚫 Rejected message from unauthorized origin:', event.origin);
+                return;
+            }
+            
+            // Handle structured messages with messageType (new format)
+            if (event.data && event.data.messageType) {
+                console.log('📊 Processing structured message:', event.data.messageType);
+                
+                if (event.data.messageType === 'CANDIDATE_REPORT') {
+                    console.log('✅ Candidate report received:', event.data.name, 'Score:', event.data.score);
+                    displayCandidateReport(event.data);
+                    
+                    // Auto-show modal if requested
+                    if (event.data.autoShow) {
+                        showCandidateModal(event.data);
+                    }
+                    
+                    return;
+                }
+                
+                if (event.data.messageType === 'CONNECTION_TEST') {
+                    console.log('🔧 Connection test successful from bot.html');
+                    showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
+                    return;
+                }
+            }
+            
+            // Handle legacy format (backwards compatibility)
+            if (event.data && (event.data.name || event.data.email)) {
+                console.log('📨 Processing legacy format message');
                 processIncomingReport(event.data);
             }
         });
+
+        // Function to display candidate data (new structured format)
+        function displayCandidateReport(candidateData) {
+            console.log('🎯 Displaying candidate report:', candidateData);
+            
+            // Convert structured format to our internal format
+            const reportData = {
+                name: candidateData.name || 'Unknown Candidate',
+                email: candidateData.email || 'no-email@example.com',
+                phone: candidateData.phone || '+1 (555) 000-0000',
+                score: candidateData.score || 0,
+                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
+                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                autoShow: candidateData.autoShow || false,
+                messageType: candidateData.messageType // Preserve message type
+            };
+            
+            // Process using existing system
+            processIncomingReport(reportData);
+            
+            // Show additional notification for structured reports
+            showNotification(`📊 Structured report received: ${reportData.name} (Score: ${reportData.score})`, 'success');
+        }
+
+        // Function to show candidate modal (enhanced)
+        function showCandidateModal(candidateData) {
+            console.log('📋 Showing modal for candidate:', candidateData.name);
+            
+            // Create a temporary applicant object for the modal
+            const tempApplicant = {
+                id: Date.now(),
+                name: candidateData.name || 'Unknown Candidate',
+                email: candidateData.email || 'no-email@example.com',
+                phone: candidateData.phone || '+1 (555) 000-0000',
+                date: new Date().toISOString().split('T')[0],
+                status: determineStatus(candidateData.score || 0),
+                score: candidateData.score || 0,
+                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
+                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                submissionTime: new Date().toLocaleString(),
+                source: 'Bot Submission (Structured)',
+                messageType: candidateData.messageType
+            };
+            
+            // Show the individual report modal
+            showIndividualReport(tempApplicant);
+        }
 
         // Process URL parameters for direct report submission
         function checkURLParams() {
@@ -727,6 +834,7 @@
             document.getElementById('passed-applicants').innerHTML = '';
             document.getElementById('waitlist-applicants').innerHTML = '';
             document.getElementById('failed-applicants').innerHTML = '';
+            document.getElementById('processed-applicants').innerHTML = '';
             
             // Re-initialize with updated data
             populateRecentApplicants();
@@ -740,13 +848,14 @@
             const passedCount = applicants.filter(a => a.status === 'passed').length;
             const failedCount = applicants.filter(a => a.status === 'failed').length;
             const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const processedCount = applicants.filter(a => a.status === 'processed').length;
 
             // Update the numbers in statistics cards
-            const cards = document.querySelectorAll('.card p.text-2xl');
-            if (cards[0]) cards[0].textContent = totalCount;
-            if (cards[1]) cards[1].textContent = passedCount;
-            if (cards[2]) cards[2].textContent = failedCount;
-            if (cards[3]) cards[3].textContent = waitlistCount;
+            document.getElementById('stat-total').textContent = totalCount;
+            document.getElementById('stat-passed').textContent = passedCount;
+            document.getElementById('stat-failed').textContent = failedCount;
+            document.getElementById('stat-waitlist').textContent = waitlistCount;
+            document.getElementById('stat-processed').textContent = processedCount;
         }
 
         // Update section count headers
@@ -754,20 +863,69 @@
             const passedCount = applicants.filter(a => a.status === 'passed').length;
             const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
             const failedCount = applicants.filter(a => a.status === 'failed').length;
+            const processedCount = applicants.filter(a => a.status === 'processed').length;
 
-            // Update headers
-            const headers = document.querySelectorAll('[id$="-applicants"]').forEach((section, index) => {
-                const header = section.previousElementSibling?.querySelector('h3');
-                if (header) {
-                    if (header.textContent.includes('Passed')) {
-                        header.textContent = `✅ Passed Applicants (${passedCount})`;
-                    } else if (header.textContent.includes('Waitlist')) {
-                        header.textContent = `⏳ Waitlist Applicants (${waitlistCount})`;
-                    } else if (header.textContent.includes('Failed')) {
-                        header.textContent = `❌ Failed Applicants (${failedCount})`;
+            // Update count displays
+            const processedCountEl = document.getElementById('processed-count');
+            if (processedCountEl) processedCountEl.textContent = processedCount;
+        }
+
+        // Delete applicant
+        function deleteApplicant(applicantId) {
+            if (confirm('Are you sure you want to permanently delete this applicant? This action cannot be undone.')) {
+                const index = applicants.findIndex(a => a.id === applicantId);
+                if (index !== -1) {
+                    const deletedApplicant = applicants[index];
+                    applicants.splice(index, 1);
+                    refreshAllSections();
+                    showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
                     }
                 }
-            });
+            }
+        }
+
+        // Move applicant to processed
+        function moveToProcessed(applicantId) {
+            if (confirm('Mark this applicant as processed? This means the application has been reviewed and actioned.')) {
+                const applicant = applicants.find(a => a.id === applicantId);
+                if (applicant) {
+                    applicant.status = 'processed';
+                    applicant.processedDate = new Date().toLocaleString();
+                    applicant.processedBy = 'Dashboard User'; // Could be enhanced with user login
+                    
+                    refreshAllSections();
+                    showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
+                    }
+                }
+            }
+        }
+
+        // Restore from processed (move back to original status based on score)
+        function restoreFromProcessed(applicantId) {
+            if (confirm('Restore this applicant to active status? They will be moved back to their original category.')) {
+                const applicant = applicants.find(a => a.id === applicantId);
+                if (applicant) {
+                    applicant.status = determineStatus(applicant.score);
+                    delete applicant.processedDate;
+                    delete applicant.processedBy;
+                    
+                    refreshAllSections();
+                    showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
+                    }
+                }
+            }
         }
 
         // API endpoint simulation for bot integration
@@ -783,6 +941,7 @@
                 passed: applicants.filter(a => a.status === 'passed').length,
                 failed: applicants.filter(a => a.status === 'failed').length,
                 waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                processed: applicants.filter(a => a.status === 'processed').length,
                 botStats: botStats
             };
         };
@@ -865,6 +1024,8 @@ ${applicant.source ? `Source: ${applicant.source}` : ''}
 SCREENING RESULTS
 Overall Score: ${applicant.score}%
 Status: ${applicant.status.toUpperCase()}
+${applicant.processedDate ? `Processed Date: ${applicant.processedDate}` : ''}
+${applicant.processedBy ? `Processed By: ${applicant.processedBy}` : ''}
 
 QUESTION-BY-QUESTION BREAKDOWN
 Question 1: ${applicant.responses[0]}
@@ -876,7 +1037,8 @@ Question 5: ${applicant.responses[4]}
 RECOMMENDATION
 ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements for the bootcamp.' :
   applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
-  'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.'}
+  applicant.status === 'failed' ? 'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.' :
+  'PROCESSED - This application has been reviewed and appropriate action has been taken.'}
 
 TECHNICAL DETAILS
 Applicant ID: ${applicant.id}
@@ -886,20 +1048,40 @@ Generated on: ${new Date().toLocaleString()}`;
             showModal(`📋 Screening Report - ${applicant.name}`, report);
         }
 
-        // Test bot integration
+        // Test bot integration (enhanced to test both formats)
         function testBotIntegration() {
-            const testData = {
-                name: 'Test Applicant ' + Math.floor(Math.random() * 1000),
-                email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
-                phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                score: Math.floor(Math.random() * 100),
-                bootcamp: 'AI Fundamentals',
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
-                autoShow: true
-            };
+            const testType = Math.random() > 0.5 ? 'structured' : 'legacy';
             
-            console.log('🧪 Testing bot integration with data:', testData);
-            processIncomingReport(testData);
+            if (testType === 'structured') {
+                // Test new structured format
+                const testData = {
+                    messageType: 'CANDIDATE_REPORT',
+                    name: 'Test Candidate ' + Math.floor(Math.random() * 1000),
+                    email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                    phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                    score: Math.floor(Math.random() * 100),
+                    course: 'AI Fundamentals',
+                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
+                    autoShow: true
+                };
+                
+                console.log('🧪 Testing structured format integration with data:', testData);
+                displayCandidateReport(testData);
+            } else {
+                // Test legacy format
+                const testData = {
+                    name: 'Legacy Test ' + Math.floor(Math.random() * 1000),
+                    email: 'legacy' + Math.floor(Math.random() * 1000) + '@example.com',
+                    phone: '+1 (555) 888-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                    score: Math.floor(Math.random() * 100),
+                    bootcamp: 'Machine Learning',
+                    responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
+                    autoShow: true
+                };
+                
+                console.log('🧪 Testing legacy format integration with data:', testData);
+                processIncomingReport(testData);
+            }
         }
 
         function createChatbot() {
@@ -1001,10 +1183,8 @@ This action CANNOT be undone!`;
             recentContainer.innerHTML = '';
             
             applicants.slice(0, 5).forEach(applicant => {
-                const statusClass = applicant.status === 'passed' ? 'status-passed' : 
-                                  applicant.status === 'failed' ? 'status-failed' : 'status-waitlist';
-                const statusEmoji = applicant.status === 'passed' ? '✅' : 
-                                  applicant.status === 'failed' ? '❌' : '⏳';
+                const statusClass = getStatusColor(applicant.status);
+                const statusEmoji = getStatusIcon(applicant.status);
                 
                 recentContainer.innerHTML += `
                     <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
@@ -1032,13 +1212,36 @@ This action CANNOT be undone!`;
 
         // Populate applicant sections
         function populateApplicantSections() {
-            ['passed', 'waitlist', 'failed'].forEach(status => {
+            ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
                 const container = document.getElementById(status + '-applicants');
                 container.innerHTML = '';
                 const filtered = applicants.filter(a => a.status === status);
-                const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'yellow';
+                const colorClass = status === 'passed' ? 'green' : 
+                                  status === 'failed' ? 'red' : 
+                                  status === 'waitlist' ? 'yellow' : 'blue';
                 
                 filtered.forEach(applicant => {
+                    const actionButtons = status === 'processed' ? 
+                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">
+                            ↩️ Restore to Active
+                        </button>
+                        <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">
+                            🗑️ Delete Permanently
+                        </button>` :
+                        `<div class="space-y-2">
+                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
+                                📋 View Report
+                            </button>
+                            <div class="flex space-x-2">
+                                <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">
+                                    ✔️ Mark Processed
+                                </button>
+                                <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>`;
+
                     container.innerHTML += `
                         <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
                             <div class="flex items-start justify-between mb-3">
@@ -1047,6 +1250,7 @@ This action CANNOT be undone!`;
                                     <p class="text-sm text-gray-600">${applicant.email}</p>
                                     <p class="text-sm text-gray-600">${applicant.phone}</p>
                                     ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
+                                    ${applicant.processedDate ? `<p class="text-xs text-blue-600">Processed: ${applicant.processedDate}</p>` : ''}
                                 </div>
                                 <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
                             </div>
@@ -1054,9 +1258,7 @@ This action CANNOT be undone!`;
                                 <span>${applicant.bootcamp}</span>
                                 <span>${applicant.date}</span>
                             </div>
-                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
-                                📋 View Report
-                            </button>
+                            ${actionButtons}
                         </div>
                     `;
                 });
@@ -1114,17 +1316,25 @@ This action CANNOT be undone!`;
 ✅ Dashboard loaded successfully
 ✅ Firebase integration active
 ✅ Auto-save enabled (every 60 seconds)
+✅ Enhanced bot listener ready - waiting for bot.html reports
 ✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
-✅ Ready to receive applicant data
+✅ Ready to receive applicant data (both legacy and structured formats)
 
 📨 Send reports using:
-   window.parent.postMessage(reportData, '*')
+   Legacy: window.parent.postMessage(reportData, '*')
+   Structured: window.parent.postMessage({messageType: 'CANDIDATE_REPORT', ...data}, '*')
 
 🧪 Test integration with the "Test Bot Connection" button
 ☁️ Save/Load data with Firebase cloud storage
+🗑️ Delete applicants or mark as processed
+✔️ Move completed applications to processed section
+🎯 Enhanced security checks and message type handling
 
 📊 Current stats: ${applicants.length} applicants loaded
             `);
+            
+            // Additional ready message for bot sync
+            console.log('🎯 Enhanced testbot.html listener ready - waiting for bot.html reports with security validation');
         });
     </script>
 </body>
