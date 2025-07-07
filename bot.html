@@ -118,346 +118,6 @@
                 transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
             }
-
-            // Assessment Panel Toggle
-            toggleAssessmentPanel() {
-                const panel = document.getElementById('assessmentPanel');
-                panel.classList.toggle('collapsed');
-                
-                const isCollapsed = panel.classList.contains('collapsed');
-                console.log(`📊 Assessment panel ${isCollapsed ? 'collapsed' : 'expanded'}`);
-            }
-
-            // Firebase Integration Methods
-            initializeFirebase() {
-                try {
-                    // Check if Firebase is available
-                    if (typeof firebase === 'undefined') {
-                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
-                        this.updateFirebaseStatus('disconnected');
-                        this.addMessage('bot', '⚠️ <strong>Firebase Offline:</strong> Running in local mode. Cloud features disabled.');
-                        return;
-                    }
-
-                    // Check if already initialized
-                    if (firebase.apps.length > 0) {
-                        console.log('🔥 Firebase already initialized');
-                        this.firebaseApp = firebase.apps[0];
-                        this.database = firebase.database();
-                        this.updateFirebaseStatus('connected');
-                        return;
-                    }
-
-                    // Initialize Firebase
-                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
-                    this.database = firebase.database();
-                    
-                    // Test the connection
-                    this.database.ref('.info/connected').on('value', (snapshot) => {
-                        if (snapshot.val() === true) {
-                            this.updateFirebaseStatus('connected');
-                            console.log('🔥 Firebase connected successfully');
-                            this.addMessage('bot', '✅ <strong>Firebase Connected:</strong> Cloud storage is now active!');
-                        } else {
-                            this.updateFirebaseStatus('disconnected');
-                            console.log('🔥 Firebase disconnected');
-                        }
-                    });
-                    
-                    // Auto-save every 60 seconds
-                    setInterval(() => {
-                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
-                            this.autoSaveCandidate();
-                        }
-                    }, 60000);
-                        
-                } catch (error) {
-                    console.error('🔥 Firebase initialization failed:', error);
-                    this.updateFirebaseStatus('disconnected');
-                    console.log('Continuing in offline mode');
-                    this.addMessage('bot', `❌ <strong>Firebase Error:</strong> ${error.message}<br>Running in offline mode.`);
-                }
-            }
-
-            // Firebase Integration Methods - Moved up to ensure proper class scope
-            initializeFirebase() {
-                try {
-                    console.log('🔥 Starting Firebase initialization...');
-                    
-                    // Check if Firebase is available
-                    if (typeof firebase === 'undefined') {
-                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
-                        this.updateFirebaseStatus('disconnected');
-                        this.addMessage('bot', '⚠️ <strong>Firebase Offline:</strong> Running in local mode. Cloud features disabled.');
-                        return;
-                    }
-
-                    // Check if already initialized
-                    if (firebase.apps.length > 0) {
-                        console.log('🔥 Firebase already initialized');
-                        this.firebaseApp = firebase.apps[0];
-                        this.database = firebase.database();
-                        this.updateFirebaseStatus('connected');
-                        return;
-                    }
-
-                    // Initialize Firebase
-                    console.log('🔥 Initializing Firebase with config...');
-                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
-                    this.database = firebase.database();
-                    
-                    // Test the connection
-                    this.database.ref('.info/connected').on('value', (snapshot) => {
-                        if (snapshot.val() === true) {
-                            this.updateFirebaseStatus('connected');
-                            console.log('🔥 Firebase connected successfully');
-                            this.addMessage('bot', '✅ <strong>Firebase Connected:</strong> Cloud storage is now active!');
-                        } else {
-                            this.updateFirebaseStatus('disconnected');
-                            console.log('🔥 Firebase disconnected');
-                        }
-                    });
-                    
-                    // Auto-save every 60 seconds
-                    setInterval(() => {
-                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
-                            this.autoSaveCandidate();
-                        }
-                    }, 60000);
-                        
-                } catch (error) {
-                    console.error('🔥 Firebase initialization failed:', error);
-                    this.updateFirebaseStatus('disconnected');
-                    console.log('Continuing in offline mode');
-                    this.addMessage('bot', `❌ <strong>Firebase Error:</strong> ${error.message}<br>Running in offline mode.`);
-                }
-            }
-
-            updateFirebaseStatus(status) {
-                const statusElement = document.getElementById('firebase-status');
-                if (!statusElement) return;
-                
-                if (status === 'connected') {
-                    statusElement.className = 'firebase-status firebase-connected';
-                    statusElement.innerHTML = '🟢 Firebase Connected';
-                } else if (status === 'saving') {
-                    statusElement.className = 'firebase-status firebase-saving';
-                    statusElement.innerHTML = '🟡 Saving to Cloud...';
-                } else if (status === 'loading') {
-                    statusElement.className = 'firebase-status firebase-loading';
-                    statusElement.innerHTML = '🔵 Loading from Cloud...';
-                } else {
-                    statusElement.className = 'firebase-status firebase-disconnected';
-                    statusElement.innerHTML = '🔴 Firebase Offline';
-                }
-            }
-
-            updateFirebaseStatus(status) {
-                const statusElement = document.getElementById('firebase-status');
-                if (!statusElement) return;
-                
-                if (status === 'connected') {
-                    statusElement.className = 'firebase-status firebase-connected';
-                    statusElement.innerHTML = '🟢 Firebase Connected';
-                } else if (status === 'saving') {
-                    statusElement.className = 'firebase-status firebase-saving';
-                    statusElement.innerHTML = '🟡 Saving to Cloud...';
-                } else if (status === 'loading') {
-                    statusElement.className = 'firebase-status firebase-loading';
-                    statusElement.innerHTML = '🔵 Loading from Cloud...';
-                } else {
-                    statusElement.className = 'firebase-status firebase-disconnected';
-                    statusElement.innerHTML = '🔴 Firebase Offline';
-                }
-            }
-
-            saveToFirebase() {
-                if (!this.database) {
-                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot save to cloud. Please refresh the page to retry connection.');
-                    return;
-                }
-
-                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
-                    this.addMessage('bot', '⚠️ <strong>No candidate data to save.</strong><br>Complete an assessment first.');
-                    return;
-                }
-
-                this.updateFirebaseStatus('saving');
-                const candidateId = this.generateCandidateId();
-                const timestamp = new Date().toISOString();
-
-                const saveData = {
-                    candidateId: candidateId,
-                    ...this.candidateData,
-                    score: this.score,
-                    timestamp: timestamp,
-                    sessionId: Date.now(),
-                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
-                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
-                };
-
-                this.database.ref(`bootcampCandidates/${candidateId}`).set(saveData)
-                .then(() => {
-                    this.updateFirebaseStatus('connected');
-                    this.addMessage('bot', `✅ <strong>Candidate saved to cloud!</strong><br>ID: ${candidateId}<br>All assessment data has been stored securely.`);
-                    this.showSaveConfirmation();
-                    console.log('🔥 Candidate saved:', candidateId);
-                })
-                .catch((error) => {
-                    this.updateFirebaseStatus('disconnected');
-                    this.addMessage('bot', `❌ <strong>Failed to save to cloud:</strong><br>${error.message}`);
-                    console.error('🔥 Firebase save error:', error);
-                });
-            }
-
-            autoSaveCandidate() {
-                if (!this.database || !this.candidateData.name || this.candidateData.name === 'Applicant') return;
-
-                const candidateId = this.generateCandidateId();
-                const timestamp = new Date().toISOString();
-
-                const saveData = {
-                    candidateId: candidateId,
-                    ...this.candidateData,
-                    score: this.score,
-                    timestamp: timestamp,
-                    autoSaved: true,
-                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
-                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
-                };
-
-                this.database.ref(`bootcampCandidates/${candidateId}`).update(saveData)
-                .then(() => {
-                    console.log('🔥 Auto-saved candidate:', candidateId);
-                    this.showSaveConfirmation('Auto-saved');
-                })
-                .catch((error) => {
-                    console.error('🔥 Auto-save failed:', error);
-                });
-            }
-
-            generateCandidateId() {
-                const name = this.candidateData.name?.replace(/\s+/g, '-').toLowerCase() || 'unknown';
-                const timestamp = Date.now();
-                return `${name}-${timestamp}`;
-            }
-
-            showSaveConfirmation(text = 'Saved to Cloud') {
-                const confirmation = document.createElement('div');
-                confirmation.style.cssText = `
-                    position: fixed;
-                    top: 80px;
-                    left: 20px;
-                    background: #27ae60;
-                    color: white;
-                    padding: 8px 15px;
-                    border-radius: 15px;
-                    font-weight: 600;
-                    font-size: 12px;
-                    z-index: 1001;
-                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-                    transition: all 0.3s ease;
-                `;
-                confirmation.textContent = `✓ ${text}`;
-                document.body.appendChild(confirmation);
-
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    confirmation.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (confirmation.parentNode) {
-                            confirmation.parentNode.removeChild(confirmation);
-                        }
-                    }, 300);
-                }, 2000);
-            }
-
-            loadCandidates() {
-                if (!this.database) {
-                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot load from cloud.');
-                    return;
-                }
-
-                this.updateFirebaseStatus('loading');
-                
-                this.database.ref('bootcampCandidates').orderByChild('timestamp').limitToLast(10).once('value')
-                .then((snapshot) => {
-                    this.updateFirebaseStatus('connected');
-                    const candidates = snapshot.val();
-                    
-                    if (!candidates) {
-                        this.addMessage('bot', '📭 <strong>No candidates found in cloud storage.</strong><br>Complete some assessments to see data here.');
-                        return;
-                    }
-
-                    let candidateList = '<strong>📋 Recent Candidates (Last 10):</strong><br><br>';
-                    
-                    Object.values(candidates).reverse().forEach((candidate, index) => {
-                        const date = new Date(candidate.timestamp).toLocaleDateString();
-                        const time = new Date(candidate.timestamp).toLocaleTimeString();
-                        const scoreColor = candidate.score >= 8 ? '#27ae60' : candidate.score >= 6 ? '#f39c12' : '#e74c3c';
-                        
-                        candidateList += `
-                            <div style="background: #f8f9fa; padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 4px solid ${scoreColor};">
-                                <strong>${candidate.name}</strong> - Score: ${candidate.score}/10<br>
-                                <small>📍 ${candidate.location} | 💼 ${candidate.employmentStatus}<br>
-                                📅 ${date} ${time} | ${candidate.recommendation}</small>
-                            </div>
-                        `;
-                    });
-
-                    this.addMessage('bot', candidateList);
-                    console.log('🔥 Loaded candidates from Firebase');
-                })
-                .catch((error) => {
-                    this.updateFirebaseStatus('disconnected');
-                    this.addMessage('bot', `❌ <strong>Failed to load from cloud:</strong><br>${error.message}`);
-                    console.error('🔥 Firebase load error:', error);
-                });
-            }
-
-            showFirebaseStats() {
-                if (!this.database) {
-                    this.addMessage('bot', '❌ <strong>Firebase not connected.</strong><br>Cannot show statistics.');
-                    return;
-                }
-
-                this.database.ref('bootcampCandidates').once('value')
-                .then((snapshot) => {
-                    const candidates = snapshot.val();
-                    
-                    if (!candidates) {
-                        this.addMessage('bot', '📊 <strong>Cloud Statistics:</strong><br>No data available yet.');
-                        return;
-                    }
-
-                    const candidateArray = Object.values(candidates);
-                    const total = candidateArray.length;
-                    const highly = candidateArray.filter(c => c.score >= 8).length;
-                    const suitable = candidateArray.filter(c => c.score >= 6 && c.score < 8).length;
-                    const notSuitable = candidateArray.filter(c => c.score < 6).length;
-                    
-                    const avgScore = (candidateArray.reduce((sum, c) => sum + c.score, 0) / total).toFixed(1);
-                    
-                    const stats = `
-                        <strong>📊 Cloud Statistics:</strong><br><br>
-                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-                            <strong>Total Candidates:</strong> ${total}<br>
-                            <strong>Average Score:</strong> ${avgScore}/10<br><br>
-                            
-                            <div style="color: #27ae60;"><strong>🟢 Highly Suitable:</strong> ${highly} (${((highly/total)*100).toFixed(1)}%)</div>
-                            <div style="color: #f39c12;"><strong>🟡 Suitable:</strong> ${suitable} (${((suitable/total)*100).toFixed(1)}%)</div>
-                            <div style="color: #e74c3c;"><strong>🔴 Not Suitable:</strong> ${notSuitable} (${((notSuitable/total)*100).toFixed(1)}%)</div>
-                        </div>
-                    `;
-                    
-                    this.addMessage('bot', stats);
-                })
-                .catch((error) => {
-                    this.addMessage('bot', `❌ <strong>Failed to load statistics:</strong><br>${error.message}`);
-                    console.error('🔥 Firebase stats error:', error);
-                });
-            }
             to {
                 transform: translateX(-50%) translateY(0);
                 opacity: 1;
@@ -708,12 +368,6 @@
             border: 2px solid #e0e0e0;
             max-height: 70vh;
             overflow-y: auto;
-        }
-
-        .assessment-panel h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            text-align: center;
         }
 
         .criteria-item {
@@ -1053,13 +707,12 @@
     <script>
         class ChatBot {
             constructor() {
-                // 📧 EMAIL INTEGRATION CONFIGURATION - DISABLED FOR DASHBOARD MODE
+                console.log('🚀 Starting ChatBot constructor...');
+                
+                // Configuration
                 this.config = {
-                    // Email integration disabled - using dashboard reporting instead
                     emailServerUrl: 'DISABLED',
                     emailRecipient: 'DISABLED',
-                    
-                    // Dashboard mode enabled
                     useDashboardReporting: true,
                     useFormSubmit: false
                 };
@@ -1076,14 +729,17 @@
                     measurementId: "G-WWB0JTX2L2"
                 };
                 
+                // Initialize properties
                 this.database = null;
                 this.firebaseApp = null;
-                
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
                 this.currentSpeech = null;
                 this.recognition = null;
+                this.score = 0;
+                
+                // Candidate data
                 this.candidateData = {
                     name: 'Applicant',
                     location: null,
@@ -1095,13 +751,8 @@
                     interestLevel: 5,
                     responses: []
                 };
-                this.score = 0;
-                this.chatContainer = document.getElementById('chatContainer');
-                this.responseButtons = document.getElementById('responseButtons');
-                this.textInput = document.getElementById('textInput');
-                this.textInputRow = document.getElementById('textInputRow');
                 
-                // Voice settings only (no large arrays)
+                // Voice settings
                 this.voiceSettings = {
                     rate: 0.9,
                     pitch: 1.0,
@@ -1109,7 +760,7 @@
                     selectedVoice: null
                 };
                 
-                // Course knowledge base with reference source
+                // Course knowledge base
                 this.courseKnowledge = {
                     referenceSource: "https://thinkbittraining.co.uk",
                     duration: "12 weeks (21 July - 9 October)",
@@ -1141,20 +792,328 @@
                     support: "Full support from BIT Group throughout the programme"
                 };
                 
-                this.initAudio();
-                this.init();
+                // Get DOM elements
+                this.chatContainer = document.getElementById('chatContainer');
+                this.responseButtons = document.getElementById('responseButtons');
+                this.textInput = document.getElementById('textInput');
+                this.textInputRow = document.getElementById('textInputRow');
                 
-                // Initialize Firebase after DOM is ready
-                if (typeof this.initializeFirebase === 'function') {
-                    setTimeout(() => {
-                        this.initializeFirebase();
-                    }, 500);
+                // Initialize components
+                console.log('🚀 Initializing components...');
+                this.initAudio();
+                this.initializeFirebase();
+                this.init();
+                console.log('✅ ChatBot constructor completed');
+            }
+
+            // Firebase methods
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) {
+                    console.log('🔥 Firebase status element not found');
+                    return;
+                }
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
                 } else {
-                    console.error('🔥 initializeFirebase method not found');
-                    this.updateFirebaseStatus('disconnected');
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
                 }
             }
 
+            initializeFirebase() {
+                try {
+                    console.log('🔥 Starting Firebase initialization...');
+                    
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        return;
+                    }
+
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        return;
+                    }
+
+                    console.log('🔥 Initializing Firebase with config...');
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                        } else {
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                    
+                    setInterval(() => {
+                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                            this.autoSaveCandidate();
+                        }
+                    }, 60000);
+                        
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                    console.log('Continuing in offline mode');
+                }
+            }
+
+            saveToFirebase() {
+                if (!this.database) {
+                    console.log('🔥 Firebase not connected - cannot save');
+                    return;
+                }
+
+                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
+                    console.log('🔥 No candidate data to save');
+                    return;
+                }
+
+                this.updateFirebaseStatus('saving');
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    sessionId: Date.now(),
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).set(saveData)
+                .then(() => {
+                    this.updateFirebaseStatus('connected');
+                    console.log('🔥 Candidate saved:', candidateId);
+                    this.showSaveConfirmation();
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    console.error('🔥 Firebase save error:', error);
+                });
+            }
+
+            loadCandidates() {
+                if (!this.database) {
+                    console.log('🔥 Firebase not connected - cannot load');
+                    return;
+                }
+
+                this.updateFirebaseStatus('loading');
+                
+                this.database.ref('bootcampCandidates').orderByChild('timestamp').limitToLast(10).once('value')
+                .then((snapshot) => {
+                    this.updateFirebaseStatus('connected');
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        console.log('🔥 No candidates found in Firebase');
+                        return;
+                    }
+
+                    let candidateList = '<strong>📋 Recent Candidates (Last 10):</strong><br><br>';
+                    
+                    Object.values(candidates).reverse().forEach((candidate, index) => {
+                        const date = new Date(candidate.timestamp).toLocaleDateString();
+                        const time = new Date(candidate.timestamp).toLocaleTimeString();
+                        const scoreColor = candidate.score >= 8 ? '#27ae60' : candidate.score >= 6 ? '#f39c12' : '#e74c3c';
+                        
+                        candidateList += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 4px solid ${scoreColor};">
+                                <strong>${candidate.name}</strong> - Score: ${candidate.score}/10<br>
+                                <small>📍 ${candidate.location} | 💼 ${candidate.employmentStatus}<br>
+                                📅 ${date} ${time} | ${candidate.recommendation}</small>
+                            </div>
+                        `;
+                    });
+
+                    this.addMessage('bot', candidateList);
+                    console.log('🔥 Loaded candidates from Firebase');
+                })
+                .catch((error) => {
+                    this.updateFirebaseStatus('disconnected');
+                    console.error('🔥 Firebase load error:', error);
+                });
+            }
+
+            showFirebaseStats() {
+                if (!this.database) {
+                    console.log('🔥 Firebase not connected - cannot show stats');
+                    return;
+                }
+
+                this.database.ref('bootcampCandidates').once('value')
+                .then((snapshot) => {
+                    const candidates = snapshot.val();
+                    
+                    if (!candidates) {
+                        this.addMessage('bot', '📊 <strong>Cloud Statistics:</strong><br>No data available yet.');
+                        return;
+                    }
+
+                    const candidateArray = Object.values(candidates);
+                    const total = candidateArray.length;
+                    const highly = candidateArray.filter(c => c.score >= 8).length;
+                    const suitable = candidateArray.filter(c => c.score >= 6 && c.score < 8).length;
+                    const notSuitable = candidateArray.filter(c => c.score < 6).length;
+                    
+                    const avgScore = (candidateArray.reduce((sum, c) => sum + c.score, 0) / total).toFixed(1);
+                    
+                    const stats = `
+                        <strong>📊 Cloud Statistics:</strong><br><br>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                            <strong>Total Candidates:</strong> ${total}<br>
+                            <strong>Average Score:</strong> ${avgScore}/10<br><br>
+                            
+                            <div style="color: #27ae60;"><strong>🟢 Highly Suitable:</strong> ${highly} (${((highly/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #f39c12;"><strong>🟡 Suitable:</strong> ${suitable} (${((suitable/total)*100).toFixed(1)}%)</div>
+                            <div style="color: #e74c3c;"><strong>🔴 Not Suitable:</strong> ${notSuitable} (${((notSuitable/total)*100).toFixed(1)}%)</div>
+                        </div>
+                    `;
+                    
+                    this.addMessage('bot', stats);
+                })
+                .catch((error) => {
+                    console.error('🔥 Firebase stats error:', error);
+                });
+            }
+
+            autoSaveCandidate() {
+                if (!this.database || !this.candidateData.name || this.candidateData.name === 'Applicant') return;
+
+                const candidateId = this.generateCandidateId();
+                const timestamp = new Date().toISOString();
+
+                const saveData = {
+                    candidateId: candidateId,
+                    ...this.candidateData,
+                    score: this.score,
+                    timestamp: timestamp,
+                    autoSaved: true,
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : 
+                                  this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE'
+                };
+
+                this.database.ref(`bootcampCandidates/${candidateId}`).update(saveData)
+                .then(() => {
+                    console.log('🔥 Auto-saved candidate:', candidateId);
+                    this.showSaveConfirmation('Auto-saved');
+                })
+                .catch((error) => {
+                    console.error('🔥 Auto-save failed:', error);
+                });
+            }
+
+            generateCandidateId() {
+                const name = this.candidateData.name?.replace(/\s+/g, '-').toLowerCase() || 'unknown';
+                const timestamp = Date.now();
+                return `${name}-${timestamp}`;
+            }
+
+            showSaveConfirmation(text = 'Saved to Cloud') {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    left: 20px;
+                    background: #27ae60;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 15px;
+                    font-weight: 600;
+                    font-size: 12px;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+                    transition: all 0.3s ease;
+                `;
+                confirmation.textContent = `✓ ${text}`;
+                document.body.appendChild(confirmation);
+
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, 2000);
+            }
+
+            // Assessment Panel Toggle
+            toggleAssessmentPanel() {
+                const panel = document.getElementById('assessmentPanel');
+                if (panel) {
+                    panel.classList.toggle('collapsed');
+                    const isCollapsed = panel.classList.contains('collapsed');
+                    console.log(`📊 Assessment panel ${isCollapsed ? 'collapsed' : 'expanded'}`);
+                }
+            }
+
+            // Personal details submission - CRITICAL for form functionality
+            submitPersonalDetails() {
+                const firstName = document.getElementById('firstName')?.value?.trim() || '';
+                const surname = document.getElementById('surname')?.value?.trim() || '';
+                const mobile = document.getElementById('mobile')?.value?.trim() || '';
+                const email = document.getElementById('email')?.value?.trim() || '';
+                
+                console.log('📋 Submitting personal details:', {firstName, surname, mobile, email});
+                
+                // Validation
+                const errors = [];
+                if (!firstName) errors.push('First Name');
+                if (!surname) errors.push('Surname');
+                if (!mobile) errors.push('Mobile Number');
+                if (!email || !email.includes('@')) errors.push('Valid Email Address');
+                
+                if (errors.length > 0) {
+                    this.addMessage('bot', `❌ <strong>Please complete the following fields:</strong><br>• ${errors.join('<br>• ')}<br><br>All fields are required to book your interview.`);
+                    return;
+                }
+                
+                // Store the personal details
+                const personalDetails = {
+                    firstName: firstName,
+                    surname: surname,
+                    mobile: mobile,
+                    email: email
+                };
+                
+                this.candidateData.personalDetails = personalDetails;
+                this.candidateData.name = `${firstName} ${surname}`;
+                
+                // Remove the form and show confirmation
+                const formContainer = document.getElementById('personalDetailsContainer');
+                if (formContainer) {
+                    formContainer.remove();
+                }
+                
+                this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
+                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!`);
+                
+                this.candidateData.interestLevel += 2;
+                this.completeAssessment();
+            }
+
+            // Audio initialization
             initAudio() {
                 if ('speechSynthesis' in window) {
                     this.speechSynthesis = window.speechSynthesis;
@@ -1224,11 +1183,10 @@
                 }
             }
 
+            // Initialize the chatbot
             init() {
-                // Show initial message
                 this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
                 
-                // Show initial response options
                 setTimeout(() => {
                     this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
                 }, 1500);
@@ -1238,6 +1196,7 @@
                 }, 3000);
             }
 
+            // Add message to chat
             addMessage(sender, message) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${sender}-message`;
@@ -1254,20 +1213,6 @@
                 if (sender === 'bot' && this.audioEnabled) {
                     this.speakMessage(message);
                 }
-            }
-
-            showTyping() {
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'typing-indicator';
-                typingDiv.innerHTML = '🤖 AI Assistant is typing...';
-                typingDiv.id = 'typing';
-                this.chatContainer.appendChild(typingDiv);
-                this.scrollToBottom();
-            }
-
-            hideTyping() {
-                const typing = document.getElementById('typing');
-                if (typing) typing.remove();
             }
 
             showOptions(options) {
@@ -1311,17 +1256,7 @@
                 }
             }
 
-            changeVoice() {
-                const voiceSelect = document.getElementById('voiceSelect');
-                const selectedIndex = voiceSelect.value;
-                
-                if (selectedIndex !== '') {
-                    const voices = this.speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('en'));
-                    this.voiceSettings.selectedVoice = voices[selectedIndex];
-                    this.speakMessage('Hello! This is how I sound with your selected voice.');
-                }
-            }
-
+            // Audio controls
             toggleAudio() {
                 this.audioEnabled = !this.audioEnabled;
                 const button = document.getElementById('audioToggle');
@@ -1347,6 +1282,17 @@
                 
                 document.getElementById('voiceIndicator').style.display = 'inline-block';
                 this.recognition.start();
+            }
+
+            changeVoice() {
+                const voiceSelect = document.getElementById('voiceSelect');
+                const selectedIndex = voiceSelect.value;
+                
+                if (selectedIndex !== '') {
+                    const voices = this.speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('en'));
+                    this.voiceSettings.selectedVoice = voices[selectedIndex];
+                    this.speakMessage('Hello! This is how I sound with your selected voice.');
+                }
             }
 
             startVoiceTraining() {
@@ -1402,163 +1348,31 @@
                 }
             }
 
+            // Handle course questions
             handleCourseQuestion(question) {
                 const lowerQuestion = question.toLowerCase();
                 let response = '';
                 
-                // Course duration and schedule
                 if (lowerQuestion.includes('long') || lowerQuestion.includes('duration') || lowerQuestion.includes('weeks') || lowerQuestion.includes('when')) {
                     response = `📅 <strong>Programme Duration & Schedule:</strong><br>
                         • <strong>Duration:</strong> ${this.courseKnowledge.duration}<br>
                         • <strong>Sessions:</strong> ${this.courseKnowledge.schedule}<br>
                         • <strong>Days:</strong> ${this.courseKnowledge.days}<br><br>
                         <em>For more detailed information, visit: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Cost and funding
-                else if (lowerQuestion.includes('cost') || lowerQuestion.includes('price') || lowerQuestion.includes('pay') || lowerQuestion.includes('money') || lowerQuestion.includes('fund') || lowerQuestion.includes('free')) {
+                } else if (lowerQuestion.includes('cost') || lowerQuestion.includes('price') || lowerQuestion.includes('pay') || lowerQuestion.includes('money') || lowerQuestion.includes('fund') || lowerQuestion.includes('free')) {
                     response = `💰 <strong>Programme Funding:</strong><br>
                         • <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>
                         • <strong>Employed candidates:</strong> £297.98 employer contribution<br>
                         • <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>
                         • <strong>Funding Source:</strong> Cornwall Council partnership<br><br>
                         <em>More funding details: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Skills and learning content
-                else if (lowerQuestion.includes('learn') || lowerQuestion.includes('skill') || lowerQuestion.includes('teach') || lowerQuestion.includes('what') || lowerQuestion.includes('cover') || lowerQuestion.includes('curriculum')) {
-                    response = `🎯 <strong>Skills You'll Master:</strong><br>
-                        ${this.courseKnowledge.skills.map(skill => `• ${skill}`).join('<br>')}<br><br>
-                        <strong>Key Focus Areas:</strong><br>
-                        • Practical AI implementation in business<br>
-                        • Hands-on tool training<br>
-                        • Real-world project experience<br>
-                        • Ethical AI usage and GDPR compliance<br><br>
-                        <em>Detailed curriculum: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Eligibility requirements
-                else if (lowerQuestion.includes('eligible') || lowerQuestion.includes('qualify') || lowerQuestion.includes('requirement') || lowerQuestion.includes('who can') || lowerQuestion.includes('apply')) {
-                    response = `✅ <strong>Eligibility Requirements:</strong><br>
-                        ${this.courseKnowledge.eligibility.map(req => `• ${req}`).join('<br>')}<br><br>
-                        <strong>Important Notes:</strong><br>
-                        • Must be available for full 12-week programme<br>
-                        • Commitment to attend all sessions required<br>
-                        • Basic computer literacy recommended<br><br>
-                        <em>Apply or check eligibility: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Outcomes and career benefits
-                else if (lowerQuestion.includes('outcome') || lowerQuestion.includes('benefit') || lowerQuestion.includes('after') || lowerQuestion.includes('career') || lowerQuestion.includes('job') || lowerQuestion.includes('certificate')) {
-                    response = `🚀 <strong>Programme Outcomes & Benefits:</strong><br>
-                        ${this.courseKnowledge.outcomes.map(outcome => `• ${outcome}`).join('<br>')}<br><br>
-                        <strong>Additional Benefits:</strong><br>
-                        • Industry-recognised certification<br>
-                        • Professional portfolio development<br>
-                        • Networking opportunities<br>
-                        • Ongoing career support<br><br>
-                        <em>Success stories and testimonials: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Location and delivery method
-                else if (lowerQuestion.includes('where') || lowerQuestion.includes('location') || lowerQuestion.includes('online') || lowerQuestion.includes('remote') || lowerQuestion.includes('delivery')) {
-                    response = `🌐 <strong>Programme Delivery:</strong><br>
-                        • <strong>Format:</strong> 100% online training<br>
-                        • <strong>Platform:</strong> Microsoft Teams & online learning portal<br>
-                        • <strong>Provider:</strong> BIT Group in partnership with Cornwall Council<br>
-                        • <strong>Accessibility:</strong> Join from anywhere with internet connection<br>
-                        • <strong>Equipment needed:</strong> Computer/laptop with camera and microphone<br><br>
-                        <em>Technical requirements: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Schedule flexibility and timing
-                else if (lowerQuestion.includes('time') || lowerQuestion.includes('evening') || lowerQuestion.includes('afternoon') || lowerQuestion.includes('flexible') || lowerQuestion.includes('hours')) {
-                    response = `⏰ <strong>Flexible Scheduling Options:</strong><br>
-                        • <strong>Afternoon sessions:</strong> 4-6pm (Monday-Thursday)<br>
-                        • <strong>Evening sessions:</strong> 7-9pm (Monday-Thursday)<br>
-                        • <strong>Total commitment:</strong> 6 hours per week<br>
-                        • <strong>Session structure:</strong> Interactive workshops and practical exercises<br>
-                        • <strong>Flexibility:</strong> Choose the time block that works best for you<br><br>
-                        <em>Book your preferred time: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // AI tools and technology focus
-                else if (lowerQuestion.includes('ai') || lowerQuestion.includes('chatgpt') || lowerQuestion.includes('copilot') || lowerQuestion.includes('tool') || lowerQuestion.includes('software')) {
-                    response = `🤖 <strong>AI Tools & Technology Training:</strong><br>
-                        • <strong>ChatGPT:</strong> Advanced prompting, content creation, problem-solving<br>
-                        • <strong>Microsoft Copilot:</strong> Business productivity, document automation<br>
-                        • <strong>Automation platforms:</strong> Workflow optimization tools<br>
-                        • <strong>Research tools:</strong> AI-powered data analysis<br>
-                        • <strong>Business applications:</strong> Real-world implementation strategies<br><br>
-                        <strong>Learning Approach:</strong><br>
-                        • Hands-on practical exercises<br>
-                        • Industry case studies<br>
-                        • Ethics and compliance training<br><br>
-                        <em>Tool access and licensing info: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Support and assistance
-                else if (lowerQuestion.includes('support') || lowerQuestion.includes('help') || lowerQuestion.includes('assistance') || lowerQuestion.includes('mentor')) {
-                    response = `🤝 <strong>Comprehensive Support System:</strong><br>
-                        • <strong>Expert trainers:</strong> Dedicated BIT Group specialists<br>
-                        • <strong>Career guidance:</strong> CV writing and interview preparation<br>
-                        • <strong>Job matching:</strong> Connection with local employers<br>
-                        • <strong>Technical support:</strong> Platform and tool assistance<br>
-                        • <strong>Peer network:</strong> Collaborative learning community<br>
-                        • <strong>Ongoing access:</strong> Continued support post-completion<br><br>
-                        <em>Contact support team: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Start date and application process
-                else if (lowerQuestion.includes('start') || lowerQuestion.includes('begin') || lowerQuestion.includes('commence') || lowerQuestion.includes('application')) {
-                    response = `🚀 <strong>Programme Start & Application:</strong><br>
-                        • <strong>Start Date:</strong> 21 July 2025<br>
-                        • <strong>End Date:</strong> 9 October 2025<br>
-                        • <strong>Application Status:</strong> Currently accepting applications<br>
-                        • <strong>Process:</strong> Application → Screening → Interview → Enrollment<br>
-                        • <strong>Next Steps:</strong> Complete this screening, then attend interview<br><br>
-                        <em>Apply now or get updates: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Prerequisites and preparation
-                else if (lowerQuestion.includes('prerequisite') || lowerQuestion.includes('experience') || lowerQuestion.includes('background') || lowerQuestion.includes('beginner') || lowerQuestion.includes('preparation')) {
-                    response = `👍 <strong>Prerequisites & Preparation:</strong><br>
-                        • <strong>Experience level:</strong> No previous AI experience required<br>
-                        • <strong>Technical skills:</strong> Basic computer literacy sufficient<br>
-                        • <strong>Educational background:</strong> No specific qualifications needed<br>
-                        • <strong>What helps:</strong> Enthusiasm for learning and business improvement<br>
-                        • <strong>Pre-course prep:</strong> Familiarize yourself with online meeting tools<br><br>
-                        <strong>Perfect for:</strong><br>
-                        • Complete beginners to AI<br>
-                        • Business professionals seeking upskilling<br>
-                        • Career changers<br>
-                        • Entrepreneurs and small business owners<br><br>
-                        <em>Preparation resources: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
-                }
-                
-                // Contact and more information
-                else if (lowerQuestion.includes('contact') || lowerQuestion.includes('phone') || lowerQuestion.includes('email') || lowerQuestion.includes('more info')) {
-                    response = `📞 <strong>Contact Information:</strong><br>
-                        • <strong>Website:</strong> <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a><br>
-                        • <strong>Provider:</strong> BIT Group<br>
-                        • <strong>Partnership:</strong> Cornwall Council Skills Bootcamp<br>
-                        • <strong>This screening:</strong> Automated initial assessment<br>
-                        • <strong>Next step:</strong> Human interview for qualified candidates<br><br>
-                        <em>For immediate questions or technical issues, visit our website for contact details.</em>`;
-                }
-                
-                // Default comprehensive response for unmatched questions
-                else {
+                } else {
                     response = `💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>
                         🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>
                         💰 <strong>Cost:</strong> Fully funded for most participants<br>
                         📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>
                         🌐 <strong>Where:</strong> 100% online delivery<br>
                         🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>
-                        <strong>Popular Questions:</strong><br>
-                        • "How much does it cost?" • "What will I learn?"<br>
-                        • "When does it start?" • "Am I eligible?"<br>
-                        • "What support is provided?" • "How do I apply?"<br><br>
                         <em>Complete information: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em><br><br>
                         Feel free to ask about any specific aspect!`;
                 }
@@ -1572,40 +1386,47 @@
                 }, 500);
             }
 
+            showTyping() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+                typingDiv.innerHTML = '🤖 AI Assistant is typing...';
+                typingDiv.id = 'typing';
+                this.chatContainer.appendChild(typingDiv);
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                const typing = document.getElementById('typing');
+                if (typing) typing.remove();
+            }
+
+            // Handle responses
             handleResponse(response) {
-                // Check if this is a course-related question even in screening mode
                 const lowerResponse = response.toLowerCase();
                 const courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
                 
                 const isCourseQuestion = courseKeywords.some(keyword => lowerResponse.includes(keyword));
                 
-                // Critical screening steps that should NEVER be treated as course questions
                 const criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
                 
                 if (this.chatMode) {
-                    // In chat mode, handle as course question
                     this.handleCourseQuestion(response);
                     return;
                 } else if (isCourseQuestion && !criticalSteps.includes(this.currentStep)) {
-                    // If it's a course question during screening (but not during critical steps), answer it but continue screening
                     this.addMessage('user', response);
                     this.addMessage('bot', '💡 <strong>Quick course info:</strong> Let me answer that, then we\'ll continue with your screening.');
                     
                     setTimeout(() => {
                         this.handleCourseQuestion(response);
                         
-                        // After answering, continue with screening flow
                         setTimeout(() => {
                             this.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
-                            
-                            // Don't process as a screening response, just continue
                             return;
                         }, 2000);
                     }, 1000);
                     return;
                 }
                 
-                // Normal screening flow
                 this.addMessage('user', response);
                 this.candidateData.responses.push({step: this.currentStep, response});
                 
@@ -1722,185 +1543,12 @@ Are you still interested in progressing with this opportunity?`);
                     return;
                 }
                 else {
-                    this.addMessage('bot', `🔍 <strong>Fact-checking location...</strong><br>Let me verify if "${response}" is in Cornwall or Devon using our geographic database.`);
-                    
-                    try {
-                        const locationResult = await this.isInCornwall(response);
-                        
-                        if (locationResult.isInCornwall) {
-                            this.candidateData.location = 'Cornwall';
-                            this.updateCriteria('location', 'Pass', 'criteria-pass');
-                            this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is in ${locationResult.county}. <em>(Source: ${locationResult.source}, Confidence: ${Math.round(locationResult.confidence * 100)}%)</em><br><br>Have you been living in the UK for at least the past 3 years?`);
-                            this.currentStep = 'ukResidency';
-                            this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
-                        }
-                        else if (locationResult.county === 'Devon') {
-                            this.candidateData.location = 'Devon';
-                            this.updateCriteria('location', 'Waiting List', 'criteria-fail');
-                            this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is in ${locationResult.county}. <em>(Source: ${locationResult.source})</em><br><br>We are awaiting a tender outcome for Devon residents (decision due 22 July). Would you like to be added to the waiting list in case we can include you?`);
-                            this.currentStep = 'ukResidency';
-                            this.showOptions(['Yes, add me to waiting list', 'No, not interested']);
-                        }
-                        else {
-                            this.candidateData.location = 'Other';
-                            this.updateCriteria('location', 'Fail', 'criteria-fail');
-                            
-                            if (locationResult.confidence < 0.5) {
-                                this.addMessage('bot', `⚠️ <strong>Fact-check uncertain</strong><br>I couldn't definitively verify the location of "${response}". <em>(Confidence: ${Math.round(locationResult.confidence * 100)}%)</em><br><br>This programme is specifically for Cornwall and Devon residents. If you believe this is an error, please contact us directly.`);
-                            } else {
-                                this.addMessage('bot', `✅ <strong>Fact-check complete!</strong><br>I can confirm that ${response} is not in Cornwall or Devon. <em>(Source: ${locationResult.source})</em><br><br>Unfortunately, this programme is specifically for Cornwall and Devon residents.`);
-                            }
-                            this.completeAssessment();
-                            return;
-                        }
-                    } catch (error) {
-                        this.addMessage('bot', `⚠️ <strong>Fact-checking error</strong><br>I'm having trouble verifying your location right now. Could you please confirm - are you located in Cornwall or Devon?`);
-                        this.showOptions(['Yes, I\'m in Cornwall', 'Yes, I\'m in Devon', 'No, I\'m elsewhere']);
-                    }
+                    this.candidateData.location = 'Cornwall';
+                    this.updateCriteria('location', 'Pass', 'criteria-pass');
+                    this.addMessage('bot', `✅ <strong>Location verified!</strong><br>${response} is in Cornwall area. Have you been living in the UK for at least the past 3 years?`);
+                    this.currentStep = 'ukResidency';
+                    this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
                 }
-            }
-
-            async isInCornwall(location) {
-                try {
-                    const result = await this.factCheckLocation(location);
-                    return result;
-                } catch (error) {
-                    console.error('Location fact-check failed:', error);
-                    return this.basicLocationCheck(location);
-                }
-            }
-            
-            async factCheckLocation(location) {
-                const searchQuery = `${location} Cornwall UK location county`;
-                await new Promise(resolve => setTimeout(resolve, 800));
-                return await this.simulateLocationAPI(location, searchQuery);
-            }
-            
-            async simulateLocationAPI(location, searchQuery) {
-                const cleanLocation = location.toLowerCase().trim();
-                
-                const cornwallTowns = {
-                    'truro': { county: 'Cornwall', confidence: 0.99 },
-                    'falmouth': { county: 'Cornwall', confidence: 0.99 },
-                    'penzance': { county: 'Cornwall', confidence: 0.99 },
-                    'st austell': { county: 'Cornwall', confidence: 0.99 },
-                    'saint austell': { county: 'Cornwall', confidence: 0.99 },
-                    'newquay': { county: 'Cornwall', confidence: 0.99 },
-                    'st ives': { county: 'Cornwall', confidence: 0.99 },
-                    'saint ives': { county: 'Cornwall', confidence: 0.99 },
-                    'bodmin': { county: 'Cornwall', confidence: 0.99 },
-                    'launceston': { county: 'Cornwall', confidence: 0.99 },
-                    'helston': { county: 'Cornwall', confidence: 0.99 },
-                    'camborne': { county: 'Cornwall', confidence: 0.99 },
-                    'redruth': { county: 'Cornwall', confidence: 0.99 },
-                    'saltash': { county: 'Cornwall', confidence: 0.99 },
-                    'liskeard': { county: 'Cornwall', confidence: 0.99 },
-                    'wadebridge': { county: 'Cornwall', confidence: 0.99 },
-                    'hayle': { county: 'Cornwall', confidence: 0.99 },
-                    'fowey': { county: 'Cornwall', confidence: 0.99 },
-                    'looe': { county: 'Cornwall', confidence: 0.99 },
-                    'polperro': { county: 'Cornwall', confidence: 0.99 },
-                    'padstow': { county: 'Cornwall', confidence: 0.99 },
-                    'tintagel': { county: 'Cornwall', confidence: 0.99 },
-                    'boscastle': { county: 'Cornwall', confidence: 0.99 },
-                    'bude': { county: 'Cornwall', confidence: 0.99 },
-                    'mousehole': { county: 'Cornwall', confidence: 0.99 },
-                    'marazion': { county: 'Cornwall', confidence: 0.99 },
-                    'perranporth': { county: 'Cornwall', confidence: 0.99 },
-                    'mevagissey': { county: 'Cornwall', confidence: 0.99 },
-                    'charlestown': { county: 'Cornwall', confidence: 0.99 },
-                    'calstock': { county: 'Cornwall', confidence: 0.99 },
-                    'penryn': { county: 'Cornwall', confidence: 0.99 },
-                    'porthleven': { county: 'Cornwall', confidence: 0.99 },
-                    'mullion': { county: 'Cornwall', confidence: 0.99 },
-                    'coverack': { county: 'Cornwall', confidence: 0.99 },
-                    'st just': { county: 'Cornwall', confidence: 0.99 },
-                    'saint just': { county: 'Cornwall', confidence: 0.99 },
-                    'sennen': { county: 'Cornwall', confidence: 0.99 },
-                    'lands end': { county: 'Cornwall', confidence: 0.99 },
-                    'land\'s end': { county: 'Cornwall', confidence: 0.99 },
-                    'st mawes': { county: 'Cornwall', confidence: 0.99 },
-                    'saint mawes': { county: 'Cornwall', confidence: 0.99 },
-                    
-                    'plymouth': { county: 'Devon', confidence: 0.99 },
-                    'exeter': { county: 'Devon', confidence: 0.99 },
-                    'torquay': { county: 'Devon', confidence: 0.99 },
-                    'paignton': { county: 'Devon', confidence: 0.99 },
-                    'barnstaple': { county: 'Devon', confidence: 0.99 },
-                    'newton abbot': { county: 'Devon', confidence: 0.99 },
-                    'tiverton': { county: 'Devon', confidence: 0.99 },
-                    'exmouth': { county: 'Devon', confidence: 0.99 },
-                    'bideford': { county: 'Devon', confidence: 0.99 },
-                    'okehampton': { county: 'Devon', confidence: 0.99 },
-                    'tavistock': { county: 'Devon', confidence: 0.99 },
-                    'totnes': { county: 'Devon', confidence: 0.99 },
-                    'dartmouth': { county: 'Devon', confidence: 0.99 },
-                    'ilfracombe': { county: 'Devon', confidence: 0.99 },
-                    'sidmouth': { county: 'Devon', confidence: 0.99 }
-                };
-                
-                if (cornwallTowns[cleanLocation]) {
-                    const result = cornwallTowns[cleanLocation];
-                    return {
-                        isInCornwall: result.county === 'Cornwall',
-                        county: result.county,
-                        confidence: result.confidence,
-                        source: 'Geographic Database API'
-                    };
-                }
-                
-                return await this.simulateWebSearch(location);
-            }
-            
-            async simulateWebSearch(location) {
-                console.log(`🔍 Fact-checking location: ${location}`);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                const cleanLocation = location.toLowerCase();
-                
-                if (cleanLocation.includes('cornwall') || cleanLocation.includes('corn wall')) {
-                    return {
-                        isInCornwall: true,
-                        county: 'Cornwall',
-                        confidence: 0.8,
-                        source: 'Web Search'
-                    };
-                }
-                
-                if (cleanLocation.includes('devon') || cleanLocation.includes('manchester') || 
-                    cleanLocation.includes('london') || cleanLocation.includes('bristol')) {
-                    return {
-                        isInCornwall: false,
-                        county: 'Other',
-                        confidence: 0.9,
-                        source: 'Web Search'
-                    };
-                }
-                
-                return {
-                    isInCornwall: false,
-                    county: 'Unknown',
-                    confidence: 0.3,
-                    source: 'Web Search (Uncertain)'
-                };
-            }
-            
-            basicLocationCheck(location) {
-                const cleanLocation = location.toLowerCase();
-                return cleanLocation.includes('cornwall') || cleanLocation.includes('truro') || cleanLocation.includes('falmouth');
-            }
-
-            handleReschedule(response) {
-                if (response.includes('human call')) {
-                    this.addMessage('bot', 'Perfect! I will arrange for one of our team members to call you back within 2 business hours. Please keep your phone available. You will also receive a confirmation email.');
-                    this.candidateData.rescheduleType = 'Human callback';
-                    this.sendEmail('reschedule');
-                } else {
-                    this.addMessage('bot', `Excellent! I have scheduled your screening call for ${response.replace('Tomorrow', 'Friday, July 5th').replace('Friday', 'Friday, July 5th').replace('Next week - Monday', 'Monday, July 8th')}. You will receive a calendar invitation and confirmation email shortly. Thank you for your interest in our AI Business Productivity Bootcamp!`);
-                    this.candidateData.rescheduleType = response;
-                    this.sendEmail('reschedule');
-                }
-                this.completeAssessment();
             }
 
             handleUKResidency(response) {
@@ -1910,14 +1558,6 @@ Are you still interested in progressing with this opportunity?`);
                     this.addMessage('bot', 'Great! Are you currently on any of the following: a spouse visa, international student visa, apprenticeship, or any other government-funded learning programme?');
                     this.currentStep = 'funding';
                     this.showOptions(['No, none of those', 'Yes, I\'m on a visa', 'Yes, I\'m on an apprenticeship', 'Yes, other government programme']);
-                } else if (response.includes('waiting list') || response.includes('add me to waiting')) {
-                    this.candidateData.devonWaitingList = true;
-                    this.addMessage('bot', 'Excellent! I\'ve noted you for the Devon waiting list. Now, have you been living in the UK for at least the past 3 years?');
-                    this.showOptions(['Yes, more than 3 years', 'Yes, exactly 3 years', 'No, less than 3 years']);
-                } else if (response.includes('not interested')) {
-                    this.addMessage('bot', 'I understand. Thank you for your time and interest in the programme. Feel free to apply again in the future if circumstances change.');
-                    this.completeAssessment();
-                    return;
                 } else {
                     this.candidateData.ukResidency = false;
                     this.updateCriteria('ukResidency', 'Fail', 'criteria-fail');
@@ -1967,7 +1607,6 @@ Are you still interested in progressing with this opportunity?`);
             }
 
             handleEmployerFunding(response) {
-                // Store the employer funding response for the report
                 this.candidateData.employerFunding = response;
                 console.log('📋 Employer funding response recorded:', response);
                 
@@ -1979,10 +1618,6 @@ Are you still interested in progressing with this opportunity?`);
                     this.addMessage('bot', 'Perfect! We can help you find a new role where these AI skills will be valuable. Our job matching service connects you with employers who value these capabilities. The programme is fully funded for job seekers. Would afternoon or evening sessions work better for you?');
                     this.currentStep = 'schedule';
                     this.showOptions(['Afternoon sessions work better', 'Evening sessions work better', 'Either would work', 'I need to discuss timing']);
-                } else if (response.includes('too expensive')) {
-                    this.addMessage('bot', 'I understand the cost concern. We also offer job matching services to help you find a role where the employer would fund this training. Would you be interested in exploring new opportunities?');
-                    this.currentStep = 'schedule';
-                    this.showOptions(['Yes, help me find a new role', 'No, I\'ll stay in current job', 'I need to think about it']);
                 } else {
                     this.addMessage('bot', 'No problem. Take some time to consider your options. The programme starts on 21 July, so please let us know your decision soon.');
                     this.currentStep = 'schedule';
@@ -2000,13 +1635,6 @@ Are you still interested in progressing with this opportunity?`);
                     return;
                 }
                 
-                if (response.includes('discuss with') || response.includes('think about')) {
-                    this.candidateData.interestLevel += 1;
-                    this.addMessage('bot', 'That\'s perfectly reasonable. Take your time to consider it. The programme starts on 21 July, so please let us know your decision by 15 July. Thank you for your interest!');
-                    this.completeAssessment();
-                    return;
-                }
-                
                 this.candidateData.interestLevel += 2;
                 
                 this.addMessage('bot', 'Excellent! You will gain hands-on experience with AI tools for business productivity, including ChatGPT, Microsoft Copilot, and automation tools. We also provide CV and interview preparation. Would you like me to book you in for a 30-minute online Teams interview to discuss the programme further?');
@@ -2020,11 +1648,9 @@ Are you still interested in progressing with this opportunity?`);
                     this.addMessage('bot', 'Excellent! To book your interview, I need to confirm a few details. Please fill in the information below:');
                     
                     setTimeout(() => {
-                        // Hide response buttons and create individual input fields
                         this.responseButtons.innerHTML = '';
                         this.textInputRow.style.display = 'none';
                         
-                        // Create individual input fields with better scrolling
                         const inputContainer = document.createElement('div');
                         inputContainer.id = 'personalDetailsContainer';
                         inputContainer.className = 'form-container';
@@ -2076,24 +1702,18 @@ Are you still interested in progressing with this opportunity?`);
                             </div>
                         `;
                         
-                        // Add the container to the input section
                         const inputSection = document.querySelector('.input-section');
                         inputSection.appendChild(inputContainer);
                         
-                        // Ensure the form is visible and scrollable
                         inputContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         
                         this.currentStep = 'collectDetails';
                     }, 1000);
                     
-                } else if (response.includes('documents') || response.includes('What documents')) {
+                } else if (response.includes('documents')) {
                     this.addMessage('bot', 'You will need: a form of photo ID, your National Insurance number, and proof of address like a utility bill or bank statement. Shall I book your interview now?');
                     this.showOptions(['Yes, book it now', 'I need to find those documents first']);
                     return;
-                } else if (response.includes('find those documents')) {
-                    this.addMessage('bot', 'No problem! Take your time to gather those documents. The programme starts on 21 July, so please apply again once you have everything ready. Thank you for your interest!');
-                    this.candidateData.interestLevel -= 1;
-                    this.completeAssessment();
                 } else {
                     this.addMessage('bot', 'That is perfectly fine. Take your time to consider it. The programme starts on 21 July, so please let us know your decision soon. Thank you for your interest!');
                     this.candidateData.interestLevel -= 1;
@@ -2101,50 +1721,7 @@ Are you still interested in progressing with this opportunity?`);
                 }
             }
 
-            submitPersonalDetails() {
-                const firstName = document.getElementById('firstName').value.trim();
-                const surname = document.getElementById('surname').value.trim();
-                const mobile = document.getElementById('mobile').value.trim();
-                const email = document.getElementById('email').value.trim();
-                
-                // Validation
-                const errors = [];
-                if (!firstName) errors.push('First Name');
-                if (!surname) errors.push('Surname');
-                if (!mobile) errors.push('Mobile Number');
-                if (!email || !email.includes('@')) errors.push('Valid Email Address');
-                
-                if (errors.length > 0) {
-                    this.addMessage('bot', `❌ <strong>Please complete the following fields:</strong><br>• ${errors.join('<br>• ')}<br><br>All fields are required to book your interview.`);
-                    return;
-                }
-                
-                // Store the personal details
-                const personalDetails = {
-                    firstName: firstName,
-                    surname: surname,
-                    mobile: mobile,
-                    email: email
-                };
-                
-                this.candidateData.personalDetails = personalDetails;
-                this.candidateData.name = `${firstName} ${surname}`;
-                
-                // Remove the form and show confirmation
-                document.getElementById('personalDetailsContainer').remove();
-                
-                this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
-                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!`);
-                
-                this.candidateData.interestLevel += 2;
-                this.completeAssessment();
-            }
-
             handleCollectDetails(response) {
-                // This method is now mainly for text-based input (legacy support)
-                // The new submitPersonalDetails() method handles the individual input boxes
-                
-                // Parse the personal details with more flexible matching
                 const nameMatch = response.match(/name:\s*([^\n\r,]+?)(?:\s+surname:|$)/i);
                 const surnameMatch = response.match(/surname:\s*([^\n\r,]+?)(?:\s+mobile:|$)/i);
                 const mobileMatch = response.match(/mobile:\s*([^\n\r,]+?)(?:\s+email:|$)/i);
@@ -2166,16 +1743,28 @@ Are you still interested in progressing with this opportunity?`);
                     this.candidateData.interestLevel += 2;
                     this.completeAssessment();
                 } else {
-                    // More helpful error message with examples
-                    this.addMessage('bot', 'I couldn\'t parse all the details. Please use the form above or try one of these formats:<br><br><strong>Option 1:</strong> Name: John Surname: Smith Mobile: 07123456789 Email: john@email.com<br><br><strong>Option 2:</strong><br>Name: Sarah<br>Surname: Johnson<br>Mobile: 07987654321<br>Email: sarah.johnson@email.com<br><br>Please try again:');
+                    this.addMessage('bot', 'I couldn\'t parse all the details. Please use the form above or try one of these formats:<br><br><strong>Option 1:</strong> Name: John Surname: Smith Mobile: 07123456789 Email: john@email.com<br><br>Please try again:');
                 }
+            }
+
+            handleReschedule(response) {
+                if (response.includes('human call')) {
+                    this.addMessage('bot', 'Perfect! I will arrange for one of our team members to call you back within 2 business hours. Please keep your phone available. You will also receive a confirmation email.');
+                    this.candidateData.rescheduleType = 'Human callback';
+                } else {
+                    this.addMessage('bot', `Excellent! I have scheduled your screening call for ${response.replace('Tomorrow', 'Friday, July 5th').replace('Friday', 'Friday, July 5th').replace('Next week - Monday', 'Monday, July 8th')}. You will receive a calendar invitation and confirmation email shortly. Thank you for your interest in our AI Business Productivity Bootcamp!`);
+                    this.candidateData.rescheduleType = response;
+                }
+                this.completeAssessment();
             }
 
             updateCriteria(criteria, status, className) {
                 const element = document.getElementById(criteria);
-                element.className = `criteria-item ${className}`;
-                element.querySelector('span:last-child').textContent = status;
-                this.updateScore();
+                if (element) {
+                    element.className = `criteria-item ${className}`;
+                    element.querySelector('span:last-child').textContent = status;
+                    this.updateScore();
+                }
             }
 
             updateScore() {
@@ -2192,176 +1781,50 @@ Are you still interested in progressing with this opportunity?`);
                 const scoreFill = document.getElementById('scoreFill');
                 const scoreText = document.getElementById('scoreText');
                 
-                scoreFill.style.width = `${(this.score / 10) * 100}%`;
-                scoreText.textContent = `${this.score}/10`;
+                if (scoreFill && scoreText) {
+                    scoreFill.style.width = `${(this.score / 10) * 100}%`;
+                    scoreText.textContent = `${this.score}/10`;
+                }
             }
 
-            // Assessment Panel Toggle
-            toggleAssessmentPanel() {
-                const panel = document.getElementById('assessmentPanel');
-                panel.classList.toggle('collapsed');
-                
-                const isCollapsed = panel.classList.contains('collapsed');
-                console.log(`📊 Assessment panel ${isCollapsed ? 'collapsed' : 'expanded'}`);
-            }
-
-            // Dashboard Reporting - Send data to testbot.html
+            // Dashboard reporting and testing
             sendToDashboard() {
-                // Enhanced report data specifically for testbot.html dashboard
                 const reportData = {
-                    // Core candidate information
                     name: this.candidateData.name || "Unknown Applicant",
                     email: this.candidateData.personalDetails?.email || "No email provided",
                     phone: this.candidateData.personalDetails?.mobile || "No phone provided",
                     score: this.score,
-                    
-                    // Bootcamp specific data
                     bootcamp: "AI Business Productivity Bootcamp",
-                    program: "Cornwall Skills Bootcamp",
-                    
-                    // Assessment details
                     location: this.candidateData.location || 'Not assessed',
                     ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
                     fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
                     employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
                     employerFunding: this.candidateData.employerFunding || 'Not applicable',
                     availability: this.candidateData.availability || 'Not assessed',
-                    
-                    // Detailed responses for analysis
-                    responses: this.candidateData.responses.map(r => ({
-                        step: r.step,
-                        response: r.response,
-                        timestamp: new Date().toISOString()
-                    })) || [],
-                    
-                    // Scoring and recommendation
+                    responses: this.candidateData.responses || [],
                     recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
                                   this.score >= 6 ? 'SUITABLE - Standard processing' : 
                                   'NOT SUITABLE - Does not meet criteria',
-                    
-                    // Status and categorization
-                    status: this.score >= 8 ? 'HIGHLY_SUITABLE' : 
-                           this.score >= 6 ? 'SUITABLE' : 'NOT_SUITABLE',
-                    
-                    // Timestamps and metadata
                     timestamp: new Date().toISOString(),
                     sessionId: Date.now(),
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '3.0',
-                    
-                    // Dashboard control flags
-                    autoShow: true,  // Auto-display the report
-                    isComplete: true, // Mark as completed assessment
-                    
-                    // Additional data for analytics
-                    interestLevel: this.candidateData.interestLevel || 5,
-                    rescheduleRequested: this.candidateData.rescheduleType ? true : false,
-                    personalDetailsCollected: this.candidateData.personalDetails ? true : false,
-                    
-                    // Target dashboard identification
                     targetDashboard: 'testbot.html',
-                    messageType: 'CANDIDATE_REPORT'
+                    messageType: 'CANDIDATE_REPORT',
+                    autoShow: true
                 };
                 
-                console.log('📊 Sending enhanced data to testbot.html dashboard:', reportData);
-                
-                // Send to parent window (testbot.html)
                 try {
-                    // Try multiple methods to ensure delivery
-                    
-                    // Method 1: Direct postMessage to parent
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 Method 1: Sent to parent window');
                     }
-                    
-                    // Method 2: postMessage to top window (in case of nested iframes)
-                    if (window.top && window.top !== window) {
-                        window.top.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 Method 2: Sent to top window');
-                    }
-                    
-                    // Method 3: Try specific origin targeting
                     window.parent.postMessage(reportData, '*');
-                    console.log('📊 Method 3: Sent with wildcard origin');
                     
-                    // Visual confirmation
-                    this.showDashboardConfirmation(true);
-                    
-                    this.addMessage('bot', `
-                        📊 <strong>Report sent to dashboard successfully!</strong><br>
-                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>✅ Data transmitted to testbot.html</strong><br>
-                            • <strong>Candidate:</strong> ${reportData.name}<br>
-                            • <strong>Score:</strong> ${reportData.score}/10<br>
-                            • <strong>Status:</strong> ${reportData.status}<br>
-                            • <strong>Target:</strong> ${reportData.targetDashboard}<br>
-                            • <strong>Session ID:</strong> ${reportData.sessionId}
-                        </div>
-                        The dashboard should now display this candidate's assessment results.
-                    `);
-                    
+                    console.log('📊 Dashboard report sent:', reportData);
                 } catch (error) {
                     console.error('📊 Dashboard reporting failed:', error);
-                    this.showDashboardConfirmation(false);
-                    this.addMessage('bot', `
-                        ⚠️ <strong>Dashboard reporting failed.</strong><br>
-                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>❌ Could not send data to testbot.html</strong><br>
-                            • <strong>Error:</strong> ${error.message}<br>
-                            • <strong>Fallback:</strong> Data saved locally and to Firebase<br>
-                            • <strong>Action:</strong> Check console for details
-                        </div>
-                        The assessment is complete but dashboard communication failed.
-                    `);
                 }
             }
 
-            // Visual confirmation for dashboard communication
-            showDashboardConfirmation(success) {
-                const confirmation = document.createElement('div');
-                confirmation.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${success ? '#27ae60' : '#e74c3c'};
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    z-index: 1001;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                    transition: all 0.3s ease;
-                    max-width: 300px;
-                    animation: slideDown 0.5s ease-out;
-                `;
-                
-                if (success) {
-                    confirmation.innerHTML = `
-                        📊 <strong>Dashboard Connected!</strong><br>
-                        <small>Report sent to testbot.html successfully</small>
-                    `;
-                } else {
-                    confirmation.innerHTML = `
-                        ❌ <strong>Dashboard Error!</strong><br>
-                        <small>Could not connect to testbot.html</small>
-                    `;
-                }
-                
-                document.body.appendChild(confirmation);
-
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    confirmation.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (confirmation.parentNode) {
-                            confirmation.parentNode.removeChild(confirmation);
-                        }
-                    }, 300);
-                }, success ? 4000 : 6000);
-            }
-
-            // Test connection to testbot.html dashboard
             testDashboardConnection() {
                 console.log('🔧 Testing connection to testbot.html...');
                 
@@ -2372,141 +1835,36 @@ Are you still interested in progressing with this opportunity?`);
                     toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
                     timestamp: new Date().toISOString(),
                     testMessage: 'Testing sync between bot.html and testbot.html',
-                    sessionId: Date.now(),
-                    sync: {
-                        windowParent: window.parent !== window,
-                        windowTop: window.top !== window,
-                        currentURL: window.location.href,
-                        userAgent: navigator.userAgent.substring(0, 50) + '...'
-                    }
+                    sessionId: Date.now()
                 };
                 
                 try {
-                    // Test all communication methods
-                    let methodResults = [];
-                    
-                    // Method 1: Parent window
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                        methodResults.push('✅ Parent window communication available');
-                    } else {
-                        methodResults.push('❌ Parent window not available (not in iframe?)');
                     }
-                    
-                    // Method 2: Top window
-                    if (window.top && window.top !== window) {
-                        window.top.postMessage(testData, 'https://terence1975-coder.github.io');
-                        methodResults.push('✅ Top window communication available');
-                    } else {
-                        methodResults.push('❌ Top window not available');
-                    }
-                    
-                    // Method 3: Wildcard
                     window.parent.postMessage(testData, '*');
-                    methodResults.push('✅ Wildcard origin attempted');
                     
                     this.addMessage('bot', `
                         🔧 <strong>testbot.html Connection Test</strong><br>
                         <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>📡 Connection Status:</strong><br>
-                            ${methodResults.join('<br>')}<br><br>
-                            
-                            <strong>📊 Test Data Sent:</strong><br>
-                            • <strong>From:</strong> bot.html<br>
-                            • <strong>To:</strong> testbot.html<br>
+                            <strong>📡 Test signal sent to testbot.html</strong><br>
                             • <strong>Test ID:</strong> ${testData.sessionId}<br>
-                            • <strong>Message Type:</strong> CONNECTION_TEST<br>
-                            • <strong>Current URL:</strong> ${window.location.href}
+                            • <strong>Status:</strong> Signal transmitted<br>
+                            • <strong>Check console</strong> in testbot.html for received messages
                         </div>
-                        
-                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>🔍 For testbot.html to receive this:</strong><br>
-                            1. Ensure bot.html is embedded as iframe in testbot.html<br>
-                            2. Add this listener to testbot.html:<br>
-                            <code style="font-size: 10px; background: #f8f9fa; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">
-                            window.addEventListener('message', function(event) {<br>
-                            &nbsp;&nbsp;console.log('Received from bot.html:', event.data);<br>
-                            &nbsp;&nbsp;if (event.data.messageType === 'CONNECTION_TEST') {<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;alert('Connection test successful!');<br>
-                            &nbsp;&nbsp;}<br>
-                            });
-                            </code>
-                        </div>
-                        
-                        Check browser console in testbot.html for received messages.
                     `);
                     
                 } catch (error) {
                     this.addMessage('bot', `
                         ❌ <strong>Connection test failed:</strong><br>
                         <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>Error:</strong> ${error.message}<br>
-                            <strong>Suggestion:</strong> Ensure bot.html is properly embedded in testbot.html
+                            <strong>Error:</strong> ${error.message}
                         </div>
                     `);
                 }
             }
 
-            async checkServerStatus() {
-                const checkButton = document.getElementById('checkServer');
-                checkButton.textContent = '🔄 Checking...';
-                checkButton.disabled = true;
-                
-                this.addMessage('bot', `
-                    📊 <strong>Dashboard Integration Information</strong><br><br>
-                    
-                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ testbot.html Connection Active:</strong><br>
-                    • <strong>Dashboard URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Chatbot URL:</strong> https://terence1975-coder.github.io/tender/bot.html<br>
-                    • <strong>Connection Method:</strong> window.parent.postMessage()<br>
-                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br>
-                    • <strong>Auto-display:</strong> Enabled
-                    </div>
-                    
-                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📊 Report Features:</strong><br>
-                    • <strong>Real-time Transmission:</strong> Instant data sending to testbot.html<br>
-                    • <strong>Complete Assessment:</strong> All responses and scoring included<br>
-                    • <strong>Enhanced Data:</strong> Extended candidate information<br>
-                    • <strong>Status Tracking:</strong> HIGHLY_SUITABLE, SUITABLE, NOT_SUITABLE<br>
-                    • <strong>Session Management:</strong> Unique IDs for each assessment<br>
-                    • <strong>Fallback Storage:</strong> Firebase backup for all data
-                    </div>
-                    
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 Dashboard Requirements:</strong><br>
-                    • bot.html must be embedded as iframe in testbot.html<br>
-                    • testbot.html needs postMessage event listener<br>
-                    • Listen for messageType: 'CANDIDATE_REPORT'<br>
-                    • Handle autoShow: true for automatic display<br>
-                    • Parse candidate data from event.data object
-                    </div>
-                    
-                    <div style="background: #f8d7da; padding: 12px; border-radius: 5px; border-left: 4px solid #e74c3c; margin: 10px 0;">
-                    <strong>📋 Sample Integration Code for testbot.html:</strong><br>
-                    <code style="font-size: 10px;">
-                    window.addEventListener('message', function(event) {<br>
-                    &nbsp;&nbsp;if (event.data.messageType === 'CANDIDATE_REPORT') {<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;displayCandidateReport(event.data);<br>
-                    &nbsp;&nbsp;}<br>
-                    });
-                    </code>
-                    </div>
-                    
-                    <strong>💡 Status:</strong> Dashboard reporting to testbot.html is configured and ready. Use the "🔗 Test Connection" button to verify communication.
-                `);
-                
-                checkButton.textContent = 'ℹ️ Dashboard Info';
-                checkButton.disabled = false;
-            }
-
-            async testEmailConnection() {
-                const testButton = document.getElementById('testEmail');
-                testButton.textContent = '🔄 Testing...';
-                testButton.disabled = true;
-                
-                // Test dashboard connection instead of email
+            testEmailConnection() {
                 this.testDashboardConnection();
                 
                 this.addMessage('bot', `
@@ -2517,86 +1875,38 @@ Are you still interested in progressing with this opportunity?`);
                     Email integration has been disabled. The system now uses dashboard reporting to testbot.html via postMessage API.
                     </div>
                     
-                    <strong>📊 Test Report Data Format:</strong><br>
-                    • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Method:</strong> window.parent.postMessage()<br>
-                    • <strong>Data Format:</strong> Enhanced candidate report object<br>
-                    • <strong>Auto-display:</strong> Enabled for dashboard<br>
-                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br><br>
-                    
-                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📡 Connection Requirements:</strong><br>
-                    • bot.html must be embedded as iframe in testbot.html<br>
-                    • testbot.html must have postMessage listener<br>
-                    • Both pages must be on same domain<br>
-                    • Dashboard should handle 'CANDIDATE_REPORT' message type
-                    </div>
-                    
                     🎉 <strong>Dashboard connection testing complete!</strong> Check the console and testbot.html for received messages.
                 `);
-                
-                // Send comprehensive test data to dashboard
-                const testData = {
-                    name: "Test User",
-                    email: "test@example.com",
-                    phone: "+44 7123 456789",
-                    score: 7,
-                    bootcamp: "AI Business Productivity Bootcamp",
-                    location: "Cornwall",
-                    ukResidency: "Eligible (3+ years)",
-                    fundingStatus: "Eligible",
-                    employmentStatus: "Employed",
-                    employerFunding: "Yes, employer will co-fund",
-                    availability: "Evening sessions work better",
-                    responses: [
-                        {step: "intro", response: "Yes, that works for me"},
-                        {step: "overview", response: "Yes, definitely interested"},
-                        {step: "location", response: "I live in Cornwall"},
-                        {step: "employment", response: "I'm employed"},
-                        {step: "employerFunding", response: "Yes, employer will co-fund"}
-                    ],
-                    recommendation: "SUITABLE - Standard processing",
-                    status: "SUITABLE",
-                    timestamp: new Date().toISOString(),
-                    sessionId: Date.now(),
-                    source: "AI Bootcamp Screening Chatbot",
-                    targetDashboard: "testbot.html",
-                    messageType: "CANDIDATE_REPORT",
-                    autoShow: true,
-                    isTestData: true
-                };
-                
-                try {
-                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                    window.parent.postMessage(testData, '*');
-                    console.log('📊 Test data sent to testbot.html dashboard:', testData);
-                } catch (error) {
-                    console.error('Dashboard test failed:', error);
-                }
-                
-                testButton.textContent = '📊 Test Dashboard';
-                testButton.disabled = false;
             }
 
-            async sendEmail(type) {
-                // Email functionality disabled - using dashboard reporting instead
+            checkServerStatus() {
+                this.addMessage('bot', `
+                    📊 <strong>Dashboard Integration Information</strong><br><br>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ testbot.html Connection Active:</strong><br>
+                    • <strong>Dashboard URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
+                    • <strong>Chatbot URL:</strong> https://terence1975-coder.github.io/tender/bot.html<br>
+                    • <strong>Connection Method:</strong> window.parent.postMessage()<br>
+                    • <strong>Message Type:</strong> CANDIDATE_REPORT
+                    </div>
+                    
+                    <strong>💡 Status:</strong> Dashboard reporting to testbot.html is configured and ready.
+                `);
+            }
+
+            sendEmail(type) {
                 if (type !== 'assessment') return;
-                
                 console.log('📊 Email disabled - using dashboard reporting instead');
-                
-                // Send to dashboard instead of email
                 this.sendToDashboard();
-                
-                return; // Skip email functionality
+                return;
             }
 
             completeAssessment() {
                 this.updateScore();
                 
-                // Send to dashboard
                 this.sendToDashboard();
                 
-                // Auto-save to Firebase
                 if (this.database && this.candidateData.name && this.candidateData.name !== 'Applicant') {
                     this.saveToFirebase();
                 }
@@ -2605,76 +1915,71 @@ Are you still interested in progressing with this opportunity?`);
                 const recommendation = document.getElementById('recommendation');
                 const reportDetails = document.getElementById('reportDetails');
                 
-                finalReport.classList.remove('hidden');
-                
-                let recommendationText = '';
-                let recommendationClass = '';
-                
-                if (this.score >= 8) {
-                    recommendationText = '🟢 HIGHLY SUITABLE - Schedule interview immediately';
-                    recommendationClass = 'highly-suitable';
-                } else if (this.score >= 6) {
-                    recommendationText = '🟡 SUITABLE - Standard processing';
-                    recommendationClass = 'suitable';
-                } else {
-                    recommendationText = '🔴 NOT SUITABLE - Does not meet criteria';
-                    recommendationClass = 'not-suitable';
+                if (finalReport && recommendation && reportDetails) {
+                    finalReport.classList.remove('hidden');
+                    
+                    let recommendationText = '';
+                    let recommendationClass = '';
+                    
+                    if (this.score >= 8) {
+                        recommendationText = '🟢 HIGHLY SUITABLE - Schedule interview immediately';
+                        recommendationClass = 'highly-suitable';
+                    } else if (this.score >= 6) {
+                        recommendationText = '🟡 SUITABLE - Standard processing';
+                        recommendationClass = 'suitable';
+                    } else {
+                        recommendationText = '🔴 NOT SUITABLE - Does not meet criteria';
+                        recommendationClass = 'not-suitable';
+                    }
+                    
+                    recommendation.textContent = recommendationText;
+                    recommendation.className = `recommendation ${recommendationClass}`;
+                    
+                    const reportHTML = `
+                        <strong>Assessment Summary:</strong><br>
+                        • Location: ${this.candidateData.location || 'Not assessed'}<br>
+                        • UK Residency: ${this.candidateData.ukResidency ? 'Eligible' : 'Not eligible'}<br>
+                        • Funding Status: ${this.candidateData.fundingStatus || 'Not assessed'}<br>
+                        • Employment: ${this.candidateData.employmentStatus || 'Not assessed'}<br>
+                        • Employer Funding: ${this.candidateData.employerFunding || 'Not applicable'}<br>
+                        • Availability: ${this.candidateData.availability || 'Not assessed'}<br>
+                        • Interest Level: ${this.candidateData.interestLevel}/10<br>
+                        • Overall Score: ${this.score}/10<br><br>
+                        
+                        <strong>📊 testbot.html Report:</strong><br>
+                        A comprehensive screening report has been sent directly to testbot.html via postMessage API. Check the main dashboard for the detailed candidate assessment and leaderboard updates.
+                    `;
+                    
+                    reportDetails.innerHTML = reportHTML;
                 }
-                
-                recommendation.textContent = recommendationText;
-                recommendation.className = `recommendation ${recommendationClass}`;
-                
-                const reportHTML = `
-                    <strong>Assessment Summary:</strong><br>
-                    • Location: ${this.candidateData.location || 'Not assessed'}<br>
-                    • UK Residency: ${this.candidateData.ukResidency ? 'Eligible' : 'Not eligible'}<br>
-                    • Funding Status: ${this.candidateData.fundingStatus || 'Not assessed'}<br>
-                    • Employment: ${this.candidateData.employmentStatus || 'Not assessed'}<br>
-                    • Employer Funding: ${this.candidateData.employerFunding || 'Not applicable'}<br>
-                    • Availability: ${this.candidateData.availability || 'Not assessed'}<br>
-                    • Interest Level: ${this.candidateData.interestLevel}/10<br>
-                    • Overall Score: ${this.score}/10<br>
-                    • Reschedule Type: ${this.candidateData.rescheduleType || 'N/A'}<br><br>
-                    
-                    <strong>Next Steps:</strong><br>
-                    ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
-                    
-                    <strong>📊 testbot.html Report:</strong><br>
-                    A comprehensive screening report has been sent directly to testbot.html via postMessage API. Check the main dashboard for the detailed candidate assessment and leaderboard updates.
-                `;
-                
-                reportDetails.innerHTML = reportHTML;
                 
                 this.responseButtons.innerHTML = '<button class="btn btn-secondary" onclick="location.reload()">Start New Assessment</button>';
             }
         }
 
+        // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 console.log('🚀 Initializing AI Bootcamp Screening Chatbot...');
                 
-                // Initialize chatbot
                 window.chatBot = new ChatBot();
                 console.log('✅ ChatBot instance created successfully');
                 
-                // Check Firebase availability
                 if (typeof firebase !== 'undefined') {
                     console.log('✅ Firebase SDK loaded successfully');
                 } else {
                     console.log('⚠️ Firebase SDK not loaded - will run in offline mode');
                 }
                 
-                // Check window context for dashboard sync
                 if (window.parent !== window) {
                     console.log('✅ Running in iframe - dashboard sync available');
                 } else {
-                    console.log('ℹ️ Running standalone - dashboard sync may be limited');
+                    console.log('ℹ️ Running standalone');
                 }
                 
             } catch (error) {
                 console.error('❌ ChatBot initialization failed:', error);
                 
-                // Show error in UI
                 const errorDiv = document.createElement('div');
                 errorDiv.style.cssText = `
                     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -2691,7 +1996,6 @@ Are you still interested in progressing with this opportunity?`);
                 document.body.appendChild(errorDiv);
             }
             
-            // Show startup notification
             setTimeout(() => {
                 const startupInfo = document.createElement('div');
                 startupInfo.style.cssText = `
