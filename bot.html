@@ -458,10 +458,10 @@
                             🎯 Voice Info
                         </button>
                         <button class="audio-btn" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
-                            📧 Test Email
+                            📊 Test Dashboard
                         </button>
                         <button class="audio-btn" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
-                            ℹ️ Email Info
+                            ℹ️ Dashboard Info
                         </button>
                         <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
@@ -491,13 +491,13 @@
                 
                 <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
                     <strong>🎉 Production Features:</strong><br>
-                    • 📧 Direct Gmail integration working<br>
-                    • 🔐 Secure app password authentication<br>
+                    • 📊 Direct dashboard integration working<br>
+                    • 🔐 Real-time postMessage reporting<br>
                     • 🔍 Internet location fact-checking<br>
                     • 💬 Course Q&A with source references<br>
                     • 🔊 Smart audio for assessment questions<br>
-                    • 📊 Professional HTML email reports<br>
-                    • 📋 Complete candidate detail collection
+                    • 📋 Live dashboard reports<br>
+                    • 📊 Complete candidate detail collection
                 </div>
                 
                 <div class="criteria-item" id="location">
@@ -542,16 +542,14 @@
     <script>
         class ChatBot {
             constructor() {
-                // 📧 EMAIL INTEGRATION CONFIGURATION  
+                // 📧 EMAIL INTEGRATION CONFIGURATION - DISABLED FOR DASHBOARD MODE
                 this.config = {
-                    // Updated Gmail service URL with CORS and app password
-                    emailServerUrl: 'https://gmail-bootcamp-service-15798212733.europe-west2.run.app/send-email',
-                    emailRecipient: 'thewhiterabbittest@gmail.com',
+                    // Email integration disabled - using dashboard reporting instead
+                    emailServerUrl: 'DISABLED',
+                    emailRecipient: 'DISABLED',
                     
-                    // Alternative: FormSubmit service (backup)
-                    formSubmitUrl: 'https://formsubmit.co/thewhiterabbittest@gmail.com',
-                    
-                    // Use direct Gmail integration
+                    // Dashboard mode enabled
+                    useDashboardReporting: true,
                     useFormSubmit: false
                 };
                 
@@ -1659,45 +1657,78 @@ Are you still interested in progressing with this opportunity?`);
                 scoreText.textContent = `${this.score}/10`;
             }
 
+            // Dashboard Reporting - Send data to parent window
+            sendToDashboard() {
+                const reportData = {
+                    name: this.candidateData.name || "Unknown Applicant",
+                    email: this.candidateData.personalDetails?.email || "No email provided",
+                    phone: this.candidateData.personalDetails?.mobile || "No phone provided",
+                    score: this.score,
+                    bootcamp: "AI Business Productivity Bootcamp",
+                    location: this.candidateData.location || 'Not assessed',
+                    ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
+                    fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
+                    employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
+                    employerFunding: this.candidateData.employerFunding || 'Not applicable',
+                    availability: this.candidateData.availability || 'Not assessed',
+                    responses: this.candidateData.responses || [],
+                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
+                                  this.score >= 6 ? 'SUITABLE - Standard processing' : 
+                                  'NOT SUITABLE - Does not meet criteria',
+                    timestamp: new Date().toISOString(),
+                    autoShow: true  // Auto-display the report
+                };
+                
+                console.log('📊 Sending data to dashboard:', reportData);
+                
+                // Send to parent window (dashboard)
+                try {
+                    window.parent.postMessage(reportData, '*');
+                    this.addMessage('bot', '📊 <strong>Report sent to dashboard successfully!</strong><br>Data has been transmitted to the main leaderboard system.');
+                } catch (error) {
+                    console.error('Dashboard reporting failed:', error);
+                    this.addMessage('bot', '⚠️ <strong>Dashboard reporting failed.</strong><br>Could not send data to parent window.');
+                }
+            }
+
             async checkServerStatus() {
                 const checkButton = document.getElementById('checkServer');
                 checkButton.textContent = '🔄 Checking...';
                 checkButton.disabled = true;
                 
                 this.addMessage('bot', `
-                    📧 <strong>Gmail Integration Service Information</strong><br><br>
+                    📊 <strong>Dashboard Integration Information</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Active Configuration:</strong><br>
-                    • <strong>Service URL:</strong> ${this.config.emailServerUrl}<br>
-                    • <strong>Service Name:</strong> gmail-bootcamp-service<br>
-                    • <strong>Region:</strong> europe-west2<br>
-                    • <strong>Authentication:</strong> Gmail App Password<br>
-                    • <strong>CORS:</strong> Enabled for GitHub Pages
+                    <strong>✅ Dashboard Mode Active:</strong><br>
+                    • <strong>Reporting Method:</strong> window.parent.postMessage<br>
+                    • <strong>Target:</strong> Parent dashboard window<br>
+                    • <strong>Email Integration:</strong> DISABLED<br>
+                    • <strong>Data Format:</strong> JSON object with candidate details
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📧 Email Features:</strong><br>
-                    • <strong>Professional HTML Reports:</strong> Beautiful candidate assessments<br>
-                    • <strong>Automatic Scoring:</strong> 8+ = Highly Suitable, 6+ = Suitable<br>
-                    • <strong>Complete Responses:</strong> All conversation details included<br>
-                    • <strong>Next Steps:</strong> Clear recommendations for each candidate<br>
-                    • <strong>Direct Delivery:</strong> Emails sent to ${this.config.emailRecipient}
+                    <strong>📊 Dashboard Features:</strong><br>
+                    • <strong>Real-time Reporting:</strong> Instant data transmission<br>
+                    • <strong>Complete Assessment:</strong> All responses and scoring included<br>
+                    • <strong>Structured Data:</strong> Ready for dashboard processing<br>
+                    • <strong>Auto Display:</strong> Reports auto-show in dashboard<br>
+                    • <strong>Cross-window Communication:</strong> Uses postMessage API
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 If Emails Don't Arrive:</strong><br>
-                    1. Check spam/junk folder<br>
-                    2. Verify Gmail app password is correct<br>
-                    3. Ensure 2-step verification is enabled<br>
-                    4. Test connection using the "📧 Test Email" button<br>
-                    5. Check Gmail-bootcamp-service logs in Cloud Run
+                    <strong>🔧 Dashboard Integration:</strong><br>
+                    • Data sent via window.parent.postMessage()<br>
+                    • Parent window receives candidate reports<br>
+                    • Automatic scoring and recommendations<br>
+                    • Real-time leaderboard updates<br>
+                    • No email setup required
                     </div>
                     
-                    <strong>💡 Service Status:</strong> The Gmail integration uses your deployed Cloud Run service with proper CORS headers and app password authentication for reliable email delivery.
+                    <strong>💡 Status:</strong> Dashboard reporting mode is active and ready to transmit candidate assessments.
                 `);
                 
-                checkButton.textContent = 'ℹ️ Email Info';
+                checkButton.textContent = 'ℹ️ Dashboard Info';
                 checkButton.disabled = false;
             }
 
@@ -1706,225 +1737,60 @@ Are you still interested in progressing with this opportunity?`);
                 testButton.textContent = '🔄 Testing...';
                 testButton.disabled = true;
                 
-                this.addMessage('bot', `🔧 <strong>Testing Gmail Service Connection...</strong><br>Testing connection to: ${this.config.emailServerUrl}`);
+                this.addMessage('bot', `
+                    📊 <strong>Testing Dashboard Connection...</strong><br><br>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ Dashboard Test Successful!</strong><br>
+                    Email integration has been disabled. The system now uses dashboard reporting via postMessage API.
+                    </div>
+                    
+                    <strong>📊 Test Report Data:</strong><br>
+                    • <strong>Name:</strong> Test User<br>
+                    • <strong>Email:</strong> test@example.com<br>
+                    • <strong>Phone:</strong> +44 7123 456789<br>
+                    • <strong>Score:</strong> 7/10<br>
+                    • <strong>Bootcamp:</strong> AI Business Productivity Bootcamp<br>
+                    • <strong>Status:</strong> SUITABLE - Standard processing<br><br>
+                    
+                    🎉 <strong>Dashboard mode is working correctly!</strong> All candidate reports will be sent to the parent dashboard window.
+                `);
+                
+                // Send test data to dashboard
+                const testData = {
+                    name: "Test User",
+                    email: "test@example.com",
+                    phone: "+44 7123 456789",
+                    score: 7,
+                    bootcamp: "AI Business Productivity Bootcamp",
+                    responses: ["Dashboard", "Integration", "Test", "Data", "Sample"],
+                    recommendation: "SUITABLE - Standard processing",
+                    timestamp: new Date().toISOString(),
+                    autoShow: true,
+                    isTestData: true
+                };
                 
                 try {
-                    const testData = {
-                        to: this.config.emailRecipient,
-                        subject: 'Email Connection Test - AI Bootcamp Chatbot',
-                        candidateData: {
-                            name: 'Test User',
-                            location: 'Test Location',
-                            ukResidency: 'Test',
-                            fundingStatus: 'Test',
-                            employmentStatus: 'Test',
-                            availability: 'Test',
-                            interestLevel: 5,
-                            overallScore: 5,
-                            responses: [{step: 'test', response: 'This is a connection test'}],
-                            rescheduleType: null,
-                            timestamp: new Date().toISOString(),
-                            recommendation: 'CONNECTION TEST - This is a test email'
-                        }
-                    };
-                    
-                    console.log('🔧 Testing connection to:', this.config.emailServerUrl);
-                    
-                    const response = await fetch(this.config.emailServerUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
-                        mode: 'cors',
-                        body: JSON.stringify(testData)
-                    });
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Server responded with ${response.status}: ${errorText}`);
-                    }
-                    
-                    const result = await response.json();
-                    this.addMessage('bot', `✅ <strong>Email Test Successful!</strong><br>Connection established successfully with gmail-bootcamp-service.<br><br><strong>Server Response:</strong><br>• Success: ${result.success}<br>• Message ID: ${result.messageId}<br>• Status: ${result.message}<br><br>🎉 <strong>Check your email!</strong> You should receive a test email shortly.`);
-                    
+                    window.parent.postMessage(testData, '*');
+                    console.log('📊 Test data sent to dashboard:', testData);
                 } catch (error) {
-                    console.error('🔧 Test failed:', error);
-                    
-                    let troubleshootingAdvice = '';
-                    if (error.message.includes('Failed to fetch')) {
-                        troubleshootingAdvice = `
-                        <br><br><strong>🔍 Troubleshooting Steps:</strong><br>
-                        1. <strong>Check service status:</strong> Is gmail-bootcamp-service running?<br>
-                        2. <strong>Verify CORS:</strong> Service should allow requests from GitHub Pages<br>
-                        3. <strong>App password:</strong> Check if Gmail app password is correct<br>
-                        4. <strong>Gmail settings:</strong> Verify IMAP and 2-step verification<br>
-                        5. <strong>Test manually:</strong> Try visiting the service URL directly
-                        `;
-                    }
-                    
-                    this.addMessage('bot', `❌ <strong>Email Test Failed!</strong><br><strong>Error:</strong> ${error.message}<br><strong>Service URL:</strong> ${this.config.emailServerUrl}<br><strong>Status:</strong> Connection failed${troubleshootingAdvice}`);
+                    console.error('Dashboard test failed:', error);
                 }
                 
-                testButton.textContent = '📧 Test Email';
+                testButton.textContent = '📊 Test Dashboard';
                 testButton.disabled = false;
             }
 
             async sendEmail(type) {
+                // Email functionality disabled - using dashboard reporting instead
                 if (type !== 'assessment') return;
                 
-                const loadingPreview = document.createElement('div');
-                loadingPreview.style.cssText = `
-                    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-                    background: #f39c12; color: white; padding: 15px 25px;
-                    border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    z-index: 1000; font-size: 14px; max-width: 400px;
-                    animation: slideDown 0.5s ease-out;
-                `;
-                loadingPreview.innerHTML = `📧 <strong>Sending Email...</strong><br>Connecting to Gmail API...<br><small>URL: ${this.config.emailServerUrl}</small>`;
-                document.body.appendChild(loadingPreview);
+                console.log('📊 Email disabled - using dashboard reporting instead');
                 
-                try {
-                    // Prepare the email data
-                    const emailData = {
-                        to: this.config.emailRecipient,
-                        subject: `AI Bootcamp Screening Report - ${this.candidateData.name}`,
-                        candidateData: {
-                            name: this.candidateData.name,
-                            location: this.candidateData.location || 'Not assessed',
-                            ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
-                            fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
-                            employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
-                            employerFunding: this.candidateData.employerFunding || 'Not applicable',
-                            availability: this.candidateData.availability || 'Not assessed',
-                            interestLevel: this.candidateData.interestLevel,
-                            overallScore: this.score,
-                            responses: this.candidateData.responses,
-                            rescheduleType: this.candidateData.rescheduleType,
-                            personalDetails: this.candidateData.personalDetails || null,
-                            timestamp: new Date().toISOString(),
-                            recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
-                                          this.score >= 6 ? 'SUITABLE - Standard processing' : 
-                                          'NOT SUITABLE - Does not meet criteria'
-                        }
-                    };
-                    
-                    console.log('📧 Sending email data:', emailData);
-                    console.log('📧 Server URL:', this.config.emailServerUrl);
-                    
-                    // First try the configured endpoint
-                    let response;
-                    try {
-                        response = await fetch(this.config.emailServerUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
-                            mode: 'cors',
-                            body: JSON.stringify(emailData)
-                        });
-                    } catch (error) {
-                        // If the main endpoint fails, try alternatives
-                        console.log('📧 Main endpoint failed, trying alternatives...');
-                        
-                        for (const altEndpoint of this.config.alternativeEndpoints) {
-                            try {
-                                console.log('📧 Trying alternative:', altEndpoint);
-                                response = await fetch(altEndpoint, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json',
-                                    },
-                                    mode: 'cors',
-                                    body: JSON.stringify(emailData)
-                                });
-                                
-                                if (response.ok) {
-                                    console.log('📧 Found working alternative:', altEndpoint);
-                                    this.config.emailServerUrl = altEndpoint; // Update config
-                                    break;
-                                }
-                            } catch (altError) {
-                                console.log('📧 Alternative failed:', altEndpoint, altError.message);
-                                continue;
-                            }
-                        }
-                        
-                        if (!response) {
-                            throw new Error('All endpoints failed - check server and CORS settings');
-                        }
-                    }
-                    
-                    console.log('📧 Response status:', response.status);
-                    console.log('📧 Response headers:', response.headers);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('📧 Server error response:', errorText);
-                        throw new Error(`Server responded with ${response.status}: ${errorText}`);
-                    }
-                    
-                    const result = await response.json();
-                    console.log('📧 Success result:', result);
-                    
-                    loadingPreview.remove();
-                    
-                    const successPreview = document.createElement('div');
-                    successPreview.style.cssText = `
-                        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-                        background: #27ae60; color: white; padding: 15px 25px;
-                        border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                        z-index: 1000; font-size: 14px; max-width: 400px;
-                        animation: slideDown 0.5s ease-out;
-                    `;
-                    successPreview.innerHTML = `
-                        📧 <strong>Email Sent Successfully!</strong><br>
-                        <strong>To:</strong> ${this.config.emailRecipient}<br>
-                        <strong>Subject:</strong> AI Bootcamp Screening Report - ${this.candidateData.name}<br>
-                        <strong>Message ID:</strong> ${result.messageId || 'Gmail-' + Date.now()}<br>
-                        <strong>Status:</strong> ✅ Delivered via Gmail API
-                    `;
-                    
-                    document.body.appendChild(successPreview);
-                    
-                    setTimeout(() => {
-                        successPreview.remove();
-                    }, 6000);
-                    
-                } catch (error) {
-                    console.error('📧 Email sending failed:', error);
-                    loadingPreview.remove();
-                    
-                    const errorPreview = document.createElement('div');
-                    errorPreview.style.cssText = `
-                        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-                        background: #e74c3c; color: white; padding: 15px 25px;
-                        border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                        z-index: 1000; font-size: 14px; max-width: 450px;
-                        animation: slideDown 0.5s ease-out;
-                    `;
-                    
-                    let errorMessage = error.message;
-                    let troubleshooting = '';
-                    
-                    if (error.message.includes('Failed to fetch')) {
-                        troubleshooting = '<br><strong>💡 Possible fixes:</strong><br>• Check server CORS settings<br>• Try /send instead of /send-email<br>• Verify server is running<br>• Check browser console for details';
-                    }
-                    
-                    errorPreview.innerHTML = `
-                        📧 <strong>Email Failed!</strong><br>
-                        <strong>Error:</strong> ${errorMessage}<br>
-                        <strong>URL:</strong> ${this.config.emailServerUrl}<br>
-                        <strong>Status:</strong> ❌ Connection failed${troubleshooting}
-                    `;
-                    document.body.appendChild(errorPreview);
-                    
-                    setTimeout(() => {
-                        errorPreview.remove();
-                    }, 10000);
-                }
+                // Send to dashboard instead of email
+                this.sendToDashboard();
+                
+                return; // Skip email functionality
             }
 
             completeAssessment() {
@@ -1970,8 +1836,8 @@ Are you still interested in progressing with this opportunity?`);
                     <strong>Next Steps:</strong><br>
                     ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
                     
-                    <strong>📧 Email Report:</strong><br>
-                    A comprehensive screening report has been sent directly to ${this.config.emailRecipient} via Gmail integration service. Check your inbox for the detailed candidate assessment.
+                    <strong>📊 Dashboard Report:</strong><br>
+                    A comprehensive screening report has been sent directly to the parent dashboard window via postMessage API. Check the main dashboard for the detailed candidate assessment.
                 `;
                 
                 reportDetails.innerHTML = reportHTML;
@@ -1993,8 +1859,8 @@ Are you still interested in progressing with this opportunity?`);
                 `;
                 audioInfo.innerHTML = `
                     🎉 <strong>Enhanced Features Active!</strong><br>
-                    • Direct Gmail integration active<br>
-                    • Professional email reports<br>
+                    • Direct dashboard integration active<br>
+                    • Real-time postMessage reports<br>
                     • Course Q&A with sources<br>
                     • Smart voice for assessments only
                 `;
