@@ -1,178 +1,605 @@
-import React, { useState } from 'react';
-import { Download, Plus, Upload, Users, CheckCircle, XCircle, Clock, Settings, BarChart3 } from 'lucide-react';
-
-const AIBootcampDashboard = () => {
-  // State management
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [chatbotName, setChatbotName] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('AI Fundamentals');
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState('');
-  const [modalTitle, setModalTitle] = useState('');
-  const [copyButtonText, setCopyButtonText] = useState('Copy to Clipboard');
-
-  // Mock data - Replace with your actual data source
-  const applicants = [
-    { 
-      id: 1, 
-      name: 'John Smith', 
-      email: 'john@email.com', 
-      phone: '+1 (555) 123-4567', 
-      date: '2025-01-15', 
-      status: 'passed', 
-      score: 85, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-    },
-    { 
-      id: 2, 
-      name: 'Sarah Johnson', 
-      email: 'sarah@email.com', 
-      phone: '+1 (555) 234-5678', 
-      date: '2025-01-14', 
-      status: 'failed', 
-      score: 45, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
-    },
-    { 
-      id: 3, 
-      name: 'Mike Chen', 
-      email: 'mike@email.com', 
-      phone: '+1 (555) 345-6789', 
-      date: '2025-01-13', 
-      status: 'waitlist', 
-      score: 65, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 4, 
-      name: 'Emily Davis', 
-      email: 'emily@email.com', 
-      phone: '+1 (555) 456-7890', 
-      date: '2025-01-12', 
-      status: 'passed', 
-      score: 92, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 5, 
-      name: 'Alex Rodriguez', 
-      email: 'alex@email.com', 
-      phone: '+1 (555) 567-8901', 
-      date: '2025-01-11', 
-      status: 'passed', 
-      score: 78, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-    },
-    { 
-      id: 6, 
-      name: 'Lisa Wang', 
-      email: 'lisa@email.com', 
-      phone: '+1 (555) 678-9012', 
-      date: '2025-01-10', 
-      status: 'waitlist', 
-      score: 68, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
-    },
-    { 
-      id: 7, 
-      name: 'David Brown', 
-      email: 'david@email.com', 
-      phone: '+1 (555) 789-0123', 
-      date: '2025-01-09', 
-      status: 'failed', 
-      score: 42, 
-      bootcamp: 'AI Fundamentals', 
-      responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
-    },
-    { 
-      id: 8, 
-      name: 'Jennifer Lee', 
-      email: 'jennifer@email.com', 
-      phone: '+1 (555) 890-1234', 
-      date: '2025-01-08', 
-      status: 'passed', 
-      score: 89, 
-      bootcamp: 'Machine Learning', 
-      responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
-    }
-  ];
-
-  const chatbots = [
-    { 
-      id: 1, 
-      name: 'AI Fundamentals Screener', 
-      course: 'AI Fundamentals', 
-      created: '2025-01-01', 
-      active: true 
-    },
-    { 
-      id: 2, 
-      name: 'Machine Learning Screener', 
-      course: 'Machine Learning', 
-      created: '2025-01-05', 
-      active: true 
-    },
-    { 
-      id: 3, 
-      name: 'Data Science Screener', 
-      course: 'Data Science', 
-      created: '2025-01-10', 
-      active: false 
-    }
-  ];
-
-  // Calculated statistics
-  const totalApplicants = applicants.length;
-  const passedCount = applicants.filter(a => a.status === 'passed').length;
-  const failedCount = applicants.filter(a => a.status === 'failed').length;
-  const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-
-  // Filter applicants based on selected category
-  const filteredApplicants = selectedCategory === 'all' 
-    ? applicants 
-    : applicants.filter(a => a.status === selectedCategory);
-
-  // Utility functions
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'passed': return 'text-green-600 bg-green-100';
-      case 'failed': return 'text-red-600 bg-red-100';
-      case 'waitlist': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'passed': return <CheckCircle className="w-4 h-4" />;
-      case 'failed': return <XCircle className="w-4 h-4" />;
-      case 'waitlist': return <Clock className="w-4 h-4" />;
-      default: return null;
-    }
-  };
-
-  // Event handlers
-  const showExcelData = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
-      ...filteredApplicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
-    ].map(row => row.join(',')).join('\n');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 AI Bootcamp Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+    🤖 BOT INTEGRATION INSTRUCTIONS
+    ================================
     
-    setModalTitle(`📊 CSV Data - ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Applicants`);
-    setModalContent(csvContent);
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+    Your bot at https://terence1975-coder.github.io/tender/bot.html can send reports to this dashboard using these methods:
+    
+    METHOD 1: PostMessage (Recommended)
+    -----------------------------------
+    From your bot, use:
+    
+    const reportData = {
+        name: "John Doe",
+        email: "john@example.com", 
+        phone: "+1 (555) 123-4567",
+        score: 85,
+        bootcamp: "AI Fundamentals",
+        responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
+        autoShow: true  // Optional: auto-display the report
+    };
+    
+    // Send to dashboard
+    window.parent.postMessage(reportData, '*');
+    
+    METHOD 2: Direct Function Call
+    ------------------------------
+    If dashboard is in same window/iframe:
+    
+    parent.addApplicantReport(reportData);
+    
+    METHOD 3: URL Parameters
+    ------------------------
+    Redirect to dashboard with data:
+    
+    const encoded = encodeURIComponent(JSON.stringify(reportData));
+    window.location.href = 'dashboard.html?report=' + encoded;
+    
+    SCORING RULES:
+    - Score 80+ = Passed (Green)
+    - Score 60-79 = Waitlist (Yellow) 
+    - Score <60 = Failed (Red)
+    
+    The dashboard will automatically categorize and display the reports!
+    -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+        .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
+        .modal.show { display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none; }
+        .btn-green { background: #16a34a; color: white; } .btn-green:hover { background: #15803d; }
+        .btn-blue { background: #2563eb; color: white; } .btn-blue:hover { background: #1d4ed8; }
+        .btn-yellow { background: #ca8a04; color: white; } .btn-yellow:hover { background: #a16207; }
+        .btn-red { background: #dc2626; color: white; } .btn-red:hover { background: #b91c1c; }
+        .btn-gray { background: #f3f4f6; color: #374151; } .btn-gray:hover { background: #e5e7eb; }
+        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+        .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .status-passed { background: #dcfce7; color: #166534; }
+        .status-failed { background: #fecaca; color: #991b1b; }
+        .status-waitlist { background: #fef3c7; color: #92400e; }
+        .upload-zone { border: 2px dashed #d1d5db; transition: border-color 0.2s; }
+        .upload-zone:hover { border-color: #9ca3af; }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
+                    <p class="text-gray-600">Manage screening applications and chatbots</p>
+                    <div id="connection-status" class="mt-2">
+                        <!-- Bot connection status will be populated here -->
+                    </div>
+                </div>
+                <div class="flex flex-col space-y-2">
+                    <button onclick="showCSVData()" class="btn btn-green">
+                        📥 Show Excel Data
+                    </button>
+                    <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
+                        🔗 Test Bot Connection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  const showIndividualReport = (applicant) => {
-    const reportContent = `AI BOOTCAMP SCREENING REPORT
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="border-b border-gray-200">
+            <nav class="flex space-x-8">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-2 px-1 font-medium text-sm flex items-center space-x-2">
+                    📊 Overview
+                </button>
+                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
+                    👥 Applicant Reports
+                </button>
+                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
+                    ⚙️ Manage Chatbots
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Overview Tab -->
+        <div id="content-overview" class="space-y-6">
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">👥</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Applicants</p>
+                            <p class="text-2xl font-bold text-gray-900">8</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">✅</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Passed</p>
+                            <p class="text-2xl font-bold text-gray-900">4</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">❌</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Failed</p>
+                            <p class="text-2xl font-bold text-gray-900">2</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">⏳</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Waitlist</p>
+                            <p class="text-2xl font-bold text-gray-900">2</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="px-6 py-4 border-b">
+                    <h3 class="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
+                </div>
+                <div class="divide-y divide-gray-200" id="recent-applicants">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Applicants Tab -->
+        <div id="content-applicants" class="space-y-6" style="display: none;">
+            <!-- Filter Controls -->
+            <div class="card p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
+                        <p class="text-sm text-gray-500">Individual reports grouped by status</p>
+                    </div>
+                    <button onclick="showCSVData()" class="btn btn-blue">
+                        📥 Show All Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Passed Applicants -->
+            <div class="card overflow-hidden">
+                <div class="bg-green-50 px-6 py-4 border-b border-green-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (4)</h3>
+                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm">
+                            📥 Export Data
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="passed-applicants">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waitlist Applicants -->
+            <div class="card overflow-hidden">
+                <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (2)</h3>
+                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm">
+                            📥 Export Data
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="waitlist-applicants">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Failed Applicants -->
+            <div class="card overflow-hidden">
+                <div class="bg-red-50 px-6 py-4 border-b border-red-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (2)</h3>
+                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm">
+                            📥 Export Data
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chatbots Tab -->
+        <div id="content-chatbots" class="space-y-6" style="display: none;">
+            <!-- Create New Chatbot -->
+            <div class="card p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chatbot Name</label>
+                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter chatbot name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Course/Bootcamp</label>
+                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>AI Fundamentals</option>
+                            <option>Machine Learning</option>
+                            <option>Data Science</option>
+                            <option>Deep Learning</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button onclick="createChatbot()" class="btn btn-blue">
+                        ➕ Create Chatbot
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Script -->
+            <div class="card p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
+                <div class="upload-zone rounded-lg p-6 text-center">
+                    <div class="text-4xl mb-4">📤</div>
+                    <p class="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
+                    <p class="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
+                    <input type="file" id="script-upload" style="display: none" accept=".js,.json,.txt" onchange="handleFileUpload(this, 'Script')">
+                    <button onclick="document.getElementById('script-upload').click()" class="btn btn-gray">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Course Info -->
+            <div class="card p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
+                <div class="upload-zone rounded-lg p-6 text-center">
+                    <div class="text-4xl mb-4">📤</div>
+                    <p class="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
+                    <p class="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
+                    <input type="file" id="course-upload" style="display: none" accept=".pdf,.doc,.docx,.txt" onchange="handleFileUpload(this, 'Course Info')">
+                    <button onclick="document.getElementById('course-upload').click()" class="btn btn-gray">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+
+            <!-- Existing Chatbots -->
+            <div class="card overflow-hidden">
+                <div class="px-6 py-4 border-b">
+                    <h3 class="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="chatbots-table">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            <div class="flex justify-between items-center p-6 border-b bg-gray-50">
+                <h2 id="modal-title" class="text-xl font-semibold text-gray-900">Modal Title</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">❌</button>
+            </div>
+            <div class="p-6 overflow-auto max-h-[70vh]">
+                <textarea id="modal-content" readonly class="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none" placeholder="Content will appear here..."></textarea>
+                <div class="mt-4 flex justify-between items-center">
+                    <p class="text-sm text-gray-600">💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save</p>
+                    <button onclick="copyToClipboard()" id="copy-btn" class="btn btn-blue">Copy to Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic applicants array - will receive new data from bot
+        let applicants = [
+            { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
+            { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
+            { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
+            { id: 4, name: 'Emily Davis', email: 'emily@email.com', phone: '+1 (555) 456-7890', date: '2025-01-12', status: 'passed', score: 92, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] },
+            { id: 5, name: 'Alex Rodriguez', email: 'alex@email.com', phone: '+1 (555) 567-8901', date: '2025-01-11', status: 'passed', score: 78, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
+            { id: 6, name: 'Lisa Wang', email: 'lisa@email.com', phone: '+1 (555) 678-9012', date: '2025-01-10', status: 'waitlist', score: 68, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] },
+            { id: 7, name: 'David Brown', email: 'david@email.com', phone: '+1 (555) 789-0123', date: '2025-01-09', status: 'failed', score: 42, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] },
+            { id: 8, name: 'Jennifer Lee', email: 'jennifer@email.com', phone: '+1 (555) 890-1234', date: '2025-01-08', status: 'passed', score: 89, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] }
+        ];
+
+        // Bot Integration - Statistics tracking
+        let botStats = {
+            totalReceived: 0,
+            lastReceived: null,
+            connectionStatus: 'Ready'
+        };
+
+        // 🤖 BOT INTEGRATION FUNCTIONS
+        
+        // Listen for reports from bot.html
+        window.addEventListener('message', function(event) {
+            // Security check - only accept from your domain
+            if (event.origin.includes('github.io')) {
+                console.log('📨 Received data from bot:', event.data);
+                processIncomingReport(event.data);
+            }
+        });
+
+        // Process URL parameters for direct report submission
+        function checkURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('report')) {
+                try {
+                    const reportData = JSON.parse(decodeURIComponent(urlParams.get('report')));
+                    processIncomingReport(reportData);
+                    // Clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.error('Error parsing URL report data:', e);
+                }
+            }
+        }
+
+        // Main function to process incoming reports
+        function processIncomingReport(data) {
+            console.log('🔄 Processing incoming report:', data);
+            
+            // Update connection status
+            botStats.connectionStatus = 'Connected';
+            botStats.lastReceived = new Date().toLocaleString();
+            botStats.totalReceived++;
+            updateConnectionStatus();
+            
+            // Validate and process the report data
+            if (data && data.name && data.email) {
+                // Create new applicant object
+                const newApplicant = {
+                    id: Date.now(), // Generate unique ID
+                    name: data.name || 'Unknown Applicant',
+                    email: data.email || 'no-email@example.com',
+                    phone: data.phone || '+1 (555) 000-0000',
+                    date: new Date().toISOString().split('T')[0],
+                    status: determineStatus(data.score || 0),
+                    score: data.score || 0,
+                    bootcamp: data.bootcamp || data.course || 'AI Fundamentals',
+                    responses: data.responses || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                    submissionTime: new Date().toLocaleString(),
+                    source: 'Bot Submission'
+                };
+                
+                // Add to applicants array
+                applicants.push(newApplicant);
+                
+                // Update UI
+                refreshAllSections();
+                
+                // Show success notification
+                showNotification(`✅ New applicant received: ${newApplicant.name} (${newApplicant.status})`, 'success');
+                
+                // Auto-show report if requested
+                if (data.autoShow) {
+                    setTimeout(() => showIndividualReport(newApplicant), 1000);
+                }
+                
+                console.log('✅ Successfully added new applicant:', newApplicant);
+            } else {
+                console.error('❌ Invalid report data received:', data);
+                showNotification('❌ Invalid report data received', 'error');
+            }
+        }
+
+        // Determine status based on score
+        function determineStatus(score) {
+            if (score >= 80) return 'passed';
+            if (score >= 60) return 'waitlist';
+            return 'failed';
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
+                        <span class="text-sm text-gray-600">
+                            Bot Status: ${botStats.connectionStatus} | 
+                            Reports: ${botStats.totalReceived} | 
+                            Last: ${botStats.lastReceived || 'Never'}
+                        </span>
+                    </div>
+                `;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Refresh all UI sections with new data
+        function refreshAllSections() {
+            // Update statistics
+            updateStatistics();
+            
+            // Clear and repopulate all sections
+            document.getElementById('recent-applicants').innerHTML = '';
+            document.getElementById('passed-applicants').innerHTML = '';
+            document.getElementById('waitlist-applicants').innerHTML = '';
+            document.getElementById('failed-applicants').innerHTML = '';
+            
+            // Re-initialize with updated data
+            populateRecentApplicants();
+            populateApplicantSections();
+            updateSectionCounts();
+        }
+
+        // Update statistics cards
+        function updateStatistics() {
+            const totalCount = applicants.length;
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+
+            // Update the numbers in statistics cards
+            const cards = document.querySelectorAll('.card p.text-2xl');
+            if (cards[0]) cards[0].textContent = totalCount;
+            if (cards[1]) cards[1].textContent = passedCount;
+            if (cards[2]) cards[2].textContent = failedCount;
+            if (cards[3]) cards[3].textContent = waitlistCount;
+        }
+
+        // Update section count headers
+        function updateSectionCounts() {
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+
+            // Update headers
+            const headers = document.querySelectorAll('[id$="-applicants"]').forEach((section, index) => {
+                const header = section.previousElementSibling?.querySelector('h3');
+                if (header) {
+                    if (header.textContent.includes('Passed')) {
+                        header.textContent = `✅ Passed Applicants (${passedCount})`;
+                    } else if (header.textContent.includes('Waitlist')) {
+                        header.textContent = `⏳ Waitlist Applicants (${waitlistCount})`;
+                    } else if (header.textContent.includes('Failed')) {
+                        header.textContent = `❌ Failed Applicants (${failedCount})`;
+                    }
+                }
+            });
+        }
+
+        // API endpoint simulation for bot integration
+        window.addApplicantReport = function(reportData) {
+            console.log('🔗 Direct API call received:', reportData);
+            processIncomingReport(reportData);
+        };
+
+        // Export function for bot integration
+        window.getDashboardStats = function() {
+            return {
+                totalApplicants: applicants.length,
+                passed: applicants.filter(a => a.status === 'passed').length,
+                failed: applicants.filter(a => a.status === 'failed').length,
+                waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                botStats: botStats
+            };
+        };
+
+        const chatbots = [
+            { id: 1, name: 'AI Fundamentals Screener', course: 'AI Fundamentals', created: '2025-01-01', active: true },
+            { id: 2, name: 'Machine Learning Screener', course: 'Machine Learning', created: '2025-01-05', active: true },
+            { id: 3, name: 'Data Science Screener', course: 'Data Science', created: '2025-01-10', active: false }
+        ];
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all content
+            document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
+            // Show selected content
+            document.getElementById('content-' + tabName).style.display = 'block';
+            
+            // Update tab styles
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.className = el.className.replace('tab-active', 'tab-inactive');
+            });
+            document.getElementById('tab-' + tabName).className = document.getElementById('tab-' + tabName).className.replace('tab-inactive', 'tab-active');
+        }
+
+        // Modal functions
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').value = content;
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        function copyToClipboard() {
+            const content = document.getElementById('modal-content').value;
+            navigator.clipboard.writeText(content).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.textContent = '✅ Copied!';
+                btn.className = btn.className.replace('btn-blue', 'btn-green');
+                setTimeout(() => {
+                    btn.textContent = 'Copy to Clipboard';
+                    btn.className = btn.className.replace('btn-green', 'btn-blue');
+                }, 2000);
+            });
+        }
+
+        // Data functions
+        function showCSVData() {
+            const csv = [
+                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
+                ...applicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
+            ].map(row => row.join(',')).join('\n');
+            showModal('📊 CSV Data - All Applicants', csv);
+        }
+
+        function showCategoryData(status) {
+            const filtered = applicants.filter(a => a.status === status);
+            const csv = [
+                ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
+                ...filtered.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
+            ].map(row => row.join(',')).join('\n');
+            showModal(`📊 CSV Data - ${status.charAt(0).toUpperCase() + status.slice(1)} Applicants`, csv);
+        }
+
+        function showIndividualReport(applicant) {
+            const report = `AI BOOTCAMP SCREENING REPORT
 ============================
 
 APPLICANT INFORMATION
@@ -181,6 +608,8 @@ Email: ${applicant.email}
 Phone: ${applicant.phone}
 Application Date: ${applicant.date}
 Bootcamp: ${applicant.bootcamp}
+${applicant.submissionTime ? `Submission Time: ${applicant.submissionTime}` : ''}
+${applicant.source ? `Source: ${applicant.source}` : ''}
 
 SCREENING RESULTS
 Overall Score: ${applicant.score}%
@@ -198,47 +627,40 @@ ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements f
   applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
   'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.'}
 
+TECHNICAL DETAILS
+Applicant ID: ${applicant.id}
+${applicant.source === 'Bot Submission' ? 'Received via automated bot integration' : 'Manually entered data'}
+
 Generated on: ${new Date().toLocaleString()}`;
-    
-    setModalTitle(`📋 Screening Report - ${applicant.name}`);
-    setModalContent(reportContent);
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+            showModal(`📋 Screening Report - ${applicant.name}`, report);
+        }
 
-  const handleFileUpload = (event, type) => {
-    const file = event.target.files[0];
-    if (file) {
-      setModalTitle(`✅ File Upload Success`);
-      setModalContent(`${type} file "${file.name}" uploaded successfully!
+        // Test bot integration
+        function testBotIntegration() {
+            const testData = {
+                name: 'Test Applicant ' + Math.floor(Math.random() * 1000),
+                email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                score: Math.floor(Math.random() * 100),
+                bootcamp: 'AI Fundamentals',
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
+                autoShow: true
+            };
+            
+            console.log('🧪 Testing bot integration with data:', testData);
+            processIncomingReport(testData);
+        }
 
-File Details:
-- Name: ${file.name}
-- Size: ${(file.size / 1024).toFixed(2)} KB
-- Type: ${file.type}
-- Last Modified: ${new Date(file.lastModified).toLocaleString()}
-
-Next Steps:
-- File would be processed by the server
-- Validation checks would be performed
-- Content would be integrated into the system
-
-(This is a demo - in production, the file would be sent to your backend for processing)`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-      // Reset the file input
-      event.target.value = '';
-    }
-  };
-
-  const createChatbot = () => {
-    if (chatbotName.trim()) {
-      setModalTitle('🤖 Chatbot Created Successfully');
-      setModalContent(`Chatbot "${chatbotName}" for ${selectedCourse} created successfully!
+        function createChatbot() {
+            const name = document.getElementById('chatbot-name').value;
+            const course = document.getElementById('chatbot-course').value;
+            
+            if (name.trim()) {
+                const report = `🤖 Chatbot Created Successfully!
 
 Configuration:
-- Name: ${chatbotName}
-- Course: ${selectedCourse}
+- Name: ${name}
+- Course: ${course}
 - Created: ${new Date().toLocaleString()}
 - Status: Active
 - ID: CB${Date.now().toString().slice(-6)}
@@ -249,599 +671,198 @@ Features Enabled:
 ✓ Score Calculation
 ✓ Report Generation
 
-Next Steps:
-- Configure screening questions
-- Set passing thresholds
-- Test with sample applicants
-- Deploy to production
+(This is a demo - in production, the chatbot would be configured in your AI platform)`;
+                showModal('🤖 Chatbot Created Successfully', report);
+                document.getElementById('chatbot-name').value = '';
+            } else {
+                showModal('⚠️ Validation Error', 'Please enter a chatbot name before creating.');
+            }
+        }
 
-(This is a demo - in production, the chatbot would be configured in your AI platform)`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-      setChatbotName('');
-    } else {
-      setModalTitle('⚠️ Validation Error');
-      setModalContent(`Please enter a chatbot name before creating.
+        function handleFileUpload(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const report = `✅ ${type} File Upload Success!
 
-Required Fields:
-- Chatbot Name: [Required]
-- Course Selection: [Selected: ${selectedCourse}]
+File Details:
+- Name: ${file.name}
+- Size: ${(file.size / 1024).toFixed(2)} KB
+- Type: ${file.type}
+- Last Modified: ${new Date(file.lastModified).toLocaleString()}
 
-The chatbot name should:
-- Be descriptive and unique
-- Help identify its purpose
-- Follow your naming conventions`);
-      setCopyButtonText('Copy to Clipboard');
-      setShowModal(true);
-    }
-  };
+(This is a demo - in production, the file would be processed on your server)`;
+                showModal('✅ File Upload Success', report);
+                input.value = '';
+            }
+        }
 
-  const handleCategoryExport = (category) => {
-    setSelectedCategory(category);
-    setTimeout(() => {
-      showExcelData();
-    }, 100);
-  };
-
-  const handleCopyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(modalContent);
-      setCopyButtonText('✅ Copied!');
-      setTimeout(() => {
-        setCopyButtonText('Copy to Clipboard');
-      }, 2000);
-    } catch (err) {
-      // Fallback for browsers that don't support clipboard API
-      setCopyButtonText('Select & Copy');
-      setTimeout(() => {
-        setCopyButtonText('Copy to Clipboard');
-      }, 2000);
-    }
-  };
-
-  const handleChatbotAction = (action, chatbot) => {
-    if (action === 'edit') {
-      setModalTitle(`⚙️ Edit Chatbot - ${chatbot.name}`);
-      setModalContent(`Editing Configuration for: ${chatbot.name}
+        function editChatbot(chatbot) {
+            const report = `⚙️ Edit Chatbot Configuration
 
 Current Settings:
 - Name: ${chatbot.name}
 - Course: ${chatbot.course}
 - Created: ${chatbot.created}
 - Status: ${chatbot.active ? 'Active' : 'Inactive'}
-- Applications Processed: ${Math.floor(Math.random() * 100) + 20}
-- Success Rate: ${Math.floor(Math.random() * 30) + 70}%
 
-Available Actions:
-- Update name and description
-- Modify screening questions
-- Adjust scoring criteria
-- Change status (Active/Inactive)
-- View performance analytics
-- Export configuration
+(This is demo functionality - in production, this would open a configuration interface)`;
+            showModal(`⚙️ Edit Chatbot - ${chatbot.name}`, report);
+        }
 
-(This is demo functionality - in production, this would open a configuration interface)`);
-    } else if (action === 'delete') {
-      setModalTitle(`🗑️ Delete Chatbot - ${chatbot.name}`);
-      setModalContent(`⚠️ Are you sure you want to delete "${chatbot.name}"?
+        function deleteChatbot(chatbot) {
+            const report = `🗑️ Delete Chatbot Confirmation
+
+⚠️ Are you sure you want to delete "${chatbot.name}"?
 
 This action will:
 - Permanently remove the chatbot
 - Delete all configuration data
 - Stop any active screening sessions
-- Archive historical data
 
 Chatbot Details:
 - Course: ${chatbot.course}
 - Created: ${chatbot.created}
 - Status: ${chatbot.active ? 'Active' : 'Inactive'}
-- Applications Processed: ${Math.floor(Math.random() * 100) + 20}
 
-This action CANNOT be undone!
+This action CANNOT be undone!`;
+            showModal(`🗑️ Delete Chatbot - ${chatbot.name}`, report);
+        }
 
-(This is demo functionality - in production, you would confirm this action)`);
-    }
-    
-    setCopyButtonText('Copy to Clipboard');
-    setShowModal(true);
-  };
+        // Initialize page
+        function init() {
+            console.log('🚀 Initializing AI Bootcamp Dashboard with Bot Integration');
+            
+            // Check for URL parameters first
+            checkURLParams();
+            
+            // Populate all sections
+            populateRecentApplicants();
+            populateApplicantSections();
+            populateChatbotsTable();
+            updateConnectionStatus();
+            
+            console.log('✅ Dashboard initialized successfully');
+        }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-              <p className="text-gray-600">Manage screening applications and chatbots</p>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={showExcelData}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Show Excel Data</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {[
-              { id: 'overview', name: 'Overview', icon: BarChart3 },
-              { id: 'applicants', name: 'Applicant Reports', icon: Users },
-              { id: 'chatbots', name: 'Manage Chatbots', icon: Settings }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-colors`}
-              >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <Users className="w-8 h-8 text-blue-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Applicants</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalApplicants}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Passed</p>
-                    <p className="text-2xl font-bold text-gray-900">{passedCount}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Failed</p>
-                    <p className="text-2xl font-bold text-gray-900">{failedCount}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                <div className="flex items-center">
-                  <Clock className="w-8 h-8 text-yellow-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Waitlist</p>
-                    <p className="text-2xl font-bold text-gray-900">{waitlistCount}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {applicants.slice(0, 5).map((applicant) => (
-                  <div key={applicant.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
-                            {applicant.name.split(' ').map(n => n[0]).join('')}
-                          </span>
+        // Populate recent applicants
+        function populateRecentApplicants() {
+            const recentContainer = document.getElementById('recent-applicants');
+            recentContainer.innerHTML = '';
+            
+            applicants.slice(0, 5).forEach(applicant => {
+                const statusClass = applicant.status === 'passed' ? 'status-passed' : 
+                                  applicant.status === 'failed' ? 'status-failed' : 'status-waitlist';
+                const statusEmoji = applicant.status === 'passed' ? '✅' : 
+                                  applicant.status === 'failed' ? '❌' : '⏳';
+                
+                recentContainer.innerHTML += `
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-600">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
+                                <p class="text-sm text-gray-500">${applicant.email}</p>
+                                <p class="text-sm text-gray-500">${applicant.phone}</p>
+                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
+                            </div>
                         </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{applicant.name}</p>
-                        <p className="text-sm text-gray-500">{applicant.email}</p>
-                        <p className="text-sm text-gray-500">{applicant.phone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm text-gray-500">{applicant.bootcamp}</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(applicant.status)}`}>
-                        {getStatusIcon(applicant.status)}
-                        <span className="ml-1 capitalize">{applicant.status}</span>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Applicants Tab */}
-        {activeTab === 'applicants' && (
-          <div className="space-y-6">
-            {/* Filter Controls */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
-                  <p className="text-sm text-gray-500">Individual reports grouped by status</p>
-                </div>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={showExcelData}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 text-sm transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Show All Data</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Passed Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-green-50 px-6 py-4 border-b border-green-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-green-800 flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    ✅ Passed Applicants ({passedCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('passed')}
-                    className="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'passed').map((applicant) => (
-                    <div key={applicant.id} className="border border-green-200 rounded-lg p-4 bg-green-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-500">${applicant.bootcamp}</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                ${statusEmoji} ${applicant.status}
+                            </span>
                         </div>
-                        <span className="text-lg font-bold text-green-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                `;
+            });
+        }
 
-            {/* Waitlist Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-yellow-800 flex items-center">
-                    <Clock className="w-5 h-5 mr-2" />
-                    ⏳ Waitlist Applicants ({waitlistCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('waitlist')}
-                    className="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'waitlist').map((applicant) => (
-                    <div key={applicant.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
+        // Populate applicant sections
+        function populateApplicantSections() {
+            ['passed', 'waitlist', 'failed'].forEach(status => {
+                const container = document.getElementById(status + '-applicants');
+                container.innerHTML = '';
+                const filtered = applicants.filter(a => a.status === status);
+                const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'yellow';
+                
+                filtered.forEach(applicant => {
+                    container.innerHTML += `
+                        <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex-grow">
+                                    <h4 class="font-medium text-gray-900">${applicant.name}</h4>
+                                    <p class="text-sm text-gray-600">${applicant.email}</p>
+                                    <p class="text-sm text-gray-600">${applicant.phone}</p>
+                                    ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
+                                </div>
+                                <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
+                                <span>${applicant.bootcamp}</span>
+                                <span>${applicant.date}</span>
+                            </div>
+                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
+                                📋 View Report
+                            </button>
                         </div>
-                        <span className="text-lg font-bold text-yellow-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                    `;
+                });
+            });
+        }
 
-            {/* Failed Applicants Section */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="bg-red-50 px-6 py-4 border-b border-red-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-red-800 flex items-center">
-                    <XCircle className="w-5 h-5 mr-2" />
-                    ❌ Failed Applicants ({failedCount})
-                  </h3>
-                  <button 
-                    onClick={() => handleCategoryExport('failed')}
-                    className="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export Data</span>
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {applicants.filter(a => a.status === 'failed').map((applicant) => (
-                    <div key={applicant.id} className="border border-red-200 rounded-lg p-4 bg-red-50 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-grow">
-                          <h4 className="font-medium text-gray-900">{applicant.name}</h4>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                          <p className="text-sm text-gray-600">{applicant.phone}</p>
-                        </div>
-                        <span className="text-lg font-bold text-red-600">{applicant.score}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                        <span>{applicant.bootcamp}</span>
-                        <span>{applicant.date}</span>
-                      </div>
-                      <button
-                        onClick={() => showIndividualReport(applicant)}
-                        className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 flex items-center justify-center space-x-2 text-sm transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>View Report</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Chatbots Tab */}
-        {activeTab === 'chatbots' && (
-          <div className="space-y-6">
-            {/* Create New Chatbot */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chatbot Name
-                  </label>
-                  <input
-                    type="text"
-                    value={chatbotName}
-                    onChange={(e) => setChatbotName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    placeholder="Enter chatbot name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course/Bootcamp
-                  </label>
-                  <select 
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  >
-                    <option>AI Fundamentals</option>
-                    <option>Machine Learning</option>
-                    <option>Data Science</option>
-                    <option>Deep Learning</option>
-                    <option>Computer Vision</option>
-                    <option>Natural Language Processing</option>
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4">
-                <button 
-                  onClick={createChatbot}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create Chatbot</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Upload Script */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
-                <p className="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
-                <input 
-                  type="file" 
-                  id="script-upload"
-                  className="hidden" 
-                  accept=".js,.json,.txt" 
-                  onChange={(e) => handleFileUpload(e, 'Script')}
-                />
-                <button 
-                  onClick={() => document.getElementById('script-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
-                >
-                  Choose File
-                </button>
-              </div>
-            </div>
-
-            {/* Upload Course Info */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
-                <p className="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
-                <input 
-                  type="file" 
-                  id="course-upload"
-                  className="hidden" 
-                  accept=".pdf,.doc,.docx,.txt" 
-                  onChange={(e) => handleFileUpload(e, 'Course Info')}
-                />
-                <button 
-                  onClick={() => document.getElementById('course-upload').click()}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm transition-colors"
-                >
-                  Choose File
-                </button>
-              </div>
-            </div>
-
-            {/* Existing Chatbots */}
-            <div className="bg-white shadow-sm border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Course
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+        // Populate chatbots table
+        function populateChatbotsTable() {
+            const chatbotsContainer = document.getElementById('chatbots-table');
+            chatbotsContainer.innerHTML = '';
+            
+            chatbots.forEach(chatbot => {
+                chatbotsContainer.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${chatbot.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.course}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.created}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'}">
+                                ${chatbot.active ? '🟢 Active' : '🔴 Inactive'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium space-x-2">
+                            <button onclick="editChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button onclick="deleteChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-red-600 hover:text-red-900">Delete</button>
+                        </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {chatbots.map((chatbot) => (
-                      <tr key={chatbot.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {chatbot.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {chatbot.course}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {chatbot.created}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'
-                          }`}>
-                            {chatbot.active ? '🟢 Active' : '🔴 Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button 
-                            onClick={() => handleChatbotAction('edit', chatbot)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleChatbotAction('delete', chatbot)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                `;
+            });
+        }
 
-      {/* Enhanced Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b bg-gray-50">
-              <h2 className="text-xl font-semibold text-gray-900">{modalTitle}</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 overflow-auto max-h-[70vh]">
-              <textarea
-                value={modalContent}
-                readOnly
-                className="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none"
-                placeholder="Content will appear here..."
-              />
-              <div className="mt-4 flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save
-                </p>
-                <button
-                  onClick={handleCopyToClipboard}
-                  className={`px-4 py-2 rounded-md text-sm text-white transition-colors ${
-                    copyButtonText === '✅ Copied!' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {copyButtonText}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        // Close modal when clicking outside
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
 
-export default AIBootcampDashboard;
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Console welcome message for bot integration
+            console.log(`
+🤖 AI BOOTCAMP DASHBOARD - BOT INTEGRATION READY!
+=================================================
+
+✅ Dashboard loaded successfully
+✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
+✅ Ready to receive applicant data
+
+📨 Send reports using:
+   window.parent.postMessage(reportData, '*')
+
+🧪 Test integration with the "Test Bot Connection" button
+
+📊 Current stats: ${applicants.length} applicants loaded
+            `);
+        });
+    </script>
+</body>
+</html>
