@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🤖 AI Bootcamp Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!--
+    🤖 BOT INTEGRATION INSTRUCTIONS
+    ================================
+    
+    Your bot at https://terence1975-coder.github.io/tender/bot.html can send reports to this dashboard using these methods:
+    
+    METHOD 1: PostMessage (Recommended)
+    -----------------------------------
+    From your bot, use:
+    
+    const reportData = {
+        name: "John Doe",
+        email: "john@example.com", 
+        phone: "+1 (555) 123-4567",
+        score: 85,
+        bootcamp: "AI Fundamentals",
+        responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
+        autoShow: true  // Optional: auto-display the report
+    };
+    
+    // Send to dashboard
+    window.parent.postMessage(reportData, '*');
+    
+    METHOD 2: Direct Function Call
+    ------------------------------
+    If dashboard is in same window/iframe:
+    
+    parent.addApplicantReport(reportData);
+    
+    METHOD 3: URL Parameters
+    ------------------------
+    Redirect to dashboard with data:
+    
+    const encoded = encodeURIComponent(JSON.stringify(reportData));
+    window.location.href = 'dashboard.html?report=' + encoded;
+    
+    SCORING RULES:
+    - Score 80+ = Passed (Green)
+    - Score 60-79 = Waitlist (Yellow) 
+    - Score <60 = Failed (Red)
+    
+    The dashboard will automatically categorize and display the reports!
+    -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, sans-serif; }
@@ -36,10 +79,18 @@
                 <div>
                     <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
                     <p class="text-gray-600">Manage screening applications and chatbots</p>
+                    <div id="connection-status" class="mt-2">
+                        <!-- Bot connection status will be populated here -->
+                    </div>
                 </div>
-                <button onclick="showCSVData()" class="btn btn-green">
-                    📥 Show Excel Data
-                </button>
+                <div class="flex flex-col space-y-2">
+                    <button onclick="showCSVData()" class="btn btn-green">
+                        📥 Show Excel Data
+                    </button>
+                    <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
+                        🔗 Test Bot Connection
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -281,8 +332,8 @@
     </div>
 
     <script>
-        // Mock data
-        const applicants = [
+        // Dynamic applicants array - will receive new data from bot
+        let applicants = [
             { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
             { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
             { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
@@ -292,6 +343,198 @@
             { id: 7, name: 'David Brown', email: 'david@email.com', phone: '+1 (555) 789-0123', date: '2025-01-09', status: 'failed', score: 42, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] },
             { id: 8, name: 'Jennifer Lee', email: 'jennifer@email.com', phone: '+1 (555) 890-1234', date: '2025-01-08', status: 'passed', score: 89, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] }
         ];
+
+        // Bot Integration - Statistics tracking
+        let botStats = {
+            totalReceived: 0,
+            lastReceived: null,
+            connectionStatus: 'Ready'
+        };
+
+        // 🤖 BOT INTEGRATION FUNCTIONS
+        
+        // Listen for reports from bot.html
+        window.addEventListener('message', function(event) {
+            // Security check - only accept from your domain
+            if (event.origin.includes('github.io')) {
+                console.log('📨 Received data from bot:', event.data);
+                processIncomingReport(event.data);
+            }
+        });
+
+        // Process URL parameters for direct report submission
+        function checkURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('report')) {
+                try {
+                    const reportData = JSON.parse(decodeURIComponent(urlParams.get('report')));
+                    processIncomingReport(reportData);
+                    // Clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.error('Error parsing URL report data:', e);
+                }
+            }
+        }
+
+        // Main function to process incoming reports
+        function processIncomingReport(data) {
+            console.log('🔄 Processing incoming report:', data);
+            
+            // Update connection status
+            botStats.connectionStatus = 'Connected';
+            botStats.lastReceived = new Date().toLocaleString();
+            botStats.totalReceived++;
+            updateConnectionStatus();
+            
+            // Validate and process the report data
+            if (data && data.name && data.email) {
+                // Create new applicant object
+                const newApplicant = {
+                    id: Date.now(), // Generate unique ID
+                    name: data.name || 'Unknown Applicant',
+                    email: data.email || 'no-email@example.com',
+                    phone: data.phone || '+1 (555) 000-0000',
+                    date: new Date().toISOString().split('T')[0],
+                    status: determineStatus(data.score || 0),
+                    score: data.score || 0,
+                    bootcamp: data.bootcamp || data.course || 'AI Fundamentals',
+                    responses: data.responses || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                    submissionTime: new Date().toLocaleString(),
+                    source: 'Bot Submission'
+                };
+                
+                // Add to applicants array
+                applicants.push(newApplicant);
+                
+                // Update UI
+                refreshAllSections();
+                
+                // Show success notification
+                showNotification(`✅ New applicant received: ${newApplicant.name} (${newApplicant.status})`, 'success');
+                
+                // Auto-show report if requested
+                if (data.autoShow) {
+                    setTimeout(() => showIndividualReport(newApplicant), 1000);
+                }
+                
+                console.log('✅ Successfully added new applicant:', newApplicant);
+            } else {
+                console.error('❌ Invalid report data received:', data);
+                showNotification('❌ Invalid report data received', 'error');
+            }
+        }
+
+        // Determine status based on score
+        function determineStatus(score) {
+            if (score >= 80) return 'passed';
+            if (score >= 60) return 'waitlist';
+            return 'failed';
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
+                        <span class="text-sm text-gray-600">
+                            Bot Status: ${botStats.connectionStatus} | 
+                            Reports: ${botStats.totalReceived} | 
+                            Last: ${botStats.lastReceived || 'Never'}
+                        </span>
+                    </div>
+                `;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Refresh all UI sections with new data
+        function refreshAllSections() {
+            // Update statistics
+            updateStatistics();
+            
+            // Clear and repopulate all sections
+            document.getElementById('recent-applicants').innerHTML = '';
+            document.getElementById('passed-applicants').innerHTML = '';
+            document.getElementById('waitlist-applicants').innerHTML = '';
+            document.getElementById('failed-applicants').innerHTML = '';
+            
+            // Re-initialize with updated data
+            populateRecentApplicants();
+            populateApplicantSections();
+            updateSectionCounts();
+        }
+
+        // Update statistics cards
+        function updateStatistics() {
+            const totalCount = applicants.length;
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+
+            // Update the numbers in statistics cards
+            const cards = document.querySelectorAll('.card p.text-2xl');
+            if (cards[0]) cards[0].textContent = totalCount;
+            if (cards[1]) cards[1].textContent = passedCount;
+            if (cards[2]) cards[2].textContent = failedCount;
+            if (cards[3]) cards[3].textContent = waitlistCount;
+        }
+
+        // Update section count headers
+        function updateSectionCounts() {
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+
+            // Update headers
+            const headers = document.querySelectorAll('[id$="-applicants"]').forEach((section, index) => {
+                const header = section.previousElementSibling?.querySelector('h3');
+                if (header) {
+                    if (header.textContent.includes('Passed')) {
+                        header.textContent = `✅ Passed Applicants (${passedCount})`;
+                    } else if (header.textContent.includes('Waitlist')) {
+                        header.textContent = `⏳ Waitlist Applicants (${waitlistCount})`;
+                    } else if (header.textContent.includes('Failed')) {
+                        header.textContent = `❌ Failed Applicants (${failedCount})`;
+                    }
+                }
+            });
+        }
+
+        // API endpoint simulation for bot integration
+        window.addApplicantReport = function(reportData) {
+            console.log('🔗 Direct API call received:', reportData);
+            processIncomingReport(reportData);
+        };
+
+        // Export function for bot integration
+        window.getDashboardStats = function() {
+            return {
+                totalApplicants: applicants.length,
+                passed: applicants.filter(a => a.status === 'passed').length,
+                failed: applicants.filter(a => a.status === 'failed').length,
+                waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                botStats: botStats
+            };
+        };
 
         const chatbots = [
             { id: 1, name: 'AI Fundamentals Screener', course: 'AI Fundamentals', created: '2025-01-01', active: true },
@@ -365,6 +608,8 @@ Email: ${applicant.email}
 Phone: ${applicant.phone}
 Application Date: ${applicant.date}
 Bootcamp: ${applicant.bootcamp}
+${applicant.submissionTime ? `Submission Time: ${applicant.submissionTime}` : ''}
+${applicant.source ? `Source: ${applicant.source}` : ''}
 
 SCREENING RESULTS
 Overall Score: ${applicant.score}%
@@ -382,8 +627,28 @@ ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements f
   applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
   'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.'}
 
+TECHNICAL DETAILS
+Applicant ID: ${applicant.id}
+${applicant.source === 'Bot Submission' ? 'Received via automated bot integration' : 'Manually entered data'}
+
 Generated on: ${new Date().toLocaleString()}`;
             showModal(`📋 Screening Report - ${applicant.name}`, report);
+        }
+
+        // Test bot integration
+        function testBotIntegration() {
+            const testData = {
+                name: 'Test Applicant ' + Math.floor(Math.random() * 1000),
+                email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                score: Math.floor(Math.random() * 100),
+                bootcamp: 'AI Fundamentals',
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
+                autoShow: true
+            };
+            
+            console.log('🧪 Testing bot integration with data:', testData);
+            processIncomingReport(testData);
         }
 
         function createChatbot() {
@@ -465,8 +730,25 @@ This action CANNOT be undone!`;
 
         // Initialize page
         function init() {
-            // Populate recent applicants
+            console.log('🚀 Initializing AI Bootcamp Dashboard with Bot Integration');
+            
+            // Check for URL parameters first
+            checkURLParams();
+            
+            // Populate all sections
+            populateRecentApplicants();
+            populateApplicantSections();
+            populateChatbotsTable();
+            updateConnectionStatus();
+            
+            console.log('✅ Dashboard initialized successfully');
+        }
+
+        // Populate recent applicants
+        function populateRecentApplicants() {
             const recentContainer = document.getElementById('recent-applicants');
+            recentContainer.innerHTML = '';
+            
             applicants.slice(0, 5).forEach(applicant => {
                 const statusClass = applicant.status === 'passed' ? 'status-passed' : 
                                   applicant.status === 'failed' ? 'status-failed' : 'status-waitlist';
@@ -483,6 +765,7 @@ This action CANNOT be undone!`;
                                 <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
                                 <p class="text-sm text-gray-500">${applicant.email}</p>
                                 <p class="text-sm text-gray-500">${applicant.phone}</p>
+                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
@@ -494,10 +777,13 @@ This action CANNOT be undone!`;
                     </div>
                 `;
             });
+        }
 
-            // Populate applicant sections
+        // Populate applicant sections
+        function populateApplicantSections() {
             ['passed', 'waitlist', 'failed'].forEach(status => {
                 const container = document.getElementById(status + '-applicants');
+                container.innerHTML = '';
                 const filtered = applicants.filter(a => a.status === status);
                 const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'yellow';
                 
@@ -509,6 +795,7 @@ This action CANNOT be undone!`;
                                     <h4 class="font-medium text-gray-900">${applicant.name}</h4>
                                     <p class="text-sm text-gray-600">${applicant.email}</p>
                                     <p class="text-sm text-gray-600">${applicant.phone}</p>
+                                    ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
                                 </div>
                                 <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
                             </div>
@@ -523,9 +810,13 @@ This action CANNOT be undone!`;
                     `;
                 });
             });
+        }
 
-            // Populate chatbots table
+        // Populate chatbots table
+        function populateChatbotsTable() {
             const chatbotsContainer = document.getElementById('chatbots-table');
+            chatbotsContainer.innerHTML = '';
+            
             chatbots.forEach(chatbot => {
                 chatbotsContainer.innerHTML += `
                     <tr class="hover:bg-gray-50">
@@ -552,7 +843,26 @@ This action CANNOT be undone!`;
         });
 
         // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Console welcome message for bot integration
+            console.log(`
+🤖 AI BOOTCAMP DASHBOARD - BOT INTEGRATION READY!
+=================================================
+
+✅ Dashboard loaded successfully
+✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
+✅ Ready to receive applicant data
+
+📨 Send reports using:
+   window.parent.postMessage(reportData, '*')
+
+🧪 Test integration with the "Test Bot Connection" button
+
+📊 Current stats: ${applicants.length} applicants loaded
+            `);
+        });
     </script>
 </body>
 </html>
