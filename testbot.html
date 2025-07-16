@@ -8,49 +8,6 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <!--
-    🤖 BOT INTEGRATION INSTRUCTIONS
-    ================================
-    
-    Your bot at https://terence1975-coder.github.io/tender/bot.html can send reports to this dashboard using these methods:
-    
-    METHOD 1: PostMessage (Recommended)
-    -----------------------------------
-    From your bot, use:
-    
-    const reportData = {
-        name: "John Doe",
-        email: "john@example.com", 
-        phone: "+1 (555) 123-4567",
-        score: 85,
-        bootcamp: "AI Fundamentals",
-        responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
-        autoShow: true  // Optional: auto-display the report
-    };
-    
-    // Send to dashboard
-    window.parent.postMessage(reportData, '*');
-    
-    METHOD 2: Direct Function Call
-    ------------------------------
-    If dashboard is in same window/iframe:
-    
-    parent.addApplicantReport(reportData);
-    
-    METHOD 3: URL Parameters
-    ------------------------
-    Redirect to dashboard with data:
-    
-    const encoded = encodeURIComponent(JSON.stringify(reportData));
-    window.location.href = 'dashboard.html?report=' + encoded;
-    
-    SCORING RULES:
-    - Score 80+ = Passed (Green)
-    - Score 60-79 = Waitlist (Yellow) 
-    - Score <60 = Failed (Red)
-    
-    The dashboard will automatically categorize and display the reports!
-    -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, sans-serif; }
@@ -67,12 +24,6 @@
         .btn-gray { background: #f3f4f6; color: #374151; } .btn-gray:hover { background: #e5e7eb; }
         .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
         .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .status-passed { background: #dcfce7; color: #166534; }
-        .status-failed { background: #fecaca; color: #991b1b; }
-        .status-waitlist { background: #fef3c7; color: #92400e; }
-        .status-processed { background: #dbeafe; color: #1e40af; }
-        .upload-zone { border: 2px dashed #d1d5db; transition: border-color 0.2s; }
-        .upload-zone:hover { border-color: #9ca3af; }
         .firebase-status {
             position: fixed;
             top: 20px;
@@ -85,18 +36,9 @@
             z-index: 1000;
             transition: all 0.3s ease;
         }
-        .firebase-connected {
-            background: #27ae60;
-            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
-        }
-        .firebase-disconnected {
-            background: #e74c3c;
-            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
-        }
-        .firebase-saving {
-            background: #f39c12;
-            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
-        }
+        .firebase-connected { background: #27ae60; box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3); }
+        .firebase-disconnected { background: #e74c3c; box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3); }
+        .firebase-saving { background: #f39c12; box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3); }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50">
@@ -110,49 +52,22 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-6">
                 <div>
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-                        <p class="text-gray-600">Manage screening applications and chatbots</p>
-                        <p class="text-sm text-blue-600">🔗 Connected to: https://terence1975-coder.github.io/tender/bot.html</p>
-                        <div id="connection-status" class="mt-2">
-                            <!-- Bot connection status will be populated here -->
-                        </div>
-                    </div>
+                    <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
+                    <p class="text-gray-600">Manage screening applications and chatbots</p>
+                    <p class="text-sm text-blue-600">🔗 Connected to: https://terence1975-coder.github.io/tender/bot.html</p>
+                    <div id="connection-status" class="mt-2"></div>
                 </div>
                 <div class="flex flex-col space-y-2">
                     <div class="flex space-x-2">
-                        <button onclick="showCSVData()" class="btn btn-green">
-                            📥 Show Excel Data
-                        </button>
-                        <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
-                            🔗 Test Bot Connection
-                        </button>
-                        <button onclick="pingBotURL()" class="btn btn-yellow text-sm">
-                            📡 Ping Bot URL
-                        </button>
-                        <button onclick="debugBotCommunication()" class="btn btn-red text-sm">
-                            🔧 Debug Bot Communication
-                        </button>
+                        <button onclick="showCSVData()" class="btn btn-green">📥 Show Excel Data</button>
+                        <button onclick="testBotIntegration()" class="btn btn-blue text-sm">🔗 Test Bot Connection</button>
+                        <button onclick="debugBotConnection()" class="btn btn-red text-sm">🔧 Debug Bot</button>
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="saveToFirebase()" class="btn btn-blue text-sm">
-                            ☁️ Save to Cloud
-                        </button>
-                        <button onclick="loadFromFirebase()" class="btn btn-gray text-sm">
-                            📥 Load from Cloud
-                        </button>
-                        <button onclick="testFirebase()" class="btn btn-yellow text-sm">
-                            🧪 Test Firebase
-                        </button>
-                        <button onclick="clearFirebaseData()" class="btn btn-red text-sm">
-                            🗑️ Clear Firebase
-                        </button>
-                        <button onclick="validateData()" class="btn btn-green text-sm">
-                            ✅ Validate Data
-                        </button>
-                        <button onclick="resetToTestData()" class="btn btn-gray text-sm">
-                            🔄 Reset Demo Data
-                        </button>
+                        <button onclick="saveToFirebase()" class="btn btn-blue text-sm">☁️ Save to Cloud</button>
+                        <button onclick="loadFromFirebase()" class="btn btn-gray text-sm">📥 Load from Cloud</button>
+                        <button onclick="testFirebase()" class="btn btn-yellow text-sm">🧪 Test Firebase</button>
+                        <button onclick="resetToTestData()" class="btn btn-gray text-sm">🔄 Reset Demo</button>
                     </div>
                 </div>
             </div>
@@ -163,15 +78,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="border-b border-gray-200">
             <nav class="flex space-x-8">
-                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    📊 Overview
-                </button>
-                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    👥 Applicant Reports
-                </button>
-                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-2 px-1 font-medium text-sm flex items-center space-x-2">
-                    ⚙️ Manage Chatbots
-                </button>
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-2 px-1 font-medium text-sm">📊 Overview</button>
+                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-2 px-1 font-medium text-sm">👥 Applicant Reports</button>
+                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-2 px-1 font-medium text-sm">⚙️ Manage Chatbots</button>
             </nav>
         </div>
     </div>
@@ -187,7 +96,7 @@
                         <div class="text-3xl">👥</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Applicants</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-total">8</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-total">0</p>
                         </div>
                     </div>
                 </div>
@@ -196,7 +105,7 @@
                         <div class="text-3xl">✅</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Passed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">4</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">0</p>
                         </div>
                     </div>
                 </div>
@@ -205,7 +114,7 @@
                         <div class="text-3xl">❌</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Failed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">0</p>
                         </div>
                     </div>
                 </div>
@@ -214,7 +123,7 @@
                         <div class="text-3xl">⏳</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Waitlist</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">0</p>
                         </div>
                     </div>
                 </div>
@@ -234,42 +143,22 @@
                 <div class="px-6 py-4 border-b">
                     <h3 class="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
                 </div>
-                <div class="divide-y divide-gray-200" id="recent-applicants">
-                    <!-- Will be populated by JavaScript -->
-                </div>
+                <div class="divide-y divide-gray-200" id="recent-applicants"></div>
             </div>
         </div>
 
         <!-- Applicants Tab -->
         <div id="content-applicants" class="space-y-6" style="display: none;">
-            <!-- Filter Controls -->
-            <div class="card p-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-                    <div>
-                        <h3 class="text-lg font-medium text-gray-900">📊 Applicant Reports</h3>
-                        <p class="text-sm text-gray-500">Individual reports grouped by status</p>
-                    </div>
-                    <button onclick="showCSVData()" class="btn btn-blue">
-                        📥 Show All Data
-                    </button>
-                </div>
-            </div>
-
             <!-- Passed Applicants -->
             <div class="card overflow-hidden">
                 <div class="bg-green-50 px-6 py-4 border-b border-green-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (<span id="passed-count">4</span>)</h3>
-                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors">
-                            <div class="text-lg">📥</div>
-                            <span>Export Data</span>
-                        </button>
+                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (<span id="passed-count">0</span>)</h3>
+                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm">📥 Export Data</button>
                     </div>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="passed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="passed-applicants"></div>
                 </div>
             </div>
 
@@ -277,17 +166,12 @@
             <div class="card overflow-hidden">
                 <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (<span id="waitlist-count">2</span>)</h3>
-                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors">
-                            <div class="text-lg">📥</div>
-                            <span>Export Data</span>
-                        </button>
+                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (<span id="waitlist-count">0</span>)</h3>
+                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm">📥 Export Data</button>
                     </div>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="waitlist-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="waitlist-applicants"></div>
                 </div>
             </div>
 
@@ -295,114 +179,49 @@
             <div class="card overflow-hidden">
                 <div class="bg-red-50 px-6 py-4 border-b border-red-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (<span id="failed-count">2</span>)</h3>
-                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors">
-                            <div class="text-lg">📥</div>
-                            <span>Export Data</span>
-                        </button>
+                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (<span id="failed-count">0</span>)</h3>
+                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm">📥 Export Data</button>
                     </div>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants"></div>
                 </div>
             </div>
 
-            <!-- Processed Applicants Section -->
+            <!-- Processed Applicants -->
             <div class="card overflow-hidden">
                 <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-medium text-blue-800">✔️ Processed Applicants (<span id="processed-count">0</span>)</h3>
-                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm flex items-center space-x-1 transition-colors">
-                            <div class="text-lg">📥</div>
-                            <span>Export Data</span>
-                        </button>
+                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm">📥 Export Data</button>
                     </div>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants"></div>
                 </div>
             </div>
         </div>
 
         <!-- Chatbots Tab -->
         <div id="content-chatbots" class="space-y-6" style="display: none;">
-            <!-- Create New Chatbot -->
             <div class="card p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chatbot Name</label>
-                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter chatbot name">
+                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter chatbot name">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Course/Bootcamp</label>
-                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-md px-3 py-2">
                             <option>AI Fundamentals</option>
                             <option>Machine Learning</option>
                             <option>Data Science</option>
-                            <option>Deep Learning</option>
                         </select>
                     </div>
                 </div>
                 <div class="mt-4">
-                    <button onclick="createChatbot()" class="btn btn-blue">
-                        ➕ Create Chatbot
-                    </button>
-                </div>
-            </div>
-
-            <!-- Upload Script -->
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">📝 Upload New Script</h3>
-                <div class="upload-zone rounded-lg p-6 text-center">
-                    <div class="text-4xl mb-4">📤</div>
-                    <p class="text-sm text-gray-600 mb-2">Drop your script file here or click to upload</p>
-                    <p class="text-xs text-gray-500 mb-4">Supported formats: .js, .json, .txt</p>
-                    <input type="file" id="script-upload" style="display: none" accept=".js,.json,.txt" onchange="handleFileUpload(this, 'Script')">
-                    <button onclick="document.getElementById('script-upload').click()" class="btn btn-gray">
-                        Choose File
-                    </button>
-                </div>
-            </div>
-
-            <!-- Upload Course Info -->
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">📚 Upload Bootcamp/Course Info</h3>
-                <div class="upload-zone rounded-lg p-6 text-center">
-                    <div class="text-4xl mb-4">📤</div>
-                    <p class="text-sm text-gray-600 mb-2">Drop your course information file here or click to upload</p>
-                    <p class="text-xs text-gray-500 mb-4">Supported formats: .pdf, .doc, .docx, .txt</p>
-                    <input type="file" id="course-upload" style="display: none" accept=".pdf,.doc,.docx,.txt" onchange="handleFileUpload(this, 'Course Info')">
-                    <button onclick="document.getElementById('course-upload').click()" class="btn btn-gray">
-                        Choose File
-                    </button>
-                </div>
-            </div>
-
-            <!-- Existing Chatbots -->
-            <div class="card overflow-hidden">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-medium text-gray-900">🤖 Existing Chatbots</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="chatbots-table">
-                            <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
+                    <button onclick="createChatbot()" class="btn btn-blue">➕ Create Chatbot</button>
                 </div>
             </div>
         </div>
@@ -416,7 +235,7 @@
                 <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">❌</button>
             </div>
             <div class="p-6 overflow-auto max-h-[70vh]">
-                <textarea id="modal-content" readonly class="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none" placeholder="Content will appear here..."></textarea>
+                <textarea id="modal-content" readonly class="w-full h-96 p-4 border border-gray-300 rounded-md font-mono text-sm bg-gray-50 resize-none"></textarea>
                 <div class="mt-4 flex justify-between items-center">
                     <p class="text-sm text-gray-600">💡 Select all content above (Ctrl+A) and copy (Ctrl+C) to save</p>
                     <button onclick="copyToClipboard()" id="copy-btn" class="btn btn-blue">Copy to Clipboard</button>
@@ -426,110 +245,22 @@
     </div>
 
     <script>
-        // Dynamic applicants array - starts empty, loads from saved data
+        // 🔥 CORE DATA STRUCTURES
         let applicants = [];
+        let botStats = { totalReceived: 0, lastReceived: 'Never', connectionStatus: 'Ready', lastPing: 'Never' };
+        let messageLog = [];
+        let database = null;
+        let firebaseApp = null;
 
-        // Original test data - only used as fallback if no saved data exists
+        // Original test data
         const originalTestData = [
-            { 
-                id: 1, 
-                name: 'John Smith', 
-                email: 'john@email.com', 
-                phone: '+1 (555) 123-4567', 
-                date: '2025-01-15', 
-                status: 'passed', 
-                score: 85, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-            },
-            { 
-                id: 2, 
-                name: 'Sarah Johnson', 
-                email: 'sarah@email.com', 
-                phone: '+1 (555) 234-5678', 
-                date: '2025-01-14', 
-                status: 'failed', 
-                score: 45, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
-            },
-            { 
-                id: 3, 
-                name: 'Mike Chen', 
-                email: 'mike@email.com', 
-                phone: '+1 (555) 345-6789', 
-                date: '2025-01-13', 
-                status: 'waitlist', 
-                score: 65, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 4, 
-                name: 'Emily Davis', 
-                email: 'emily@email.com', 
-                phone: '+1 (555) 456-7890', 
-                date: '2025-01-12', 
-                status: 'passed', 
-                score: 92, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 5, 
-                name: 'Alex Rodriguez', 
-                email: 'alex@email.com', 
-                phone: '+1 (555) 567-8901', 
-                date: '2025-01-11', 
-                status: 'passed', 
-                score: 78, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
-            },
-            { 
-                id: 6, 
-                name: 'Lisa Wang', 
-                email: 'lisa@email.com', 
-                phone: '+1 (555) 678-9012', 
-                date: '2025-01-10', 
-                status: 'waitlist', 
-                score: 68, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
-            },
-            { 
-                id: 7, 
-                name: 'David Brown', 
-                email: 'david@email.com', 
-                phone: '+1 (555) 789-0123', 
-                date: '2025-01-09', 
-                status: 'failed', 
-                score: 42, 
-                bootcamp: 'AI Fundamentals', 
-                responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
-            },
-            { 
-                id: 8, 
-                name: 'Jennifer Lee', 
-                email: 'jennifer@email.com', 
-                phone: '+1 (555) 890-1234', 
-                date: '2025-01-08', 
-                status: 'passed', 
-                score: 89, 
-                bootcamp: 'Machine Learning', 
-                responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
-            }
+            { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
+            { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
+            { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
+            { id: 4, name: 'Emily Davis', email: 'emily@email.com', phone: '+1 (555) 456-7890', date: '2025-01-12', status: 'passed', score: 92, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] }
         ];
 
-        // Bot Integration - Statistics tracking (with proper initialization)
-        let botStats = {
-            totalReceived: 0,
-            lastReceived: 'Never',
-            connectionStatus: 'Ready',
-            lastPing: 'Never'
-        };
-
-        // 🔥 FIREBASE INTEGRATION
+        // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
             authDomain: "prospecting-f2f42.firebaseapp.com",
@@ -537,1143 +268,326 @@
             projectId: "prospecting-f2f42",
             storageBucket: "prospecting-f2f42.firebasestorage.app",
             messagingSenderId: "292034226428",
-            appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-            measurementId: "G-WWB0JTX2L2"
+            appId: "1:292034226428:web:878b867e3eb4d3e0098f79"
         };
 
-        let database = null;
-        let firebaseApp = null;
+        // 🤖 BOT INTEGRATION - Enhanced Message Listener
+        window.addEventListener('message', function(event) {
+            console.log('📨 Bot message received:', event.origin, event.data);
+            messageLog.push({ timestamp: new Date().toISOString(), origin: event.origin, data: event.data });
+            
+            // Security check with fallback for debugging
+            const allowedOrigins = ['https://terence1975-coder.github.io', 'http://localhost', 'https://localhost'];
+            const isAllowed = allowedOrigins.some(origin => event.origin.startsWith(origin)) || event.origin.includes('github.io');
+            
+            if (!isAllowed) {
+                console.log('🚫 Origin not in whitelist, but processing for debug:', event.origin);
+                showNotification(`🔧 Debug: Processing message from ${event.origin}`, 'info', 3000);
+            }
+            
+            // Process the message
+            if (event.data && typeof event.data === 'object') {
+                if (event.data.messageType === 'CONNECTION_TEST') {
+                    console.log('✅ Connection test successful');
+                    showNotification('✅ Bot connection test successful!', 'success');
+                    return;
+                }
+                
+                // Process candidate data in any format
+                const candidateData = extractCandidateData(event.data);
+                if (candidateData.name) {
+                    addNewApplicant(candidateData);
+                    showNotification(`✅ New applicant: ${candidateData.name} (${candidateData.status})`, 'success');
+                }
+            }
+        });
 
-        // Data persistence functions
+        // Extract candidate data from various formats
+        function extractCandidateData(data) {
+            const name = data.name || data.candidate_name || data.candidateName || '';
+            const email = data.email || data.candidate_email || data.candidateEmail || `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+            const phone = data.phone || data.candidate_phone || data.candidatePhone || '+1 (555) 000-0000';
+            let score = parseInt(data.score || data.assessment_score || data.finalScore || 0);
+            
+            // Handle bot status mapping
+            if (data.status === 'HIGHLY_SUITABLE') score = Math.max(score * 10, 85);
+            else if (data.status === 'SUITABLE') score = Math.max(score * 10, 65);
+            else if (data.status === 'NOT_SUITABLE') score = Math.min(score * 10, 50);
+            
+            const status = score >= 80 ? 'passed' : score >= 60 ? 'waitlist' : 'failed';
+            
+            return {
+                name,
+                email,
+                phone,
+                score,
+                status,
+                bootcamp: data.course || data.bootcamp || 'AI Fundamentals',
+                responses: data.responses || data.answers || ['Bot', 'Assessment', 'Data'],
+                location: data.location || 'Not specified',
+                employmentStatus: data.employmentStatus || 'Not specified',
+                ukResidency: data.ukResidency || 'Not specified',
+                interviewBooked: data.interviewBooked || false,
+                sessionId: data.sessionId || 'N/A',
+                source: 'Bot Assessment',
+                originalData: data
+            };
+        }
+
+        // Add new applicant
+        function addNewApplicant(candidateData) {
+            const newApplicant = {
+                id: Date.now() + Math.random(),
+                ...candidateData,
+                date: new Date().toISOString().split('T')[0],
+                submissionTime: new Date().toLocaleString()
+            };
+            
+            applicants.push(newApplicant);
+            updateStats();
+            saveToLocalStorage();
+            refreshUI();
+            
+            // Update bot stats
+            botStats.totalReceived++;
+            botStats.lastReceived = new Date().toLocaleString();
+            botStats.connectionStatus = 'Connected';
+            updateConnectionStatus();
+            
+            // Auto-save to Firebase
+            if (database) setTimeout(saveToFirebase, 2000);
+            
+            console.log('✅ Added new applicant:', newApplicant.name);
+        }
+
+        // 💾 DATA PERSISTENCE
         function saveToLocalStorage() {
             try {
-                const dataToSave = {
-                    applicants: applicants,
-                    botStats: botStats,
-                    lastSaved: new Date().toISOString(),
-                    version: '2.1'
-                };
-                localStorage.setItem('aiBootcampDashboard', JSON.stringify(dataToSave));
-                console.log('💾 Data saved to localStorage:', applicants.length, 'applicants');
-                return true;
+                const data = { applicants, botStats, lastSaved: new Date().toISOString() };
+                localStorage.setItem('aiBootcampDashboard', JSON.stringify(data));
+                console.log('💾 Saved to localStorage');
             } catch (error) {
-                console.error('❌ Failed to save to localStorage:', error);
-                return false;
+                console.error('❌ localStorage save failed:', error);
             }
         }
 
         function loadFromLocalStorage() {
             try {
-                const savedData = localStorage.getItem('aiBootcampDashboard');
-                if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    if (parsedData.applicants && Array.isArray(parsedData.applicants)) {
-                        applicants.length = 0; // Clear current data
-                        applicants.push(...parsedData.applicants);
-                        
-                        if (parsedData.botStats) {
-                            Object.assign(botStats, parsedData.botStats);
-                        }
-                        
+                const saved = localStorage.getItem('aiBootcampDashboard');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.applicants) {
+                        applicants.length = 0;
+                        applicants.push(...data.applicants);
+                        if (data.botStats) Object.assign(botStats, data.botStats);
                         console.log('📥 Loaded from localStorage:', applicants.length, 'applicants');
-                        console.log('📊 Last saved:', parsedData.lastSaved);
                         return true;
                     }
                 }
-                return false;
             } catch (error) {
-                console.error('❌ Failed to load from localStorage:', error);
-                return false;
+                console.error('❌ localStorage load failed:', error);
             }
+            return false;
         }
 
-        function loadDataOnStartup() {
-            console.log('🔄 Loading dashboard data on startup...');
-            
-            // Try to load from localStorage first
-            const localLoaded = loadFromLocalStorage();
-            
-            if (localLoaded) {
-                console.log('✅ Loaded data from localStorage');
-                showNotification('📥 Loaded saved data from your browser', 'success');
-                return;
-            }
-            
-            // If no localStorage data, check if we should load from Firebase
-            if (database) {
-                console.log('🔄 Checking Firebase for saved data...');
-                database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
-                    const firebaseData = snapshot.val();
-                    
-                    if (firebaseData && firebaseData.applicants && firebaseData.applicants.length > 0) {
-                        applicants.length = 0;
-                        applicants.push(...firebaseData.applicants);
-                        
-                        if (firebaseData.botStats) {
-                            Object.assign(botStats, firebaseData.botStats);
-                        }
-                        
-                        // Also save to localStorage
-                        saveToLocalStorage();
-                        
-                        refreshAllSections();
-                        console.log('✅ Loaded data from Firebase:', applicants.length, 'applicants');
-                        showNotification('☁️ Loaded saved data from Firebase', 'success');
-                        return;
-                    }
-                    
-                    // If no Firebase data either, load test data
-                    loadTestDataAsFirstTime();
-                }).catch(() => {
-                    loadTestDataAsFirstTime();
-                });
-            } else {
-                // No Firebase, load test data
-                loadTestDataAsFirstTime();
-            }
-        }
-
-        function loadTestDataAsFirstTime() {
-            console.log('📝 No saved data found - loading test data for first time');
-            applicants.length = 0;
-            applicants.push(...originalTestData);
-            saveToLocalStorage(); // Save test data to localStorage
-            refreshAllSections();
-            showNotification('👋 Welcome! Loaded demo data. Delete test applicants as needed.', 'info', 8000);
-        }
-
-        // Initialize Firebase
+        // 🔥 FIREBASE INTEGRATION
         function initializeFirebase() {
             try {
                 if (typeof firebase !== 'undefined') {
                     firebaseApp = firebase.initializeApp(firebaseConfig);
                     database = firebase.database();
                     updateFirebaseStatus('connected');
-                    console.log('🔥 Firebase initialized successfully');
-                    
-                    // DON'T auto-load data - let the loadDataOnStartup() function handle it
-                    console.log('ℹ️ Firebase ready - Data loading handled by startup sequence');
-                    
-                    // Set up auto-save every 60 seconds
-                    setInterval(autoSaveToFirebase, 60000);
+                    console.log('🔥 Firebase initialized');
+                    setInterval(() => { if (applicants.length > 0) saveToFirebase(); }, 60000);
                 } else {
-                    console.log('Firebase not available - running in offline mode');
                     updateFirebaseStatus('disconnected');
                 }
             } catch (error) {
-                console.error('Firebase initialization failed:', error);
+                console.error('❌ Firebase init failed:', error);
                 updateFirebaseStatus('disconnected');
-                console.log('Continuing in offline mode');
             }
         }
 
-        // Update Firebase status indicator
         function updateFirebaseStatus(status) {
-            const statusElement = document.getElementById('firebase-status');
-            if (!statusElement) return;
-            
-            if (status === 'connected') {
-                statusElement.className = 'firebase-status firebase-connected';
-                statusElement.innerHTML = '🟢 Firebase Connected';
-            } else if (status === 'saving') {
-                statusElement.className = 'firebase-status firebase-saving';
-                statusElement.innerHTML = '🟡 Saving to Cloud...';
-            } else {
-                statusElement.className = 'firebase-status firebase-disconnected';
-                statusElement.innerHTML = '🔴 Firebase Disconnected';
+            const el = document.getElementById('firebase-status');
+            if (el) {
+                el.className = `firebase-status firebase-${status}`;
+                el.innerHTML = status === 'connected' ? '🟢 Firebase Connected' : 
+                              status === 'saving' ? '🟡 Saving...' : '🔴 Firebase Offline';
             }
         }
 
-        // Collect all dashboard data for Firebase (with proper serialization and undefined handling)
-        function getAllDashboardData() {
-            // Clean the applicants data to remove any functions or non-serializable properties
-            const cleanApplicants = applicants.map(applicant => {
-                const cleanApplicant = {};
-                // Copy only serializable properties
-                for (const key in applicant) {
-                    if (applicant.hasOwnProperty(key) && typeof applicant[key] !== 'function' && applicant[key] !== undefined) {
-                        cleanApplicant[key] = applicant[key];
-                    }
-                }
-                return cleanApplicant;
-            });
-
-            // Clean botStats to remove undefined values
-            const cleanBotStats = {};
-            if (botStats.totalReceived !== undefined) cleanBotStats.totalReceived = botStats.totalReceived;
-            if (botStats.lastReceived !== undefined) cleanBotStats.lastReceived = botStats.lastReceived;
-            if (botStats.connectionStatus !== undefined) cleanBotStats.connectionStatus = botStats.connectionStatus;
-            if (botStats.lastPing !== undefined) cleanBotStats.lastPing = botStats.lastPing;
-
-            // Set default values for undefined properties
-            if (!cleanBotStats.totalReceived) cleanBotStats.totalReceived = 0;
-            if (!cleanBotStats.lastReceived) cleanBotStats.lastReceived = 'Never';
-            if (!cleanBotStats.connectionStatus) cleanBotStats.connectionStatus = 'Ready';
-            if (!cleanBotStats.lastPing) cleanBotStats.lastPing = 'Never';
-
-            return {
-                applicants: cleanApplicants,
-                botStats: cleanBotStats,
-                metadata: {
-                    totalApplicants: cleanApplicants.length,
-                    passed: cleanApplicants.filter(a => a.status === 'passed').length,
-                    failed: cleanApplicants.filter(a => a.status === 'failed').length,
-                    waitlist: cleanApplicants.filter(a => a.status === 'waitlist').length,
-                    processed: cleanApplicants.filter(a => a.status === 'processed').length,
-                    lastUpdated: new Date().toISOString()
-                }
-            };
-        }
-
-        // Save to Firebase (improved with better error handling and validation)
         function saveToFirebase() {
-            if (!database) {
-                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
-                return;
-            }
-
+            if (!database) return;
             updateFirebaseStatus('saving');
             
-            try {
-                const allData = getAllDashboardData();
-                const timestamp = new Date().toISOString();
-
-                // Validate data before saving
-                if (!allData || !allData.applicants || !allData.botStats || !allData.metadata) {
-                    throw new Error('Invalid data structure - missing required fields');
-                }
-
-                // Additional validation for undefined values
-                const dataString = JSON.stringify(allData);
-                if (dataString.includes('undefined')) {
-                    console.warn('⚠️ Data contains undefined values, cleaning...');
-                    // Additional cleaning pass
-                    const cleanedData = JSON.parse(dataString.replace(/:"undefined"/g, ':"Unknown"').replace(/:undefined/g, ':null'));
-                    allData.applicants = cleanedData.applicants;
-                    allData.botStats = cleanedData.botStats;
-                }
-
-                console.log('💾 Saving to Firebase:', allData.applicants.length, 'applicants');
-                console.log('📊 BotStats being saved:', allData.botStats);
-
-                const saveData = {
-                    ...allData,
-                    lastSaved: timestamp,
-                    version: '2.1'
-                };
-
-                database.ref('aiBootcampDashboard').set(saveData).then(() => {
-                    updateFirebaseStatus('connected');
-                    showNotification('✅ Dashboard data saved to Firebase successfully!', 'success');
-                    console.log('🔥 Dashboard data saved to Firebase at:', timestamp);
-                }).catch((error) => {
-                    updateFirebaseStatus('disconnected');
-                    showNotification('❌ Failed to save to Firebase: ' + error.message, 'error');
-                    console.error('❌ Firebase save error:', error);
-                    console.error('❌ Data that failed to save:', saveData);
-                });
-            } catch (error) {
-                updateFirebaseStatus('disconnected');
-                showNotification('❌ Failed to prepare data for Firebase: ' + error.message, 'error');
-                console.error('❌ Data preparation error:', error);
-                console.error('❌ Raw applicants data:', applicants);
-                console.error('❌ Raw botStats data:', botStats);
-            }
-        }
-
-        // Improved auto-save with better error handling and validation
-        function autoSaveToFirebase() {
-            if (!database || applicants.length === 0) {
-                console.log('🔄 Auto-save skipped: Firebase not connected or no data');
-                return;
-            }
-
-            console.log('🔄 Auto-saving to Firebase...');
-            updateFirebaseStatus('saving');
-            
-            try {
-                const saveData = getAllDashboardData();
-                const saveTimestamp = new Date().toISOString();
-
-                // Validate data before saving
-                if (!saveData || !saveData.applicants || !saveData.botStats || !saveData.metadata) {
-                    throw new Error('Invalid data structure for auto-save');
-                }
-
-                // Additional validation for undefined values
-                const dataString = JSON.stringify(saveData);
-                if (dataString.includes('undefined')) {
-                    console.warn('⚠️ Auto-save data contains undefined values, cleaning...');
-                    const cleanedData = JSON.parse(dataString.replace(/:"undefined"/g, ':"Unknown"').replace(/:undefined/g, ':null'));
-                    saveData.applicants = cleanedData.applicants;
-                    saveData.botStats = cleanedData.botStats;
-                }
-
-                console.log('📊 Auto-saving botStats:', saveData.botStats);
-
-                const autoSaveData = {
-                    ...saveData,
-                    lastAutoSaved: saveTimestamp,
-                    version: '2.1'
-                };
-
-                // Use set instead of update to avoid undefined issues
-                database.ref('aiBootcampDashboard').set(autoSaveData).then(() => {
-                    updateFirebaseStatus('connected');
-                    console.log('🔥 Auto-saved dashboard to Firebase successfully at:', saveTimestamp);
-                    showSaveConfirmation();
-                }).catch((error) => {
-                    updateFirebaseStatus('disconnected');
-                    console.error('❌ Auto-save failed:', error);
-                    console.error('❌ Data that failed to auto-save:', autoSaveData);
-                    showNotification('⚠️ Auto-save failed: ' + error.message, 'error');
-                });
-            } catch (error) {
-                updateFirebaseStatus('disconnected');
-                console.error('❌ Auto-save preparation failed:', error);
-                console.error('❌ Raw data during auto-save error:', { applicants, botStats });
-                showNotification('⚠️ Auto-save preparation failed: ' + error.message, 'error');
-            }
-        }
-
-        // Save confirmation visual feedback
-        function showSaveConfirmation() {
-            const confirmation = document.createElement('div');
-            confirmation.style.cssText = `
-                position: fixed;
-                top: 80px;
-                right: 20px;
-                background: #27ae60;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                font-weight: 600;
-                z-index: 1001;
-                box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-                transition: all 0.3s ease;
-            `;
-            confirmation.textContent = '✓ Auto-Saved';
-            document.body.appendChild(confirmation);
-
-            setTimeout(() => {
-                confirmation.style.opacity = '0';
-                confirmation.style.transform = 'translateY(-20px)';
-                setTimeout(() => {
-                    if (confirmation.parentNode) {
-                        confirmation.parentNode.removeChild(confirmation);
-                    }
-                }, 300);
-            }, 2000);
-        }
-
-        // Load from Firebase (improved with better timing and conflict resolution)
-        function loadFromFirebase() {
-            if (!database) {
-                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
-                return;
-            }
-
-            console.log('🔄 Loading data from Firebase...');
-            showNotification('🔄 Loading data from Firebase...', 'info');
-
-            database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
-                const firebaseData = snapshot.val();
-
-                if (!firebaseData || !firebaseData.applicants) {
-                    console.log('ℹ️ No dashboard data found in Firebase - using local data');
-                    showNotification('ℹ️ No saved data found in Firebase - using local data', 'info');
-                    return;
-                }
-
-                // Store current applicants temporarily
-                const currentApplicants = [...applicants];
-                const currentCount = currentApplicants.length;
-
-                // Load applicants data from Firebase
-                applicants.length = 0; // Clear existing data
-                applicants.push(...firebaseData.applicants);
-
-                // Load bot stats if available
-                if (firebaseData.botStats) {
-                    Object.assign(botStats, firebaseData.botStats);
-                }
-
-                // Check if we loaded different data
-                const loadedCount = applicants.length;
-                const lastSaved = firebaseData.lastSaved || firebaseData.lastAutoSaved;
-
-                // Save to localStorage
-                saveToLocalStorage();
-
-                // Refresh the entire UI
-                refreshAllSections();
-
-                showNotification(`✅ Loaded ${loadedCount} applicants from Firebase (was ${currentCount} locally)`, 'success');
-                console.log(`🔥 Firebase data loaded:
-- Loaded: ${loadedCount} applicants
-- Previous local: ${currentCount} applicants  
-- Last saved: ${lastSaved}
-- Data timestamp: ${firebaseData.metadata?.lastUpdated || 'Unknown'}`);
-
-                // Log the difference for debugging
-                if (loadedCount !== currentCount) {
-                    console.log('⚠️ Data count mismatch detected - Firebase may have overwritten local changes');
-                }
-
-            }).catch((error) => {
-                showNotification('❌ Failed to load from Firebase: ' + error.message, 'error');
-                console.error('Firebase load error:', error);
-            });
-        }
-
-        // 🤖 BOT INTEGRATION FUNCTIONS
-        
-        // Enhanced listener for messages from bot.html with security and message types
-        window.addEventListener('message', function(event) {
-            console.log('📨 Received message from:', event.origin, 'Data:', event.data);
-            
-            // Log all messages for debugging
-            logMessage(event);
-            
-            // More permissive security check for debugging
-            const allowedOrigins = [
-                'https://terence1975-coder.github.io',
-                'http://localhost',
-                'https://localhost',
-                'http://127.0.0.1',
-                'https://127.0.0.1',
-                'null', // For local file testing
-                '' // For same-origin
-            ];
-            
-            const isAllowed = allowedOrigins.some(origin => 
-                event.origin === origin || 
-                event.origin.startsWith(origin) ||
-                event.origin.includes('github.io')
-            );
-            
-            // For debugging - log all message attempts
-            console.log('🔍 Message analysis:', {
-                origin: event.origin,
-                allowed: isAllowed,
-                dataType: typeof event.data,
-                dataKeys: event.data ? Object.keys(event.data) : 'No data',
-                rawData: event.data
-            });
-            
-            if (!isAllowed) {
-                console.log('🚫 Rejected message from origin:', event.origin);
-                showNotification(`🚫 Message rejected from: ${event.origin}. Data: ${JSON.stringify(event.data)}`, 'error', 10000);
-                
-                // But still process it for debugging (comment this out in production)
-                console.log('🔧 Processing anyway for debugging...');
-                processMessageForDebugging(event.data);
-                return;
-            }
-            
-            console.log('✅ Message accepted from authorized origin:', event.origin);
-            
-            // Handle structured messages with messageType (new format)
-            if (event.data && event.data.messageType) {
-                console.log('📊 Processing structured message:', event.data.messageType);
-                
-                if (event.data.messageType === 'CANDIDATE_REPORT') {
-                    console.log('✅ Candidate assessment received:', event.data.name, 'Status:', event.data.status);
-                    displayCandidateReport(event.data);
-                    
-                    // Auto-show modal if requested
-                    if (event.data.autoShow) {
-                        showCandidateModal(event.data);
-                    }
-                    
-                    return;
-                }
-                
-                if (event.data.messageType === 'CONNECTION_TEST') {
-                    console.log('🔧 Connection test successful from bot.html');
-                    showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
-                    if (event.data.source !== 'self-test') {
-                        alert('✅ Connection working! Bot.html → Dashboard communication confirmed');
-                    }
-                    return;
-                }
-            }
-            
-            // Handle legacy format (backwards compatibility)
-            if (event.data && (event.data.name || event.data.email || event.data.candidate_name)) {
-                console.log('📨 Processing legacy format message');
-                processIncomingReport(event.data);
-                return;
-            }
-            
-            // Handle any object with candidate data
-            if (event.data && typeof event.data === 'object') {
-                console.log('🔍 Processing generic object message');
-                processIncomingReport(event.data);
-                return;
-            }
-            
-            console.log('⚠️ Unrecognized message format:', event.data);
-            showNotification(`⚠️ Received unrecognized message: ${JSON.stringify(event.data)}`, 'info', 8000);
-        });
-
-        // Message logging for debugging
-        let messageLog = [];
-        
-        // Add to the message listener to log all messages
-        function logMessage(event) {
-            messageLog.push({
-                timestamp: new Date().toISOString(),
-                origin: event.origin,
-                data: event.data,
-                accepted: true
-            });
-            
-            // Keep only last 50 messages
-            if (messageLog.length > 50) {
-                messageLog = messageLog.slice(-50);
-            }
-        }
-
-        // Debug function to process any message for testing
-        function processMessageForDebugging(data) {
-            console.log('🔧 DEBUG: Processing message regardless of origin');
-            if (data && typeof data === 'object') {
-                // Try to extract any name/candidate data
-                const name = data.name || data.candidate_name || data.candidateName || 'Debug Test Candidate';
-                const email = data.email || data.candidate_email || 'debug@test.com';
-                const score = data.score || data.assessment_score || Math.floor(Math.random() * 100);
-                
-                const debugData = {
-                    name: name,
-                    email: email,
-                    phone: data.phone || '+1 (555) 000-0000',
-                    score: score,
-                    bootcamp: data.course || data.bootcamp || 'Debug Test',
-                    responses: data.responses || ['Debug', 'Test', 'Data', 'From', 'Bot'],
-                    source: 'DEBUG - Unauthorized Origin'
-                };
-                
-                console.log('🔧 DEBUG: Created debug data:', debugData);
-                processIncomingReport(debugData);
-                showNotification(`🔧 DEBUG: Processed unauthorized message as test data`, 'info');
-            }
-        }
-
-        // Function to display candidate data (enhanced with new fields)
-        function displayCandidateReport(candidateData) {
-            console.log('🎯 Displaying candidate assessment:', candidateData);
-            
-            // Map bot status to dashboard status
-            let dashboardStatus = 'failed'; // Default
-            let score = 0;
-            
-            if (candidateData.status === 'HIGHLY_SUITABLE') {
-                dashboardStatus = 'passed';
-                score = candidateData.score ? candidateData.score * 10 : 90; // Convert to percentage
-            } else if (candidateData.status === 'SUITABLE') {
-                dashboardStatus = 'waitlist';
-                score = candidateData.score ? candidateData.score * 10 : 70; // Convert to percentage
-            } else {
-                dashboardStatus = 'failed';
-                score = candidateData.score ? candidateData.score * 10 : 40; // Convert to percentage
-            }
-            
-            // Convert structured format to our internal format with enhanced fields
-            const reportData = {
-                name: candidateData.name || 'Unknown Candidate',
-                email: candidateData.email || 'no-email@example.com',
-                phone: candidateData.phone || '+1 (555) 000-0000',
-                score: score,
-                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
-                responses: candidateData.responses || candidateData.answers || ['Assessment', 'Based', 'On', 'Bot', 'Interaction'],
-                autoShow: candidateData.autoShow || false,
-                messageType: candidateData.messageType,
-                
-                // Enhanced fields from bot assessment
-                location: candidateData.location || 'Not specified',
-                employmentStatus: candidateData.employmentStatus || 'Not specified',
-                ukResidency: candidateData.ukResidency || 'Not specified',
-                interviewStatus: candidateData.interviewStatus || 'Not scheduled',
-                interviewBooked: candidateData.interviewBooked || false,
-                sessionId: candidateData.sessionId || 'N/A',
-                timestamp: candidateData.timestamp || new Date().toISOString(),
-                botStatus: candidateData.status, // Original bot status
-                originalScore: candidateData.score || 0
+            const cleanData = {
+                applicants: applicants.map(a => ({ ...a, responses: a.responses || [] })),
+                botStats: { ...botStats },
+                metadata: { totalApplicants: applicants.length, lastUpdated: new Date().toISOString() }
             };
             
-            // Process using existing system with enhanced data
-            processEnhancedIncomingReport(reportData, dashboardStatus);
-            
-            // Show additional notification for structured reports
-            const statusEmoji = dashboardStatus === 'passed' ? '✅' : dashboardStatus === 'waitlist' ? '⏳' : '❌';
-            showNotification(`📊 Assessment completed: ${reportData.name} ${statusEmoji} ${candidateData.status} (${score}%)`, 'success');
-            
-            // Update page title with candidate count
-            updatePageTitle();
-        }
-
-        // Function to show candidate modal (enhanced)
-        function showCandidateModal(candidateData) {
-            console.log('📋 Showing modal for candidate:', candidateData.name);
-            
-            // Create a temporary applicant object for the modal
-            const tempApplicant = {
-                id: Date.now(),
-                name: candidateData.name || 'Unknown Candidate',
-                email: candidateData.email || 'no-email@example.com',
-                phone: candidateData.phone || '+1 (555) 000-0000',
-                date: new Date().toISOString().split('T')[0],
-                status: determineStatus(candidateData.score || 0),
-                score: candidateData.score || 0,
-                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
-                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
-                submissionTime: new Date().toLocaleString(),
-                source: 'Bot Submission (Structured)',
-                messageType: candidateData.messageType
-            };
-            
-            // Show the individual report modal
-            showIndividualReport(tempApplicant);
-        }
-
-        // Process URL parameters for direct report submission
-        function checkURLParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('report')) {
-                try {
-                    const reportData = JSON.parse(decodeURIComponent(urlParams.get('report')));
-                    processIncomingReport(reportData);
-                    // Clean URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error('Error parsing URL report data:', e);
-                }
-            }
-        }
-
-        // Enhanced function to process incoming reports with additional bot data
-        function processEnhancedIncomingReport(data, status) {
-            console.log('🔄 Processing enhanced assessment report:', data);
-            
-            // Update connection status
-            botStats.connectionStatus = 'Connected';
-            botStats.lastReceived = new Date().toLocaleString();
-            botStats.totalReceived++;
-            updateConnectionStatus();
-            
-            // Create comprehensive applicant object with enhanced fields
-            const newApplicant = {
-                id: Date.now() + Math.random(), // Ensure unique ID
-                name: data.name || 'Unknown Candidate',
-                email: data.email || 'no-email@example.com',
-                phone: data.phone || '+1 (555) 000-0000',
-                date: new Date().toISOString().split('T')[0],
-                status: status, // Use the mapped status
-                score: data.score || 0,
-                bootcamp: data.bootcamp || 'AI Fundamentals',
-                responses: Array.isArray(data.responses) ? data.responses : [data.responses],
-                submissionTime: new Date().toLocaleString(),
-                source: 'Bot Assessment - Enhanced',
-                
-                // Enhanced fields from bot
-                location: data.location || 'Not specified',
-                employmentStatus: data.employmentStatus || 'Not specified',
-                ukResidency: data.ukResidency || 'Not specified',
-                interviewStatus: data.interviewStatus || 'Not scheduled',
-                interviewBooked: data.interviewBooked || false,
-                sessionId: data.sessionId || 'N/A',
-                timestamp: data.timestamp || new Date().toISOString(),
-                botStatus: data.botStatus || 'Unknown',
-                originalScore: data.originalScore || 0,
-                
-                rawData: data // Store original data for debugging
-            };
-            
-            console.log('✅ Created enhanced applicant object:', newApplicant);
-            
-            // Add to applicants array
-            applicants.push(newApplicant);
-            
-            console.log('✅ Created enhanced applicant object:', newApplicant);
-            console.log('📊 Total applicants after adding:', applicants.length);
-            
-            // Immediately save to localStorage to persist data
-            saveToLocalStorage();
-            
-            // Update UI immediately
-            refreshAllSections();
-            
-            // Show detailed success notification
-            const statusEmoji = status === 'passed' ? '✅' : status === 'waitlist' ? '⏳' : '❌';
-            showNotification(`${statusEmoji} Assessment completed: ${newApplicant.name} - ${newApplicant.botStatus} (${newApplicant.score}%)`, 'success');
-            
-            // Immediate save to Firebase to prevent data loss (with error handling)
-            if (database) {
-                console.log('💾 Immediately saving new bot assessment to Firebase...');
-                setTimeout(() => {
-                    try {
-                        saveToFirebase();
-                        console.log('✅ New bot assessment saved to Firebase');
-                    } catch (error) {
-                        console.error('❌ Failed to save bot assessment:', error);
-                        showNotification('⚠️ Bot assessment saved locally but failed to sync to Firebase', 'error');
-                    }
-                }, 1000);
-            } else {
-                console.log('⚠️ Firebase not available - bot assessment saved to localStorage');
-                showNotification('💾 Bot assessment saved locally - Firebase not connected', 'info');
-            }
-            
-            // Auto-show report if requested
-            if (data.autoShow) {
-                setTimeout(() => showIndividualReport(newApplicant), 1000);
-            }
-            
-            console.log('✅ Successfully processed enhanced assessment - Total applicants:', applicants.length);
-        }
-
-        // Update page title with candidate count
-        function updatePageTitle() {
-            const totalCandidates = applicants.length;
-            const passedCount = applicants.filter(a => a.status === 'passed').length;
-            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-            const failedCount = applicants.filter(a => a.status === 'failed').length;
-            
-            document.title = `🤖 AI Bootcamp Dashboard (${totalCandidates} candidates: ${passedCount} passed, ${waitlistCount} waitlist, ${failedCount} failed)`;
-        }
-
-        // Main function to process incoming reports from bot.html
-        function processIncomingReport(data) {
-            console.log('🔄 Processing incoming assessment report:', data);
-            
-            // Update connection status
-            botStats.connectionStatus = 'Connected';
-            botStats.lastReceived = new Date().toLocaleString();
-            botStats.totalReceived++;
-            updateConnectionStatus();
-            
-            // Enhanced validation for assessment data
-            if (!data || (!data.name && !data.candidate_name)) {
-                console.error('❌ Invalid assessment data - missing name:', data);
-                showNotification('❌ Invalid assessment data received - missing candidate name', 'error');
-                return;
-            }
-            
-            // Handle different data formats from bot.html
-            const candidateName = data.name || data.candidate_name || 'Unknown Candidate';
-            const candidateEmail = data.email || data.candidate_email || `${candidateName.toLowerCase().replace(/\s+/g, '.')}@example.com`;
-            const candidatePhone = data.phone || data.candidate_phone || '+1 (555) 000-0000';
-            const assessmentScore = parseInt(data.score || data.assessment_score || data.final_score || 0);
-            const courseName = data.bootcamp || data.course || data.program || 'AI Fundamentals';
-            const assessmentResponses = data.responses || data.answers || data.assessment_answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'];
-            
-            // Create comprehensive applicant object
-            const newApplicant = {
-                id: Date.now() + Math.random(), // Ensure unique ID
-                name: candidateName,
-                email: candidateEmail,
-                phone: candidatePhone,
-                date: new Date().toISOString().split('T')[0],
-                status: determineStatus(assessmentScore),
-                score: assessmentScore,
-                bootcamp: courseName,
-                responses: Array.isArray(assessmentResponses) ? assessmentResponses : [assessmentResponses],
-                submissionTime: new Date().toLocaleString(),
-                source: 'Bot Assessment - terence1975-coder.github.io',
-                rawData: data // Store original data for debugging
-            };
-            
-            console.log('✅ Created new applicant object:', newApplicant);
-            
-            // Add to applicants array
-            applicants.push(newApplicant);
-            
-            // Immediately save to localStorage to persist data
-            saveToLocalStorage();
-            
-            // Update UI immediately
-            refreshAllSections();
-            
-            // Show detailed success notification
-            const statusEmoji = newApplicant.status === 'passed' ? '✅' : newApplicant.status === 'waitlist' ? '⏳' : '❌';
-            showNotification(`${statusEmoji} Assessment received: ${newApplicant.name} scored ${assessmentScore}% (${newApplicant.status})`, 'success');
-            
-            // Auto-save to Firebase
-            if (database) {
-                setTimeout(autoSaveToFirebase, 2000);
-            }
-            
-            // Auto-show report if requested
-            if (data.autoShow || data.auto_show) {
-                setTimeout(() => showIndividualReport(newApplicant), 1000);
-            }
-            
-            console.log('✅ Successfully processed assessment from bot.html - Total applicants:', applicants.length);
-        }
-
-        // Determine status based on score
-        function determineStatus(score) {
-            if (score >= 80) return 'passed';
-            if (score >= 60) return 'waitlist';
-            return 'failed';
-        }
-
-        // Function to ping the bot URL and test connectivity
-        function pingBotURL() {
-            const botURL = 'https://terence1975-coder.github.io/tender/bot.html';
-            
-            console.log('📡 Pinging bot URL:', botURL);
-            showNotification('📡 Testing connection to bot.html...', 'info');
-            
-            // Try to fetch the bot URL to test connectivity
-            fetch(botURL, { mode: 'no-cors' })
+            database.ref('aiBootcampDashboard').set(cleanData)
                 .then(() => {
-                    console.log('✅ Bot URL is reachable');
-                    showNotification('✅ Bot URL is reachable - Ready to receive assessments!', 'success');
-                    
-                    // Update bot stats with proper values
-                    botStats.connectionStatus = 'URL Verified';
-                    botStats.lastPing = new Date().toLocaleString();
-                    updateConnectionStatus();
+                    updateFirebaseStatus('connected');
+                    console.log('☁️ Saved to Firebase');
                 })
-                .catch((error) => {
-                    console.log('⚠️ Bot URL ping failed (this is normal due to CORS):', error);
-                    showNotification('⚠️ Bot URL ping failed (normal due to CORS) - Dashboard still ready!', 'info');
-                    
-                    // Update bot stats with proper values
-                    botStats.connectionStatus = 'Ready (CORS limited)';
-                    botStats.lastPing = new Date().toLocaleString();
-                    updateConnectionStatus();
+                .catch(error => {
+                    console.error('❌ Firebase save failed:', error);
+                    updateFirebaseStatus('disconnected');
                 });
         }
 
-        // Debug bot communication function
-        function debugBotCommunication() {
-            console.log('🔧 Starting bot communication debug...');
+        function loadFromFirebase() {
+            if (!database) return;
             
-            // Test 1: Check if dashboard can receive postMessage
-            console.log('Test 1: Self-message test');
-            window.postMessage({
-                messageType: 'CONNECTION_TEST',
-                source: 'self-test'
-            }, '*');
-            
-            // Test 2: Check current window context
-            console.log('Test 2: Window context check');
-            const windowInfo = {
-                hasParent: window.parent !== window,
-                hasOpener: !!window.opener,
-                origin: window.location.origin,
-                href: window.location.href,
-                isInIframe: window !== window.top
-            };
-            console.log('Window info:', windowInfo);
-            
-            // Test 3: Try to communicate with bot if it exists
-            console.log('Test 3: Attempting to open bot in new tab');
-            const botWindow = window.open('https://terence1975-coder.github.io/tender/bot.html', 'botTest');
-            
-            // Test 4: Set up a listener for the bot response
-            const testListener = function(event) {
-                console.log('🔧 Debug listener received:', event.origin, event.data);
-                if (event.data && event.data.source === 'bot-response') {
-                    showNotification('✅ Bot communication successful!', 'success');
-                    window.removeEventListener('message', testListener);
-                }
-            };
-            window.addEventListener('message', testListener);
-            
-            // Send test message to bot after delay
-            setTimeout(() => {
-                if (botWindow && !botWindow.closed) {
-                    console.log('🔧 Sending test message to bot...');
-                    botWindow.postMessage({
-                        messageType: 'DASHBOARD_TEST',
-                        source: 'dashboard-debug'
-                    }, '*');
-                }
-            }, 3000);
-            
-            // Clean up after 10 seconds
-            setTimeout(() => {
-                window.removeEventListener('message', testListener);
-                if (botWindow && !botWindow.closed) {
-                    botWindow.close();
-                }
-            }, 10000);
-            
-            const debugReport = `🔧 BOT COMMUNICATION DEBUG REPORT
-============================
-
-DASHBOARD STATUS:
-- Origin: ${window.location.origin}
-- URL: ${window.location.href}
-- Has Parent: ${windowInfo.hasParent}
-- Has Opener: ${windowInfo.hasOpener}
-- In iFrame: ${windowInfo.isInIframe}
-
-MESSAGE LISTENER STATUS:
-- ✅ Enhanced message listener active
-- ✅ Permissive origin checking enabled
-- ✅ Debug mode enabled
-- ✅ Multiple message formats supported
-
-COMMUNICATION METHODS:
-1. PostMessage: window.parent.postMessage(data, '*')
-2. Direct API: parent.addApplicantReport(data)
-3. URL Parameters: dashboard.html?report=encodedData
-
-TROUBLESHOOTING:
-1. Check browser console in bot.html for errors
-2. Verify bot is sending postMessage correctly
-3. Check if dashboard is opened as parent window
-4. Test with simple message first
-
-TEST INSTRUCTIONS FOR BOT.HTML:
-Add this code to test communication:
-
-// Test 1: Simple message
-window.parent.postMessage({
-    messageType: 'CONNECTION_TEST'
-}, '*');
-
-// Test 2: Candidate data
-window.parent.postMessage({
-    name: 'Test Candidate',
-    email: 'test@example.com',
-    score: 85,
-    bootcamp: 'AI Fundamentals'
-}, '*');
-
-Debug started: ${new Date().toLocaleString()}`;
-
-            showModal('🔧 Bot Communication Debug', debugReport);
-            showNotification('🔧 Debug started - Check console and modal for details', 'info');
+            database.ref('aiBootcampDashboard').once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    if (data && data.applicants) {
+                        applicants.length = 0;
+                        applicants.push(...data.applicants);
+                        if (data.botStats) Object.assign(botStats, data.botStats);
+                        saveToLocalStorage();
+                        refreshUI();
+                        showNotification(`📥 Loaded ${applicants.length} applicants from Firebase`, 'success');
+                    } else {
+                        showNotification('ℹ️ No data found in Firebase', 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Firebase load failed:', error);
+                    showNotification('❌ Firebase load failed', 'error');
+                });
         }
 
-        function showMessageLog() {
-            const logContent = messageLog.length === 0 ? 
-                'No messages received yet.' :
-                messageLog.map(log => 
-                    `${log.timestamp} | ${log.origin} | ${log.accepted ? '✅' : '❌'} | ${JSON.stringify(log.data)}`
-                ).join('\n');
-                
-            const report = `📨 MESSAGE LOG
-============================
-
-Total Messages: ${messageLog.length}
-Last Updated: ${new Date().toLocaleString()}
-
-FORMAT: Timestamp | Origin | Status | Data
-
-${logContent}
-
-TROUBLESHOOTING:
-- If no messages appear, bot is not sending anything
-- If messages appear but are rejected (❌), check origins
-- If messages are accepted (✅) but not processed, check data format
-
-ADD THIS TO YOUR BOT.HTML TO TEST:
-window.parent.postMessage({
-    name: 'Test Candidate',
-    email: 'test@example.com',
-    score: 85,
-    bootcamp: 'AI Fundamentals'
-}, '*');`;
-
-            showModal('📨 Message Log', report);
+        // 📊 UI FUNCTIONS
+        function updateStats() {
+            const total = applicants.length;
+            const passed = applicants.filter(a => a.status === 'passed').length;
+            const failed = applicants.filter(a => a.status === 'failed').length;
+            const waitlist = applicants.filter(a => a.status === 'waitlist').length;
+            const processed = applicants.filter(a => a.status === 'processed').length;
+            
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-passed').textContent = passed;
+            document.getElementById('stat-failed').textContent = failed;
+            document.getElementById('stat-waitlist').textContent = waitlist;
+            document.getElementById('stat-processed').textContent = processed;
+            
+            document.getElementById('passed-count').textContent = passed;
+            document.getElementById('waitlist-count').textContent = waitlist;
+            document.getElementById('failed-count').textContent = failed;
+            document.getElementById('processed-count').textContent = processed;
+            
+            document.title = `🤖 AI Bootcamp Dashboard (${total} applicants)`;
         }
 
-        // Enhanced connection status display
-        function updateConnectionStatus() {
-            const statusEl = document.getElementById('connection-status');
-            if (statusEl) {
-                const firebaseStatus = database ? '🟢 Firebase Connected' : '🔴 Firebase Offline';
-                const botStatus = getBotStatusIcon(botStats.connectionStatus);
-                
-                statusEl.innerHTML = `
-                    <div class="flex items-center space-x-4 text-sm">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-gray-600">${botStatus} Bot: ${botStats.connectionStatus}</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-gray-600">${firebaseStatus}</span>
-                        </div>
-                        <div class="text-gray-500">
-                            Assessments: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
-                        </div>
-                        ${botStats.lastPing && botStats.lastPing !== 'Never' ? `<div class="text-gray-500">Last Ping: ${botStats.lastPing}</div>` : ''}
-                        <button onclick="showMessageLog()" class="text-blue-600 hover:text-blue-800 text-xs underline">Message Log</button>
-                    </div>
-                `;
-            }
-        }
-
-        // Message logging for debugging
-        let messageLog = [];
-        
-        // Add to the message listener to log all messages
-        function logMessage(event) {
-            messageLog.push({
-                timestamp: new Date().toISOString(),
-                origin: event.origin,
-                data: event.data,
-                accepted: true
-            });
-            
-            // Keep only last 50 messages
-            if (messageLog.length > 50) {
-                messageLog = messageLog.slice(-50);
-            }
-        }
-
-        function showMessageLog() {
-            const logContent = messageLog.length === 0 ? 
-                'No messages received yet.' :
-                messageLog.map(log => 
-                    `${log.timestamp} | ${log.origin} | ${log.accepted ? '✅' : '❌'} | ${JSON.stringify(log.data)}`
-                ).join('\n');
-                
-            const report = `📨 MESSAGE LOG
-============================
-
-Total Messages: ${messageLog.length}
-Last Updated: ${new Date().toLocaleString()}
-
-FORMAT: Timestamp | Origin | Status | Data
-
-${logContent}
-
-TROUBLESHOOTING:
-- If no messages appear, bot is not sending anything
-- If messages appear but are rejected (❌), check origins
-- If messages are accepted (✅) but not processed, check data format`;
-
-            showModal('📨 Message Log', report);
-        }
-
-        // Get bot status icon based on connection status
-        function getBotStatusIcon(status) {
-            switch(status) {
-                case 'Connected': return '🟢';
-                case 'URL Verified': return '🟢';
-                case 'Ready (CORS limited)': return '🟡';
-                case 'Ready': return '🟡';
-                default: return '🔴';
-            }
-        }
-
-        // Enhanced notification system
-        function showNotification(message, type = 'info', duration = 5000) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md ${
-                type === 'success' ? 'bg-green-500 text-white' : 
-                type === 'error' ? 'bg-red-500 text-white' : 
-                'bg-blue-500 text-white'
-            }`;
-            notification.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">✕</button>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, duration);
-        }
-
-        // Refresh all UI sections with new data
-        function refreshAllSections() {
-            // Update statistics
-            updateStatistics();
-            
-            // Update page title
-            updatePageTitle();
-            
-            // Clear and repopulate all sections
-            document.getElementById('recent-applicants').innerHTML = '';
-            document.getElementById('passed-applicants').innerHTML = '';
-            document.getElementById('waitlist-applicants').innerHTML = '';
-            document.getElementById('failed-applicants').innerHTML = '';
-            document.getElementById('processed-applicants').innerHTML = '';
-            
-            // Re-initialize with updated data
+        function refreshUI() {
+            updateStats();
             populateRecentApplicants();
             populateApplicantSections();
-            updateSectionCounts();
+            updateConnectionStatus();
         }
 
-        // Update statistics cards
-        function updateStatistics() {
-            const totalCount = applicants.length;
-            const passedCount = applicants.filter(a => a.status === 'passed').length;
-            const failedCount = applicants.filter(a => a.status === 'failed').length;
-            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-            const processedCount = applicants.filter(a => a.status === 'processed').length;
-
-            console.log('📊 Updating statistics:', { totalCount, passedCount, failedCount, waitlistCount, processedCount });
-
-            // Update the numbers in statistics cards
-            const statTotal = document.getElementById('stat-total');
-            const statPassed = document.getElementById('stat-passed');
-            const statFailed = document.getElementById('stat-failed');
-            const statWaitlist = document.getElementById('stat-waitlist');
-            const statProcessed = document.getElementById('stat-processed');
-
-            if (statTotal) statTotal.textContent = totalCount;
-            if (statPassed) statPassed.textContent = passedCount;
-            if (statFailed) statFailed.textContent = failedCount;
-            if (statWaitlist) statWaitlist.textContent = waitlistCount;
-            if (statProcessed) statProcessed.textContent = processedCount;
-
-            console.log('✅ Statistics updated successfully');
-        }
-
-        // Update section count headers
-        function updateSectionCounts() {
-            const passedCount = applicants.filter(a => a.status === 'passed').length;
-            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
-            const failedCount = applicants.filter(a => a.status === 'failed').length;
-            const processedCount = applicants.filter(a => a.status === 'processed').length;
-
-            // Update count displays
-            const processedCountEl = document.getElementById('processed-count');
-            if (processedCountEl) processedCountEl.textContent = processedCount;
-        }
-
-        // Tab switching
-        function switchTab(tabName) {
-            console.log('🔄 Switching to tab:', tabName);
+        function populateRecentApplicants() {
+            const container = document.getElementById('recent-applicants');
+            container.innerHTML = '';
             
-            // Hide all content
-            document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
-            
-            // Show selected content
-            const selectedContent = document.getElementById('content-' + tabName);
-            if (selectedContent) {
-                selectedContent.style.display = 'block';
-            }
-            
-            // Update tab styles
-            document.querySelectorAll('[id^="tab-"]').forEach(el => {
-                el.className = el.className.replace('tab-active', 'tab-inactive');
+            applicants.slice(0, 5).forEach(applicant => {
+                const statusColor = applicant.status === 'passed' ? 'text-green-600 bg-green-100' :
+                                   applicant.status === 'failed' ? 'text-red-600 bg-red-100' :
+                                   applicant.status === 'waitlist' ? 'text-yellow-600 bg-yellow-100' :
+                                   'text-blue-600 bg-blue-100';
+                
+                container.innerHTML += `
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-600">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
+                                <p class="text-sm text-gray-500">${applicant.email}</p>
+                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-500">${applicant.bootcamp}</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}">
+                                ${applicant.status}
+                            </span>
+                        </div>
+                    </div>
+                `;
             });
-            
-            const selectedTab = document.getElementById('tab-' + tabName);
-            if (selectedTab) {
-                selectedTab.className = selectedTab.className.replace('tab-inactive', 'tab-active');
-            }
-            
-            console.log('✅ Tab switched to:', tabName);
         }
 
-        // Modal functions
+        function populateApplicantSections() {
+            ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
+                const container = document.getElementById(status + '-applicants');
+                container.innerHTML = '';
+                
+                const filtered = applicants.filter(a => a.status === status);
+                const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : status === 'waitlist' ? 'yellow' : 'blue';
+                
+                filtered.forEach(applicant => {
+                    const actionButtons = status === 'processed' ? 
+                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">↩️ Restore</button>
+                         <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">🗑️ Delete</button>` :
+                        `<button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass} mb-2">📋 View Report</button>
+                         <div class="flex space-x-2">
+                             <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">✔️ Process</button>
+                             <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">🗑️ Delete</button>
+                         </div>`;
+
+                    container.innerHTML += `
+                        <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex-grow">
+                                    <h4 class="font-medium text-gray-900">${applicant.name}</h4>
+                                    <p class="text-sm text-gray-600">${applicant.email}</p>
+                                    <p class="text-sm text-gray-600">${applicant.phone}</p>
+                                    ${applicant.location && applicant.location !== 'Not specified' ? `<p class="text-sm text-blue-600">📍 ${applicant.location}</p>` : ''}
+                                    ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
+                                </div>
+                                <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
+                                <span>${applicant.bootcamp}</span>
+                                <span>${applicant.date}</span>
+                            </div>
+                            ${actionButtons}
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            const firebaseStatus = database ? '🟢 Firebase' : '🔴 Offline';
+            const botIcon = botStats.connectionStatus === 'Connected' ? '🟢' : '🟡';
+            
+            statusEl.innerHTML = `
+                <div class="flex items-center space-x-4 text-sm">
+                    <span class="text-gray-600">${botIcon} Bot: ${botStats.connectionStatus}</span>
+                    <span class="text-gray-600">${firebaseStatus}</span>
+                    <span class="text-gray-500">Messages: ${botStats.totalReceived} | Last: ${botStats.lastReceived}</span>
+                    <button onclick="showMessageLog()" class="text-blue-600 hover:text-blue-800 text-xs underline">View Log</button>
+                </div>
+            `;
+        }
+
+        // 🔧 UTILITY FUNCTIONS
+        function switchTab(tabName) {
+            document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
+            document.getElementById('content-' + tabName).style.display = 'block';
+            
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = el.className.replace('tab-active', 'tab-inactive'));
+            document.getElementById('tab-' + tabName).className = document.getElementById('tab-' + tabName).className.replace('tab-inactive', 'tab-active');
+        }
+
         function showModal(title, content) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('modal-content').value = content;
@@ -1689,126 +603,67 @@ TROUBLESHOOTING:
             navigator.clipboard.writeText(content).then(() => {
                 const btn = document.getElementById('copy-btn');
                 btn.textContent = '✅ Copied!';
-                btn.className = btn.className.replace('btn-blue', 'btn-green');
-                setTimeout(() => {
-                    btn.textContent = 'Copy to Clipboard';
-                    btn.className = btn.className.replace('btn-green', 'btn-blue');
-                }, 2000);
-            }).catch(() => {
-                // Fallback if clipboard API fails
-                console.log('Clipboard API failed, manual copy required');
+                setTimeout(() => btn.textContent = 'Copy to Clipboard', 2000);
             });
         }
 
-        // Delete applicant (improved with immediate localStorage and Firebase sync)
-        function deleteApplicant(applicantId) {
-            const applicant = applicants.find(a => a.id === applicantId);
-            if (!applicant) {
-                showNotification('❌ Applicant not found', 'error');
-                return;
-            }
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            notification.className = `fixed top-4 left-4 ${bgColor} text-white p-4 rounded-lg shadow-lg z-50 max-w-md`;
+            notification.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">✕</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), duration);
+        }
 
-            if (confirm(`Are you sure you want to permanently delete this applicant?\n\nName: ${applicant.name}\nEmail: ${applicant.email}\n\nThis action cannot be undone.`)) {
+        // 🔧 ACTION FUNCTIONS
+        function deleteApplicant(applicantId) {
+            if (confirm('Delete this applicant permanently?')) {
                 const index = applicants.findIndex(a => a.id === applicantId);
                 if (index !== -1) {
-                    const deletedApplicant = applicants[index];
+                    const deleted = applicants[index];
                     applicants.splice(index, 1);
-                    
-                    console.log('🗑️ Deleted applicant:', deletedApplicant.name, 'ID:', deletedApplicant.id);
-                    console.log('📊 Remaining applicants:', applicants.length);
-                    
-                    // Immediately save to localStorage to persist deletion
                     saveToLocalStorage();
-                    
-                    refreshAllSections();
-                    showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
-                    
-                    // Immediate save to Firebase to prevent data loss
-                    if (database) {
-                        console.log('💾 Immediately saving to Firebase after deletion...');
-                        try {
-                            saveToFirebase();
-                            console.log('✅ Deletion saved to Firebase');
-                        } catch (error) {
-                            console.error('❌ Failed to save deletion to Firebase:', error);
-                            showNotification('⚠️ Deletion saved locally but failed to sync to Firebase', 'error');
-                        }
-                    } else {
-                        console.log('⚠️ Firebase not available - deletion saved to localStorage only');
-                        showNotification('💾 Deletion saved locally - Firebase not connected', 'info');
-                    }
+                    refreshUI();
+                    showNotification(`🗑️ Deleted ${deleted.name}`, 'success');
+                    if (database) setTimeout(saveToFirebase, 1000);
                 }
             }
         }
 
-        // Move applicant to processed
         function moveToProcessed(applicantId) {
-            if (confirm('Mark this applicant as processed? This means the application has been reviewed and actioned.')) {
+            if (confirm('Mark this applicant as processed?')) {
                 const applicant = applicants.find(a => a.id === applicantId);
                 if (applicant) {
                     applicant.status = 'processed';
                     applicant.processedDate = new Date().toLocaleString();
-                    applicant.processedBy = 'Dashboard User';
-                    
-                    // Save changes immediately
                     saveToLocalStorage();
-                    
-                    refreshAllSections();
-                    showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
+                    refreshUI();
+                    showNotification(`✔️ Moved ${applicant.name} to processed`, 'success');
+                    if (database) setTimeout(saveToFirebase, 1000);
                 }
             }
         }
 
-        // Restore from processed
         function restoreFromProcessed(applicantId) {
-            if (confirm('Restore this applicant to active status? They will be moved back to their original category.')) {
+            if (confirm('Restore this applicant to active status?')) {
                 const applicant = applicants.find(a => a.id === applicantId);
                 if (applicant) {
-                    applicant.status = determineStatus(applicant.score);
+                    applicant.status = applicant.score >= 80 ? 'passed' : applicant.score >= 60 ? 'waitlist' : 'failed';
                     delete applicant.processedDate;
-                    delete applicant.processedBy;
-                    
-                    // Save changes immediately
                     saveToLocalStorage();
-                    
-                    refreshAllSections();
-                    showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
-                    
-                    // Auto-save to Firebase
-                    if (database) {
-                        setTimeout(autoSaveToFirebase, 2000);
-                    }
+                    refreshUI();
+                    showNotification(`↩️ Restored ${applicant.name}`, 'success');
+                    if (database) setTimeout(saveToFirebase, 1000);
                 }
             }
         }
 
-        // Utility functions
-        const getStatusColor = (status) => {
-            switch(status) {
-                case 'passed': return 'text-green-600 bg-green-100';
-                case 'failed': return 'text-red-600 bg-red-100';
-                case 'waitlist': return 'text-yellow-600 bg-yellow-100';
-                case 'processed': return 'text-blue-600 bg-blue-100';
-                default: return 'text-gray-600 bg-gray-100';
-            }
-        };
-
-        const getStatusIcon = (status) => {
-            switch(status) {
-                case 'passed': return '✅';
-                case 'failed': return '❌';
-                case 'waitlist': return '⏳';
-                case 'processed': return '✔️';
-                default: return null;
-            }
-        };
-
-        // Data functions
         function showCSVData() {
             const csv = [
                 ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
@@ -1823,7 +678,7 @@ TROUBLESHOOTING:
                 ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
                 ...filtered.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
             ].map(row => row.join(',')).join('\n');
-            showModal(`📊 CSV Data - ${status.charAt(0).toUpperCase() + status.slice(1)} Applicants`, csv);
+            showModal(`📊 ${status.charAt(0).toUpperCase() + status.slice(1)} Applicants`, csv);
         }
 
         function showIndividualReport(applicant) {
@@ -1834,803 +689,162 @@ APPLICANT INFORMATION
 Name: ${applicant.name}
 Email: ${applicant.email}
 Phone: ${applicant.phone}
-Application Date: ${applicant.date}
+Date: ${applicant.date}
 Bootcamp: ${applicant.bootcamp}
-${applicant.submissionTime ? `Submission Time: ${applicant.submissionTime}` : ''}
-${applicant.source ? `Source: ${applicant.source}` : ''}
+Source: ${applicant.source || 'Manual Entry'}
 
-ENHANCED CANDIDATE DETAILS
+ENHANCED DETAILS
 ${applicant.location ? `Location: ${applicant.location}` : ''}
-${applicant.employmentStatus ? `Employment Status: ${applicant.employmentStatus}` : ''}
+${applicant.employmentStatus ? `Employment: ${applicant.employmentStatus}` : ''}
 ${applicant.ukResidency ? `UK Residency: ${applicant.ukResidency}` : ''}
-${applicant.interviewStatus ? `Interview Status: ${applicant.interviewStatus}` : ''}
-${applicant.interviewBooked ? `Interview Booked: ${applicant.interviewBooked ? 'Yes' : 'No'}` : ''}
+${applicant.interviewBooked ? `Interview Booked: Yes` : ''}
 ${applicant.sessionId ? `Session ID: ${applicant.sessionId}` : ''}
 
-SCREENING RESULTS
-Overall Score: ${applicant.score}%
-${applicant.originalScore ? `Original Bot Score: ${applicant.originalScore}/10` : ''}
-${applicant.botStatus ? `Bot Assessment: ${applicant.botStatus}` : ''}
+ASSESSMENT RESULTS
+Score: ${applicant.score}%
 Status: ${applicant.status.toUpperCase()}
-${applicant.processedDate ? `Processed Date: ${applicant.processedDate}` : ''}
-${applicant.processedBy ? `Processed By: ${applicant.processedBy}` : ''}
+${applicant.processedDate ? `Processed: ${applicant.processedDate}` : ''}
 
-ASSESSMENT RESPONSES
-${applicant.responses.map((response, index) => `Response ${index + 1}: ${response}`).join('\n')}
+RESPONSES
+${applicant.responses ? applicant.responses.map((r, i) => `${i+1}. ${r}`).join('\n') : 'No responses recorded'}
 
 RECOMMENDATION
-${applicant.status === 'passed' ? 'HIGHLY SUITABLE - Candidate meets all requirements and shows excellent potential for the bootcamp.' :
-  applicant.status === 'waitlist' ? 'SUITABLE - Candidate shows good potential but may need additional preparation or interview.' :
-  applicant.status === 'failed' ? 'NOT SUITABLE - Candidate needs to strengthen foundational knowledge before reapplying.' :
-  'PROCESSED - This application has been reviewed and appropriate action has been taken.'}
+${applicant.status === 'passed' ? 'ACCEPTED - Candidate meets requirements' :
+  applicant.status === 'waitlist' ? 'WAITLIST - Candidate shows potential' :
+  applicant.status === 'failed' ? 'NOT ACCEPTED - Candidate needs improvement' :
+  'PROCESSED - Application has been reviewed'}
 
-TECHNICAL DETAILS
-Applicant ID: ${applicant.id}
-${applicant.timestamp ? `Original Timestamp: ${new Date(applicant.timestamp).toLocaleString()}` : ''}
-${applicant.source === 'Bot Assessment - Enhanced' ? 'Received via enhanced bot integration with full candidate data' : 'Standard assessment data'}
+Generated: ${new Date().toLocaleString()}`;
+            showModal(`📋 Report - ${applicant.name}`, report);
+        }
 
-Generated on: ${new Date().toLocaleString()}`;
-            showModal(`📋 Enhanced Screening Report - ${applicant.name}`, report);
+        function testBotIntegration() {
+            const testData = {
+                name: 'Test Candidate ' + Math.floor(Math.random() * 1000),
+                email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                score: Math.floor(Math.random() * 100),
+                bootcamp: 'Test Course',
+                responses: ['Test', 'Data', 'From', 'Dashboard'],
+                source: 'Dashboard Test'
+            };
+            
+            addNewApplicant(testData);
+            showNotification('🧪 Test applicant added successfully!', 'success');
+        }
+
+        function debugBotConnection() {
+            const report = `🔧 BOT CONNECTION DEBUG
+============================
+
+DASHBOARD STATUS:
+- URL: ${window.location.href}
+- Origin: ${window.location.origin}
+- Has Parent: ${window.parent !== window}
+- In Frame: ${window !== window.top}
+
+CONNECTION STATS:
+- Messages Received: ${messageLog.length}
+- Bot Status: ${botStats.connectionStatus}
+- Last Message: ${botStats.lastReceived}
+- Total Applicants: ${applicants.length}
+
+MESSAGE LOG (Last 10):
+${messageLog.slice(-10).map(log => 
+    `${log.timestamp.split('T')[1].slice(0,8)} | ${log.origin} | ${JSON.stringify(log.data).slice(0, 100)}...`
+).join('\n')}
+
+INTEGRATION CODE FOR BOT.HTML:
+// Test connection
+window.parent.postMessage({messageType: 'CONNECTION_TEST'}, '*');
+
+// Send candidate data
+window.parent.postMessage({
+    name: 'John Doe',
+    email: 'john@example.com',
+    score: 85,
+    bootcamp: 'AI Fundamentals'
+}, '*');
+
+TROUBLESHOOTING:
+1. Check browser console for errors
+2. Ensure dashboard is parent window
+3. Verify postMessage syntax
+4. Check CORS/security restrictions`;
+            showModal('🔧 Bot Connection Debug', report);
+        }
+
+        function showMessageLog() {
+            const logContent = messageLog.length === 0 ? 'No messages received yet.' :
+                messageLog.slice(-20).map(log => 
+                    `${log.timestamp} | ${log.origin} | ${JSON.stringify(log.data)}`
+                ).join('\n');
+            showModal('📨 Message Log (Last 20)', logContent);
+        }
+
+        function testFirebase() {
+            if (!database) {
+                showNotification('❌ Firebase not connected', 'error');
+                return;
+            }
+            
+            const testData = { test: true, timestamp: new Date().toISOString() };
+            database.ref('test').set(testData)
+                .then(() => showNotification('✅ Firebase test successful', 'success'))
+                .catch(error => showNotification('❌ Firebase test failed: ' + error.message, 'error'));
+        }
+
+        function resetToTestData() {
+            if (confirm('Reset to demo data? This will delete all current applicants.')) {
+                applicants.length = 0;
+                applicants.push(...originalTestData);
+                botStats = { totalReceived: 0, lastReceived: 'Never', connectionStatus: 'Ready', lastPing: 'Never' };
+                saveToLocalStorage();
+                refreshUI();
+                showNotification('🔄 Reset to demo data complete', 'success');
+            }
         }
 
         function createChatbot() {
             const name = document.getElementById('chatbot-name').value;
-            const course = document.getElementById('chatbot-course').value;
-            
             if (name.trim()) {
-                const report = `🤖 Chatbot Created Successfully!
-
-Configuration:
-- Name: ${name}
-- Course: ${course}
-- Created: ${new Date().toLocaleString()}
-- Status: Active
-- ID: CB${Date.now().toString().slice(-6)}
-
-Features Enabled:
-✓ Applicant Screening
-✓ Automated Responses
-✓ Score Calculation
-✓ Report Generation
-
-(This is a demo - in production, the chatbot would be configured in your AI platform)`;
-                showModal('🤖 Chatbot Created Successfully', report);
+                showModal('🤖 Chatbot Created', `Chatbot "${name}" created successfully!\n\nThis is a demo feature.`);
                 document.getElementById('chatbot-name').value = '';
-            } else {
-                showModal('⚠️ Validation Error', 'Please enter a chatbot name before creating.');
             }
         }
 
-        function handleFileUpload(input, type) {
-            const file = input.files[0];
-            if (file) {
-                const report = `✅ ${type} File Upload Success!
-
-File Details:
-- Name: ${file.name}
-- Size: ${(file.size / 1024).toFixed(2)} KB
-- Type: ${file.type}
-- Last Modified: ${new Date(file.lastModified).toLocaleString()}
-
-(This is a demo - in production, the file would be processed on your server)`;
-                showModal('✅ File Upload Success', report);
-                input.value = '';
-            }
-        }
-
-        function editChatbot(chatbot) {
-            const report = `⚙️ Edit Chatbot Configuration
-
-Current Settings:
-- Name: ${chatbot.name}
-- Course: ${chatbot.course}
-- Created: ${chatbot.created}
-- Status: ${chatbot.active ? 'Active' : 'Inactive'}
-
-(This is demo functionality - in production, this would open a configuration interface)`;
-            showModal(`⚙️ Edit Chatbot - ${chatbot.name}`, report);
-        }
-
-        function deleteChatbot(chatbot) {
-            const report = `🗑️ Delete Chatbot Confirmation
-
-⚠️ Are you sure you want to delete "${chatbot.name}"?
-
-This action will:
-- Permanently remove the chatbot
-- Delete all configuration data
-- Stop any active screening sessions
-
-Chatbot Details:
-- Course: ${chatbot.course}
-- Created: ${chatbot.created}
-- Status: ${chatbot.active ? 'Active' : 'Inactive'}
-
-This action CANNOT be undone!`;
-            showModal(`🗑️ Delete Chatbot - ${chatbot.name}`, report);
-        }
-
-        // Test bot integration (enhanced for terence1975-coder.github.io)
-        function testBotIntegration() {
-            console.log('🧪 Testing bot integration with terence1975-coder.github.io');
+        // 🚀 INITIALIZATION
+        function initializeDashboard() {
+            console.log('🚀 Initializing AI Bootcamp Dashboard');
             
-            // Test both assessment formats that the bot might send
-            const testFormats = [
-                {
-                    name: 'Assessment Test User',
-                    email: 'test.user@example.com',
-                    phone: '+1 (555) 123-4567',
-                    score: 87,
-                    bootcamp: 'AI Fundamentals',
-                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
-                    autoShow: true
-                },
-                {
-                    candidate_name: 'Bot Assessment Test',
-                    candidate_email: 'bot.test@example.com',
-                    candidate_phone: '+1 (555) 987-6543',
-                    assessment_score: 72,
-                    course: 'Machine Learning',
-                    assessment_answers: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
-                    auto_show: false
-                }
-            ];
-            
-            const testData = testFormats[Math.floor(Math.random() * testFormats.length)];
-            
-            console.log('🧪 Testing with assessment data:', testData);
-            processIncomingReport(testData);
-            
-            // Show test completion message
-            showNotification('🧪 Bot integration test completed - Check console for details', 'success');
-            
-            // Log instructions for bot.html
-            console.log(`
-🤖 BOT INTEGRATION INSTRUCTIONS FOR terence1975-coder.github.io/tender/bot.html
-================================================================================
-
-To send assessment data to this dashboard, use either format:
-
-FORMAT 1 (Simple):
-const assessmentData = {
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    score: 85,
-    bootcamp: "AI Fundamentals",
-    responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
-    autoShow: true
-};
-
-FORMAT 2 (Structured):
-const assessmentData = {
-    candidate_name: "John Doe",
-    candidate_email: "john@example.com", 
-    candidate_phone: "+1 (555) 123-4567",
-    assessment_score: 85,
-    course: "AI Fundamentals",
-    assessment_answers: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
-    auto_show: true
-};
-
-SEND TO DASHBOARD:
-window.parent.postMessage(assessmentData, '*');
-
-OR (if dashboard is in same window):
-parent.addApplicantReport(assessmentData);
-
-SCORING:
-- 80+ = Passed (Green)
-- 60-79 = Waitlist (Yellow)
-- <60 = Failed (Red)
-
-The dashboard will automatically update and show the results!
-            `);
-        }
-
-        // Initialize page
-        function init() {
-            console.log('🚀 Initializing AI Bootcamp Dashboard with Bot Integration');
-            
-            // Validate botStats to prevent undefined values
-            validateBotStats();
-            
-            // Load data on startup (localStorage -> Firebase -> test data)
-            loadDataOnStartup();
-            
-            // Check for URL parameters
-            checkURLParams();
-            
-            // Update statistics immediately
-            updateStatistics();
-            
-            // Populate all sections
-            populateRecentApplicants();
-            populateApplicantSections();
-            populateChatbotsTable();
-            updateConnectionStatus();
-            updateSectionCounts();
-            
-            console.log('✅ Dashboard initialized successfully with', applicants.length, 'applicants');
-            console.log('✅ BotStats initialized:', botStats);
-        }
-
-        // Populate recent applicants
-        function populateRecentApplicants() {
-            const recentContainer = document.getElementById('recent-applicants');
-            if (!recentContainer) {
-                console.log('⚠️ Recent applicants container not found');
-                return;
-            }
-            
-            recentContainer.innerHTML = '';
-            console.log('🔄 Populating recent applicants section');
-            
-            applicants.slice(0, 5).forEach(applicant => {
-                const statusClass = getStatusColor(applicant.status);
-                const statusEmoji = getStatusIcon(applicant.status);
-                
-                recentContainer.innerHTML += `
-                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span class="text-sm font-medium text-gray-600">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
-                                <p class="text-sm text-gray-500">${applicant.email}</p>
-                                <p class="text-sm text-gray-500">${applicant.phone}</p>
-                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-500">${applicant.bootcamp}</span>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
-                                ${statusEmoji} ${applicant.status}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            console.log('✅ Populated recent applicants with', Math.min(5, applicants.length), 'entries');
-        }
-
-        // Populate applicant sections
-        function populateApplicantSections() {
-            console.log('🔄 Populating applicant sections with', applicants.length, 'total applicants');
-            
-            ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
-                const container = document.getElementById(status + '-applicants');
-                if (!container) {
-                    console.log('⚠️ Container not found for status:', status);
-                    return;
-                }
-                
-                container.innerHTML = '';
-                const filtered = applicants.filter(a => a.status === status);
-                console.log(`📊 Found ${filtered.length} applicants with status: ${status}`);
-                
-                const colorClass = status === 'passed' ? 'green' : 
-                                  status === 'failed' ? 'red' : 
-                                  status === 'waitlist' ? 'yellow' : 'blue';
-                
-                filtered.forEach(applicant => {
-                    const actionButtons = status === 'processed' ? 
-                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">
-                            ↩️ Restore to Active
-                        </button>
-                        <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">
-                            🗑️ Delete Permanently
-                        </button>` :
-                        `<div class="space-y-2">
-                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
-                                📋 View Report
-                            </button>
-                            <div class="flex space-x-2">
-                                <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">
-                                    ✔️ Mark Processed
-                                </button>
-                                <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">
-                                    🗑️ Delete
-                                </button>
-                            </div>
-                        </div>`;
-
-                    container.innerHTML += `
-                        <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex-grow">
-                                    <h4 class="font-medium text-gray-900">${applicant.name}</h4>
-                                    <p class="text-sm text-gray-600">${applicant.email}</p>
-                                    <p class="text-sm text-gray-600">${applicant.phone}</p>
-                                    ${applicant.location && applicant.location !== 'Not specified' ? `<p class="text-sm text-blue-600">📍 ${applicant.location}</p>` : ''}
-                                    ${applicant.employmentStatus && applicant.employmentStatus !== 'Not specified' ? `<p class="text-xs text-gray-500">💼 ${applicant.employmentStatus}</p>` : ''}
-                                    ${applicant.ukResidency && applicant.ukResidency !== 'Not specified' ? `<p class="text-xs text-gray-500">🏠 UK: ${applicant.ukResidency}</p>` : ''}
-                                    ${applicant.interviewBooked ? `<p class="text-xs text-green-600 font-medium">📅 Interview Booked</p>` : ''}
-                                    ${applicant.botStatus ? `<p class="text-xs text-blue-600 font-medium">🤖 ${applicant.botStatus}</p>` : ''}
-                                    ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
-                                    ${applicant.processedDate ? `<p class="text-xs text-blue-600">Processed: ${applicant.processedDate}</p>` : ''}
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
-                                    ${applicant.originalScore ? `<p class="text-xs text-gray-500">${applicant.originalScore}/10</p>` : ''}
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
-                                <span>${applicant.bootcamp}</span>
-                                <span>${applicant.date}</span>
-                            </div>
-                            ${applicant.sessionId && applicant.sessionId !== 'N/A' ? `<p class="text-xs text-gray-400 mb-3">Session: ${applicant.sessionId}</p>` : ''}
-                            ${actionButtons}
-                        </div>
-                    `;
-                });
-            });
-            
-            console.log('✅ Completed populating all applicant sections');
-        }
-
-        // Populate chatbots table
-        function populateChatbotsTable() {
-            const chatbotsContainer = document.getElementById('chatbots-table');
-            if (!chatbotsContainer) {
-                console.log('⚠️ Chatbots table container not found');
-                return;
-            }
-            
-            chatbotsContainer.innerHTML = '';
-            
-            chatbots.forEach(chatbot => {
-                chatbotsContainer.innerHTML += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${chatbot.name}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.course}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">${chatbot.created}</td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${chatbot.active ? 'text-green-800 bg-green-100' : 'text-gray-800 bg-gray-100'}">
-                                ${chatbot.active ? '🟢 Active' : '🔴 Inactive'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm font-medium space-x-2">
-                            <button onclick="editChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-blue-600 hover:text-blue-900">Edit</button>
-                            <button onclick="deleteChatbot(${JSON.stringify(chatbot).replace(/"/g, '&quot;')})" class="text-red-600 hover:text-red-900">Delete</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            console.log('✅ Populated chatbots table with', chatbots.length, 'chatbots');
-        }
-
-        // API endpoint simulation for bot integration (enhanced for terence1975-coder.github.io)
-        window.addApplicantReport = function(reportData) {
-            console.log('🔗 Direct API call received from bot.html:', reportData);
-            
-            // Add source information
-            reportData.source = 'Direct API - terence1975-coder.github.io';
-            
-            if (reportData.messageType === 'CANDIDATE_REPORT') {
-                displayCandidateReport(reportData);
-            } else {
-                processIncomingReport(reportData);
-            }
-            
-            return {
-                status: 'success',
-                message: 'Assessment received successfully',
-                applicantId: Date.now(),
-                timestamp: new Date().toISOString()
-            };
-        };
-
-        // Connection verification function specifically for terence1975-coder.github.io/tender/bot.html
-        window.verifyDashboardConnection = function() {
-            console.log('🔧 Dashboard connection verification requested from bot.html');
-            
-            const connectionInfo = {
-                status: 'connected',
-                timestamp: new Date().toISOString(),
-                dashboardReady: true,
-                acceptedOrigin: 'https://terence1975-coder.github.io',
-                supportedFormats: ['simple', 'structured', 'legacy'],
-                totalApplicants: applicants.length,
-                firebaseConnected: !!database,
-                version: '2.0'
-            };
-            
-            showNotification('✅ Connection verified with bot.html - Dashboard ready!', 'success');
-            console.log('📊 Dashboard connection info:', connectionInfo);
-            
-            return connectionInfo;
-        };
-
-        // Function for bot.html to check if dashboard is ready
-        window.isDashboardReady = function() {
-            return {
-                ready: true,
-                applicantCount: applicants.length,
-                firebaseStatus: database ? 'connected' : 'offline',
-                lastUpdate: new Date().toISOString()
-            };
-        };
-
-        // Connection test function for bot.html
-        window.testConnection = function() {
-            console.log('🔧 Connection test initiated');
-            showNotification('✅ Connection test successful! Dashboard is ready to receive reports.', 'success');
-            return {
-                status: 'connected',
-                timestamp: new Date().toISOString(),
-                dashboardReady: true,
-                supportedFormats: ['legacy', 'structured']
-            };
-        };
-
-        // Export function for bot integration
-        window.getDashboardStats = function() {
-            return {
-                totalApplicants: applicants.length,
-                passed: applicants.filter(a => a.status === 'passed').length,
-                failed: applicants.filter(a => a.status === 'failed').length,
-                waitlist: applicants.filter(a => a.status === 'waitlist').length,
-                processed: applicants.filter(a => a.status === 'processed').length,
-                botStats: botStats
-            };
-        };
-
-        // Setup auto-save triggers (REMOVED - was causing Firebase function serialization error)
-        function setupAutoSaveTriggers() {
-            // This function is now disabled to prevent Firebase serialization errors
-            console.log('🔧 Auto-save triggers disabled to prevent Firebase function serialization errors');
-        }
-
-        // Validate and clean botStats to prevent undefined values
-        function validateBotStats() {
-            if (botStats.totalReceived === undefined || botStats.totalReceived === null) {
-                botStats.totalReceived = 0;
-            }
-            if (botStats.lastReceived === undefined || botStats.lastReceived === null) {
-                botStats.lastReceived = 'Never';
-            }
-            if (botStats.connectionStatus === undefined || botStats.connectionStatus === null) {
-                botStats.connectionStatus = 'Ready';
-            }
-            if (botStats.lastPing === undefined || botStats.lastPing === null) {
-                botStats.lastPing = 'Never';
-            }
-            
-            console.log('✅ BotStats validated:', botStats);
-        }
-
-        // Reset to test data function
-        function resetToTestData() {
-            if (confirm('⚠️ Are you sure you want to reset to demo data?\n\nThis will:\n- Delete all current applicants\n- Restore original test data\n- Clear saved data\n\nThis action cannot be undone.')) {
-                console.log('🔄 Resetting to test data...');
-                
-                // Clear current data
-                applicants.length = 0;
-                
-                // Load test data
+            // Load data
+            if (!loadFromLocalStorage()) {
                 applicants.push(...originalTestData);
-                
-                // Reset botStats
-                botStats.totalReceived = 0;
-                botStats.lastReceived = 'Never';
-                botStats.connectionStatus = 'Ready';
-                botStats.lastPing = 'Never';
-                
-                // Save to localStorage
                 saveToLocalStorage();
-                
-                // Refresh UI
-                refreshAllSections();
-                
-                showNotification('🔄 Reset to demo data successfully - 8 test applicants loaded', 'success');
-                console.log('✅ Reset complete - Demo data loaded');
+                showNotification('👋 Welcome! Demo data loaded.', 'info');
+            } else {
+                showNotification('📥 Loaded saved data', 'success');
             }
-        }
-
-        // Validate all data for undefined values and Firebase compatibility
-        function validateData() {
-            console.log('🔍 Validating all data for Firebase compatibility...');
             
-            try {
-                // Validate botStats
-                validateBotStats();
-                
-                // Test data serialization
-                const testData = getAllDashboardData();
-                const serialized = JSON.stringify(testData);
-                
-                // Check for undefined values
-                const undefinedCount = (serialized.match(/undefined/g) || []).length;
-                const hasUndefined = serialized.includes('undefined');
-                
-                let report = `✅ DATA VALIDATION REPORT
-============================
-
-BOTSTATS VALIDATION:
-- Total Received: ${botStats.totalReceived} (${typeof botStats.totalReceived})
-- Last Received: ${botStats.lastReceived} (${typeof botStats.lastReceived})
-- Connection Status: ${botStats.connectionStatus} (${typeof botStats.connectionStatus})
-- Last Ping: ${botStats.lastPing} (${typeof botStats.lastPing})
-
-SERIALIZATION TEST:
-- Applicants: ${testData.applicants.length} records
-- Data size: ${(serialized.length / 1024).toFixed(2)} KB
-- Undefined values found: ${undefinedCount}
-- Contains undefined: ${hasUndefined ? '❌ YES' : '✅ NO'}
-
-FIREBASE COMPATIBILITY:
-${hasUndefined ? '❌ FAIL - Contains undefined values' : '✅ PASS - Ready for Firebase'}
-
-RECOMMENDATIONS:
-${hasUndefined ? '1. Data contains undefined values - needs cleaning\n2. Use "🗑️ Clear Firebase" then "☁️ Save to Cloud"' : '1. Data is clean and ready for Firebase\n2. Safe to save to Firebase'}
-
-Validation completed: ${new Date().toLocaleString()}`;
-
-                showModal('✅ Data Validation Report', report);
-                
-                if (hasUndefined) {
-                    showNotification('⚠️ Data validation found undefined values - Check report for details', 'error');
-                } else {
-                    showNotification('✅ Data validation passed - Ready for Firebase!', 'success');
-                }
-                
-            } catch (error) {
-                console.error('❌ Data validation failed:', error);
-                showNotification('❌ Data validation failed: ' + error.message, 'error');
-            }
-        }
-
-        // Clear Firebase data (for testing and debugging)
-        function clearFirebaseData() {
-            if (!database) {
-                showNotification('❌ Firebase not connected - cannot clear data', 'error');
-                return;
-            }
-
-            if (confirm('⚠️ Are you sure you want to PERMANENTLY DELETE all data from Firebase?\n\nThis will:\n- Delete all saved applicant data\n- Delete all bot statistics\n- Cannot be undone\n\nLocal data will remain unchanged.')) {
-                console.log('🗑️ Clearing Firebase data...');
-                
-                database.ref('aiBootcampDashboard').remove().then(() => {
-                    showNotification('✅ Firebase data cleared successfully', 'success');
-                    console.log('🔥 Firebase data cleared');
-                }).catch((error) => {
-                    showNotification('❌ Failed to clear Firebase data: ' + error.message, 'error');
-                    console.error('❌ Firebase clear error:', error);
-                });
-            }
-        }
-
-        // Test Firebase functionality
-        function testFirebase() {
-            console.log('🧪 Testing Firebase functionality...');
-            
-            if (!database) {
-                showNotification('❌ Firebase not connected - cannot test', 'error');
-                return;
-            }
-
-            const testData = {
-                currentApplicants: applicants.length,
-                botStats: botStats,
-                timestamp: new Date().toISOString(),
-                testId: 'TEST_' + Date.now()
-            };
-
-            console.log('📊 Current dashboard state:', testData);
-
-            // Test Firebase write
-            database.ref('aiBootcampDashboard/test').set(testData).then(() => {
-                console.log('✅ Firebase write test successful');
-                
-                // Test Firebase read
-                return database.ref('aiBootcampDashboard/test').once('value');
-            }).then((snapshot) => {
-                const readData = snapshot.val();
-                console.log('✅ Firebase read test successful:', readData);
-                
-                // Test current data integrity
-                database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
-                    const currentFirebaseData = snapshot.val();
-                    
-                    const report = `🧪 FIREBASE TEST RESULTS
-============================
-
-CONNECTION STATUS: ✅ Connected
-WRITE TEST: ✅ Successful
-READ TEST: ✅ Successful
-
-CURRENT LOCAL DATA:
-- Applicants: ${applicants.length}
-- Bot Stats: ${JSON.stringify(botStats, null, 2)}
-- Last Received: ${botStats.lastReceived || 'Never'}
-
-FIREBASE STORED DATA:
-- Stored Applicants: ${currentFirebaseData?.applicants?.length || 0}
-- Last Saved: ${currentFirebaseData?.lastSaved || 'Never'}
-- Last Auto-Saved: ${currentFirebaseData?.lastAutoSaved || 'Never'}
-- Metadata: ${JSON.stringify(currentFirebaseData?.metadata || {}, null, 2)}
-
-POTENTIAL ISSUES:
-${applicants.length !== (currentFirebaseData?.applicants?.length || 0) ? 
-'⚠️ LOCAL/FIREBASE DATA MISMATCH DETECTED!' : '✅ Data counts match'}
-
-RECOMMENDATIONS:
-1. Click "Save to Cloud" to sync current data
-2. Check console for detailed logs
-3. If issues persist, try "Load from Cloud" to reset
-
-Test completed: ${new Date().toLocaleString()}`;
-
-                    showModal('🧪 Firebase Test Results', report);
-                    showNotification('🧪 Firebase test completed - Check modal for details', 'success');
-                });
-
-            }).catch((error) => {
-                console.error('❌ Firebase test failed:', error);
-                showNotification('❌ Firebase test failed: ' + error.message, 'error');
-            });
-        }
-
-        const chatbots = [
-            { 
-                id: 1, 
-                name: 'AI Fundamentals Screener', 
-                course: 'AI Fundamentals', 
-                created: '2025-01-01', 
-                active: true 
-            },
-            { 
-                id: 2, 
-                name: 'Machine Learning Screener', 
-                course: 'Machine Learning', 
-                created: '2025-01-05', 
-                active: true 
-            },
-            { 
-                id: 3, 
-                name: 'Data Science Screener', 
-                course: 'Data Science', 
-                created: '2025-01-10', 
-                active: false 
-            }
-        ];
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing AI Bootcamp Dashboard with Persistent Data & Bot Integration');
-            
-            // Add global error handler
-            window.addEventListener('error', function(event) {
-                console.error('🚨 Global error caught:', event.error);
-                showNotification('🚨 An error occurred. Check console for details.', 'error');
-            });
-            
-            // Add unhandled promise rejection handler
-            window.addEventListener('unhandledrejection', function(event) {
-                console.error('🚨 Unhandled promise rejection:', event.reason);
-                showNotification('🚨 Promise rejection error. Check console for details.', 'error');
-            });
-            
-            // Initialize Firebase first
+            // Initialize Firebase
             initializeFirebase();
             
-            // Setup auto-save triggers (disabled to prevent Firebase serialization errors)
-            setupAutoSaveTriggers();
+            // Setup UI
+            refreshUI();
             
-            // Initialize dashboard with persistent data loading
-            init();
+            // Setup API for bot
+            window.addApplicantReport = function(data) {
+                console.log('🔗 Direct API call:', data);
+                const candidateData = extractCandidateData(data);
+                if (candidateData.name) addNewApplicant(candidateData);
+                return { status: 'success', timestamp: new Date().toISOString() };
+            };
             
-            // Setup modal event listener
-            const modal = document.getElementById('modal');
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) closeModal();
-                });
-            }
-            
-            // Force update statistics after data is loaded
-            setTimeout(() => {
-                updateStatistics();
-                updateSectionCounts();
-                updatePageTitle(); // Set initial page title
-                console.log('🔄 Updated UI after data loading');
-            }, 1000);
-            
-            // Show startup notification about new behavior
-            setTimeout(() => {
-                if (database) {
-                    showNotification('🔥 Data persistence active! Changes now save automatically and survive page refreshes.', 'success', 8000);
-                } else {
-                    showNotification('⚠️ Firebase not connected - using localStorage backup for data persistence', 'info', 6000);
-                }
-            }, 2000);
-            
-            // Console welcome message for enhanced bot integration
-            console.log(`
-🤖 AI BOOTCAMP DASHBOARD - ENHANCED DEBUG VERSION
-==================================================
+            console.log('✅ Dashboard ready for bot integration!');
+        }
 
-✅ Dashboard loaded successfully with persistent data
-✅ Firebase integration active (undefined values FIXED)
-✅ localStorage backup system implemented
-✅ Data now persists across page refreshes
-✅ Bot assessments are immediately saved and persist
-✅ Deleted applicants stay deleted after refresh
-✅ Enhanced bot listener ready for comprehensive candidate data
-✅ DEBUG MODE ENABLED - More permissive message handling
-
-🔧 DEBUG FEATURES ACTIVE:
-- ✅ Enhanced message logging and analysis
-- ✅ Permissive origin checking (for debugging)
-- ✅ Message log viewer (click "Message Log" in status)
-- ✅ Bot communication debugger (🔧 Debug Bot Communication button)
-- ✅ Detailed console logging for all messages
-- ✅ Automatic processing of rejected messages (for testing)
-
-📨 FROM YOUR BOT.HTML - ADD THIS CODE TO TEST:
-
-METHOD 1 - Simple Test Message:
-console.log('Testing dashboard connection...');
-window.parent.postMessage({
-    messageType: 'CONNECTION_TEST'
-}, '*');
-
-METHOD 2 - Simple Candidate Data:
-window.parent.postMessage({
-    name: 'Test Candidate',
-    email: 'test@example.com',
-    phone: '+1 (555) 123-4567',
-    score: 85,
-    bootcamp: 'AI Fundamentals',
-    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct']
-}, '*');
-
-METHOD 3 - Enhanced Candidate Report:
-window.parent.postMessage({
-    messageType: 'CANDIDATE_REPORT',
-    name: 'Enhanced Test',
-    email: 'enhanced@example.com',
-    phone: '+1 (555) 987-6543',
-    status: 'HIGHLY_SUITABLE',
-    score: 8.5,
-    course: 'AI Fundamentals',
-    location: 'London, UK',
-    employmentStatus: 'Unemployed',
-    ukResidency: 'Yes',
-    interviewStatus: 'Scheduled',
-    interviewBooked: true,
-    sessionId: 'TEST_' + Date.now(),
-    timestamp: new Date().toISOString()
-}, '*');
-
-🚨 DEBUGGING STEPS:
-1. Open browser console in BOTH bot.html AND dashboard
-2. Click "🔧 Debug Bot Communication" button in dashboard
-3. Add test code above to your bot.html
-4. Check "Message Log" to see if messages are received
-5. Look for console errors in both windows
-
-🎯 TROUBLESHOOTING:
-- If no messages in log: Bot not sending postMessage
-- If messages rejected: Wrong origin (but processed anyway in debug mode)
-- If messages received but not showing: Check data format
-- If dashboard not opened from bot: Use window.open() from bot
-
-Current stats: ${applicants.length} applicants loaded
-🔥 Firebase: ${database ? 'Connected & Clean' : 'Offline'}
-💾 localStorage: Active and saving changes
-🔧 DEBUG MODE: Active - Check all buttons and logs
-
-ENHANCED DEBUGGING READY! 🚀
-            `);
-            
-            // Additional ready message for bot sync
-            console.log('🎯 Enhanced bot integration active with PERSISTENT DATA - Changes now survive page refreshes!');
-        });
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
     </script>
 </body>
 </html>
