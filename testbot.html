@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🤖 AI Bootcamp Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <!--
     🤖 BOT INTEGRATION INSTRUCTIONS
     ================================
@@ -67,11 +70,41 @@
         .status-passed { background: #dcfce7; color: #166534; }
         .status-failed { background: #fecaca; color: #991b1b; }
         .status-waitlist { background: #fef3c7; color: #92400e; }
+        .status-processed { background: #dbeafe; color: #1e40af; }
         .upload-zone { border: 2px dashed #d1d5db; transition: border-color 0.2s; }
         .upload-zone:hover { border-color: #9ca3af; }
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .firebase-connected {
+            background: #27ae60;
+            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+        }
+        .firebase-disconnected {
+            background: #e74c3c;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+        }
+        .firebase-saving {
+            background: #f39c12;
+            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50">
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">
+        🔴 Firebase Disconnected
+    </div>
+
     <!-- Header -->
     <div class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,12 +117,22 @@
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2">
-                    <button onclick="showCSVData()" class="btn btn-green">
-                        📥 Show Excel Data
-                    </button>
-                    <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
-                        🔗 Test Bot Connection
-                    </button>
+                    <div class="flex space-x-2">
+                        <button onclick="showCSVData()" class="btn btn-green">
+                            📥 Show Excel Data
+                        </button>
+                        <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
+                            🔗 Test Bot Connection
+                        </button>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="saveToFirebase()" class="btn btn-blue text-sm">
+                            ☁️ Save to Cloud
+                        </button>
+                        <button onclick="loadFromFirebase()" class="btn btn-gray text-sm">
+                            📥 Load from Cloud
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,13 +160,13 @@
         <!-- Overview Tab -->
         <div id="content-overview" class="space-y-6">
             <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <div class="card p-6">
                     <div class="flex items-center">
                         <div class="text-3xl">👥</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Total Applicants</p>
-                            <p class="text-2xl font-bold text-gray-900">8</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-total">8</p>
                         </div>
                     </div>
                 </div>
@@ -132,7 +175,7 @@
                         <div class="text-3xl">✅</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Passed</p>
-                            <p class="text-2xl font-bold text-gray-900">4</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">4</p>
                         </div>
                     </div>
                 </div>
@@ -141,7 +184,7 @@
                         <div class="text-3xl">❌</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Failed</p>
-                            <p class="text-2xl font-bold text-gray-900">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">2</p>
                         </div>
                     </div>
                 </div>
@@ -150,7 +193,16 @@
                         <div class="text-3xl">⏳</div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-600">Waitlist</p>
-                            <p class="text-2xl font-bold text-gray-900">2</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">2</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="text-3xl">✔️</div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Processed</p>
+                            <p class="text-2xl font-bold text-gray-900" id="stat-processed">0</p>
                         </div>
                     </div>
                 </div>
@@ -186,9 +238,10 @@
             <div class="card overflow-hidden">
                 <div class="bg-green-50 px-6 py-4 border-b border-green-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (4)</h3>
-                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm">
-                            📥 Export Data
+                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (<span id="passed-count">4</span>)</h3>
+                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm flex items-center space-x-1 transition-colors">
+                            <div class="text-lg">📥</div>
+                            <span>Export Data</span>
                         </button>
                     </div>
                 </div>
@@ -203,9 +256,10 @@
             <div class="card overflow-hidden">
                 <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (2)</h3>
-                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm">
-                            📥 Export Data
+                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (<span id="waitlist-count">2</span>)</h3>
+                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm flex items-center space-x-1 transition-colors">
+                            <div class="text-lg">📥</div>
+                            <span>Export Data</span>
                         </button>
                     </div>
                 </div>
@@ -220,14 +274,33 @@
             <div class="card overflow-hidden">
                 <div class="bg-red-50 px-6 py-4 border-b border-red-200">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (2)</h3>
-                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm">
-                            📥 Export Data
+                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (<span id="failed-count">2</span>)</h3>
+                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm flex items-center space-x-1 transition-colors">
+                            <div class="text-lg">📥</div>
+                            <span>Export Data</span>
                         </button>
                     </div>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processed Applicants Section -->
+            <div class="card overflow-hidden">
+                <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-blue-800">✔️ Processed Applicants (<span id="processed-count">0</span>)</h3>
+                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm flex items-center space-x-1 transition-colors">
+                            <div class="text-lg">📥</div>
+                            <span>Export Data</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants">
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
@@ -334,14 +407,94 @@
     <script>
         // Dynamic applicants array - will receive new data from bot
         let applicants = [
-            { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 (555) 123-4567', date: '2025-01-15', status: 'passed', score: 85, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
-            { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 (555) 234-5678', date: '2025-01-14', status: 'failed', score: 45, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] },
-            { id: 3, name: 'Mike Chen', email: 'mike@email.com', phone: '+1 (555) 345-6789', date: '2025-01-13', status: 'waitlist', score: 65, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] },
-            { id: 4, name: 'Emily Davis', email: 'emily@email.com', phone: '+1 (555) 456-7890', date: '2025-01-12', status: 'passed', score: 92, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] },
-            { id: 5, name: 'Alex Rodriguez', email: 'alex@email.com', phone: '+1 (555) 567-8901', date: '2025-01-11', status: 'passed', score: 78, bootcamp: 'AI Fundamentals', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] },
-            { id: 6, name: 'Lisa Wang', email: 'lisa@email.com', phone: '+1 (555) 678-9012', date: '2025-01-10', status: 'waitlist', score: 68, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] },
-            { id: 7, name: 'David Brown', email: 'david@email.com', phone: '+1 (555) 789-0123', date: '2025-01-09', status: 'failed', score: 42, bootcamp: 'AI Fundamentals', responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] },
-            { id: 8, name: 'Jennifer Lee', email: 'jennifer@email.com', phone: '+1 (555) 890-1234', date: '2025-01-08', status: 'passed', score: 89, bootcamp: 'Machine Learning', responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] }
+            { 
+                id: 1, 
+                name: 'John Smith', 
+                email: 'john@email.com', 
+                phone: '+1 (555) 123-4567', 
+                date: '2025-01-15', 
+                status: 'passed', 
+                score: 85, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+            },
+            { 
+                id: 2, 
+                name: 'Sarah Johnson', 
+                email: 'sarah@email.com', 
+                phone: '+1 (555) 234-5678', 
+                date: '2025-01-14', 
+                status: 'failed', 
+                score: 45, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Incorrect', 'Correct', 'Incorrect', 'Incorrect', 'Correct'] 
+            },
+            { 
+                id: 3, 
+                name: 'Mike Chen', 
+                email: 'mike@email.com', 
+                phone: '+1 (555) 345-6789', 
+                date: '2025-01-13', 
+                status: 'waitlist', 
+                score: 65, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 4, 
+                name: 'Emily Davis', 
+                email: 'emily@email.com', 
+                phone: '+1 (555) 456-7890', 
+                date: '2025-01-12', 
+                status: 'passed', 
+                score: 92, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Correct', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 5, 
+                name: 'Alex Rodriguez', 
+                email: 'alex@email.com', 
+                phone: '+1 (555) 567-8901', 
+                date: '2025-01-11', 
+                status: 'passed', 
+                score: 78, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'] 
+            },
+            { 
+                id: 6, 
+                name: 'Lisa Wang', 
+                email: 'lisa@email.com', 
+                phone: '+1 (555) 678-9012', 
+                date: '2025-01-10', 
+                status: 'waitlist', 
+                score: 68, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Incorrect'] 
+            },
+            { 
+                id: 7, 
+                name: 'David Brown', 
+                email: 'david@email.com', 
+                phone: '+1 (555) 789-0123', 
+                date: '2025-01-09', 
+                status: 'failed', 
+                score: 42, 
+                bootcamp: 'AI Fundamentals', 
+                responses: ['Incorrect', 'Incorrect', 'Correct', 'Incorrect', 'Correct'] 
+            },
+            { 
+                id: 8, 
+                name: 'Jennifer Lee', 
+                email: 'jennifer@email.com', 
+                phone: '+1 (555) 890-1234', 
+                date: '2025-01-08', 
+                status: 'passed', 
+                score: 89, 
+                bootcamp: 'Machine Learning', 
+                responses: ['Correct', 'Correct', 'Correct', 'Incorrect', 'Correct'] 
+            }
         ];
 
         // Bot Integration - Statistics tracking
@@ -351,16 +504,281 @@
             connectionStatus: 'Ready'
         };
 
+        // 🔥 FIREBASE INTEGRATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+            authDomain: "prospecting-f2f42.firebaseapp.com",
+            databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "prospecting-f2f42",
+            storageBucket: "prospecting-f2f42.firebasestorage.app",
+            messagingSenderId: "292034226428",
+            appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+            measurementId: "G-WWB0JTX2L2"
+        };
+
+        let database = null;
+        let firebaseApp = null;
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    database = firebase.database();
+                    updateFirebaseStatus('connected');
+                    console.log('🔥 Firebase initialized successfully');
+                    
+                    // Auto-load data on startup
+                    loadFromFirebase();
+                    
+                    // Set up auto-save every 60 seconds
+                    setInterval(autoSaveToFirebase, 60000);
+                } else {
+                    console.log('Firebase not available - running in offline mode');
+                    updateFirebaseStatus('disconnected');
+                }
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                updateFirebaseStatus('disconnected');
+                console.log('Continuing in offline mode');
+            }
+        }
+
+        // Update Firebase status indicator
+        function updateFirebaseStatus(status) {
+            const statusElement = document.getElementById('firebase-status');
+            if (!statusElement) return;
+            
+            if (status === 'connected') {
+                statusElement.className = 'firebase-status firebase-connected';
+                statusElement.innerHTML = '🟢 Firebase Connected';
+            } else if (status === 'saving') {
+                statusElement.className = 'firebase-status firebase-saving';
+                statusElement.innerHTML = '🟡 Saving to Cloud...';
+            } else {
+                statusElement.className = 'firebase-status firebase-disconnected';
+                statusElement.innerHTML = '🔴 Firebase Disconnected';
+            }
+        }
+
+        // Collect all dashboard data for Firebase
+        function getAllDashboardData() {
+            return {
+                applicants: applicants,
+                botStats: botStats,
+                metadata: {
+                    totalApplicants: applicants.length,
+                    passed: applicants.filter(a => a.status === 'passed').length,
+                    failed: applicants.filter(a => a.status === 'failed').length,
+                    waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                    processed: applicants.filter(a => a.status === 'processed').length,
+                    lastUpdated: new Date().toISOString()
+                }
+            };
+        }
+
+        // Save to Firebase
+        function saveToFirebase() {
+            if (!database) {
+                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
+                return;
+            }
+
+            updateFirebaseStatus('saving');
+            const allData = getAllDashboardData();
+            const timestamp = new Date().toISOString();
+
+            database.ref('aiBootcampDashboard').set({
+                ...allData,
+                lastSaved: timestamp,
+                version: '1.0'
+            }).then(() => {
+                updateFirebaseStatus('connected');
+                showNotification('✅ Dashboard data saved to Firebase successfully!', 'success');
+                console.log('🔥 Dashboard data saved to Firebase at:', timestamp);
+            }).catch((error) => {
+                updateFirebaseStatus('disconnected');
+                showNotification('❌ Failed to save to Firebase: ' + error.message, 'error');
+                console.error('Firebase save error:', error);
+            });
+        }
+
+        // Auto-save to Firebase
+        function autoSaveToFirebase() {
+            if (!database || applicants.length === 0) return;
+
+            updateFirebaseStatus('saving');
+            const allData = getAllDashboardData();
+
+            database.ref('aiBootcampDashboard').update({
+                ...allData,
+                lastAutoSaved: new Date().toISOString()
+            }).then(() => {
+                updateFirebaseStatus('connected');
+                console.log('🔥 Auto-saved dashboard to Firebase');
+                showSaveConfirmation();
+            }).catch((error) => {
+                updateFirebaseStatus('disconnected');
+                console.error('Auto-save failed:', error);
+            });
+        }
+
+        // Save confirmation visual feedback
+        function showSaveConfirmation() {
+            const confirmation = document.createElement('div');
+            confirmation.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-weight: 600;
+                z-index: 1001;
+                box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+                transition: all 0.3s ease;
+            `;
+            confirmation.textContent = '✓ Auto-Saved';
+            document.body.appendChild(confirmation);
+
+            setTimeout(() => {
+                confirmation.style.opacity = '0';
+                confirmation.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    if (confirmation.parentNode) {
+                        confirmation.parentNode.removeChild(confirmation);
+                    }
+                }, 300);
+            }, 2000);
+        }
+
+        // Load from Firebase
+        function loadFromFirebase() {
+            if (!database) {
+                showNotification('❌ Firebase not connected. Please check your configuration.', 'error');
+                return;
+            }
+
+            database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
+                const firebaseData = snapshot.val();
+
+                if (!firebaseData || !firebaseData.applicants) {
+                    console.log('No dashboard data found in Firebase');
+                    showNotification('ℹ️ No saved data found in Firebase', 'info');
+                    return;
+                }
+
+                // Load applicants data
+                applicants.length = 0; // Clear existing data
+                applicants.push(...firebaseData.applicants);
+
+                // Load bot stats if available
+                if (firebaseData.botStats) {
+                    Object.assign(botStats, firebaseData.botStats);
+                }
+
+                // Refresh the entire UI
+                refreshAllSections();
+
+                const lastSaved = firebaseData.lastSaved || firebaseData.lastAutoSaved;
+                showNotification(`✅ Dashboard data loaded from Firebase!`, 'success');
+                console.log('🔥 Dashboard data loaded from Firebase:', lastSaved);
+
+            }).catch((error) => {
+                showNotification('❌ Failed to load from Firebase: ' + error.message, 'error');
+                console.error('Firebase load error:', error);
+            });
+        }
+
         // 🤖 BOT INTEGRATION FUNCTIONS
         
-        // Listen for reports from bot.html
+        // Enhanced listener for messages from bot.html with security and message types
         window.addEventListener('message', function(event) {
-            // Security check - only accept from your domain
-            if (event.origin.includes('github.io')) {
-                console.log('📨 Received data from bot:', event.data);
+            console.log('📨 Received message from:', event.origin, 'Data:', event.data);
+            
+            // Security check - accept from your domain and localhost for testing
+            if (!event.origin.includes('github.io') && !event.origin.includes('localhost')) {
+                console.log('🚫 Rejected message from unauthorized origin:', event.origin);
+                return;
+            }
+            
+            // Handle structured messages with messageType (new format)
+            if (event.data && event.data.messageType) {
+                console.log('📊 Processing structured message:', event.data.messageType);
+                
+                if (event.data.messageType === 'CANDIDATE_REPORT') {
+                    console.log('✅ Candidate report received:', event.data.name, 'Score:', event.data.score);
+                    displayCandidateReport(event.data);
+                    
+                    // Auto-show modal if requested
+                    if (event.data.autoShow) {
+                        showCandidateModal(event.data);
+                    }
+                    
+                    return;
+                }
+                
+                if (event.data.messageType === 'CONNECTION_TEST') {
+                    console.log('🔧 Connection test successful from bot.html');
+                    showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
+                    return;
+                }
+            }
+            
+            // Handle legacy format (backwards compatibility)
+            if (event.data && (event.data.name || event.data.email)) {
+                console.log('📨 Processing legacy format message');
                 processIncomingReport(event.data);
             }
         });
+
+        // Function to display candidate data (new structured format)
+        function displayCandidateReport(candidateData) {
+            console.log('🎯 Displaying candidate report:', candidateData);
+            
+            // Convert structured format to our internal format
+            const reportData = {
+                name: candidateData.name || 'Unknown Candidate',
+                email: candidateData.email || 'no-email@example.com',
+                phone: candidateData.phone || '+1 (555) 000-0000',
+                score: candidateData.score || 0,
+                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
+                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                autoShow: candidateData.autoShow || false,
+                messageType: candidateData.messageType // Preserve message type
+            };
+            
+            // Process using existing system
+            processIncomingReport(reportData);
+            
+            // Show additional notification for structured reports
+            showNotification(`📊 Structured report received: ${reportData.name} (Score: ${reportData.score})`, 'success');
+        }
+
+        // Function to show candidate modal (enhanced)
+        function showCandidateModal(candidateData) {
+            console.log('📋 Showing modal for candidate:', candidateData.name);
+            
+            // Create a temporary applicant object for the modal
+            const tempApplicant = {
+                id: Date.now(),
+                name: candidateData.name || 'Unknown Candidate',
+                email: candidateData.email || 'no-email@example.com',
+                phone: candidateData.phone || '+1 (555) 000-0000',
+                date: new Date().toISOString().split('T')[0],
+                status: determineStatus(candidateData.score || 0),
+                score: candidateData.score || 0,
+                bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
+                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                submissionTime: new Date().toLocaleString(),
+                source: 'Bot Submission (Structured)',
+                messageType: candidateData.messageType
+            };
+            
+            // Show the individual report modal
+            showIndividualReport(tempApplicant);
+        }
 
         // Process URL parameters for direct report submission
         function checkURLParams() {
@@ -413,6 +831,11 @@
                 // Show success notification
                 showNotification(`✅ New applicant received: ${newApplicant.name} (${newApplicant.status})`, 'success');
                 
+                // Auto-save to Firebase
+                if (database) {
+                    setTimeout(autoSaveToFirebase, 3000);
+                }
+                
                 // Auto-show report if requested
                 if (data.autoShow) {
                     setTimeout(() => showIndividualReport(newApplicant), 1000);
@@ -436,14 +859,19 @@
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connection-status');
             if (statusEl) {
+                const firebaseStatus = database ? '🟢 Firebase' : '🔴 Offline';
                 statusEl.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
-                        <span class="text-sm text-gray-600">
-                            Bot Status: ${botStats.connectionStatus} | 
-                            Reports: ${botStats.totalReceived} | 
-                            Last: ${botStats.lastReceived || 'Never'}
-                        </span>
+                    <div class="flex items-center space-x-4 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
+                            <span class="text-gray-600">Bot: ${botStats.connectionStatus}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-gray-600">${firebaseStatus}</span>
+                        </div>
+                        <div class="text-gray-500">
+                            Reports: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
+                        </div>
                     </div>
                 `;
             }
@@ -476,6 +904,7 @@
             document.getElementById('passed-applicants').innerHTML = '';
             document.getElementById('waitlist-applicants').innerHTML = '';
             document.getElementById('failed-applicants').innerHTML = '';
+            document.getElementById('processed-applicants').innerHTML = '';
             
             // Re-initialize with updated data
             populateRecentApplicants();
@@ -489,13 +918,24 @@
             const passedCount = applicants.filter(a => a.status === 'passed').length;
             const failedCount = applicants.filter(a => a.status === 'failed').length;
             const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const processedCount = applicants.filter(a => a.status === 'processed').length;
+
+            console.log('📊 Updating statistics:', { totalCount, passedCount, failedCount, waitlistCount, processedCount });
 
             // Update the numbers in statistics cards
-            const cards = document.querySelectorAll('.card p.text-2xl');
-            if (cards[0]) cards[0].textContent = totalCount;
-            if (cards[1]) cards[1].textContent = passedCount;
-            if (cards[2]) cards[2].textContent = failedCount;
-            if (cards[3]) cards[3].textContent = waitlistCount;
+            const statTotal = document.getElementById('stat-total');
+            const statPassed = document.getElementById('stat-passed');
+            const statFailed = document.getElementById('stat-failed');
+            const statWaitlist = document.getElementById('stat-waitlist');
+            const statProcessed = document.getElementById('stat-processed');
+
+            if (statTotal) statTotal.textContent = totalCount;
+            if (statPassed) statPassed.textContent = passedCount;
+            if (statFailed) statFailed.textContent = failedCount;
+            if (statWaitlist) statWaitlist.textContent = waitlistCount;
+            if (statProcessed) statProcessed.textContent = processedCount;
+
+            console.log('✅ Statistics updated successfully');
         }
 
         // Update section count headers
@@ -503,57 +943,37 @@
             const passedCount = applicants.filter(a => a.status === 'passed').length;
             const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
             const failedCount = applicants.filter(a => a.status === 'failed').length;
+            const processedCount = applicants.filter(a => a.status === 'processed').length;
 
-            // Update headers
-            const headers = document.querySelectorAll('[id$="-applicants"]').forEach((section, index) => {
-                const header = section.previousElementSibling?.querySelector('h3');
-                if (header) {
-                    if (header.textContent.includes('Passed')) {
-                        header.textContent = `✅ Passed Applicants (${passedCount})`;
-                    } else if (header.textContent.includes('Waitlist')) {
-                        header.textContent = `⏳ Waitlist Applicants (${waitlistCount})`;
-                    } else if (header.textContent.includes('Failed')) {
-                        header.textContent = `❌ Failed Applicants (${failedCount})`;
-                    }
-                }
-            });
+            // Update count displays
+            const processedCountEl = document.getElementById('processed-count');
+            if (processedCountEl) processedCountEl.textContent = processedCount;
         }
-
-        // API endpoint simulation for bot integration
-        window.addApplicantReport = function(reportData) {
-            console.log('🔗 Direct API call received:', reportData);
-            processIncomingReport(reportData);
-        };
-
-        // Export function for bot integration
-        window.getDashboardStats = function() {
-            return {
-                totalApplicants: applicants.length,
-                passed: applicants.filter(a => a.status === 'passed').length,
-                failed: applicants.filter(a => a.status === 'failed').length,
-                waitlist: applicants.filter(a => a.status === 'waitlist').length,
-                botStats: botStats
-            };
-        };
-
-        const chatbots = [
-            { id: 1, name: 'AI Fundamentals Screener', course: 'AI Fundamentals', created: '2025-01-01', active: true },
-            { id: 2, name: 'Machine Learning Screener', course: 'Machine Learning', created: '2025-01-05', active: true },
-            { id: 3, name: 'Data Science Screener', course: 'Data Science', created: '2025-01-10', active: false }
-        ];
 
         // Tab switching
         function switchTab(tabName) {
+            console.log('🔄 Switching to tab:', tabName);
+            
             // Hide all content
             document.querySelectorAll('[id^="content-"]').forEach(el => el.style.display = 'none');
+            
             // Show selected content
-            document.getElementById('content-' + tabName).style.display = 'block';
+            const selectedContent = document.getElementById('content-' + tabName);
+            if (selectedContent) {
+                selectedContent.style.display = 'block';
+            }
             
             // Update tab styles
             document.querySelectorAll('[id^="tab-"]').forEach(el => {
                 el.className = el.className.replace('tab-active', 'tab-inactive');
             });
-            document.getElementById('tab-' + tabName).className = document.getElementById('tab-' + tabName).className.replace('tab-inactive', 'tab-active');
+            
+            const selectedTab = document.getElementById('tab-' + tabName);
+            if (selectedTab) {
+                selectedTab.className = selectedTab.className.replace('tab-inactive', 'tab-active');
+            }
+            
+            console.log('✅ Tab switched to:', tabName);
         }
 
         // Modal functions
@@ -577,8 +997,90 @@
                     btn.textContent = 'Copy to Clipboard';
                     btn.className = btn.className.replace('btn-green', 'btn-blue');
                 }, 2000);
+            }).catch(() => {
+                // Fallback if clipboard API fails
+                console.log('Clipboard API failed, manual copy required');
             });
         }
+
+        // Delete applicant
+        function deleteApplicant(applicantId) {
+            if (confirm('Are you sure you want to permanently delete this applicant? This action cannot be undone.')) {
+                const index = applicants.findIndex(a => a.id === applicantId);
+                if (index !== -1) {
+                    const deletedApplicant = applicants[index];
+                    applicants.splice(index, 1);
+                    refreshAllSections();
+                    showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
+                    }
+                }
+            }
+        }
+
+        // Move applicant to processed
+        function moveToProcessed(applicantId) {
+            if (confirm('Mark this applicant as processed? This means the application has been reviewed and actioned.')) {
+                const applicant = applicants.find(a => a.id === applicantId);
+                if (applicant) {
+                    applicant.status = 'processed';
+                    applicant.processedDate = new Date().toLocaleString();
+                    applicant.processedBy = 'Dashboard User';
+                    
+                    refreshAllSections();
+                    showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
+                    }
+                }
+            }
+        }
+
+        // Restore from processed
+        function restoreFromProcessed(applicantId) {
+            if (confirm('Restore this applicant to active status? They will be moved back to their original category.')) {
+                const applicant = applicants.find(a => a.id === applicantId);
+                if (applicant) {
+                    applicant.status = determineStatus(applicant.score);
+                    delete applicant.processedDate;
+                    delete applicant.processedBy;
+                    
+                    refreshAllSections();
+                    showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
+                    
+                    // Auto-save to Firebase
+                    if (database) {
+                        setTimeout(autoSaveToFirebase, 2000);
+                    }
+                }
+            }
+        }
+
+        // Utility functions
+        const getStatusColor = (status) => {
+            switch(status) {
+                case 'passed': return 'text-green-600 bg-green-100';
+                case 'failed': return 'text-red-600 bg-red-100';
+                case 'waitlist': return 'text-yellow-600 bg-yellow-100';
+                case 'processed': return 'text-blue-600 bg-blue-100';
+                default: return 'text-gray-600 bg-gray-100';
+            }
+        };
+
+        const getStatusIcon = (status) => {
+            switch(status) {
+                case 'passed': return '✅';
+                case 'failed': return '❌';
+                case 'waitlist': return '⏳';
+                case 'processed': return '✔️';
+                default: return null;
+            }
+        };
 
         // Data functions
         function showCSVData() {
@@ -614,6 +1116,8 @@ ${applicant.source ? `Source: ${applicant.source}` : ''}
 SCREENING RESULTS
 Overall Score: ${applicant.score}%
 Status: ${applicant.status.toUpperCase()}
+${applicant.processedDate ? `Processed Date: ${applicant.processedDate}` : ''}
+${applicant.processedBy ? `Processed By: ${applicant.processedBy}` : ''}
 
 QUESTION-BY-QUESTION BREAKDOWN
 Question 1: ${applicant.responses[0]}
@@ -625,7 +1129,8 @@ Question 5: ${applicant.responses[4]}
 RECOMMENDATION
 ${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements for the bootcamp.' :
   applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
-  'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.'}
+  applicant.status === 'failed' ? 'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.' :
+  'PROCESSED - This application has been reviewed and appropriate action has been taken.'}
 
 TECHNICAL DETAILS
 Applicant ID: ${applicant.id}
@@ -633,22 +1138,6 @@ ${applicant.source === 'Bot Submission' ? 'Received via automated bot integratio
 
 Generated on: ${new Date().toLocaleString()}`;
             showModal(`📋 Screening Report - ${applicant.name}`, report);
-        }
-
-        // Test bot integration
-        function testBotIntegration() {
-            const testData = {
-                name: 'Test Applicant ' + Math.floor(Math.random() * 1000),
-                email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
-                phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                score: Math.floor(Math.random() * 100),
-                bootcamp: 'AI Fundamentals',
-                responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
-                autoShow: true
-            };
-            
-            console.log('🧪 Testing bot integration with data:', testData);
-            processIncomingReport(testData);
         }
 
         function createChatbot() {
@@ -728,6 +1217,42 @@ This action CANNOT be undone!`;
             showModal(`🗑️ Delete Chatbot - ${chatbot.name}`, report);
         }
 
+        // Test bot integration (enhanced to test both formats)
+        function testBotIntegration() {
+            const testType = Math.random() > 0.5 ? 'structured' : 'legacy';
+            
+            if (testType === 'structured') {
+                // Test new structured format
+                const testData = {
+                    messageType: 'CANDIDATE_REPORT',
+                    name: 'Test Candidate ' + Math.floor(Math.random() * 1000),
+                    email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
+                    phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                    score: Math.floor(Math.random() * 100),
+                    course: 'AI Fundamentals',
+                    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
+                    autoShow: true
+                };
+                
+                console.log('🧪 Testing structured format integration with data:', testData);
+                displayCandidateReport(testData);
+            } else {
+                // Test legacy format
+                const testData = {
+                    name: 'Legacy Test ' + Math.floor(Math.random() * 1000),
+                    email: 'legacy' + Math.floor(Math.random() * 1000) + '@example.com',
+                    phone: '+1 (555) 888-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
+                    score: Math.floor(Math.random() * 100),
+                    bootcamp: 'Machine Learning',
+                    responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
+                    autoShow: true
+                };
+                
+                console.log('🧪 Testing legacy format integration with data:', testData);
+                processIncomingReport(testData);
+            }
+        }
+
         // Initialize page
         function init() {
             console.log('🚀 Initializing AI Bootcamp Dashboard with Bot Integration');
@@ -735,25 +1260,33 @@ This action CANNOT be undone!`;
             // Check for URL parameters first
             checkURLParams();
             
+            // Update statistics immediately
+            updateStatistics();
+            
             // Populate all sections
             populateRecentApplicants();
             populateApplicantSections();
             populateChatbotsTable();
             updateConnectionStatus();
+            updateSectionCounts();
             
-            console.log('✅ Dashboard initialized successfully');
+            console.log('✅ Dashboard initialized successfully with', applicants.length, 'applicants');
         }
 
         // Populate recent applicants
         function populateRecentApplicants() {
             const recentContainer = document.getElementById('recent-applicants');
+            if (!recentContainer) {
+                console.log('⚠️ Recent applicants container not found');
+                return;
+            }
+            
             recentContainer.innerHTML = '';
+            console.log('🔄 Populating recent applicants section');
             
             applicants.slice(0, 5).forEach(applicant => {
-                const statusClass = applicant.status === 'passed' ? 'status-passed' : 
-                                  applicant.status === 'failed' ? 'status-failed' : 'status-waitlist';
-                const statusEmoji = applicant.status === 'passed' ? '✅' : 
-                                  applicant.status === 'failed' ? '❌' : '⏳';
+                const statusClass = getStatusColor(applicant.status);
+                const statusEmoji = getStatusIcon(applicant.status);
                 
                 recentContainer.innerHTML += `
                     <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
@@ -777,17 +1310,51 @@ This action CANNOT be undone!`;
                     </div>
                 `;
             });
+            
+            console.log('✅ Populated recent applicants with', Math.min(5, applicants.length), 'entries');
         }
 
         // Populate applicant sections
         function populateApplicantSections() {
-            ['passed', 'waitlist', 'failed'].forEach(status => {
+            console.log('🔄 Populating applicant sections with', applicants.length, 'total applicants');
+            
+            ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
                 const container = document.getElementById(status + '-applicants');
+                if (!container) {
+                    console.log('⚠️ Container not found for status:', status);
+                    return;
+                }
+                
                 container.innerHTML = '';
                 const filtered = applicants.filter(a => a.status === status);
-                const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'yellow';
+                console.log(`📊 Found ${filtered.length} applicants with status: ${status}`);
+                
+                const colorClass = status === 'passed' ? 'green' : 
+                                  status === 'failed' ? 'red' : 
+                                  status === 'waitlist' ? 'yellow' : 'blue';
                 
                 filtered.forEach(applicant => {
+                    const actionButtons = status === 'processed' ? 
+                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">
+                            ↩️ Restore to Active
+                        </button>
+                        <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">
+                            🗑️ Delete Permanently
+                        </button>` :
+                        `<div class="space-y-2">
+                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
+                                📋 View Report
+                            </button>
+                            <div class="flex space-x-2">
+                                <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">
+                                    ✔️ Mark Processed
+                                </button>
+                                <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>`;
+
                     container.innerHTML += `
                         <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
                             <div class="flex items-start justify-between mb-3">
@@ -796,6 +1363,7 @@ This action CANNOT be undone!`;
                                     <p class="text-sm text-gray-600">${applicant.email}</p>
                                     <p class="text-sm text-gray-600">${applicant.phone}</p>
                                     ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
+                                    ${applicant.processedDate ? `<p class="text-xs text-blue-600">Processed: ${applicant.processedDate}</p>` : ''}
                                 </div>
                                 <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
                             </div>
@@ -803,18 +1371,23 @@ This action CANNOT be undone!`;
                                 <span>${applicant.bootcamp}</span>
                                 <span>${applicant.date}</span>
                             </div>
-                            <button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass}">
-                                📋 View Report
-                            </button>
+                            ${actionButtons}
                         </div>
                     `;
                 });
             });
+            
+            console.log('✅ Completed populating all applicant sections');
         }
 
         // Populate chatbots table
         function populateChatbotsTable() {
             const chatbotsContainer = document.getElementById('chatbots-table');
+            if (!chatbotsContainer) {
+                console.log('⚠️ Chatbots table container not found');
+                return;
+            }
+            
             chatbotsContainer.innerHTML = '';
             
             chatbots.forEach(chatbot => {
@@ -835,33 +1408,136 @@ This action CANNOT be undone!`;
                     </tr>
                 `;
             });
+            
+            console.log('✅ Populated chatbots table with', chatbots.length, 'chatbots');
         }
 
-        // Close modal when clicking outside
-        document.getElementById('modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
+        // Export function for bot integration
+        window.getDashboardStats = function() {
+            return {
+                totalApplicants: applicants.length,
+                passed: applicants.filter(a => a.status === 'passed').length,
+                failed: applicants.filter(a => a.status === 'failed').length,
+                waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                processed: applicants.filter(a => a.status === 'processed').length,
+                botStats: botStats
+            };
+        };
+
+        // API endpoint simulation for bot integration (enhanced)
+        window.addApplicantReport = function(reportData) {
+            console.log('🔗 Direct API call received:', reportData);
+            if (reportData.messageType === 'CANDIDATE_REPORT') {
+                displayCandidateReport(reportData);
+            } else {
+                processIncomingReport(reportData);
+            }
+        };
+
+        // Connection test function for bot.html
+        window.testConnection = function() {
+            console.log('🔧 Connection test initiated');
+            showNotification('✅ Connection test successful! Dashboard is ready to receive reports.', 'success');
+            return {
+                status: 'connected',
+                timestamp: new Date().toISOString(),
+                dashboardReady: true,
+                supportedFormats: ['legacy', 'structured']
+            };
+        };
+
+        // Setup auto-save triggers
+        function setupAutoSaveTriggers() {
+            // Auto-save when new applicants are added
+            const originalPush = applicants.push;
+            applicants.push = function(...items) {
+                const result = originalPush.apply(this, items);
+                if (database) {
+                    setTimeout(autoSaveToFirebase, 2000);
+                }
+                return result;
+            };
+        }
+
+        const chatbots = [
+            { 
+                id: 1, 
+                name: 'AI Fundamentals Screener', 
+                course: 'AI Fundamentals', 
+                created: '2025-01-01', 
+                active: true 
+            },
+            { 
+                id: 2, 
+                name: 'Machine Learning Screener', 
+                course: 'Machine Learning', 
+                created: '2025-01-05', 
+                active: true 
+            },
+            { 
+                id: 3, 
+                name: 'Data Science Screener', 
+                course: 'Data Science', 
+                created: '2025-01-10', 
+                active: false 
+            }
+        ];
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Initializing AI Bootcamp Dashboard with Firebase & Bot Integration');
+            
+            // Initialize Firebase first
+            initializeFirebase();
+            
+            // Setup auto-save triggers
+            setupAutoSaveTriggers();
+            
+            // Initialize dashboard - CRITICAL: This must run to show applicants
             init();
+            
+            // Setup modal event listener
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) closeModal();
+                });
+            }
+            
+            // Force update statistics after short delay to ensure DOM is ready
+            setTimeout(() => {
+                updateStatistics();
+                updateSectionCounts();
+                console.log('🔄 Force-updated statistics and sections');
+            }, 500);
             
             // Console welcome message for bot integration
             console.log(`
-🤖 AI BOOTCAMP DASHBOARD - BOT INTEGRATION READY!
-=================================================
+🤖 AI BOOTCAMP DASHBOARD - FULLY INTEGRATED!
+=============================================
 
 ✅ Dashboard loaded successfully
+✅ Firebase integration active
+✅ Auto-save enabled (every 60 seconds)
+✅ Enhanced bot listener ready - waiting for bot.html reports
 ✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
-✅ Ready to receive applicant data
+✅ Ready to receive applicant data (both legacy and structured formats)
 
 📨 Send reports using:
-   window.parent.postMessage(reportData, '*')
+   Legacy: window.parent.postMessage(reportData, '*')
+   Structured: window.parent.postMessage({messageType: 'CANDIDATE_REPORT', ...data}, '*')
 
 🧪 Test integration with the "Test Bot Connection" button
+☁️ Save/Load data with Firebase cloud storage
+🗑️ Delete applicants or mark as processed
+✔️ Move completed applications to processed section
+🎯 Enhanced security checks and message type handling
 
 📊 Current stats: ${applicants.length} applicants loaded
             `);
+            
+            // Additional ready message for bot sync
+            console.log('🎯 Enhanced testbot.html listener ready - waiting for bot.html reports with security validation');
         });
     </script>
 </body>
