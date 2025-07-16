@@ -130,6 +130,9 @@
                         <button onclick="pingBotURL()" class="btn btn-yellow text-sm">
                             📡 Ping Bot URL
                         </button>
+                        <button onclick="debugBotCommunication()" class="btn btn-red text-sm">
+                            🔧 Debug Bot Communication
+                        </button>
                     </div>
                     <div class="flex space-x-2">
                         <button onclick="saveToFirebase()" class="btn btn-blue text-sm">
@@ -929,20 +932,42 @@
         window.addEventListener('message', function(event) {
             console.log('📨 Received message from:', event.origin, 'Data:', event.data);
             
-            // Security check - specifically allow your bot URL and localhost for testing
+            // Log all messages for debugging
+            logMessage(event);
+            
+            // More permissive security check for debugging
             const allowedOrigins = [
                 'https://terence1975-coder.github.io',
                 'http://localhost',
                 'https://localhost',
                 'http://127.0.0.1',
-                'https://127.0.0.1'
+                'https://127.0.0.1',
+                'null', // For local file testing
+                '' // For same-origin
             ];
             
-            const isAllowed = allowedOrigins.some(origin => event.origin.startsWith(origin));
+            const isAllowed = allowedOrigins.some(origin => 
+                event.origin === origin || 
+                event.origin.startsWith(origin) ||
+                event.origin.includes('github.io')
+            );
+            
+            // For debugging - log all message attempts
+            console.log('🔍 Message analysis:', {
+                origin: event.origin,
+                allowed: isAllowed,
+                dataType: typeof event.data,
+                dataKeys: event.data ? Object.keys(event.data) : 'No data',
+                rawData: event.data
+            });
             
             if (!isAllowed) {
-                console.log('🚫 Rejected message from unauthorized origin:', event.origin);
-                showNotification(`🚫 Rejected message from unauthorized origin: ${event.origin}`, 'error');
+                console.log('🚫 Rejected message from origin:', event.origin);
+                showNotification(`🚫 Message rejected from: ${event.origin}. Data: ${JSON.stringify(event.data)}`, 'error', 10000);
+                
+                // But still process it for debugging (comment this out in production)
+                console.log('🔧 Processing anyway for debugging...');
+                processMessageForDebugging(event.data);
                 return;
             }
             
@@ -967,17 +992,73 @@
                 if (event.data.messageType === 'CONNECTION_TEST') {
                     console.log('🔧 Connection test successful from bot.html');
                     showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
-                    alert('✅ Connection working! Bot.html → Dashboard communication confirmed');
+                    if (event.data.source !== 'self-test') {
+                        alert('✅ Connection working! Bot.html → Dashboard communication confirmed');
+                    }
                     return;
                 }
             }
             
             // Handle legacy format (backwards compatibility)
-            if (event.data && (event.data.name || event.data.email)) {
+            if (event.data && (event.data.name || event.data.email || event.data.candidate_name)) {
                 console.log('📨 Processing legacy format message');
                 processIncomingReport(event.data);
+                return;
             }
+            
+            // Handle any object with candidate data
+            if (event.data && typeof event.data === 'object') {
+                console.log('🔍 Processing generic object message');
+                processIncomingReport(event.data);
+                return;
+            }
+            
+            console.log('⚠️ Unrecognized message format:', event.data);
+            showNotification(`⚠️ Received unrecognized message: ${JSON.stringify(event.data)}`, 'info', 8000);
         });
+
+        // Message logging for debugging
+        let messageLog = [];
+        
+        // Add to the message listener to log all messages
+        function logMessage(event) {
+            messageLog.push({
+                timestamp: new Date().toISOString(),
+                origin: event.origin,
+                data: event.data,
+                accepted: true
+            });
+            
+            // Keep only last 50 messages
+            if (messageLog.length > 50) {
+                messageLog = messageLog.slice(-50);
+            }
+        }
+
+        // Debug function to process any message for testing
+        function processMessageForDebugging(data) {
+            console.log('🔧 DEBUG: Processing message regardless of origin');
+            if (data && typeof data === 'object') {
+                // Try to extract any name/candidate data
+                const name = data.name || data.candidate_name || data.candidateName || 'Debug Test Candidate';
+                const email = data.email || data.candidate_email || 'debug@test.com';
+                const score = data.score || data.assessment_score || Math.floor(Math.random() * 100);
+                
+                const debugData = {
+                    name: name,
+                    email: email,
+                    phone: data.phone || '+1 (555) 000-0000',
+                    score: score,
+                    bootcamp: data.course || data.bootcamp || 'Debug Test',
+                    responses: data.responses || ['Debug', 'Test', 'Data', 'From', 'Bot'],
+                    source: 'DEBUG - Unauthorized Origin'
+                };
+                
+                console.log('🔧 DEBUG: Created debug data:', debugData);
+                processIncomingReport(debugData);
+                showNotification(`🔧 DEBUG: Processed unauthorized message as test data`, 'info');
+            }
+        }
 
         // Function to display candidate data (enhanced with new fields)
         function displayCandidateReport(candidateData) {
@@ -1267,6 +1348,143 @@
                 });
         }
 
+        // Debug bot communication function
+        function debugBotCommunication() {
+            console.log('🔧 Starting bot communication debug...');
+            
+            // Test 1: Check if dashboard can receive postMessage
+            console.log('Test 1: Self-message test');
+            window.postMessage({
+                messageType: 'CONNECTION_TEST',
+                source: 'self-test'
+            }, '*');
+            
+            // Test 2: Check current window context
+            console.log('Test 2: Window context check');
+            const windowInfo = {
+                hasParent: window.parent !== window,
+                hasOpener: !!window.opener,
+                origin: window.location.origin,
+                href: window.location.href,
+                isInIframe: window !== window.top
+            };
+            console.log('Window info:', windowInfo);
+            
+            // Test 3: Try to communicate with bot if it exists
+            console.log('Test 3: Attempting to open bot in new tab');
+            const botWindow = window.open('https://terence1975-coder.github.io/tender/bot.html', 'botTest');
+            
+            // Test 4: Set up a listener for the bot response
+            const testListener = function(event) {
+                console.log('🔧 Debug listener received:', event.origin, event.data);
+                if (event.data && event.data.source === 'bot-response') {
+                    showNotification('✅ Bot communication successful!', 'success');
+                    window.removeEventListener('message', testListener);
+                }
+            };
+            window.addEventListener('message', testListener);
+            
+            // Send test message to bot after delay
+            setTimeout(() => {
+                if (botWindow && !botWindow.closed) {
+                    console.log('🔧 Sending test message to bot...');
+                    botWindow.postMessage({
+                        messageType: 'DASHBOARD_TEST',
+                        source: 'dashboard-debug'
+                    }, '*');
+                }
+            }, 3000);
+            
+            // Clean up after 10 seconds
+            setTimeout(() => {
+                window.removeEventListener('message', testListener);
+                if (botWindow && !botWindow.closed) {
+                    botWindow.close();
+                }
+            }, 10000);
+            
+            const debugReport = `🔧 BOT COMMUNICATION DEBUG REPORT
+============================
+
+DASHBOARD STATUS:
+- Origin: ${window.location.origin}
+- URL: ${window.location.href}
+- Has Parent: ${windowInfo.hasParent}
+- Has Opener: ${windowInfo.hasOpener}
+- In iFrame: ${windowInfo.isInIframe}
+
+MESSAGE LISTENER STATUS:
+- ✅ Enhanced message listener active
+- ✅ Permissive origin checking enabled
+- ✅ Debug mode enabled
+- ✅ Multiple message formats supported
+
+COMMUNICATION METHODS:
+1. PostMessage: window.parent.postMessage(data, '*')
+2. Direct API: parent.addApplicantReport(data)
+3. URL Parameters: dashboard.html?report=encodedData
+
+TROUBLESHOOTING:
+1. Check browser console in bot.html for errors
+2. Verify bot is sending postMessage correctly
+3. Check if dashboard is opened as parent window
+4. Test with simple message first
+
+TEST INSTRUCTIONS FOR BOT.HTML:
+Add this code to test communication:
+
+// Test 1: Simple message
+window.parent.postMessage({
+    messageType: 'CONNECTION_TEST'
+}, '*');
+
+// Test 2: Candidate data
+window.parent.postMessage({
+    name: 'Test Candidate',
+    email: 'test@example.com',
+    score: 85,
+    bootcamp: 'AI Fundamentals'
+}, '*');
+
+Debug started: ${new Date().toLocaleString()}`;
+
+            showModal('🔧 Bot Communication Debug', debugReport);
+            showNotification('🔧 Debug started - Check console and modal for details', 'info');
+        }
+
+        function showMessageLog() {
+            const logContent = messageLog.length === 0 ? 
+                'No messages received yet.' :
+                messageLog.map(log => 
+                    `${log.timestamp} | ${log.origin} | ${log.accepted ? '✅' : '❌'} | ${JSON.stringify(log.data)}`
+                ).join('\n');
+                
+            const report = `📨 MESSAGE LOG
+============================
+
+Total Messages: ${messageLog.length}
+Last Updated: ${new Date().toLocaleString()}
+
+FORMAT: Timestamp | Origin | Status | Data
+
+${logContent}
+
+TROUBLESHOOTING:
+- If no messages appear, bot is not sending anything
+- If messages appear but are rejected (❌), check origins
+- If messages are accepted (✅) but not processed, check data format
+
+ADD THIS TO YOUR BOT.HTML TO TEST:
+window.parent.postMessage({
+    name: 'Test Candidate',
+    email: 'test@example.com',
+    score: 85,
+    bootcamp: 'AI Fundamentals'
+}, '*');`;
+
+            showModal('📨 Message Log', report);
+        }
+
         // Enhanced connection status display
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connection-status');
@@ -1285,10 +1503,54 @@
                         <div class="text-gray-500">
                             Assessments: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
                         </div>
-                        ${botStats.lastPing ? `<div class="text-gray-500">Last Ping: ${botStats.lastPing}</div>` : ''}
+                        ${botStats.lastPing && botStats.lastPing !== 'Never' ? `<div class="text-gray-500">Last Ping: ${botStats.lastPing}</div>` : ''}
+                        <button onclick="showMessageLog()" class="text-blue-600 hover:text-blue-800 text-xs underline">Message Log</button>
                     </div>
                 `;
             }
+        }
+
+        // Message logging for debugging
+        let messageLog = [];
+        
+        // Add to the message listener to log all messages
+        function logMessage(event) {
+            messageLog.push({
+                timestamp: new Date().toISOString(),
+                origin: event.origin,
+                data: event.data,
+                accepted: true
+            });
+            
+            // Keep only last 50 messages
+            if (messageLog.length > 50) {
+                messageLog = messageLog.slice(-50);
+            }
+        }
+
+        function showMessageLog() {
+            const logContent = messageLog.length === 0 ? 
+                'No messages received yet.' :
+                messageLog.map(log => 
+                    `${log.timestamp} | ${log.origin} | ${log.accepted ? '✅' : '❌'} | ${JSON.stringify(log.data)}`
+                ).join('\n');
+                
+            const report = `📨 MESSAGE LOG
+============================
+
+Total Messages: ${messageLog.length}
+Last Updated: ${new Date().toLocaleString()}
+
+FORMAT: Timestamp | Origin | Status | Data
+
+${logContent}
+
+TROUBLESHOOTING:
+- If no messages appear, bot is not sending anything
+- If messages appear but are rejected (❌), check origins
+- If messages are accepted (✅) but not processed, check data format`;
+
+            showModal('📨 Message Log', report);
         }
 
         // Get bot status icon based on connection status
@@ -2289,7 +2551,7 @@ Test completed: ${new Date().toLocaleString()}`;
             
             // Console welcome message for enhanced bot integration
             console.log(`
-🤖 AI BOOTCAMP DASHBOARD - DATA PERSISTENCE FIXED
+🤖 AI BOOTCAMP DASHBOARD - ENHANCED DEBUG VERSION
 ==================================================
 
 ✅ Dashboard loaded successfully with persistent data
@@ -2299,60 +2561,71 @@ Test completed: ${new Date().toLocaleString()}`;
 ✅ Bot assessments are immediately saved and persist
 ✅ Deleted applicants stay deleted after refresh
 ✅ Enhanced bot listener ready for comprehensive candidate data
+✅ DEBUG MODE ENABLED - More permissive message handling
 
-🔧 DATA PERSISTENCE SYSTEM:
-- ✅ Data automatically saves to localStorage on every change
-- ✅ Startup loads: localStorage → Firebase → Demo data (priority order)
-- ✅ New bot assessments immediately saved and persist
-- ✅ Deletions immediately saved and persist
-- ✅ No more reset to original data on refresh
-- ✅ Your changes now survive page refreshes
+🔧 DEBUG FEATURES ACTIVE:
+- ✅ Enhanced message logging and analysis
+- ✅ Permissive origin checking (for debugging)
+- ✅ Message log viewer (click "Message Log" in status)
+- ✅ Bot communication debugger (🔧 Debug Bot Communication button)
+- ✅ Detailed console logging for all messages
+- ✅ Automatic processing of rejected messages (for testing)
 
-🔥 FIREBASE IMPROVEMENTS:
-- ✅ Proper data serialization with undefined filtering
-- ✅ Validation before every save operation
-- ✅ Enhanced error logging with data inspection
-- ✅ Clean data structure guaranteed for Firebase
-- ✅ Backup validation and cleaning functions
+📨 FROM YOUR BOT.HTML - ADD THIS CODE TO TEST:
 
-🚨 DATA MANAGEMENT TOOLS:
-1. "💾 Save to Cloud" - Save current data to Firebase
-2. "📥 Load from Cloud" - Load saved data from Firebase
-3. "✅ Validate Data" - Check for undefined values
-4. "🧪 Test Firebase" - Test Firebase connectivity
-5. "🗑️ Clear Firebase" - Reset Firebase data
-6. "🔄 Reset Demo Data" - Restore original test data
+METHOD 1 - Simple Test Message:
+console.log('Testing dashboard connection...');
+window.parent.postMessage({
+    messageType: 'CONNECTION_TEST'
+}, '*');
 
-📨 FROM YOUR BOT.HTML:
-const candidateData = {
+METHOD 2 - Simple Candidate Data:
+window.parent.postMessage({
+    name: 'Test Candidate',
+    email: 'test@example.com',
+    phone: '+1 (555) 123-4567',
+    score: 85,
+    bootcamp: 'AI Fundamentals',
+    responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct']
+}, '*');
+
+METHOD 3 - Enhanced Candidate Report:
+window.parent.postMessage({
     messageType: 'CANDIDATE_REPORT',
-    name: "John Doe",
-    email: "john@example.com", 
-    phone: "+1 (555) 123-4567",
-    status: "HIGHLY_SUITABLE",
+    name: 'Enhanced Test',
+    email: 'enhanced@example.com',
+    phone: '+1 (555) 987-6543',
+    status: 'HIGHLY_SUITABLE',
     score: 8.5,
-    course: "AI Fundamentals",
-    location: "London, UK",
-    employmentStatus: "Unemployed",
-    ukResidency: "Yes",
-    interviewStatus: "Scheduled",
+    course: 'AI Fundamentals',
+    location: 'London, UK',
+    employmentStatus: 'Unemployed',
+    ukResidency: 'Yes',
+    interviewStatus: 'Scheduled',
     interviewBooked: true,
-    sessionId: "SESSION_12345",
+    sessionId: 'TEST_' + Date.now(),
     timestamp: new Date().toISOString()
-};
-window.parent.postMessage(candidateData, '*');
+}, '*');
 
-🎯 NEW BEHAVIOR:
-- Delete applicants → They stay deleted after refresh
-- Add bot data → It persists after refresh  
-- Make changes → They're automatically saved
-- Refresh page → Your data remains exactly as you left it
+🚨 DEBUGGING STEPS:
+1. Open browser console in BOTH bot.html AND dashboard
+2. Click "🔧 Debug Bot Communication" button in dashboard
+3. Add test code above to your bot.html
+4. Check "Message Log" to see if messages are received
+5. Look for console errors in both windows
+
+🎯 TROUBLESHOOTING:
+- If no messages in log: Bot not sending postMessage
+- If messages rejected: Wrong origin (but processed anyway in debug mode)
+- If messages received but not showing: Check data format
+- If dashboard not opened from bot: Use window.open() from bot
 
 Current stats: ${applicants.length} applicants loaded
 🔥 Firebase: ${database ? 'Connected & Clean' : 'Offline'}
 💾 localStorage: Active and saving changes
+🔧 DEBUG MODE: Active - Check all buttons and logs
 
-DATA PERSISTENCE IS NOW FULLY WORKING! 🚀
+ENHANCED DEBUGGING READY! 🚀
             `);
             
             // Additional ready message for bot sync
