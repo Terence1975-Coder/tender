@@ -724,7 +724,7 @@
                 console.log('📊 Processing structured message:', event.data.messageType);
                 
                 if (event.data.messageType === 'CANDIDATE_REPORT') {
-                    console.log('✅ Candidate report received:', event.data.name, 'Score:', event.data.score);
+                    console.log('✅ Candidate assessment received:', event.data.name, 'Status:', event.data.status);
                     displayCandidateReport(event.data);
                     
                     // Auto-show modal if requested
@@ -738,6 +738,7 @@
                 if (event.data.messageType === 'CONNECTION_TEST') {
                     console.log('🔧 Connection test successful from bot.html');
                     showNotification('✅ Connection test successful! bot.html can communicate with dashboard', 'success');
+                    alert('✅ Connection working! Bot.html → Dashboard communication confirmed');
                     return;
                 }
             }
@@ -749,27 +750,57 @@
             }
         });
 
-        // Function to display candidate data (new structured format)
+        // Function to display candidate data (enhanced with new fields)
         function displayCandidateReport(candidateData) {
-            console.log('🎯 Displaying candidate report:', candidateData);
+            console.log('🎯 Displaying candidate assessment:', candidateData);
             
-            // Convert structured format to our internal format
+            // Map bot status to dashboard status
+            let dashboardStatus = 'failed'; // Default
+            let score = 0;
+            
+            if (candidateData.status === 'HIGHLY_SUITABLE') {
+                dashboardStatus = 'passed';
+                score = candidateData.score ? candidateData.score * 10 : 90; // Convert to percentage
+            } else if (candidateData.status === 'SUITABLE') {
+                dashboardStatus = 'waitlist';
+                score = candidateData.score ? candidateData.score * 10 : 70; // Convert to percentage
+            } else {
+                dashboardStatus = 'failed';
+                score = candidateData.score ? candidateData.score * 10 : 40; // Convert to percentage
+            }
+            
+            // Convert structured format to our internal format with enhanced fields
             const reportData = {
                 name: candidateData.name || 'Unknown Candidate',
                 email: candidateData.email || 'no-email@example.com',
                 phone: candidateData.phone || '+1 (555) 000-0000',
-                score: candidateData.score || 0,
+                score: score,
                 bootcamp: candidateData.course || candidateData.bootcamp || 'AI Fundamentals',
-                responses: candidateData.responses || candidateData.answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
+                responses: candidateData.responses || candidateData.answers || ['Assessment', 'Based', 'On', 'Bot', 'Interaction'],
                 autoShow: candidateData.autoShow || false,
-                messageType: candidateData.messageType // Preserve message type
+                messageType: candidateData.messageType,
+                
+                // Enhanced fields from bot assessment
+                location: candidateData.location || 'Not specified',
+                employmentStatus: candidateData.employmentStatus || 'Not specified',
+                ukResidency: candidateData.ukResidency || 'Not specified',
+                interviewStatus: candidateData.interviewStatus || 'Not scheduled',
+                interviewBooked: candidateData.interviewBooked || false,
+                sessionId: candidateData.sessionId || 'N/A',
+                timestamp: candidateData.timestamp || new Date().toISOString(),
+                botStatus: candidateData.status, // Original bot status
+                originalScore: candidateData.score || 0
             };
             
-            // Process using existing system
-            processIncomingReport(reportData);
+            // Process using existing system with enhanced data
+            processEnhancedIncomingReport(reportData, dashboardStatus);
             
             // Show additional notification for structured reports
-            showNotification(`📊 Structured report received: ${reportData.name} (Score: ${reportData.score})`, 'success');
+            const statusEmoji = dashboardStatus === 'passed' ? '✅' : dashboardStatus === 'waitlist' ? '⏳' : '❌';
+            showNotification(`📊 Assessment completed: ${reportData.name} ${statusEmoji} ${candidateData.status} (${score}%)`, 'success');
+            
+            // Update page title with candidate count
+            updatePageTitle();
         }
 
         // Function to show candidate modal (enhanced)
@@ -811,7 +842,78 @@
             }
         }
 
-        // Main function to process incoming reports from bot.html
+        // Enhanced function to process incoming reports with additional bot data
+        function processEnhancedIncomingReport(data, status) {
+            console.log('🔄 Processing enhanced assessment report:', data);
+            
+            // Update connection status
+            botStats.connectionStatus = 'Connected';
+            botStats.lastReceived = new Date().toLocaleString();
+            botStats.totalReceived++;
+            updateConnectionStatus();
+            
+            // Create comprehensive applicant object with enhanced fields
+            const newApplicant = {
+                id: Date.now() + Math.random(), // Ensure unique ID
+                name: data.name || 'Unknown Candidate',
+                email: data.email || 'no-email@example.com',
+                phone: data.phone || '+1 (555) 000-0000',
+                date: new Date().toISOString().split('T')[0],
+                status: status, // Use the mapped status
+                score: data.score || 0,
+                bootcamp: data.bootcamp || 'AI Fundamentals',
+                responses: Array.isArray(data.responses) ? data.responses : [data.responses],
+                submissionTime: new Date().toLocaleString(),
+                source: 'Bot Assessment - Enhanced',
+                
+                // Enhanced fields from bot
+                location: data.location || 'Not specified',
+                employmentStatus: data.employmentStatus || 'Not specified',
+                ukResidency: data.ukResidency || 'Not specified',
+                interviewStatus: data.interviewStatus || 'Not scheduled',
+                interviewBooked: data.interviewBooked || false,
+                sessionId: data.sessionId || 'N/A',
+                timestamp: data.timestamp || new Date().toISOString(),
+                botStatus: data.botStatus || 'Unknown',
+                originalScore: data.originalScore || 0,
+                
+                rawData: data // Store original data for debugging
+            };
+            
+            console.log('✅ Created enhanced applicant object:', newApplicant);
+            
+            // Add to applicants array
+            applicants.push(newApplicant);
+            
+            // Update UI immediately
+            refreshAllSections();
+            
+            // Show detailed success notification
+            const statusEmoji = status === 'passed' ? '✅' : status === 'waitlist' ? '⏳' : '❌';
+            showNotification(`${statusEmoji} Assessment completed: ${newApplicant.name} - ${newApplicant.botStatus} (${newApplicant.score}%)`, 'success');
+            
+            // Auto-save to Firebase
+            if (database) {
+                setTimeout(autoSaveToFirebase, 2000);
+            }
+            
+            // Auto-show report if requested
+            if (data.autoShow) {
+                setTimeout(() => showIndividualReport(newApplicant), 1000);
+            }
+            
+            console.log('✅ Successfully processed enhanced assessment - Total applicants:', applicants.length);
+        }
+
+        // Update page title with candidate count
+        function updatePageTitle() {
+            const totalCandidates = applicants.length;
+            const passedCount = applicants.filter(a => a.status === 'passed').length;
+            const waitlistCount = applicants.filter(a => a.status === 'waitlist').length;
+            const failedCount = applicants.filter(a => a.status === 'failed').length;
+            
+            document.title = `🤖 AI Bootcamp Dashboard (${totalCandidates} candidates: ${passedCount} passed, ${waitlistCount} waitlist, ${failedCount} failed)`;
+        }
         function processIncomingReport(data) {
             console.log('🔄 Processing incoming assessment report:', data);
             
@@ -967,6 +1069,9 @@
         function refreshAllSections() {
             // Update statistics
             updateStatistics();
+            
+            // Update page title
+            updatePageTitle();
             
             // Clear and repopulate all sections
             document.getElementById('recent-applicants').innerHTML = '';
@@ -1182,31 +1287,38 @@ Bootcamp: ${applicant.bootcamp}
 ${applicant.submissionTime ? `Submission Time: ${applicant.submissionTime}` : ''}
 ${applicant.source ? `Source: ${applicant.source}` : ''}
 
+ENHANCED CANDIDATE DETAILS
+${applicant.location ? `Location: ${applicant.location}` : ''}
+${applicant.employmentStatus ? `Employment Status: ${applicant.employmentStatus}` : ''}
+${applicant.ukResidency ? `UK Residency: ${applicant.ukResidency}` : ''}
+${applicant.interviewStatus ? `Interview Status: ${applicant.interviewStatus}` : ''}
+${applicant.interviewBooked ? `Interview Booked: ${applicant.interviewBooked ? 'Yes' : 'No'}` : ''}
+${applicant.sessionId ? `Session ID: ${applicant.sessionId}` : ''}
+
 SCREENING RESULTS
 Overall Score: ${applicant.score}%
+${applicant.originalScore ? `Original Bot Score: ${applicant.originalScore}/10` : ''}
+${applicant.botStatus ? `Bot Assessment: ${applicant.botStatus}` : ''}
 Status: ${applicant.status.toUpperCase()}
 ${applicant.processedDate ? `Processed Date: ${applicant.processedDate}` : ''}
 ${applicant.processedBy ? `Processed By: ${applicant.processedBy}` : ''}
 
-QUESTION-BY-QUESTION BREAKDOWN
-Question 1: ${applicant.responses[0]}
-Question 2: ${applicant.responses[1]}
-Question 3: ${applicant.responses[2]}
-Question 4: ${applicant.responses[3]}
-Question 5: ${applicant.responses[4]}
+ASSESSMENT RESPONSES
+${applicant.responses.map((response, index) => `Response ${index + 1}: ${response}`).join('\n')}
 
 RECOMMENDATION
-${applicant.status === 'passed' ? 'ACCEPTED - Applicant meets all requirements for the bootcamp.' :
-  applicant.status === 'waitlist' ? 'WAITLIST - Applicant shows potential but may need additional preparation.' :
-  applicant.status === 'failed' ? 'NOT ACCEPTED - Applicant needs to strengthen foundational knowledge before reapplying.' :
+${applicant.status === 'passed' ? 'HIGHLY SUITABLE - Candidate meets all requirements and shows excellent potential for the bootcamp.' :
+  applicant.status === 'waitlist' ? 'SUITABLE - Candidate shows good potential but may need additional preparation or interview.' :
+  applicant.status === 'failed' ? 'NOT SUITABLE - Candidate needs to strengthen foundational knowledge before reapplying.' :
   'PROCESSED - This application has been reviewed and appropriate action has been taken.'}
 
 TECHNICAL DETAILS
 Applicant ID: ${applicant.id}
-${applicant.source === 'Bot Submission' ? 'Received via automated bot integration' : 'Manually entered data'}
+${applicant.timestamp ? `Original Timestamp: ${new Date(applicant.timestamp).toLocaleString()}` : ''}
+${applicant.source === 'Bot Assessment - Enhanced' ? 'Received via enhanced bot integration with full candidate data' : 'Standard assessment data'}
 
 Generated on: ${new Date().toLocaleString()}`;
-            showModal(`📋 Screening Report - ${applicant.name}`, report);
+            showModal(`📋 Enhanced Screening Report - ${applicant.name}`, report);
         }
 
         function createChatbot() {
@@ -1473,15 +1585,24 @@ The dashboard will automatically update and show the results!
                                     <h4 class="font-medium text-gray-900">${applicant.name}</h4>
                                     <p class="text-sm text-gray-600">${applicant.email}</p>
                                     <p class="text-sm text-gray-600">${applicant.phone}</p>
+                                    ${applicant.location && applicant.location !== 'Not specified' ? `<p class="text-sm text-blue-600">📍 ${applicant.location}</p>` : ''}
+                                    ${applicant.employmentStatus && applicant.employmentStatus !== 'Not specified' ? `<p class="text-xs text-gray-500">💼 ${applicant.employmentStatus}</p>` : ''}
+                                    ${applicant.ukResidency && applicant.ukResidency !== 'Not specified' ? `<p class="text-xs text-gray-500">🏠 UK: ${applicant.ukResidency}</p>` : ''}
+                                    ${applicant.interviewBooked ? `<p class="text-xs text-green-600 font-medium">📅 Interview Booked</p>` : ''}
+                                    ${applicant.botStatus ? `<p class="text-xs text-blue-600 font-medium">🤖 ${applicant.botStatus}</p>` : ''}
                                     ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
                                     ${applicant.processedDate ? `<p class="text-xs text-blue-600">Processed: ${applicant.processedDate}</p>` : ''}
                                 </div>
-                                <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
+                                <div class="text-right">
+                                    <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
+                                    ${applicant.originalScore ? `<p class="text-xs text-gray-500">${applicant.originalScore}/10</p>` : ''}
+                                </div>
                             </div>
                             <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
                                 <span>${applicant.bootcamp}</span>
                                 <span>${applicant.date}</span>
                             </div>
+                            ${applicant.sessionId && applicant.sessionId !== 'N/A' ? `<p class="text-xs text-gray-400 mb-3">Session: ${applicant.sessionId}</p>` : ''}
                             ${actionButtons}
                         </div>
                     `;
@@ -1661,56 +1782,82 @@ The dashboard will automatically update and show the results!
             setTimeout(() => {
                 updateStatistics();
                 updateSectionCounts();
-                console.log('🔄 Force-updated statistics and sections');
+                updatePageTitle(); // Set initial page title
+                console.log('🔄 Force-updated statistics, sections, and page title');
             }, 500);
             
-            // Console welcome message for bot integration
+            // Console welcome message for enhanced bot integration
             console.log(`
-🤖 AI BOOTCAMP DASHBOARD - READY FOR terence1975-coder.github.io/tender/bot.html
-================================================================================
+🤖 AI BOOTCAMP DASHBOARD - ENHANCED INTEGRATION WITH terence1975-coder.github.io/tender/bot.html
+================================================================================================
 
 ✅ Dashboard loaded successfully
 ✅ Firebase integration active
 ✅ Auto-save enabled (every 60 seconds)
-✅ Enhanced bot listener ready for https://terence1975-coder.github.io/tender/bot.html
+✅ Enhanced bot listener ready for comprehensive candidate data
 ✅ Security configured for your GitHub Pages domain
 ✅ Multiple assessment data formats supported
+✅ Advanced candidate fields supported (location, employment, UK residency, interview status)
 
-📨 FROM YOUR BOT.HTML, SEND ASSESSMENT DATA USING:
+📨 FROM YOUR BOT.HTML, SEND ENHANCED ASSESSMENT DATA:
 
-METHOD 1 - PostMessage (Recommended):
+METHOD 1 - Enhanced Candidate Report (Recommended):
+const candidateData = {
+    messageType: 'CANDIDATE_REPORT',
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1 (555) 123-4567",
+    status: "HIGHLY_SUITABLE", // or "SUITABLE" or "NOT_SUITABLE"
+    score: 8.5, // Out of 10
+    course: "AI Fundamentals",
+    location: "London, UK",
+    employmentStatus: "Unemployed",
+    ukResidency: "Yes",
+    interviewStatus: "Scheduled",
+    interviewBooked: true,
+    sessionId: "SESSION_12345",
+    timestamp: new Date().toISOString(),
+    autoShow: true
+};
+window.parent.postMessage(candidateData, '*');
+
+METHOD 2 - Simple Assessment Data:
 const assessmentData = {
     name: "John Doe",
     email: "john@example.com",
     phone: "+1 (555) 123-4567",
     score: 85,
     bootcamp: "AI Fundamentals",
-    responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
-    autoShow: true  // Optional: auto-show report modal
+    responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"]
 };
 window.parent.postMessage(assessmentData, '*');
 
-METHOD 2 - Direct Function Call:
-parent.addApplicantReport(assessmentData);
+METHOD 3 - Connection Test:
+window.parent.postMessage({messageType: 'CONNECTION_TEST'}, '*');
 
-METHOD 3 - Connection Verification:
-const dashboardInfo = parent.verifyDashboardConnection();
-console.log('Dashboard status:', dashboardInfo);
+🎯 STATUS MAPPING:
+- HIGHLY_SUITABLE → Passed (Green) - 80%+ equivalent
+- SUITABLE → Waitlist (Yellow) - 60-79% equivalent  
+- NOT_SUITABLE → Failed (Red) - <60% equivalent
 
-🎯 ASSESSMENT SCORING:
-- Score 80+ = Passed (Green)
-- Score 60-79 = Waitlist (Yellow) 
-- Score <60 = Failed (Red)
+📊 ENHANCED FEATURES:
+✓ Candidate location tracking
+✓ Employment status monitoring
+✓ UK residency verification
+✓ Interview booking status
+✓ Session ID tracking
+✓ Timestamp preservation
+✓ Enhanced reporting with all candidate details
 
-📊 Current stats: ${applicants.length} applicants loaded
+Current stats: ${applicants.length} applicants loaded
 🔥 Firebase: ${database ? 'Connected' : 'Offline'}
 🧪 Test integration with "Test Bot Connection" button
 
-Ready to receive assessments from your bot! 🚀
+Enhanced dashboard ready for comprehensive candidate assessments! 🚀
             `);
             
             // Additional ready message for bot sync
-            console.log('🎯 Bot listener active - Dashboard ready for terence1975-coder.github.io/tender/bot.html assessments');
+            console.log('🎯 Enhanced bot integration active - Ready for comprehensive candidate data from terence1975-coder.github.io/tender/bot.html');
         });
     </script>
 </body>
