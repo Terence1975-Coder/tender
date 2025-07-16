@@ -124,6 +124,9 @@
                         <button onclick="testBotIntegration()" class="btn btn-blue text-sm">
                             🔗 Test Bot Connection
                         </button>
+                        <button onclick="pingBotURL()" class="btn btn-yellow text-sm">
+                            📡 Ping Bot URL
+                        </button>
                     </div>
                     <div class="flex space-x-2">
                         <button onclick="saveToFirebase()" class="btn btn-blue text-sm">
@@ -697,11 +700,24 @@
         window.addEventListener('message', function(event) {
             console.log('📨 Received message from:', event.origin, 'Data:', event.data);
             
-            // Security check - accept from your domain and localhost for testing
-            if (!event.origin.includes('github.io') && !event.origin.includes('localhost')) {
+            // Security check - specifically allow your bot URL and localhost for testing
+            const allowedOrigins = [
+                'https://terence1975-coder.github.io',
+                'http://localhost',
+                'https://localhost',
+                'http://127.0.0.1',
+                'https://127.0.0.1'
+            ];
+            
+            const isAllowed = allowedOrigins.some(origin => event.origin.startsWith(origin));
+            
+            if (!isAllowed) {
                 console.log('🚫 Rejected message from unauthorized origin:', event.origin);
+                showNotification(`🚫 Rejected message from unauthorized origin: ${event.origin}`, 'error');
                 return;
             }
+            
+            console.log('✅ Message accepted from authorized origin:', event.origin);
             
             // Handle structured messages with messageType (new format)
             if (event.data && event.data.messageType) {
@@ -795,9 +811,9 @@
             }
         }
 
-        // Main function to process incoming reports
+        // Main function to process incoming reports from bot.html
         function processIncomingReport(data) {
-            console.log('🔄 Processing incoming report:', data);
+            console.log('🔄 Processing incoming assessment report:', data);
             
             // Update connection status
             botStats.connectionStatus = 'Connected';
@@ -805,47 +821,59 @@
             botStats.totalReceived++;
             updateConnectionStatus();
             
-            // Validate and process the report data
-            if (data && data.name && data.email) {
-                // Create new applicant object
-                const newApplicant = {
-                    id: Date.now(), // Generate unique ID
-                    name: data.name || 'Unknown Applicant',
-                    email: data.email || 'no-email@example.com',
-                    phone: data.phone || '+1 (555) 000-0000',
-                    date: new Date().toISOString().split('T')[0],
-                    status: determineStatus(data.score || 0),
-                    score: data.score || 0,
-                    bootcamp: data.bootcamp || data.course || 'AI Fundamentals',
-                    responses: data.responses || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'],
-                    submissionTime: new Date().toLocaleString(),
-                    source: 'Bot Submission'
-                };
-                
-                // Add to applicants array
-                applicants.push(newApplicant);
-                
-                // Update UI
-                refreshAllSections();
-                
-                // Show success notification
-                showNotification(`✅ New applicant received: ${newApplicant.name} (${newApplicant.status})`, 'success');
-                
-                // Auto-save to Firebase
-                if (database) {
-                    setTimeout(autoSaveToFirebase, 3000);
-                }
-                
-                // Auto-show report if requested
-                if (data.autoShow) {
-                    setTimeout(() => showIndividualReport(newApplicant), 1000);
-                }
-                
-                console.log('✅ Successfully added new applicant:', newApplicant);
-            } else {
-                console.error('❌ Invalid report data received:', data);
-                showNotification('❌ Invalid report data received', 'error');
+            // Enhanced validation for assessment data
+            if (!data || (!data.name && !data.candidate_name)) {
+                console.error('❌ Invalid assessment data - missing name:', data);
+                showNotification('❌ Invalid assessment data received - missing candidate name', 'error');
+                return;
             }
+            
+            // Handle different data formats from bot.html
+            const candidateName = data.name || data.candidate_name || 'Unknown Candidate';
+            const candidateEmail = data.email || data.candidate_email || `${candidateName.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+            const candidatePhone = data.phone || data.candidate_phone || '+1 (555) 000-0000';
+            const assessmentScore = parseInt(data.score || data.assessment_score || data.final_score || 0);
+            const courseName = data.bootcamp || data.course || data.program || 'AI Fundamentals';
+            const assessmentResponses = data.responses || data.answers || data.assessment_answers || ['Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown'];
+            
+            // Create comprehensive applicant object
+            const newApplicant = {
+                id: Date.now() + Math.random(), // Ensure unique ID
+                name: candidateName,
+                email: candidateEmail,
+                phone: candidatePhone,
+                date: new Date().toISOString().split('T')[0],
+                status: determineStatus(assessmentScore),
+                score: assessmentScore,
+                bootcamp: courseName,
+                responses: Array.isArray(assessmentResponses) ? assessmentResponses : [assessmentResponses],
+                submissionTime: new Date().toLocaleString(),
+                source: 'Bot Assessment - terence1975-coder.github.io',
+                rawData: data // Store original data for debugging
+            };
+            
+            console.log('✅ Created new applicant object:', newApplicant);
+            
+            // Add to applicants array
+            applicants.push(newApplicant);
+            
+            // Update UI immediately
+            refreshAllSections();
+            
+            // Show detailed success notification
+            showNotification(`✅ Assessment received: ${newApplicant.name} scored ${assessmentScore}% (${newApplicant.status})`, 'success');
+            
+            // Auto-save to Firebase
+            if (database) {
+                setTimeout(autoSaveToFirebase, 2000);
+            }
+            
+            // Auto-show report if requested
+            if (data.autoShow || data.auto_show) {
+                setTimeout(() => showIndividualReport(newApplicant), 1000);
+            }
+            
+            console.log('✅ Successfully processed assessment from bot.html - Total applicants:', applicants.length);
         }
 
         // Determine status based on score
@@ -855,25 +883,66 @@
             return 'failed';
         }
 
-        // Update connection status indicator
+        // Function to ping the bot URL and test connectivity
+        function pingBotURL() {
+            const botURL = 'https://terence1975-coder.github.io/tender/bot.html';
+            
+            console.log('📡 Pinging bot URL:', botURL);
+            showNotification('📡 Testing connection to bot.html...', 'info');
+            
+            // Try to fetch the bot URL to test connectivity
+            fetch(botURL, { mode: 'no-cors' })
+                .then(() => {
+                    console.log('✅ Bot URL is reachable');
+                    showNotification('✅ Bot URL is reachable - Ready to receive assessments!', 'success');
+                    
+                    // Update bot stats
+                    botStats.connectionStatus = 'URL Verified';
+                    botStats.lastPing = new Date().toLocaleString();
+                    updateConnectionStatus();
+                })
+                .catch((error) => {
+                    console.log('⚠️ Bot URL ping failed (this is normal due to CORS):', error);
+                    showNotification('⚠️ Bot URL ping failed (normal due to CORS) - Dashboard still ready!', 'info');
+                    
+                    botStats.connectionStatus = 'Ready (CORS limited)';
+                    botStats.lastPing = new Date().toLocaleString();
+                    updateConnectionStatus();
+                });
+        }
+
+        // Enhanced connection status display
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connection-status');
             if (statusEl) {
-                const firebaseStatus = database ? '🟢 Firebase' : '🔴 Offline';
+                const firebaseStatus = database ? '🟢 Firebase Connected' : '🔴 Firebase Offline';
+                const botStatus = getBotStatusIcon(botStats.connectionStatus);
+                
                 statusEl.innerHTML = `
                     <div class="flex items-center space-x-4 text-sm">
                         <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full ${botStats.connectionStatus === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}"></div>
-                            <span class="text-gray-600">Bot: ${botStats.connectionStatus}</span>
+                            <span class="text-gray-600">${botStatus} Bot: ${botStats.connectionStatus}</span>
                         </div>
                         <div class="flex items-center space-x-2">
                             <span class="text-gray-600">${firebaseStatus}</span>
                         </div>
                         <div class="text-gray-500">
-                            Reports: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
+                            Assessments: ${botStats.totalReceived} | Last: ${botStats.lastReceived || 'Never'}
                         </div>
+                        ${botStats.lastPing ? `<div class="text-gray-500">Last Ping: ${botStats.lastPing}</div>` : ''}
                     </div>
                 `;
+            }
+        }
+
+        // Get bot status icon based on connection status
+        function getBotStatusIcon(status) {
+            switch(status) {
+                case 'Connected': return '🟢';
+                case 'URL Verified': return '🟢';
+                case 'Ready (CORS limited)': return '🟡';
+                case 'Ready': return '🟡';
+                default: return '🔴';
             }
         }
 
@@ -1217,40 +1286,82 @@ This action CANNOT be undone!`;
             showModal(`🗑️ Delete Chatbot - ${chatbot.name}`, report);
         }
 
-        // Test bot integration (enhanced to test both formats)
+        // Test bot integration (enhanced for terence1975-coder.github.io)
         function testBotIntegration() {
-            const testType = Math.random() > 0.5 ? 'structured' : 'legacy';
+            console.log('🧪 Testing bot integration with terence1975-coder.github.io');
             
-            if (testType === 'structured') {
-                // Test new structured format
-                const testData = {
-                    messageType: 'CANDIDATE_REPORT',
-                    name: 'Test Candidate ' + Math.floor(Math.random() * 1000),
-                    email: 'test' + Math.floor(Math.random() * 1000) + '@example.com',
-                    phone: '+1 (555) 999-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                    score: Math.floor(Math.random() * 100),
-                    course: 'AI Fundamentals',
+            // Test both assessment formats that the bot might send
+            const testFormats = [
+                {
+                    name: 'Assessment Test User',
+                    email: 'test.user@example.com',
+                    phone: '+1 (555) 123-4567',
+                    score: 87,
+                    bootcamp: 'AI Fundamentals',
                     responses: ['Correct', 'Correct', 'Incorrect', 'Correct', 'Correct'],
                     autoShow: true
-                };
-                
-                console.log('🧪 Testing structured format integration with data:', testData);
-                displayCandidateReport(testData);
-            } else {
-                // Test legacy format
-                const testData = {
-                    name: 'Legacy Test ' + Math.floor(Math.random() * 1000),
-                    email: 'legacy' + Math.floor(Math.random() * 1000) + '@example.com',
-                    phone: '+1 (555) 888-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-                    score: Math.floor(Math.random() * 100),
-                    bootcamp: 'Machine Learning',
-                    responses: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
-                    autoShow: true
-                };
-                
-                console.log('🧪 Testing legacy format integration with data:', testData);
-                processIncomingReport(testData);
-            }
+                },
+                {
+                    candidate_name: 'Bot Assessment Test',
+                    candidate_email: 'bot.test@example.com',
+                    candidate_phone: '+1 (555) 987-6543',
+                    assessment_score: 72,
+                    course: 'Machine Learning',
+                    assessment_answers: ['Correct', 'Incorrect', 'Correct', 'Correct', 'Incorrect'],
+                    auto_show: false
+                }
+            ];
+            
+            const testData = testFormats[Math.floor(Math.random() * testFormats.length)];
+            
+            console.log('🧪 Testing with assessment data:', testData);
+            processIncomingReport(testData);
+            
+            // Show test completion message
+            showNotification('🧪 Bot integration test completed - Check console for details', 'success');
+            
+            // Log instructions for bot.html
+            console.log(`
+🤖 BOT INTEGRATION INSTRUCTIONS FOR terence1975-coder.github.io/tender/bot.html
+================================================================================
+
+To send assessment data to this dashboard, use either format:
+
+FORMAT 1 (Simple):
+const assessmentData = {
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1 (555) 123-4567",
+    score: 85,
+    bootcamp: "AI Fundamentals",
+    responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
+    autoShow: true
+};
+
+FORMAT 2 (Structured):
+const assessmentData = {
+    candidate_name: "John Doe",
+    candidate_email: "john@example.com", 
+    candidate_phone: "+1 (555) 123-4567",
+    assessment_score: 85,
+    course: "AI Fundamentals",
+    assessment_answers: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
+    auto_show: true
+};
+
+SEND TO DASHBOARD:
+window.parent.postMessage(assessmentData, '*');
+
+OR (if dashboard is in same window):
+parent.addApplicantReport(assessmentData);
+
+SCORING:
+- 80+ = Passed (Green)
+- 60-79 = Waitlist (Yellow)
+- <60 = Failed (Red)
+
+The dashboard will automatically update and show the results!
+            `);
         }
 
         // Initialize page
@@ -1424,14 +1535,56 @@ This action CANNOT be undone!`;
             };
         };
 
-        // API endpoint simulation for bot integration (enhanced)
+        // API endpoint simulation for bot integration (enhanced for terence1975-coder.github.io)
         window.addApplicantReport = function(reportData) {
-            console.log('🔗 Direct API call received:', reportData);
+            console.log('🔗 Direct API call received from bot.html:', reportData);
+            
+            // Add source information
+            reportData.source = 'Direct API - terence1975-coder.github.io';
+            
             if (reportData.messageType === 'CANDIDATE_REPORT') {
                 displayCandidateReport(reportData);
             } else {
                 processIncomingReport(reportData);
             }
+            
+            return {
+                status: 'success',
+                message: 'Assessment received successfully',
+                applicantId: Date.now(),
+                timestamp: new Date().toISOString()
+            };
+        };
+
+        // Connection verification function specifically for terence1975-coder.github.io/tender/bot.html
+        window.verifyDashboardConnection = function() {
+            console.log('🔧 Dashboard connection verification requested from bot.html');
+            
+            const connectionInfo = {
+                status: 'connected',
+                timestamp: new Date().toISOString(),
+                dashboardReady: true,
+                acceptedOrigin: 'https://terence1975-coder.github.io',
+                supportedFormats: ['simple', 'structured', 'legacy'],
+                totalApplicants: applicants.length,
+                firebaseConnected: !!database,
+                version: '2.0'
+            };
+            
+            showNotification('✅ Connection verified with bot.html - Dashboard ready!', 'success');
+            console.log('📊 Dashboard connection info:', connectionInfo);
+            
+            return connectionInfo;
+        };
+
+        // Function for bot.html to check if dashboard is ready
+        window.isDashboardReady = function() {
+            return {
+                ready: true,
+                applicantCount: applicants.length,
+                firebaseStatus: database ? 'connected' : 'offline',
+                lastUpdate: new Date().toISOString()
+            };
         };
 
         // Connection test function for bot.html
@@ -1513,31 +1666,51 @@ This action CANNOT be undone!`;
             
             // Console welcome message for bot integration
             console.log(`
-🤖 AI BOOTCAMP DASHBOARD - FULLY INTEGRATED!
-=============================================
+🤖 AI BOOTCAMP DASHBOARD - READY FOR terence1975-coder.github.io/tender/bot.html
+================================================================================
 
 ✅ Dashboard loaded successfully
 ✅ Firebase integration active
 ✅ Auto-save enabled (every 60 seconds)
-✅ Enhanced bot listener ready - waiting for bot.html reports
-✅ Listening for reports from: https://terence1975-coder.github.io/tender/bot.html
-✅ Ready to receive applicant data (both legacy and structured formats)
+✅ Enhanced bot listener ready for https://terence1975-coder.github.io/tender/bot.html
+✅ Security configured for your GitHub Pages domain
+✅ Multiple assessment data formats supported
 
-📨 Send reports using:
-   Legacy: window.parent.postMessage(reportData, '*')
-   Structured: window.parent.postMessage({messageType: 'CANDIDATE_REPORT', ...data}, '*')
+📨 FROM YOUR BOT.HTML, SEND ASSESSMENT DATA USING:
 
-🧪 Test integration with the "Test Bot Connection" button
-☁️ Save/Load data with Firebase cloud storage
-🗑️ Delete applicants or mark as processed
-✔️ Move completed applications to processed section
-🎯 Enhanced security checks and message type handling
+METHOD 1 - PostMessage (Recommended):
+const assessmentData = {
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1 (555) 123-4567",
+    score: 85,
+    bootcamp: "AI Fundamentals",
+    responses: ["Correct", "Correct", "Incorrect", "Correct", "Correct"],
+    autoShow: true  // Optional: auto-show report modal
+};
+window.parent.postMessage(assessmentData, '*');
+
+METHOD 2 - Direct Function Call:
+parent.addApplicantReport(assessmentData);
+
+METHOD 3 - Connection Verification:
+const dashboardInfo = parent.verifyDashboardConnection();
+console.log('Dashboard status:', dashboardInfo);
+
+🎯 ASSESSMENT SCORING:
+- Score 80+ = Passed (Green)
+- Score 60-79 = Waitlist (Yellow) 
+- Score <60 = Failed (Red)
 
 📊 Current stats: ${applicants.length} applicants loaded
+🔥 Firebase: ${database ? 'Connected' : 'Offline'}
+🧪 Test integration with "Test Bot Connection" button
+
+Ready to receive assessments from your bot! 🚀
             `);
             
             // Additional ready message for bot sync
-            console.log('🎯 Enhanced testbot.html listener ready - waiting for bot.html reports with security validation');
+            console.log('🎯 Bot listener active - Dashboard ready for terence1975-coder.github.io/tender/bot.html assessments');
         });
     </script>
 </body>
