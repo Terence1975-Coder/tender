@@ -110,10 +110,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-6">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-                    <p class="text-gray-600">Manage screening applications and chatbots</p>
-                    <div id="connection-status" class="mt-2">
-                        <!-- Bot connection status will be populated here -->
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
+                        <p class="text-gray-600">Manage screening applications and chatbots</p>
+                        <p class="text-sm text-blue-600">🔗 Connected to: https://terence1975-coder.github.io/tender/bot.html</p>
+                        <div id="connection-status" class="mt-2">
+                            <!-- Bot connection status will be populated here -->
+                        </div>
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2">
@@ -143,6 +146,9 @@
                         </button>
                         <button onclick="validateData()" class="btn btn-green text-sm">
                             ✅ Validate Data
+                        </button>
+                        <button onclick="resetToTestData()" class="btn btn-gray text-sm">
+                            🔄 Reset Demo Data
                         </button>
                     </div>
                 </div>
@@ -417,8 +423,11 @@
     </div>
 
     <script>
-        // Dynamic applicants array - will receive new data from bot
-        let applicants = [
+        // Dynamic applicants array - starts empty, loads from saved data
+        let applicants = [];
+
+        // Original test data - only used as fallback if no saved data exists
+        const originalTestData = [
             { 
                 id: 1, 
                 name: 'John Smith', 
@@ -532,6 +541,104 @@
         let database = null;
         let firebaseApp = null;
 
+        // Data persistence functions
+        function saveToLocalStorage() {
+            try {
+                const dataToSave = {
+                    applicants: applicants,
+                    botStats: botStats,
+                    lastSaved: new Date().toISOString(),
+                    version: '2.1'
+                };
+                localStorage.setItem('aiBootcampDashboard', JSON.stringify(dataToSave));
+                console.log('💾 Data saved to localStorage:', applicants.length, 'applicants');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to save to localStorage:', error);
+                return false;
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('aiBootcampDashboard');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    if (parsedData.applicants && Array.isArray(parsedData.applicants)) {
+                        applicants.length = 0; // Clear current data
+                        applicants.push(...parsedData.applicants);
+                        
+                        if (parsedData.botStats) {
+                            Object.assign(botStats, parsedData.botStats);
+                        }
+                        
+                        console.log('📥 Loaded from localStorage:', applicants.length, 'applicants');
+                        console.log('📊 Last saved:', parsedData.lastSaved);
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('❌ Failed to load from localStorage:', error);
+                return false;
+            }
+        }
+
+        function loadDataOnStartup() {
+            console.log('🔄 Loading dashboard data on startup...');
+            
+            // Try to load from localStorage first
+            const localLoaded = loadFromLocalStorage();
+            
+            if (localLoaded) {
+                console.log('✅ Loaded data from localStorage');
+                showNotification('📥 Loaded saved data from your browser', 'success');
+                return;
+            }
+            
+            // If no localStorage data, check if we should load from Firebase
+            if (database) {
+                console.log('🔄 Checking Firebase for saved data...');
+                database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
+                    const firebaseData = snapshot.val();
+                    
+                    if (firebaseData && firebaseData.applicants && firebaseData.applicants.length > 0) {
+                        applicants.length = 0;
+                        applicants.push(...firebaseData.applicants);
+                        
+                        if (firebaseData.botStats) {
+                            Object.assign(botStats, firebaseData.botStats);
+                        }
+                        
+                        // Also save to localStorage
+                        saveToLocalStorage();
+                        
+                        refreshAllSections();
+                        console.log('✅ Loaded data from Firebase:', applicants.length, 'applicants');
+                        showNotification('☁️ Loaded saved data from Firebase', 'success');
+                        return;
+                    }
+                    
+                    // If no Firebase data either, load test data
+                    loadTestDataAsFirstTime();
+                }).catch(() => {
+                    loadTestDataAsFirstTime();
+                });
+            } else {
+                // No Firebase, load test data
+                loadTestDataAsFirstTime();
+            }
+        }
+
+        function loadTestDataAsFirstTime() {
+            console.log('📝 No saved data found - loading test data for first time');
+            applicants.length = 0;
+            applicants.push(...originalTestData);
+            saveToLocalStorage(); // Save test data to localStorage
+            refreshAllSections();
+            showNotification('👋 Welcome! Loaded demo data. Delete test applicants as needed.', 'info', 8000);
+        }
+
         // Initialize Firebase
         function initializeFirebase() {
             try {
@@ -541,9 +648,8 @@
                     updateFirebaseStatus('connected');
                     console.log('🔥 Firebase initialized successfully');
                     
-                    // DON'T auto-load data on startup to prevent overwriting bot data
-                    // User must manually click "Load from Cloud" to restore saved data
-                    console.log('ℹ️ Firebase ready - Click "Load from Cloud" to restore saved data');
+                    // DON'T auto-load data - let the loadDataOnStartup() function handle it
+                    console.log('ℹ️ Firebase ready - Data loading handled by startup sequence');
                     
                     // Set up auto-save every 60 seconds
                     setInterval(autoSaveToFirebase, 60000);
@@ -672,168 +778,6 @@
             }
         }
 
-        // Validate and clean botStats to prevent undefined values
-        function validateBotStats() {
-            if (botStats.totalReceived === undefined || botStats.totalReceived === null) {
-                botStats.totalReceived = 0;
-            }
-            if (botStats.lastReceived === undefined || botStats.lastReceived === null) {
-                botStats.lastReceived = 'Never';
-            }
-            if (botStats.connectionStatus === undefined || botStats.connectionStatus === null) {
-                botStats.connectionStatus = 'Ready';
-            }
-            if (botStats.lastPing === undefined || botStats.lastPing === null) {
-                botStats.lastPing = 'Never';
-            }
-            
-            console.log('✅ BotStats validated:', botStats);
-        }
-
-        // Validate all data for undefined values and Firebase compatibility
-        function validateData() {
-            console.log('🔍 Validating all data for Firebase compatibility...');
-            
-            try {
-                // Validate botStats
-                validateBotStats();
-                
-                // Test data serialization
-                const testData = getAllDashboardData();
-                const serialized = JSON.stringify(testData);
-                
-                // Check for undefined values
-                const undefinedCount = (serialized.match(/undefined/g) || []).length;
-                const hasUndefined = serialized.includes('undefined');
-                
-                let report = `✅ DATA VALIDATION REPORT
-============================
-
-BOTSTATS VALIDATION:
-- Total Received: ${botStats.totalReceived} (${typeof botStats.totalReceived})
-- Last Received: ${botStats.lastReceived} (${typeof botStats.lastReceived})
-- Connection Status: ${botStats.connectionStatus} (${typeof botStats.connectionStatus})
-- Last Ping: ${botStats.lastPing} (${typeof botStats.lastPing})
-
-SERIALIZATION TEST:
-- Applicants: ${testData.applicants.length} records
-- Data size: ${(serialized.length / 1024).toFixed(2)} KB
-- Undefined values found: ${undefinedCount}
-- Contains undefined: ${hasUndefined ? '❌ YES' : '✅ NO'}
-
-FIREBASE COMPATIBILITY:
-${hasUndefined ? '❌ FAIL - Contains undefined values' : '✅ PASS - Ready for Firebase'}
-
-RECOMMENDATIONS:
-${hasUndefined ? '1. Data contains undefined values - needs cleaning\n2. Use "🗑️ Clear Firebase" then "☁️ Save to Cloud"' : '1. Data is clean and ready for Firebase\n2. Safe to save to Firebase'}
-
-Validation completed: ${new Date().toLocaleString()}`;
-
-                showModal('✅ Data Validation Report', report);
-                
-                if (hasUndefined) {
-                    showNotification('⚠️ Data validation found undefined values - Check report for details', 'error');
-                } else {
-                    showNotification('✅ Data validation passed - Ready for Firebase!', 'success');
-                }
-                
-            } catch (error) {
-                console.error('❌ Data validation failed:', error);
-                showNotification('❌ Data validation failed: ' + error.message, 'error');
-            }
-        }
-
-        // Clear Firebase data (for testing and debugging)
-        function clearFirebaseData() {
-            if (!database) {
-                showNotification('❌ Firebase not connected - cannot clear data', 'error');
-                return;
-            }
-
-            if (confirm('⚠️ Are you sure you want to PERMANENTLY DELETE all data from Firebase?\n\nThis will:\n- Delete all saved applicant data\n- Delete all bot statistics\n- Cannot be undone\n\nLocal data will remain unchanged.')) {
-                console.log('🗑️ Clearing Firebase data...');
-                
-                database.ref('aiBootcampDashboard').remove().then(() => {
-                    showNotification('✅ Firebase data cleared successfully', 'success');
-                    console.log('🔥 Firebase data cleared');
-                }).catch((error) => {
-                    showNotification('❌ Failed to clear Firebase data: ' + error.message, 'error');
-                    console.error('❌ Firebase clear error:', error);
-                });
-            }
-        }
-
-        // Test Firebase functionality
-        function testFirebase() {
-            console.log('🧪 Testing Firebase functionality...');
-            
-            if (!database) {
-                showNotification('❌ Firebase not connected - cannot test', 'error');
-                return;
-            }
-
-            const testData = {
-                currentApplicants: applicants.length,
-                botStats: botStats,
-                timestamp: new Date().toISOString(),
-                testId: 'TEST_' + Date.now()
-            };
-
-            console.log('📊 Current dashboard state:', testData);
-
-            // Test Firebase write
-            database.ref('aiBootcampDashboard/test').set(testData).then(() => {
-                console.log('✅ Firebase write test successful');
-                
-                // Test Firebase read
-                return database.ref('aiBootcampDashboard/test').once('value');
-            }).then((snapshot) => {
-                const readData = snapshot.val();
-                console.log('✅ Firebase read test successful:', readData);
-                
-                // Test current data integrity
-                database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
-                    const currentFirebaseData = snapshot.val();
-                    
-                    const report = `🧪 FIREBASE TEST RESULTS
-============================
-
-CONNECTION STATUS: ✅ Connected
-WRITE TEST: ✅ Successful
-READ TEST: ✅ Successful
-
-CURRENT LOCAL DATA:
-- Applicants: ${applicants.length}
-- Bot Stats: ${JSON.stringify(botStats, null, 2)}
-- Last Received: ${botStats.lastReceived || 'Never'}
-
-FIREBASE STORED DATA:
-- Stored Applicants: ${currentFirebaseData?.applicants?.length || 0}
-- Last Saved: ${currentFirebaseData?.lastSaved || 'Never'}
-- Last Auto-Saved: ${currentFirebaseData?.lastAutoSaved || 'Never'}
-- Metadata: ${JSON.stringify(currentFirebaseData?.metadata || {}, null, 2)}
-
-POTENTIAL ISSUES:
-${applicants.length !== (currentFirebaseData?.applicants?.length || 0) ? 
-'⚠️ LOCAL/FIREBASE DATA MISMATCH DETECTED!' : '✅ Data counts match'}
-
-RECOMMENDATIONS:
-1. Click "Save to Cloud" to sync current data
-2. Check console for detailed logs
-3. If issues persist, try "Load from Cloud" to reset
-
-Test completed: ${new Date().toLocaleString()}`;
-
-                    showModal('🧪 Firebase Test Results', report);
-                    showNotification('🧪 Firebase test completed - Check modal for details', 'success');
-                });
-
-            }).catch((error) => {
-                console.error('❌ Firebase test failed:', error);
-                showNotification('❌ Firebase test failed: ' + error.message, 'error');
-            });
-        }
-
         // Improved auto-save with better error handling and validation
         function autoSaveToFirebase() {
             if (!database || applicants.length === 0) {
@@ -954,6 +898,9 @@ Test completed: ${new Date().toLocaleString()}`;
                 // Check if we loaded different data
                 const loadedCount = applicants.length;
                 const lastSaved = firebaseData.lastSaved || firebaseData.lastAutoSaved;
+
+                // Save to localStorage
+                saveToLocalStorage();
 
                 // Refresh the entire UI
                 refreshAllSections();
@@ -1167,6 +1114,12 @@ Test completed: ${new Date().toLocaleString()}`;
             // Add to applicants array
             applicants.push(newApplicant);
             
+            console.log('✅ Created enhanced applicant object:', newApplicant);
+            console.log('📊 Total applicants after adding:', applicants.length);
+            
+            // Immediately save to localStorage to persist data
+            saveToLocalStorage();
+            
             // Update UI immediately
             refreshAllSections();
             
@@ -1174,9 +1127,21 @@ Test completed: ${new Date().toLocaleString()}`;
             const statusEmoji = status === 'passed' ? '✅' : status === 'waitlist' ? '⏳' : '❌';
             showNotification(`${statusEmoji} Assessment completed: ${newApplicant.name} - ${newApplicant.botStatus} (${newApplicant.score}%)`, 'success');
             
-            // Auto-save to Firebase
+            // Immediate save to Firebase to prevent data loss (with error handling)
             if (database) {
-                setTimeout(autoSaveToFirebase, 2000);
+                console.log('💾 Immediately saving new bot assessment to Firebase...');
+                setTimeout(() => {
+                    try {
+                        saveToFirebase();
+                        console.log('✅ New bot assessment saved to Firebase');
+                    } catch (error) {
+                        console.error('❌ Failed to save bot assessment:', error);
+                        showNotification('⚠️ Bot assessment saved locally but failed to sync to Firebase', 'error');
+                    }
+                }, 1000);
+            } else {
+                console.log('⚠️ Firebase not available - bot assessment saved to localStorage');
+                showNotification('💾 Bot assessment saved locally - Firebase not connected', 'info');
             }
             
             // Auto-show report if requested
@@ -1196,6 +1161,8 @@ Test completed: ${new Date().toLocaleString()}`;
             
             document.title = `🤖 AI Bootcamp Dashboard (${totalCandidates} candidates: ${passedCount} passed, ${waitlistCount} waitlist, ${failedCount} failed)`;
         }
+
+        // Main function to process incoming reports from bot.html
         function processIncomingReport(data) {
             console.log('🔄 Processing incoming assessment report:', data);
             
@@ -1241,11 +1208,15 @@ Test completed: ${new Date().toLocaleString()}`;
             // Add to applicants array
             applicants.push(newApplicant);
             
+            // Immediately save to localStorage to persist data
+            saveToLocalStorage();
+            
             // Update UI immediately
             refreshAllSections();
             
             // Show detailed success notification
-            showNotification(`✅ Assessment received: ${newApplicant.name} scored ${assessmentScore}% (${newApplicant.status})`, 'success');
+            const statusEmoji = newApplicant.status === 'passed' ? '✅' : newApplicant.status === 'waitlist' ? '⏳' : '❌';
+            showNotification(`${statusEmoji} Assessment received: ${newApplicant.name} scored ${assessmentScore}% (${newApplicant.status})`, 'success');
             
             // Auto-save to Firebase
             if (database) {
@@ -1467,7 +1438,7 @@ Test completed: ${new Date().toLocaleString()}`;
             });
         }
 
-        // Delete applicant (improved with immediate Firebase sync)
+        // Delete applicant (improved with immediate localStorage and Firebase sync)
         function deleteApplicant(applicantId) {
             const applicant = applicants.find(a => a.id === applicantId);
             if (!applicant) {
@@ -1484,6 +1455,9 @@ Test completed: ${new Date().toLocaleString()}`;
                     console.log('🗑️ Deleted applicant:', deletedApplicant.name, 'ID:', deletedApplicant.id);
                     console.log('📊 Remaining applicants:', applicants.length);
                     
+                    // Immediately save to localStorage to persist deletion
+                    saveToLocalStorage();
+                    
                     refreshAllSections();
                     showNotification(`🗑️ Deleted applicant: ${deletedApplicant.name}`, 'success');
                     
@@ -1498,8 +1472,8 @@ Test completed: ${new Date().toLocaleString()}`;
                             showNotification('⚠️ Deletion saved locally but failed to sync to Firebase', 'error');
                         }
                     } else {
-                        console.log('⚠️ Firebase not available - deletion only saved locally');
-                        showNotification('⚠️ Deletion saved locally only - Firebase not connected', 'error');
+                        console.log('⚠️ Firebase not available - deletion saved to localStorage only');
+                        showNotification('💾 Deletion saved locally - Firebase not connected', 'info');
                     }
                 }
             }
@@ -1513,6 +1487,9 @@ Test completed: ${new Date().toLocaleString()}`;
                     applicant.status = 'processed';
                     applicant.processedDate = new Date().toLocaleString();
                     applicant.processedBy = 'Dashboard User';
+                    
+                    // Save changes immediately
+                    saveToLocalStorage();
                     
                     refreshAllSections();
                     showNotification(`✔️ Moved ${applicant.name} to Processed`, 'success');
@@ -1533,6 +1510,9 @@ Test completed: ${new Date().toLocaleString()}`;
                     applicant.status = determineStatus(applicant.score);
                     delete applicant.processedDate;
                     delete applicant.processedBy;
+                    
+                    // Save changes immediately
+                    saveToLocalStorage();
                     
                     refreshAllSections();
                     showNotification(`↩️ Restored ${applicant.name} to ${applicant.status}`, 'success');
@@ -1793,7 +1773,10 @@ The dashboard will automatically update and show the results!
             // Validate botStats to prevent undefined values
             validateBotStats();
             
-            // Check for URL parameters first
+            // Load data on startup (localStorage -> Firebase -> test data)
+            loadDataOnStartup();
+            
+            // Check for URL parameters
             checkURLParams();
             
             // Update statistics immediately
@@ -1958,18 +1941,6 @@ The dashboard will automatically update and show the results!
             console.log('✅ Populated chatbots table with', chatbots.length, 'chatbots');
         }
 
-        // Export function for bot integration
-        window.getDashboardStats = function() {
-            return {
-                totalApplicants: applicants.length,
-                passed: applicants.filter(a => a.status === 'passed').length,
-                failed: applicants.filter(a => a.status === 'failed').length,
-                waitlist: applicants.filter(a => a.status === 'waitlist').length,
-                processed: applicants.filter(a => a.status === 'processed').length,
-                botStats: botStats
-            };
-        };
-
         // API endpoint simulation for bot integration (enhanced for terence1975-coder.github.io)
         window.addApplicantReport = function(reportData) {
             console.log('🔗 Direct API call received from bot.html:', reportData);
@@ -2034,10 +2005,212 @@ The dashboard will automatically update and show the results!
             };
         };
 
+        // Export function for bot integration
+        window.getDashboardStats = function() {
+            return {
+                totalApplicants: applicants.length,
+                passed: applicants.filter(a => a.status === 'passed').length,
+                failed: applicants.filter(a => a.status === 'failed').length,
+                waitlist: applicants.filter(a => a.status === 'waitlist').length,
+                processed: applicants.filter(a => a.status === 'processed').length,
+                botStats: botStats
+            };
+        };
+
         // Setup auto-save triggers (REMOVED - was causing Firebase function serialization error)
         function setupAutoSaveTriggers() {
             // This function is now disabled to prevent Firebase serialization errors
             console.log('🔧 Auto-save triggers disabled to prevent Firebase function serialization errors');
+        }
+
+        // Validate and clean botStats to prevent undefined values
+        function validateBotStats() {
+            if (botStats.totalReceived === undefined || botStats.totalReceived === null) {
+                botStats.totalReceived = 0;
+            }
+            if (botStats.lastReceived === undefined || botStats.lastReceived === null) {
+                botStats.lastReceived = 'Never';
+            }
+            if (botStats.connectionStatus === undefined || botStats.connectionStatus === null) {
+                botStats.connectionStatus = 'Ready';
+            }
+            if (botStats.lastPing === undefined || botStats.lastPing === null) {
+                botStats.lastPing = 'Never';
+            }
+            
+            console.log('✅ BotStats validated:', botStats);
+        }
+
+        // Reset to test data function
+        function resetToTestData() {
+            if (confirm('⚠️ Are you sure you want to reset to demo data?\n\nThis will:\n- Delete all current applicants\n- Restore original test data\n- Clear saved data\n\nThis action cannot be undone.')) {
+                console.log('🔄 Resetting to test data...');
+                
+                // Clear current data
+                applicants.length = 0;
+                
+                // Load test data
+                applicants.push(...originalTestData);
+                
+                // Reset botStats
+                botStats.totalReceived = 0;
+                botStats.lastReceived = 'Never';
+                botStats.connectionStatus = 'Ready';
+                botStats.lastPing = 'Never';
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                // Refresh UI
+                refreshAllSections();
+                
+                showNotification('🔄 Reset to demo data successfully - 8 test applicants loaded', 'success');
+                console.log('✅ Reset complete - Demo data loaded');
+            }
+        }
+
+        // Validate all data for undefined values and Firebase compatibility
+        function validateData() {
+            console.log('🔍 Validating all data for Firebase compatibility...');
+            
+            try {
+                // Validate botStats
+                validateBotStats();
+                
+                // Test data serialization
+                const testData = getAllDashboardData();
+                const serialized = JSON.stringify(testData);
+                
+                // Check for undefined values
+                const undefinedCount = (serialized.match(/undefined/g) || []).length;
+                const hasUndefined = serialized.includes('undefined');
+                
+                let report = `✅ DATA VALIDATION REPORT
+============================
+
+BOTSTATS VALIDATION:
+- Total Received: ${botStats.totalReceived} (${typeof botStats.totalReceived})
+- Last Received: ${botStats.lastReceived} (${typeof botStats.lastReceived})
+- Connection Status: ${botStats.connectionStatus} (${typeof botStats.connectionStatus})
+- Last Ping: ${botStats.lastPing} (${typeof botStats.lastPing})
+
+SERIALIZATION TEST:
+- Applicants: ${testData.applicants.length} records
+- Data size: ${(serialized.length / 1024).toFixed(2)} KB
+- Undefined values found: ${undefinedCount}
+- Contains undefined: ${hasUndefined ? '❌ YES' : '✅ NO'}
+
+FIREBASE COMPATIBILITY:
+${hasUndefined ? '❌ FAIL - Contains undefined values' : '✅ PASS - Ready for Firebase'}
+
+RECOMMENDATIONS:
+${hasUndefined ? '1. Data contains undefined values - needs cleaning\n2. Use "🗑️ Clear Firebase" then "☁️ Save to Cloud"' : '1. Data is clean and ready for Firebase\n2. Safe to save to Firebase'}
+
+Validation completed: ${new Date().toLocaleString()}`;
+
+                showModal('✅ Data Validation Report', report);
+                
+                if (hasUndefined) {
+                    showNotification('⚠️ Data validation found undefined values - Check report for details', 'error');
+                } else {
+                    showNotification('✅ Data validation passed - Ready for Firebase!', 'success');
+                }
+                
+            } catch (error) {
+                console.error('❌ Data validation failed:', error);
+                showNotification('❌ Data validation failed: ' + error.message, 'error');
+            }
+        }
+
+        // Clear Firebase data (for testing and debugging)
+        function clearFirebaseData() {
+            if (!database) {
+                showNotification('❌ Firebase not connected - cannot clear data', 'error');
+                return;
+            }
+
+            if (confirm('⚠️ Are you sure you want to PERMANENTLY DELETE all data from Firebase?\n\nThis will:\n- Delete all saved applicant data\n- Delete all bot statistics\n- Cannot be undone\n\nLocal data will remain unchanged.')) {
+                console.log('🗑️ Clearing Firebase data...');
+                
+                database.ref('aiBootcampDashboard').remove().then(() => {
+                    showNotification('✅ Firebase data cleared successfully', 'success');
+                    console.log('🔥 Firebase data cleared');
+                }).catch((error) => {
+                    showNotification('❌ Failed to clear Firebase data: ' + error.message, 'error');
+                    console.error('❌ Firebase clear error:', error);
+                });
+            }
+        }
+
+        // Test Firebase functionality
+        function testFirebase() {
+            console.log('🧪 Testing Firebase functionality...');
+            
+            if (!database) {
+                showNotification('❌ Firebase not connected - cannot test', 'error');
+                return;
+            }
+
+            const testData = {
+                currentApplicants: applicants.length,
+                botStats: botStats,
+                timestamp: new Date().toISOString(),
+                testId: 'TEST_' + Date.now()
+            };
+
+            console.log('📊 Current dashboard state:', testData);
+
+            // Test Firebase write
+            database.ref('aiBootcampDashboard/test').set(testData).then(() => {
+                console.log('✅ Firebase write test successful');
+                
+                // Test Firebase read
+                return database.ref('aiBootcampDashboard/test').once('value');
+            }).then((snapshot) => {
+                const readData = snapshot.val();
+                console.log('✅ Firebase read test successful:', readData);
+                
+                // Test current data integrity
+                database.ref('aiBootcampDashboard').once('value').then((snapshot) => {
+                    const currentFirebaseData = snapshot.val();
+                    
+                    const report = `🧪 FIREBASE TEST RESULTS
+============================
+
+CONNECTION STATUS: ✅ Connected
+WRITE TEST: ✅ Successful
+READ TEST: ✅ Successful
+
+CURRENT LOCAL DATA:
+- Applicants: ${applicants.length}
+- Bot Stats: ${JSON.stringify(botStats, null, 2)}
+- Last Received: ${botStats.lastReceived || 'Never'}
+
+FIREBASE STORED DATA:
+- Stored Applicants: ${currentFirebaseData?.applicants?.length || 0}
+- Last Saved: ${currentFirebaseData?.lastSaved || 'Never'}
+- Last Auto-Saved: ${currentFirebaseData?.lastAutoSaved || 'Never'}
+- Metadata: ${JSON.stringify(currentFirebaseData?.metadata || {}, null, 2)}
+
+POTENTIAL ISSUES:
+${applicants.length !== (currentFirebaseData?.applicants?.length || 0) ? 
+'⚠️ LOCAL/FIREBASE DATA MISMATCH DETECTED!' : '✅ Data counts match'}
+
+RECOMMENDATIONS:
+1. Click "Save to Cloud" to sync current data
+2. Check console for detailed logs
+3. If issues persist, try "Load from Cloud" to reset
+
+Test completed: ${new Date().toLocaleString()}`;
+
+                    showModal('🧪 Firebase Test Results', report);
+                    showNotification('🧪 Firebase test completed - Check modal for details', 'success');
+                });
+
+            }).catch((error) => {
+                console.error('❌ Firebase test failed:', error);
+                showNotification('❌ Firebase test failed: ' + error.message, 'error');
+            });
         }
 
         const chatbots = [
@@ -2066,7 +2239,7 @@ The dashboard will automatically update and show the results!
 
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing AI Bootcamp Dashboard with Firebase & Bot Integration');
+            console.log('🚀 Initializing AI Bootcamp Dashboard with Persistent Data & Bot Integration');
             
             // Add global error handler
             window.addEventListener('error', function(event) {
@@ -2086,7 +2259,7 @@ The dashboard will automatically update and show the results!
             // Setup auto-save triggers (disabled to prevent Firebase serialization errors)
             setupAutoSaveTriggers();
             
-            // Initialize dashboard - CRITICAL: This must run to show applicants
+            // Initialize dashboard with persistent data loading
             init();
             
             // Setup modal event listener
@@ -2097,42 +2270,43 @@ The dashboard will automatically update and show the results!
                 });
             }
             
-            // Force update statistics after short delay to ensure DOM is ready
+            // Force update statistics after data is loaded
             setTimeout(() => {
                 updateStatistics();
                 updateSectionCounts();
                 updatePageTitle(); // Set initial page title
-                console.log('🔄 Force-updated statistics, sections, and page title');
-            }, 500);
+                console.log('🔄 Updated UI after data loading');
+            }, 1000);
             
-            // Show startup notification about Firebase behavior
+            // Show startup notification about new behavior
             setTimeout(() => {
                 if (database) {
-                    showNotification('🔥 Firebase connected! New bot assessments auto-save. Use "Load from Cloud" to restore saved data.', 'success', 8000);
+                    showNotification('🔥 Data persistence active! Changes now save automatically and survive page refreshes.', 'success', 8000);
                 } else {
-                    showNotification('⚠️ Firebase not connected - running in offline mode', 'error');
+                    showNotification('⚠️ Firebase not connected - using localStorage backup for data persistence', 'info', 6000);
                 }
             }, 2000);
             
             // Console welcome message for enhanced bot integration
             console.log(`
-🤖 AI BOOTCAMP DASHBOARD - UNDEFINED VALUES FIXED
+🤖 AI BOOTCAMP DASHBOARD - DATA PERSISTENCE FIXED
 ==================================================
 
-✅ Dashboard loaded successfully
+✅ Dashboard loaded successfully with persistent data
 ✅ Firebase integration active (undefined values FIXED)
-✅ BotStats properly initialized with default values
-✅ Data validation and cleaning implemented
+✅ localStorage backup system implemented
+✅ Data now persists across page refreshes
+✅ Bot assessments are immediately saved and persist
+✅ Deleted applicants stay deleted after refresh
 ✅ Enhanced bot listener ready for comprehensive candidate data
-✅ Security configured for your GitHub Pages domain
-✅ Global error handling enabled
 
-🔧 UNDEFINED VALUES FIXES:
-- ✅ BotStats initialized with proper default values
-- ✅ Data cleaning function filters out undefined values
-- ✅ Validation function added to check data integrity
-- ✅ Enhanced error handling for undefined detection
-- ✅ Auto-cleaning during save operations
+🔧 DATA PERSISTENCE SYSTEM:
+- ✅ Data automatically saves to localStorage on every change
+- ✅ Startup loads: localStorage → Firebase → Demo data (priority order)
+- ✅ New bot assessments immediately saved and persist
+- ✅ Deletions immediately saved and persist
+- ✅ No more reset to original data on refresh
+- ✅ Your changes now survive page refreshes
 
 🔥 FIREBASE IMPROVEMENTS:
 - ✅ Proper data serialization with undefined filtering
@@ -2141,12 +2315,13 @@ The dashboard will automatically update and show the results!
 - ✅ Clean data structure guaranteed for Firebase
 - ✅ Backup validation and cleaning functions
 
-🚨 TROUBLESHOOTING TOOLS:
-1. "✅ Validate Data" - Check for undefined values
-2. "🧪 Test Firebase" - Test Firebase connectivity
-3. "🗑️ Clear Firebase" - Reset Firebase data
-4. "☁️ Save to Cloud" - Save clean data
-5. Check console for detailed validation logs
+🚨 DATA MANAGEMENT TOOLS:
+1. "💾 Save to Cloud" - Save current data to Firebase
+2. "📥 Load from Cloud" - Load saved data from Firebase
+3. "✅ Validate Data" - Check for undefined values
+4. "🧪 Test Firebase" - Test Firebase connectivity
+5. "🗑️ Clear Firebase" - Reset Firebase data
+6. "🔄 Reset Demo Data" - Restore original test data
 
 📨 FROM YOUR BOT.HTML:
 const candidateData = {
@@ -2167,15 +2342,21 @@ const candidateData = {
 };
 window.parent.postMessage(candidateData, '*');
 
+🎯 NEW BEHAVIOR:
+- Delete applicants → They stay deleted after refresh
+- Add bot data → It persists after refresh  
+- Make changes → They're automatically saved
+- Refresh page → Your data remains exactly as you left it
+
 Current stats: ${applicants.length} applicants loaded
 🔥 Firebase: ${database ? 'Connected & Clean' : 'Offline'}
-🧪 Use "Validate Data" to check for undefined values
+💾 localStorage: Active and saving changes
 
-All undefined value issues should now be COMPLETELY RESOLVED! 🚀
+DATA PERSISTENCE IS NOW FULLY WORKING! 🚀
             `);
             
             // Additional ready message for bot sync
-            console.log('🎯 Enhanced bot integration active with UNDEFINED VALUES FIXED - No more Firebase serialization errors!');
+            console.log('🎯 Enhanced bot integration active with PERSISTENT DATA - Changes now survive page refreshes!');
         });
     </script>
 </body>
