@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Futuristic Planner 2025-2026</title>
+    
+    <!-- Firebase CDN Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -261,10 +266,12 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: linear-gradient(135deg, rgba(13, 71, 161, 0.95), rgba(25, 118, 210, 0.95));
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
-            width: 90%;
-            max-width: 500px;
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
             border: 1px solid rgba(66, 165, 245, 0.3);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
@@ -308,13 +315,63 @@
             min-height: 60px;
         }
 
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row.single {
+            grid-template-columns: 1fr;
+        }
+
+        .form-row.triple {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
         .job-fields {
             background: rgba(76, 175, 80, 0.1);
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
+            border-radius: 12px;
             border: 1px solid rgba(76, 175, 80, 0.3);
             margin-bottom: 15px;
             display: none;
+        }
+
+        .job-fields h4 {
+            color: #4caf50;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .form-row.triple {
+                grid-template-columns: 1fr;
+            }
+            
+            .job-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 98%;
+                padding: 20px;
+                max-height: 95vh;
+            }
         }
 
         .form-actions {
@@ -499,6 +556,35 @@
             cursor: pointer;
         }
 
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .firebase-connected {
+            background: #27ae60;
+            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .firebase-disconnected {
+            background: #e74c3c;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        .firebase-saving {
+            background: #f39c12;
+            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+        }
+
         @media (max-width: 768px) {
             .app-container {
                 flex-direction: column;
@@ -553,6 +639,11 @@
     </style>
 </head>
 <body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">
+        🔴 Firebase Disconnected
+    </div>
+
     <div class="app-container">
         <div class="sidebar" id="sidebar">
             <h2>📅 Planner 2025-2026</h2>
@@ -574,11 +665,14 @@
 
             <div class="backup-section">
                 <h4 style="color: #90caf9; margin-bottom: 10px; font-size: 0.9rem;">📦 Backup & Sync</h4>
-                <button class="backup-btn" onclick="createBackup()">💾 Backup Now</button>
+                <button class="backup-btn" onclick="saveEventsToFirebase()">🔄 Sync to Cloud</button>
+                <button class="backup-btn" onclick="loadEventsFromFirebase()">📥 Load from Cloud</button>
+                <button class="backup-btn" onclick="testFirebase()">🔧 Test Connection</button>
+                <button class="backup-btn" onclick="createBackup()">💾 Download Backup</button>
                 <button class="backup-btn" onclick="document.getElementById('importFile').click()">📁 Import Backup</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(this)">
                 <div class="backup-status" id="backupStatus">
-                    <small style="color: #64b5f6;">Auto-backup: Daily at midnight</small>
+                    <small style="color: #64b5f6;">🔴 Connecting...</small>
                 </div>
             </div>
 
@@ -661,87 +755,103 @@
             <button class="close-btn" onclick="closeEventModal()">&times;</button>
             <h3 id="modalTitle">Add New Event</h3>
             <form id="eventForm">
-                <div class="form-group">
-                    <label>Start Date</label>
-                    <input type="date" id="eventDate" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="eventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="eventEndDate">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>End Date</label>
-                    <input type="date" id="eventEndDate">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <input type="time" id="eventTime">
+                    </div>
+                    <div class="form-group">
+                        <label>End Time</label>
+                        <input type="time" id="eventEndTime">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Start Time</label>
-                    <input type="time" id="eventTime">
-                </div>
-                <div class="form-group">
-                    <label>End Time</label>
-                    <input type="time" id="eventEndTime">
-                </div>
-                <div class="form-group">
-                    <label>Event Name</label>
-                    <input type="text" id="eventName" required placeholder="Enter event name">
-                </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="eventCategory" onchange="toggleJobFields()">
-                        <option value="personal">Personal</option>
-                        <option value="work">Work</option>
-                        <option value="health">Health</option>
-                        <option value="social">Social</option>
-                        <option value="travel">Travel</option>
-                        <option value="job">Paid Job</option>
-                    </select>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Event Name</label>
+                        <input type="text" id="eventName" required placeholder="Enter event name">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="eventCategory" onchange="toggleJobFields()">
+                            <option value="personal">Personal</option>
+                            <option value="work">Work</option>
+                            <option value="health">Health</option>
+                            <option value="social">Social</option>
+                            <option value="travel">Travel</option>
+                            <option value="job">Paid Job</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="job-fields" id="jobFields">
-                    <h4 style="color: #4caf50; margin-bottom: 15px;">💼 Job Details</h4>
-                    <div class="form-group">
-                        <label>Job Duration (Hours)</label>
-                        <select id="jobDuration" onchange="calculateTotal()">
-                            <option value="">Select duration</option>
-                            <option value="0.5">30 minutes (0.5h)</option>
-                            <option value="1">1 hour</option>
-                            <option value="1.5">1.5 hours</option>
-                            <option value="2">2 hours</option>
-                            <option value="2.5">2.5 hours</option>
-                            <option value="3">3 hours</option>
-                            <option value="4">4 hours</option>
-                            <option value="5">5 hours</option>
-                            <option value="6">6 hours</option>
-                            <option value="7">7 hours</option>
-                            <option value="8">8 hours</option>
-                            <option value="10">10 hours</option>
-                            <option value="12">12 hours</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Hourly Rate (£)</label>
-                        <input type="number" id="hourlyRate" placeholder="25.00" step="0.01" min="0" onchange="calculateTotal()">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Payment</label>
-                        <input type="text" id="totalPayment" readonly style="background: rgba(76, 175, 80, 0.2); color: #4caf50; font-weight: bold;">
+                    <h4>💼 Job Details</h4>
+                    <div class="job-grid">
+                        <div class="form-group">
+                            <label>Duration (Hours)</label>
+                            <select id="jobDuration" onchange="calculateTotal()">
+                                <option value="">Select duration</option>
+                                <option value="0.5">30 minutes (0.5h)</option>
+                                <option value="1">1 hour</option>
+                                <option value="1.5">1.5 hours</option>
+                                <option value="2">2 hours</option>
+                                <option value="2.5">2.5 hours</option>
+                                <option value="3">3 hours</option>
+                                <option value="4">4 hours</option>
+                                <option value="5">5 hours</option>
+                                <option value="6">6 hours</option>
+                                <option value="7">7 hours</option>
+                                <option value="8">8 hours</option>
+                                <option value="10">10 hours</option>
+                                <option value="12">12 hours</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Hourly Rate (£)</label>
+                            <input type="number" id="hourlyRate" placeholder="25.00" step="0.01" min="0" onchange="calculateTotal()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Payment</label>
+                            <input type="text" id="totalPayment" readonly style="background: rgba(76, 175, 80, 0.2); color: #4caf50; font-weight: bold; text-align: center; font-size: 1.1rem;">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Location</label>
-                    <input type="text" id="eventLocation" placeholder="Enter location">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="eventLocation" placeholder="Enter location">
+                    </div>
+                    <div class="form-group">
+                        <label>Reminder</label>
+                        <select id="eventReminder">
+                            <option value="">No reminder</option>
+                            <option value="15">15 minutes before</option>
+                            <option value="30">30 minutes before</option>
+                            <option value="60">1 hour before</option>
+                            <option value="1440">1 day before</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Notes</label>
-                    <textarea id="eventNotes" placeholder="Additional notes..."></textarea>
+                
+                <div class="form-row single">
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="eventNotes" placeholder="Additional notes..." rows="3"></textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Reminder</label>
-                    <select id="eventReminder">
-                        <option value="">No reminder</option>
-                        <option value="15">15 minutes before</option>
-                        <option value="30">30 minutes before</option>
-                        <option value="60">1 hour before</option>
-                        <option value="1440">1 day before</option>
-                    </select>
-                </div>
+                
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="deleteEvent()" id="deleteBtn" style="display: none; background: linear-gradient(45deg, #f44336, #e57373);">Delete</button>
@@ -752,6 +862,252 @@
     </div>
 
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+            authDomain: "prospecting-f2f42.firebaseapp.com",
+            databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "prospecting-f2f42",
+            storageBucket: "prospecting-f2f42.firebasestorage.app",
+            messagingSenderId: "292034226428",
+            appId: "1:292034226428:web:878b867e3eb4d3e0098f79"
+        };
+
+        // Firebase variables
+        let database = null;
+        let firebaseApp = null;
+        let firebaseEnabled = false;
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    database = firebase.database();
+                    firebaseEnabled = true;
+                    updateFirebaseStatus('connected');
+                    console.log('🔥 Firebase initialized successfully');
+                    
+                    // Auto-save every 60 seconds if we have events
+                    setInterval(() => {
+                        if (events.length > 0) {
+                            saveEventsToFirebase();
+                        }
+                    }, 60000);
+                } else {
+                    console.error('❌ Firebase SDK not loaded');
+                    updateFirebaseStatus('disconnected');
+                    firebaseEnabled = false;
+                }
+            } catch (error) {
+                console.error('❌ Firebase initialization failed:', error);
+                updateFirebaseStatus('disconnected');
+                firebaseEnabled = false;
+            }
+        }
+
+        // Firebase status management
+        function updateFirebaseStatus(status) {
+            const statusElement = document.getElementById('firebase-status');
+            if (statusElement) {
+                statusElement.className = `firebase-status firebase-${status}`;
+                statusElement.innerHTML = status === 'connected' ? '🟢 Firebase Connected' : 
+                                         status === 'saving' ? '🟡 Saving...' : 
+                                         '🔴 Firebase Offline';
+            }
+            
+            // Update backup status in sidebar
+            const backupStatus = document.getElementById('backupStatus');
+            if (backupStatus) {
+                if (status === 'connected') {
+                    backupStatus.innerHTML = '<small style="color: #4caf50;">🟢 Cloud Connected</small>';
+                } else if (status === 'saving') {
+                    backupStatus.innerHTML = '<small style="color: #ff9800;">🟡 Syncing...</small>';
+                } else {
+                    backupStatus.innerHTML = '<small style="color: #f44336;">🔴 Offline Mode</small>';
+                }
+            }
+            
+            console.log(`🔥 Firebase status: ${status}`);
+        }
+
+        // Save events to Firebase
+        function saveEventsToFirebase() {
+            if (!database || !firebaseEnabled) {
+                console.log('Firebase not available, saving to localStorage');
+                saveToLocalStorage();
+                return Promise.reject('Firebase not available');
+            }
+            
+            updateFirebaseStatus('saving');
+            
+            // Prepare data for Firebase
+            const dataToSave = {
+                events: events,
+                statistics: {
+                    totalEvents: events.length,
+                    totalJobs: events.filter(e => e.category === 'job').length,
+                    totalRevenue: events.filter(e => e.category === 'job').reduce((sum, e) => sum + (e.totalPayment || 0), 0),
+                    lastUpdated: new Date().toISOString()
+                },
+                metadata: {
+                    appVersion: '1.0.0',
+                    lastSaved: new Date().toISOString(),
+                    userAgent: navigator.userAgent.substring(0, 100)
+                }
+            };
+            
+            // Clean the data
+            const cleanData = JSON.parse(JSON.stringify(dataToSave));
+            
+            // Save to Firebase Realtime Database
+            return database.ref('planner-data').set(cleanData)
+                .then(() => {
+                    updateFirebaseStatus('connected');
+                    console.log('☁️ Events saved to Firebase successfully');
+                    showNotification('☁️ Data saved to cloud', 'success');
+                    return { success: true, timestamp: new Date().toISOString() };
+                })
+                .catch(error => {
+                    console.error('❌ Firebase save failed:', error);
+                    updateFirebaseStatus('disconnected');
+                    showNotification('❌ Cloud save failed', 'error');
+                    // Fallback to localStorage
+                    saveToLocalStorage();
+                    return { success: false, error: error.message };
+                });
+        }
+
+        // Load events from Firebase
+        function loadEventsFromFirebase() {
+            if (!database || !firebaseEnabled) {
+                console.log('Firebase not available, loading from localStorage');
+                loadFromLocalStorage();
+                return Promise.reject('Firebase not available');
+            }
+            
+            return database.ref('planner-data').once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    if (data && data.events) {
+                        events.length = 0; // Clear existing events
+                        events.push(...data.events);
+                        
+                        console.log('📥 Events loaded from Firebase:', events.length);
+                        showNotification(`📥 Loaded ${events.length} events from cloud`, 'success');
+                        
+                        // Refresh all views
+                        if (currentView === 'week') {
+                            renderCalendar();
+                        } else if (currentView === 'month') {
+                            renderMonthView();
+                        } else if (currentView === 'dashboard') {
+                            renderDashboard();
+                        }
+                        
+                        return { success: true, data: data };
+                    } else {
+                        console.log('ℹ️ No events found in Firebase');
+                        showNotification('ℹ️ No cloud data found', 'info');
+                        loadFromLocalStorage(); // Fallback to localStorage
+                        return { success: false, message: 'No data found' };
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Firebase load failed:', error);
+                    showNotification('❌ Cloud load failed', 'error');
+                    loadFromLocalStorage(); // Fallback to localStorage
+                    return { success: false, error: error.message };
+                });
+        }
+
+        // Test Firebase connection
+        function testFirebase() {
+            if (!database || !firebaseEnabled) {
+                showNotification('❌ Firebase not connected', 'error');
+                return;
+            }
+            
+            const testData = {
+                test: true,
+                timestamp: new Date().toISOString(),
+                message: 'Firebase connection test from planner'
+            };
+            
+            database.ref('connection-test').set(testData)
+                .then(() => {
+                    showNotification('✅ Firebase test successful', 'success');
+                    console.log('✅ Firebase test passed');
+                })
+                .catch(error => {
+                    showNotification('❌ Firebase test failed: ' + error.message, 'error');
+                    console.error('❌ Firebase test failed:', error);
+                });
+        }
+
+        // Notification function
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? '#4caf50' : 
+                           type === 'error' ? '#f44336' : '#2196f3';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 300px;
+                font-size: 14px;
+                transition: all 0.3s ease;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 16px; cursor: pointer; margin-left: 10px;">✕</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+
+        // Local storage functions (fallback)
+        function saveToLocalStorage() {
+            try {
+                console.log('Saving', events.length, 'events to localStorage');
+                localStorage.setItem('plannerEvents', JSON.stringify(events));
+                console.log('Data saved to localStorage successfully');
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                showNotification('Error saving data: ' + error.message, 'error');
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedEvents = localStorage.getItem('plannerEvents');
+                console.log('Loading saved data from localStorage');
+                if (savedEvents) {
+                    events = JSON.parse(savedEvents);
+                    console.log('Loaded', events.length, 'events from localStorage');
+                } else {
+                    console.log('No saved data found, using default events');
+                }
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                showNotification('Error loading saved data: ' + error.message, 'error');
+            }
+        }
+
         // Global variables
         var currentDate = new Date(2025, 6, 4);
         var currentView = 'week';
@@ -820,13 +1176,22 @@
         // Initialize the app
         function init() {
             console.log('Initializing planner with', events.length, 'default events');
-            loadSavedData();
-            console.log('After loading saved data:', events.length, 'events');
-            updateCurrentWeek();
-            renderCalendar();
-            renderMonthView();
-            renderDashboard();
-            setupEventListeners();
+            
+            // Initialize Firebase first
+            initializeFirebase();
+            
+            // Small delay to let Firebase initialize
+            setTimeout(() => {
+                // Load saved data (from Firebase if available, otherwise localStorage)
+                loadSavedData();
+                
+                console.log('After loading saved data:', events.length, 'events');
+                updateCurrentWeek();
+                renderCalendar();
+                renderMonthView();
+                renderDashboard();
+                setupEventListeners();
+            }, 1000);
         }
 
         function setupEventListeners() {
