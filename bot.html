@@ -696,6 +696,27 @@
     </div>
 
     <script>
+        <!-- bot.html -->
+<script>
+  const channel = new BroadcastChannel('bot_channel');
+
+  // Simulate sending a message (e.g., user clicks a button)
+  function sendMessage() {
+    const message = {
+      type: 'BOT_DATA',
+      payload: {
+        name: 'TenderBot',
+        action: 'RequestApproved',
+        timestamp: new Date().toISOString()
+      }
+    };
+    channel.postMessage(message);
+    console.log('Sent message:', message);
+  }
+</script>
+
+<button onclick="sendMessage()">Send to testbot.html</button>
+
         class ChatBot {
             constructor() {
                 console.log('🚀 Starting ChatBot initialization...');
