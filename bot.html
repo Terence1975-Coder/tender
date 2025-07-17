@@ -589,7 +589,7 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.openDashboardPopup()" style="background: #27ae60;">
+                        <button class="audio-btn" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
                             🖥️ Open Dashboard
                         </button>
                         <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
@@ -982,20 +982,42 @@
             }
 
             // Dashboard popup methods
-            openDashboardPopup() {
+            openDashboardPopup(visible = true) {
                 if (this.dashboardWindow && !this.dashboardWindow.closed) {
-                    this.dashboardWindow.focus();
-                    console.log('📊 Dashboard popup already open - focusing existing window');
+                    if (visible) {
+                        this.dashboardWindow.focus();
+                        console.log('📊 Dashboard popup already open - focusing existing window');
+                    } else {
+                        console.log('📊 Dashboard popup already open - keeping hidden');
+                    }
                     return this.dashboardWindow;
                 }
 
-                console.log('📊 Opening dashboard popup:', this.config.dashboardURL);
+                console.log('📊 Opening dashboard popup:', this.config.dashboardURL, visible ? '(visible)' : '(hidden)');
                 
-                const popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,menubar=no,toolbar=no';
+                let popupFeatures;
+                if (visible) {
+                    // Normal visible popup for admin use
+                    popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,left=100,top=100';
+                } else {
+                    // Hidden popup for background operation - positioned off-screen and minimized
+                    popupFeatures = 'width=1,height=1,scrollbars=no,resizable=no,menubar=no,toolbar=no,status=no,location=no,left=-2000,top=-2000';
+                }
+                
                 this.dashboardWindow = window.open(this.config.dashboardURL, 'testbot_dashboard', popupFeatures);
                 
                 if (this.dashboardWindow) {
-                    console.log('📊 ✅ Dashboard popup opened successfully');
+                    console.log(`📊 ✅ Dashboard popup opened ${visible ? 'visibly' : 'hidden'}`);
+                    
+                    if (!visible) {
+                        // Additional steps to keep popup hidden
+                        try {
+                            this.dashboardWindow.blur(); // Remove focus
+                            window.focus(); // Keep focus on current window
+                        } catch (e) {
+                            console.log('📊 Note: Could not fully hide popup due to browser restrictions');
+                        }
+                    }
                     
                     // Wait for popup to load then send any pending data
                     this.dashboardWindow.addEventListener('load', () => {
@@ -1013,16 +1035,28 @@
                     
                 } else {
                     console.log('📊 ❌ Failed to open dashboard popup - popup blocked?');
-                    this.addMessage('bot', '⚠️ <strong>Dashboard popup blocked</strong><br>Please allow popups for this site and try again.');
+                    if (visible) {
+                        this.addMessage('bot', '⚠️ <strong>Dashboard popup blocked</strong><br>Please allow popups for this site and try again.');
+                    }
                 }
                 
                 return this.dashboardWindow;
             }
 
+            openVisibleDashboard() {
+                // Admin function to open visible dashboard
+                return this.openDashboardPopup(true);
+            }
+
+            openHiddenDashboard() {
+                // Function to open hidden dashboard for background data transmission
+                return this.openDashboardPopup(false);
+            }
+
             sendToPopupDashboard(reportData) {
                 if (!this.dashboardWindow || this.dashboardWindow.closed) {
-                    console.log('📊 Dashboard popup not open - opening now...');
-                    this.openDashboardPopup();
+                    console.log('📊 Dashboard popup not open - opening hidden popup for background operation...');
+                    this.openHiddenDashboard();
                     
                     // Wait for popup to load then send data
                     setTimeout(() => {
@@ -1369,16 +1403,8 @@
                     this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
                 }, 1500);
                 
-                // Auto-open dashboard popup for immediate access
                 setTimeout(() => {
-                    if (this.config.usePopupDashboard) {
-                        console.log('📊 Auto-opening dashboard popup...');
-                        this.openDashboardPopup();
-                    }
-                }, 2000);
-                
-                setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard opens automatically in popup window<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting to dashboard';
+                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard works in background automatically<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting to dashboard';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -2334,23 +2360,25 @@ Are you still interested in progressing with this opportunity?`);
             }
 
             showPopupDashboardConfirmation(reportData) {
-                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Open' : 'Opening...';
+                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Hidden & Active' : 'Opening Hidden...';
                 
                 this.addMessage('bot', `
-                    📊 <strong>Report sent to dashboard popup!</strong><br>
+                    📊 <strong>Report sent to hidden dashboard!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ Dashboard Popup Method</strong><br>
+                        <strong>✅ Hidden Dashboard Method</strong><br>
                         • <strong>Candidate:</strong> ${reportData.name}<br>
                         • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                        • <strong>Popup Status:</strong> ${popupStatus}<br>
-                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}<br>
-                        • <strong>Method:</strong> window.open() + postMessage
+                        • <strong>Dashboard Status:</strong> ${popupStatus}<br>
+                        • <strong>Visibility:</strong> Hidden from applicant<br>
+                        • <strong>Method:</strong> Background popup + BroadcastChannel<br>
+                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}
                     </div>
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>💡 If popup didn't open:</strong><br>
-                        • Allow popups for this site<br>
-                        • Click "🖥️ Open Dashboard" button<br>
-                        • Check browser popup blocker settings
+                        <strong>💡 Dashboard Access:</strong><br>
+                        • Dashboard runs hidden in background<br>
+                        • Click "🖥️ Open Dashboard" to view reports<br>
+                        • Data automatically transmitted via BroadcastChannel<br>
+                        • Applicants cannot see the dashboard popup
                     </div>
                 `);
             }
@@ -2909,7 +2937,7 @@ window.addEventListener('message', function(event) {
                 startupInfo.innerHTML = `
                     🎉 <strong>System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
-                    • Dashboard opens in popup window<br>
+                    • Dashboard works in background<br>
                     • BroadcastChannel communication<br>
                     • Emily (Irish English) voice enabled<br>
                     • Location fact-checking ready<br>
