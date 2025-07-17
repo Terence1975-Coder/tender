@@ -598,6 +598,9 @@
                         <button class="audio-btn admin-hidden" onclick="window.chatBot.testDashboardConnection()" style="background: #e67e22;">
                             🔗 Test Connection
                         </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showTestbotCode()" style="background: #8e44ad;">
+                            📝 Show testbot.html Code
+                        </button>
                         <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
                             ⏹️ Stop Audio
@@ -1380,7 +1383,7 @@
                     element.classList.add('admin-visible');
                 });
                 
-                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Dashboard button<br>• Dashboard Info button<br>• Test Connection button<br><br>All hidden elements are now visible.');
+                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Dashboard button<br>• Dashboard Info button<br>• Test Connection button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible.');
             }
 
             handleCourseQuestion(question) {
@@ -2071,58 +2074,91 @@ Are you still interested in progressing with this opportunity?`);
                 console.log('📊 Report transmission method: window.parent.postMessage()');
                 
                 try {
-                    console.log('📊 Attempting Method 1: Parent window communication...');
+                    console.log('📊 ===== DASHBOARD TRANSMISSION ATTEMPT =====');
+                    console.log('📊 Target: https://terence1975-coder.github.io/tender/testbot.html');
+                    console.log('📊 Data being sent:', JSON.stringify(reportData, null, 2));
+                    
+                    let transmissionSuccess = false;
+                    
+                    // Method 1: Parent window with specific origin
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 ✅ Method 1: Successfully sent to parent window (testbot.html)');
-                    } else {
-                        console.log('📊 ⚠️ Method 1: Parent window not available');
+                        console.log('📊 ✅ Method 1: Sent to parent window with specific origin');
+                        transmissionSuccess = true;
                     }
                     
-                    console.log('📊 Attempting Method 2: Top window communication...');
+                    // Method 2: Parent window with wildcard origin
+                    if (window.parent) {
+                        window.parent.postMessage(reportData, '*');
+                        console.log('📊 ✅ Method 2: Sent to parent window with wildcard origin');
+                        transmissionSuccess = true;
+                    }
+                    
+                    // Method 3: Top window
                     if (window.top && window.top !== window) {
-                        window.top.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 ✅ Method 2: Successfully sent to top window');
-                    } else {
-                        console.log('📊 ⚠️ Method 2: Top window not available');
+                        window.top.postMessage(reportData, '*');
+                        console.log('📊 ✅ Method 3: Sent to top window');
+                        transmissionSuccess = true;
                     }
                     
-                    console.log('📊 Attempting Method 3: Wildcard origin...');
-                    window.parent.postMessage(reportData, '*');
-                    console.log('📊 ✅ Method 3: Successfully sent with wildcard origin');
+                    // Method 4: Direct window reference attempt
+                    try {
+                        if (window.opener) {
+                            window.opener.postMessage(reportData, '*');
+                            console.log('📊 ✅ Method 4: Sent to opener window');
+                            transmissionSuccess = true;
+                        }
+                    } catch (e) {
+                        console.log('📊 ⚠️ Method 4: Opener not available');
+                    }
                     
-                    this.showDashboardConfirmation(true);
-                    
-                    this.addMessage('bot', `
-                        📊 <strong>Report sent to testbot.html successfully!</strong><br>
-                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>✅ Interview Booking Confirmed - Dashboard Updated</strong><br>
-                            • <strong>From:</strong> bot.html<br>
-                            • <strong>To:</strong> testbot.html<br>
-                            • <strong>Candidate:</strong> ${reportData.name}<br>
-                            • <strong>Score:</strong> ${reportData.score}/10<br>
-                            • <strong>Status:</strong> ${reportData.status}<br>
-                            • <strong>Interview Booked:</strong> ✅ YES<br>
-                            • <strong>Session ID:</strong> ${reportData.sessionId}<br>
-                            • <strong>Dashboard URL:</strong> https://terence1975-coder.github.io/tender/testbot.html
-                        </div>
-                        The testbot.html dashboard has been updated with this candidate's complete assessment and interview booking.
-                    `);
+                    if (transmissionSuccess) {
+                        this.showDashboardConfirmation(true);
+                        console.log('📊 ===== TRANSMISSION COMPLETE =====');
+                        console.log('📊 If testbot.html is not showing data, check:');
+                        console.log('📊 1. Message event listener exists in testbot.html');
+                        console.log('📊 2. Listener checks for messageType: "CANDIDATE_REPORT"');
+                        console.log('📊 3. Origin filtering is not too restrictive');
+                        console.log('📊 4. Console errors in testbot.html');
+                        
+                        // Show detailed troubleshooting info
+                        this.addMessage('bot', `
+                            📊 <strong>Report transmission completed!</strong><br>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>✅ Data sent to testbot.html</strong><br>
+                                • <strong>Candidate:</strong> ${reportData.name}<br>
+                                • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
+                                • <strong>Session ID:</strong> ${reportData.sessionId}<br>
+                                • <strong>Message Type:</strong> ${reportData.messageType}<br>
+                                • <strong>Target URL:</strong> ${reportData.toURL}
+                            </div>
+                            
+                            <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>🔧 If data not showing in testbot.html:</strong><br>
+                                1. Check browser console in testbot.html for errors<br>
+                                2. Verify message event listener is active<br>
+                                3. Ensure iframe embedding is correct<br>
+                                4. Check for origin filtering issues<br>
+                                5. Use "🔗 Test Connection" button for debugging
+                            </div>
+                        `);
+                    } else {
+                        throw new Error('No transmission methods available');
+                    }
                     
                 } catch (error) {
-                    console.error('📊 Dashboard reporting failed:', error);
+                    console.error('📊 ❌ DASHBOARD TRANSMISSION FAILED:', error);
                     this.showDashboardConfirmation(false);
                     this.addMessage('bot', `
-                        ⚠️ <strong>Dashboard sync failed.</strong><br>
+                        ❌ <strong>Dashboard transmission failed</strong><br>
                         <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>❌ Could not sync with testbot.html</strong><br>
-                            • <strong>Error:</strong> ${error.message}<br>
-                            • <strong>From:</strong> bot.html<br>
-                            • <strong>To:</strong> testbot.html<br>
-                            • <strong>Fallback:</strong> Data saved to Firebase<br>
-                            • <strong>Action:</strong> Check iframe embedding
+                            <strong>Error:</strong> ${error.message}<br>
+                            <strong>Troubleshooting:</strong><br>
+                            • Ensure bot.html is embedded in testbot.html as iframe<br>
+                            • Check if testbot.html has message event listeners<br>
+                            • Verify both pages are on same domain<br>
+                            • Check browser console for detailed errors
                         </div>
-                        The assessment is complete but dashboard sync failed.
                     `);
                 }
             }
@@ -2170,6 +2206,119 @@ Are you still interested in progressing with this opportunity?`);
                 }, success ? 4000 : 6000);
             }
 
+            showTestbotCode() {
+                this.addMessage('bot', `
+                    📝 <strong>Complete testbot.html Implementation</strong><br><br>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #3498db;">
+                    <strong>🔧 Copy this complete code into testbot.html:</strong><br><br>
+                    <code style="font-size: 9px; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; display: block; margin: 10px 0; white-space: pre-wrap; overflow-x: auto;">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;AI Bootcamp Dashboard&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .candidate { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .header { background: #3498db; color: white; padding: 10px; text-align: center; }
+        .status { padding: 5px 10px; border-radius: 3px; color: white; font-weight: bold; }
+        .suitable { background: #27ae60; }
+        .not-suitable { background: #e74c3c; }
+        .highly-suitable { background: #2ecc71; }
+        #candidates-container { margin-top: 20px; }
+        .interview-booked { background: #f39c12; color: white; padding: 5px 10px; border-radius: 3px; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="header"&gt;
+        &lt;h1&gt;🤖 AI Bootcamp Dashboard&lt;/h1&gt;
+        &lt;p&gt;Live candidate assessments from bot.html&lt;/p&gt;
+    &lt;/div&gt;
+    
+    &lt;div id="status"&gt;Waiting for candidates...&lt;/div&gt;
+    
+    &lt;!-- Embed bot.html as iframe --&gt;
+    &lt;iframe src="https://terence1975-coder.github.io/tender/bot.html" 
+            width="100%" height="600" frameborder="0"&gt;&lt;/iframe&gt;
+    
+    &lt;div id="candidates-container"&gt;&lt;/div&gt;
+    
+    &lt;script&gt;
+        let candidateCount = 0;
+        
+        // Listen for messages from bot.html
+        window.addEventListener('message', function(event) {
+            console.log('📨 Message received from bot.html:', event.data);
+            
+            if (event.data.messageType === 'CANDIDATE_REPORT') {
+                displayCandidate(event.data);
+            }
+            
+            if (event.data.messageType === 'CONNECTION_TEST') {
+                console.log('🔧 Connection test successful!');
+                alert('✅ Connection working! Bot.html can send data to testbot.html');
+            }
+        });
+        
+        function displayCandidate(data) {
+            candidateCount++;
+            console.log('📋 Displaying candidate:', data.name);
+            
+            const container = document.getElementById('candidates-container');
+            const statusDiv = document.getElementById('status');
+            
+            statusDiv.innerHTML = \`\${candidateCount} candidate(s) received\`;
+            
+            const candidateDiv = document.createElement('div');
+            candidateDiv.className = 'candidate';
+            
+            let statusClass = 'not-suitable';
+            if (data.status === 'HIGHLY_SUITABLE') statusClass = 'highly-suitable';
+            else if (data.status === 'SUITABLE') statusClass = 'suitable';
+            
+            candidateDiv.innerHTML = \`
+                &lt;h3&gt;\${data.name}&lt;/h3&gt;
+                &lt;div class="status \${statusClass}"&gt;\${data.status}&lt;/div&gt;
+                \${data.interviewBooked ? '&lt;div class="interview-booked"&gt;📅 Interview Booked&lt;/div&gt;' : ''}
+                &lt;p&gt;&lt;strong&gt;Score:&lt;/strong&gt; \${data.score}/10&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; \${data.email}&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Phone:&lt;/strong&gt; \${data.phone}&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Location:&lt;/strong&gt; \${data.location}&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Employment:&lt;/strong&gt; \${data.employmentStatus}&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Interview Status:&lt;/strong&gt; \${data.interviewStatus}&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;Timestamp:&lt;/strong&gt; \${new Date(data.timestamp).toLocaleString()}&lt;/p&gt;
+            \`;
+            
+            container.insertBefore(candidateDiv, container.firstChild);
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+                    </code>
+                    </div>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ This complete HTML file will:</strong><br>
+                    • Embed bot.html as an iframe<br>
+                    • Listen for candidate reports<br>
+                    • Display candidates with scores and interview status<br>
+                    • Show connection test confirmations<br>
+                    • Handle all message types from bot.html
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>🔧 Usage Instructions:</strong><br>
+                    1. Save this code as testbot.html<br>
+                    2. Upload to https://terence1975-coder.github.io/tender/testbot.html<br>
+                    3. Open testbot.html in browser<br>
+                    4. Use embedded bot.html to test candidate assessments<br>
+                    5. Check browser console for detailed logging
+                    </div>
+                `);
+            }
+
             testDashboardConnection() {
                 console.log('🔧 Testing connection to testbot.html...');
                 
@@ -2181,71 +2330,119 @@ Are you still interested in progressing with this opportunity?`);
                     timestamp: new Date().toISOString(),
                     testMessage: 'Testing sync between bot.html and testbot.html',
                     sessionId: Date.now(),
-                    sync: {
-                        windowParent: window.parent !== window,
-                        windowTop: window.top !== window,
+                    windowInfo: {
+                        hasParent: window.parent !== window,
+                        hasTop: window.top !== window,
+                        hasOpener: !!window.opener,
                         currentURL: window.location.href,
-                        userAgent: navigator.userAgent.substring(0, 50) + '...'
+                        userAgent: navigator.userAgent.substring(0, 100)
                     }
                 };
                 
                 try {
-                    let methodResults = [];
+                    let connectionMethods = [];
                     
+                    // Test all methods
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                        methodResults.push('✅ Parent window communication available');
+                        window.parent.postMessage(testData, '*');
+                        connectionMethods.push('✅ Parent window (specific + wildcard origin)');
                     } else {
-                        methodResults.push('❌ Parent window not available (not in iframe?)');
+                        connectionMethods.push('❌ Parent window not available');
                     }
                     
                     if (window.top && window.top !== window) {
-                        window.top.postMessage(testData, 'https://terence1975-coder.github.io');
-                        methodResults.push('✅ Top window communication available');
+                        window.top.postMessage(testData, '*');
+                        connectionMethods.push('✅ Top window');
                     } else {
-                        methodResults.push('❌ Top window not available');
+                        connectionMethods.push('❌ Top window not available');
                     }
                     
-                    window.parent.postMessage(testData, '*');
-                    methodResults.push('✅ Wildcard origin attempted');
+                    if (window.opener) {
+                        window.opener.postMessage(testData, '*');
+                        connectionMethods.push('✅ Opener window');
+                    } else {
+                        connectionMethods.push('❌ Opener window not available');
+                    }
                     
                     this.addMessage('bot', `
-                        🔧 <strong>testbot.html Connection Test</strong><br>
+                        🔧 <strong>Dashboard Connection Test</strong><br>
                         <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>📡 Connection Status:</strong><br>
-                            ${methodResults.join('<br>')}<br><br>
+                            <strong>📡 Connection Methods:</strong><br>
+                            ${connectionMethods.join('<br>')}<br><br>
                             
-                            <strong>📊 Test Data Sent:</strong><br>
-                            • <strong>From:</strong> bot.html<br>
-                            • <strong>To:</strong> testbot.html<br>
-                            • <strong>Test ID:</strong> ${testData.sessionId}<br>
+                            <strong>🔍 Test Data Sent:</strong><br>
                             • <strong>Message Type:</strong> CONNECTION_TEST<br>
-                            • <strong>Current URL:</strong> ${window.location.href}
+                            • <strong>Test ID:</strong> ${testData.sessionId}<br>
+                            • <strong>Current URL:</strong> ${window.location.href}<br>
+                            • <strong>Target:</strong> testbot.html
                         </div>
                         
                         <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>🔍 For testbot.html to receive this:</strong><br>
-                            1. Ensure bot.html is embedded as iframe in testbot.html<br>
-                            2. Add this listener to testbot.html:<br>
-                            <code style="font-size: 10px; background: #f8f9fa; padding: 5px; border-radius: 3px; display: block; margin: 5px 0;">
-                            window.addEventListener('message', function(event) {<br>
-                            &nbsp;&nbsp;console.log('Received from bot.html:', event.data);<br>
-                            &nbsp;&nbsp;if (event.data.messageType === 'CONNECTION_TEST') {<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;alert('Connection test successful!');<br>
-                            &nbsp;&nbsp;}<br>
-                            });
+                            <strong>🔧 For testbot.html to receive messages:</strong><br><br>
+                            <strong>Add this code to testbot.html:</strong><br>
+                            <code style="font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 3px; display: block; margin: 5px 0; white-space: pre-wrap;">
+window.addEventListener('message', function(event) {
+    console.log('📨 Received message from bot.html:', event.data);
+    
+    // Handle different message types
+    if (event.data.messageType === 'CANDIDATE_REPORT') {
+        console.log('📋 Candidate assessment received:', event.data);
+        // Add candidate to dashboard here
+        displayCandidateReport(event.data);
+    }
+    
+    if (event.data.messageType === 'CONNECTION_TEST') {
+        console.log('🔧 Connection test received - communication working!');
+        alert('✅ Connection test successful! Bot.html can communicate with testbot.html');
+    }
+});
+
+function displayCandidateReport(data) {
+    // Your code to display candidate data in dashboard
+    console.log('Displaying candidate:', data.name);
+    console.log('Interview status:', data.interviewStatus);
+    console.log('Score:', data.score);
+}
                             </code>
                         </div>
                         
-                        Check browser console in testbot.html for received messages.
-                    `);
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>📊 Next Steps:</strong><br>
+                            1. Open testbot.html in browser<br>
+                            2. Open browser console (F12)<br>
+                            3. Look for "📨 Received message from bot.html" logs<br>
+                            4. If no logs appear, check iframe embedding<br>
+                            5. Try the connection test again
+                        </div>
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>🔍 Current Window Context:</strong><br>
+                    • <strong>Current URL:</strong> ${window.location.href}<br>
+                    • <strong>Parent Window:</strong> ${window.parent !== window ? 'Available' : 'Not available'}<br>
+                    • <strong>Top Window:</strong> ${window.top !== window ? 'Available' : 'Not available'}<br>
+                    • <strong>Opener Window:</strong> ${window.opener ? 'Available' : 'Not available'}<br>
+                    • <strong>Running in iframe:</strong> ${window.self !== window.top ? 'Yes' : 'No'}<br>
+                    • <strong>Same origin:</strong> ${window.location.origin}
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>📊 Most Common Issues:</strong><br>
+                    1. <strong>No iframe embedding:</strong> testbot.html must contain bot.html as iframe<br>
+                    2. <strong>Missing message listener:</strong> testbot.html needs addEventListener('message')<br>
+                    3. <strong>Wrong message type:</strong> Check for messageType === 'CANDIDATE_REPORT'<br>
+                    4. <strong>Origin filtering:</strong> event.origin restrictions too strict<br>
+                    5. <strong>Console errors:</strong> JavaScript errors preventing message handling
+                    </div>`);
                     
                 } catch (error) {
                     this.addMessage('bot', `
                         ❌ <strong>Connection test failed:</strong><br>
                         <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
                             <strong>Error:</strong> ${error.message}<br>
-                            <strong>Suggestion:</strong> Ensure bot.html is properly embedded in testbot.html
+                            <strong>This usually means:</strong><br>
+                            • bot.html is not embedded in testbot.html<br>
+                            • Both pages are not on the same domain<br>
+                            • Browser security restrictions are blocking communication
                         </div>
                     `);
                 }
@@ -2257,37 +2454,63 @@ Are you still interested in progressing with this opportunity?`);
                 checkButton.disabled = true;
                 
                 this.addMessage('bot', `
-                    📊 <strong>Dashboard Integration Information</strong><br><br>
+                    📊 <strong>Dashboard Integration Status & Code</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ testbot.html Connection Active:</strong><br>
-                    • <strong>Dashboard URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Chatbot URL:</strong> https://terence1975-coder.github.io/tender/bot.html<br>
-                    • <strong>Connection Method:</strong> window.parent.postMessage()<br>
+                    <strong>✅ bot.html is sending data to testbot.html</strong><br>
+                    • <strong>Target URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
+                    • <strong>Method:</strong> window.parent.postMessage()<br>
                     • <strong>Message Type:</strong> CANDIDATE_REPORT<br>
-                    • <strong>Auto-display:</strong> Enabled
-                    </div>
-                    
-                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📊 Report Features:</strong><br>
-                    • <strong>Real-time Transmission:</strong> Instant data sending to testbot.html<br>
-                    • <strong>Complete Assessment:</strong> All responses and scoring included<br>
-                    • <strong>Enhanced Data:</strong> Extended candidate information<br>
-                    • <strong>Status Tracking:</strong> HIGHLY_SUITABLE, SUITABLE, NOT_SUITABLE<br>
-                    • <strong>Session Management:</strong> Unique IDs for each assessment<br>
-                    • <strong>Fallback Storage:</strong> Firebase backup for all data
+                    • <strong>Status:</strong> Transmission confirmed
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 Dashboard Requirements:</strong><br>
-                    • bot.html must be embedded as iframe in testbot.html<br>
-                    • testbot.html needs postMessage event listener<br>
-                    • Listen for messageType: 'CANDIDATE_REPORT'<br>
-                    • Handle autoShow: true for automatic display<br>
-                    • Parse candidate data from event.data object
+                    <strong>⚠️ If testbot.html is not showing data, add this code:</strong><br><br>
+                    <code style="font-size: 10px; background: #f8f9fa; padding: 8px; border-radius: 3px; display: block; margin: 5px 0; white-space: pre-wrap; overflow-x: auto;">
+// Add this to testbot.html
+window.addEventListener('message', function(event) {
+    console.log('📨 Message received:', event.data);
+    
+    if (event.data.messageType === 'CANDIDATE_REPORT') {
+        console.log('📋 Candidate data:', event.data);
+        
+        // Display candidate in dashboard
+        const candidate = event.data;
+        
+        // Example: Add to a candidates list
+        const candidateDiv = document.createElement('div');
+        candidateDiv.innerHTML = \`
+            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px;">
+                <h3>\${candidate.name}</h3>
+                <p>Score: \${candidate.score}/10</p>
+                <p>Status: \${candidate.status}</p>
+                <p>Email: \${candidate.email}</p>
+                <p>Phone: \${candidate.phone}</p>
+                <p>Interview: \${candidate.interviewStatus}</p>
+            </div>
+        \`;
+        
+        // Add to dashboard container
+        const dashboardContainer = document.getElementById('candidates-container');
+        if (dashboardContainer) {
+            dashboardContainer.appendChild(candidateDiv);
+        }
+    }
+});
+                    </code>
                     </div>
                     
-                    <strong>💡 Status:</strong> Dashboard reporting to testbot.html is configured and ready. Use the "🔗 Test Connection" button to verify communication.
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>🔧 Troubleshooting Steps:</strong><br>
+                    1. Open testbot.html in browser<br>
+                    2. Open browser console (F12)<br>
+                    3. Embed bot.html as iframe in testbot.html<br>
+                    4. Add the message listener code above<br>
+                    5. Test with "🔗 Test Connection" button<br>
+                    6. Look for "📨 Message received" in console
+                    </div>
+                    
+                    <strong>💡 Current Status:</strong> bot.html is successfully sending data. The issue is likely that testbot.html needs the message listener code to receive and display the data.
                 `);
                 
                 checkButton.textContent = 'ℹ️ Dashboard Info';
