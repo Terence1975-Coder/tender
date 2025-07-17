@@ -558,7 +558,7 @@
 
         .firebase-status {
             position: fixed;
-            top: 20px;
+            bottom: 20px;
             right: 20px;
             padding: 10px 15px;
             border-radius: 20px;
@@ -667,7 +667,6 @@
                 <h4 style="color: #90caf9; margin-bottom: 10px; font-size: 0.9rem;">📦 Backup & Sync</h4>
                 <button class="backup-btn" onclick="saveEventsToFirebase()">🔄 Sync to Cloud</button>
                 <button class="backup-btn" onclick="loadEventsFromFirebase()">📥 Load from Cloud</button>
-                <button class="backup-btn" onclick="testFirebase()">🔧 Test Connection</button>
                 <button class="backup-btn" onclick="createBackup()">💾 Download Backup</button>
                 <button class="backup-btn" onclick="document.getElementById('importFile').click()">📁 Import Backup</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(this)">
@@ -1053,16 +1052,18 @@
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
-                right: 20px;
+                left: 50%;
+                transform: translateX(-50%);
                 background: ${bgColor};
                 color: white;
                 padding: 15px 20px;
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
                 z-index: 10000;
-                max-width: 300px;
+                max-width: 400px;
                 font-size: 14px;
                 transition: all 0.3s ease;
+                text-align: center;
             `;
             
             notification.innerHTML = `
@@ -1520,7 +1521,12 @@
         }
 
         function getEventsForDay(date, category, searchTerm) {
-            var dateStr = date.toISOString().split('T')[0];
+            // Fix date formatting to avoid timezone issues
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            var dateStr = year + '-' + month + '-' + day;
+            
             var results = [];
             
             for (var i = 0; i < events.length; i++) {
@@ -1627,7 +1633,12 @@
             deleteBtn.style.display = 'none';
 
             if (date) {
-                var dateStr = date.toISOString().split('T')[0];
+                // Fix date formatting to avoid timezone issues
+                var year = date.getFullYear();
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var day = String(date.getDate()).padStart(2, '0');
+                var dateStr = year + '-' + month + '-' + day;
+                
                 document.getElementById('eventDate').value = dateStr;
                 document.getElementById('eventEndDate').value = dateStr;
             }
@@ -1739,7 +1750,12 @@
                 // Create events for each day in the range (inclusive)
                 for (var currentDate = new Date(start); currentDate <= end; currentDate.setDate(currentDate.getDate() + 1)) {
                     var eventData = JSON.parse(JSON.stringify(baseEventData)); // Deep copy
-                    var dateStr = currentDate.toISOString().split('T')[0];
+                    
+                    // Fix date formatting to avoid timezone issues
+                    var year = currentDate.getFullYear();
+                    var month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    var day = String(currentDate.getDate()).padStart(2, '0');
+                    var dateStr = year + '-' + month + '-' + day;
                     
                     eventData.id = Date.now() + Math.random() + createdCount;
                     eventData.date = dateStr;
