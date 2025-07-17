@@ -697,7 +697,7 @@
 
     <script>
         <!-- bot.html -->
-<script>
+
   const channel = new BroadcastChannel('bot_channel');
 
   // Simulate sending a message (e.g., user clicks a button)
@@ -713,8 +713,6 @@
     channel.postMessage(message);
     console.log('Sent message:', message);
   }
-</script>
-
 <button onclick="sendMessage()">Send to testbot.html</button>
 
         class ChatBot {
