@@ -589,6 +589,12 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
+                        <button class="audio-btn" onclick="window.chatBot.openDashboardPopup()" style="background: #27ae60;">
+                            🖥️ Open Dashboard
+                        </button>
+                        <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
+                            📡 Send to testbot.html
+                        </button>
                         <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
                             📊 Test Dashboard
                         </button>
@@ -696,25 +702,6 @@
     </div>
 
     <script>
-        <!-- bot.html -->
-
-  const channel = new BroadcastChannel('bot_channel');
-
-  // Simulate sending a message (e.g., user clicks a button)
-  function sendMessage() {
-    const message = {
-      type: 'BOT_DATA',
-      payload: {
-        name: 'TenderBot',
-        action: 'RequestApproved',
-        timestamp: new Date().toISOString()
-      }
-    };
-    channel.postMessage(message);
-    console.log('Sent message:', message);
-  }
-<button onclick="sendMessage()">Send to testbot.html</button>
-
         class ChatBot {
             constructor() {
                 console.log('🚀 Starting ChatBot initialization...');
@@ -724,7 +711,9 @@
                     emailServerUrl: 'DISABLED',
                     emailRecipient: 'DISABLED',
                     useDashboardReporting: true,
-                    useFormSubmit: false
+                    useFormSubmit: false,
+                    dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
+                    usePopupDashboard: true
                 };
                 
                 // Firebase Configuration
@@ -742,6 +731,8 @@
                 // Initialize properties
                 this.database = null;
                 this.firebaseApp = null;
+                this.dashboardWindow = null; // For popup dashboard
+                this.broadcastChannel = null; // For BroadcastChannel communication
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
@@ -809,6 +800,7 @@
                 // Initialize components
                 try {
                     this.initAudio();
+                    this.initBroadcastChannel();
                     this.init();
                     this.initializeFirebase();
                     console.log('✅ ChatBot initialization completed successfully');
@@ -818,6 +810,113 @@
                 }
             }
 
+            // BroadcastChannel communication methods
+            initBroadcastChannel() {
+                try {
+                    if ('BroadcastChannel' in window) {
+                        this.broadcastChannel = new BroadcastChannel('bot_channel');
+                        console.log('📡 BroadcastChannel initialized successfully');
+                        
+                        // Listen for messages from testbot.html
+                        this.broadcastChannel.addEventListener('message', (event) => {
+                            console.log('📨 Received BroadcastChannel message:', event.data);
+                            this.handleBroadcastMessage(event.data);
+                        });
+                    } else {
+                        console.log('📡 BroadcastChannel not supported in this browser');
+                    }
+                } catch (error) {
+                    console.error('📡 Failed to initialize BroadcastChannel:', error);
+                }
+            }
+
+            handleBroadcastMessage(data) {
+                if (data.type === 'DASHBOARD_READY') {
+                    console.log('📊 Dashboard is ready to receive data');
+                } else if (data.type === 'PING') {
+                    this.sendBroadcastMessage({
+                        type: 'PONG',
+                        payload: { message: 'Bot.html is alive and responding' }
+                    });
+                }
+            }
+
+            sendBroadcastMessage(message) {
+                if (this.broadcastChannel) {
+                    try {
+                        this.broadcastChannel.postMessage(message);
+                        console.log('📡 Sent BroadcastChannel message:', message);
+                        return true;
+                    } catch (error) {
+                        console.error('📡 Failed to send BroadcastChannel message:', error);
+                        return false;
+                    }
+                } else {
+                    console.log('📡 BroadcastChannel not available');
+                    return false;
+                }
+            }
+
+            sendCandidateViaBroadcast() {
+                if (!this.broadcastChannel) {
+                    this.addMessage('bot', '❌ BroadcastChannel not supported in this browser');
+                    return;
+                }
+
+                const message = {
+                    type: 'CANDIDATE_REPORT',
+                    payload: {
+                        name: this.candidateData.name || 'Test Candidate',
+                        email: this.candidateData.personalDetails?.email || 'test@example.com',
+                        phone: this.candidateData.personalDetails?.mobile || '+44 7123 456789',
+                        score: this.score,
+                        bootcamp: 'AI Business Productivity Bootcamp',
+                        location: this.candidateData.location || 'Cornwall',
+                        ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
+                        fundingStatus: this.candidateData.fundingStatus || 'Eligible',
+                        employmentStatus: this.candidateData.employmentStatus || 'Employed',
+                        employerFunding: this.candidateData.employerFunding || 'Yes, employer will co-fund',
+                        availability: this.candidateData.availability || 'Evening sessions work better',
+                        interviewBooked: this.candidateData.personalDetails ? true : false,
+                        interviewStatus: this.candidateData.personalDetails ? 'BOOKED - Interview confirmed' : 'Not booked',
+                        personalDetails: this.candidateData.personalDetails || null,
+                        responses: this.candidateData.responses || [],
+                        recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
+                                      this.score >= 6 ? 'SUITABLE - Standard processing' : 
+                                      'NOT SUITABLE - Does not meet criteria',
+                        status: this.score >= 8 ? 'HIGHLY_SUITABLE' : 
+                               this.score >= 6 ? 'SUITABLE' : 'NOT_SUITABLE',
+                        timestamp: new Date().toISOString(),
+                        sessionId: Date.now(),
+                        source: 'AI Bootcamp Screening Chatbot',
+                        version: '3.2-broadcast',
+                        transmissionMethod: 'BroadcastChannel'
+                    }
+                };
+
+                const success = this.sendBroadcastMessage(message);
+                
+                if (success) {
+                    this.addMessage('bot', `
+                        📡 <strong>Candidate sent via BroadcastChannel!</strong><br>
+                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>✅ BroadcastChannel Method</strong><br>
+                            • <strong>Candidate:</strong> ${message.payload.name}<br>
+                            • <strong>Score:</strong> ${message.payload.score}/10<br>
+                            • <strong>Status:</strong> ${message.payload.status}<br>
+                            • <strong>Interview:</strong> ${message.payload.interviewStatus}<br>
+                            • <strong>Method:</strong> BroadcastChannel 'bot_channel'<br>
+                            • <strong>Message Type:</strong> CANDIDATE_REPORT
+                        </div>
+                        <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>💡 For testbot.html to receive this:</strong><br>
+                            testbot.html must be listening on the same BroadcastChannel 'bot_channel'
+                        </div>
+                    `);
+                } else {
+                    this.addMessage('bot', '❌ Failed to send via BroadcastChannel');
+                }
+            }
             // Firebase methods - CRITICAL: Define before any calls
             updateFirebaseStatus(status) {
                 const statusElement = document.getElementById('firebase-status');
@@ -882,6 +981,74 @@
                 }
             }
 
+            // Dashboard popup methods
+            openDashboardPopup() {
+                if (this.dashboardWindow && !this.dashboardWindow.closed) {
+                    this.dashboardWindow.focus();
+                    console.log('📊 Dashboard popup already open - focusing existing window');
+                    return this.dashboardWindow;
+                }
+
+                console.log('📊 Opening dashboard popup:', this.config.dashboardURL);
+                
+                const popupFeatures = 'width=1200,height=800,scrollbars=yes,resizable=yes,menubar=no,toolbar=no';
+                this.dashboardWindow = window.open(this.config.dashboardURL, 'testbot_dashboard', popupFeatures);
+                
+                if (this.dashboardWindow) {
+                    console.log('📊 ✅ Dashboard popup opened successfully');
+                    
+                    // Wait for popup to load then send any pending data
+                    this.dashboardWindow.addEventListener('load', () => {
+                        console.log('📊 Dashboard popup loaded and ready');
+                    });
+                    
+                    // Monitor if popup is closed
+                    const checkClosed = setInterval(() => {
+                        if (this.dashboardWindow.closed) {
+                            clearInterval(checkClosed);
+                            this.dashboardWindow = null;
+                            console.log('📊 Dashboard popup was closed');
+                        }
+                    }, 1000);
+                    
+                } else {
+                    console.log('📊 ❌ Failed to open dashboard popup - popup blocked?');
+                    this.addMessage('bot', '⚠️ <strong>Dashboard popup blocked</strong><br>Please allow popups for this site and try again.');
+                }
+                
+                return this.dashboardWindow;
+            }
+
+            sendToPopupDashboard(reportData) {
+                if (!this.dashboardWindow || this.dashboardWindow.closed) {
+                    console.log('📊 Dashboard popup not open - opening now...');
+                    this.openDashboardPopup();
+                    
+                    // Wait for popup to load then send data
+                    setTimeout(() => {
+                        this.sendDataToPopup(reportData);
+                    }, 2000);
+                } else {
+                    this.sendDataToPopup(reportData);
+                }
+            }
+
+            sendDataToPopup(reportData) {
+                if (!this.dashboardWindow || this.dashboardWindow.closed) {
+                    console.log('📊 ❌ Cannot send data - dashboard popup not available');
+                    return false;
+                }
+
+                try {
+                    console.log('📊 Sending data to dashboard popup:', reportData);
+                    this.dashboardWindow.postMessage(reportData, this.config.dashboardURL);
+                    console.log('📊 ✅ Data sent to dashboard popup successfully');
+                    return true;
+                } catch (error) {
+                    console.error('📊 ❌ Failed to send data to popup:', error);
+                    return false;
+                }
+            }
             // Personal details submission - CRITICAL for form functionality
             submitPersonalDetails() {
                 const firstName = document.getElementById('firstName')?.value?.trim() || '';
@@ -1202,8 +1369,16 @@
                     this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
                 }, 1500);
                 
+                // Auto-open dashboard popup for immediate access
                 setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Optimized layout - collapsible assessment panel<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features and professional audio output<br>• Firebase cloud storage for all assessments';
+                    if (this.config.usePopupDashboard) {
+                        console.log('📊 Auto-opening dashboard popup...');
+                        this.openDashboardPopup();
+                    }
+                }, 2000);
+                
+                setTimeout(() => {
+                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard opens automatically in popup window<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting to dashboard';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -1402,7 +1577,7 @@
                     element.classList.add('admin-visible');
                 });
                 
-                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Dashboard button<br>• Dashboard Info button<br>• Test Connection button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible.');
+                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Dashboard button<br>• Dashboard Info button<br>• Test Connection button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Note: "🖥️ Open Dashboard" is always visible to users.');
             }
 
             handleCourseQuestion(question) {
@@ -2073,7 +2248,7 @@ Are you still interested in progressing with this opportunity?`);
                     timestamp: new Date().toISOString(),
                     sessionId: Date.now(),
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '3.1',
+                    version: '3.2',
                     autoShow: true,
                     isComplete: true,
                     interestLevel: this.candidateData.interestLevel || 5,
@@ -2082,20 +2257,37 @@ Are you still interested in progressing with this opportunity?`);
                     targetDashboard: 'https://terence1975-coder.github.io/tender/testbot.html',
                     messageType: 'CANDIDATE_REPORT',
                     fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
-                    toURL: 'https://terence1975-coder.github.io/tender/testbot.html'
+                    toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
+                    transmissionMethod: this.config.usePopupDashboard ? 'popup' : 'iframe'
                 };
                 
-                console.log('📊 ===== SENDING TO DASHBOARD =====');
-                console.log('📊 Dashboard URL: https://terence1975-coder.github.io/tender/testbot.html');
-                console.log('📊 INTERVIEW BOOKING STATUS: Interview booked successfully');
-                console.log('📊 Sending enhanced data to testbot.html dashboard:', reportData);
-                console.log('📊 Data includes personal details for interview follow-up');
-                console.log('📊 Report transmission method: window.parent.postMessage()');
+                console.log('📊 ===== DASHBOARD TRANSMISSION =====');
+                console.log('📊 Method:', this.config.usePopupDashboard ? 'POPUP WINDOW' : 'IFRAME');
+                console.log('📊 Dashboard URL:', this.config.dashboardURL);
+                console.log('📊 Data:', reportData);
                 
+                if (this.config.usePopupDashboard) {
+                    // Use popup method
+                    this.sendToPopupDashboard(reportData);
+                    this.showPopupDashboardConfirmation(reportData);
+                } else {
+                    // Use iframe method (fallback)
+                    this.sendToIframeDashboard(reportData);
+                }
+                
+                // Also send via BroadcastChannel as additional method
+                if (this.broadcastChannel) {
+                    console.log('📡 Also sending via BroadcastChannel...');
+                    this.sendBroadcastMessage({
+                        type: 'CANDIDATE_REPORT',
+                        payload: reportData
+                    });
+                }
+            }
+
+            sendToIframeDashboard(reportData) {
                 try {
-                    console.log('📊 ===== DASHBOARD TRANSMISSION ATTEMPT =====');
-                    console.log('📊 Target: https://terence1975-coder.github.io/tender/testbot.html');
-                    console.log('📊 Data being sent:', JSON.stringify(reportData, null, 2));
+                    console.log('📊 Using iframe method...');
                     
                     let transmissionSuccess = false;
                     
@@ -2120,66 +2312,47 @@ Are you still interested in progressing with this opportunity?`);
                         transmissionSuccess = true;
                     }
                     
-                    // Method 4: Direct window reference attempt
-                    try {
-                        if (window.opener) {
-                            window.opener.postMessage(reportData, '*');
-                            console.log('📊 ✅ Method 4: Sent to opener window');
-                            transmissionSuccess = true;
-                        }
-                    } catch (e) {
-                        console.log('📊 ⚠️ Method 4: Opener not available');
-                    }
-                    
                     if (transmissionSuccess) {
                         this.showDashboardConfirmation(true);
-                        console.log('📊 ===== TRANSMISSION COMPLETE =====');
-                        console.log('📊 If testbot.html is not showing data, check:');
-                        console.log('📊 1. Message event listener exists in testbot.html');
-                        console.log('📊 2. Listener checks for messageType: "CANDIDATE_REPORT"');
-                        console.log('📊 3. Origin filtering is not too restrictive');
-                        console.log('📊 4. Console errors in testbot.html');
-                        
-                        // Show detailed troubleshooting info
                         this.addMessage('bot', `
                             📊 <strong>Report transmission completed!</strong><br>
                             <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>✅ Data sent to testbot.html</strong><br>
+                                <strong>✅ Data sent via iframe method</strong><br>
                                 • <strong>Candidate:</strong> ${reportData.name}<br>
                                 • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                                • <strong>Session ID:</strong> ${reportData.sessionId}<br>
-                                • <strong>Message Type:</strong> ${reportData.messageType}<br>
-                                • <strong>Target URL:</strong> ${reportData.toURL}
-                            </div>
-                            
-                            <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>🔧 If data not showing in testbot.html:</strong><br>
-                                1. Check browser console in testbot.html for errors<br>
-                                2. Verify message event listener is active<br>
-                                3. Ensure iframe embedding is correct<br>
-                                4. Check for origin filtering issues<br>
-                                5. Use "🔗 Test Connection" button for debugging
+                                • <strong>Method:</strong> iframe postMessage
                             </div>
                         `);
                     } else {
-                        throw new Error('No transmission methods available');
+                        throw new Error('No iframe communication methods available');
                     }
                     
                 } catch (error) {
-                    console.error('📊 ❌ DASHBOARD TRANSMISSION FAILED:', error);
+                    console.error('📊 ❌ Iframe method failed:', error);
                     this.showDashboardConfirmation(false);
-                    this.addMessage('bot', `
-                        ❌ <strong>Dashboard transmission failed</strong><br>
-                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>Error:</strong> ${error.message}<br>
-                            <strong>Troubleshooting:</strong><br>
-                            • Ensure bot.html is embedded in testbot.html as iframe<br>
-                            • Check if testbot.html has message event listeners<br>
-                            • Verify both pages are on same domain<br>
-                            • Check browser console for detailed errors
-                        </div>
-                    `);
                 }
+            }
+
+            showPopupDashboardConfirmation(reportData) {
+                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Open' : 'Opening...';
+                
+                this.addMessage('bot', `
+                    📊 <strong>Report sent to dashboard popup!</strong><br>
+                    <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                        <strong>✅ Dashboard Popup Method</strong><br>
+                        • <strong>Candidate:</strong> ${reportData.name}<br>
+                        • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
+                        • <strong>Popup Status:</strong> ${popupStatus}<br>
+                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}<br>
+                        • <strong>Method:</strong> window.open() + postMessage
+                    </div>
+                    <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                        <strong>💡 If popup didn't open:</strong><br>
+                        • Allow popups for this site<br>
+                        • Click "🖥️ Open Dashboard" button<br>
+                        • Check browser popup blocker settings
+                    </div>
+                `);
             }
 
             showDashboardConfirmation(success) {
@@ -2736,9 +2909,11 @@ window.addEventListener('message', function(event) {
                 startupInfo.innerHTML = `
                     🎉 <strong>System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
-                    • Firebase cloud storage active<br>
-                    • Voice features enabled<br>
-                    • Location fact-checking ready
+                    • Dashboard opens in popup window<br>
+                    • BroadcastChannel communication<br>
+                    • Emily (Irish English) voice enabled<br>
+                    • Location fact-checking ready<br>
+                    • Firebase cloud storage active
                 `;
                 document.body.appendChild(startupInfo);
                 
