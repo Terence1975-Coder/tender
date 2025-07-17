@@ -157,6 +157,7 @@
                     <pre id="output" class="bg-gray-100 p-4 rounded-md text-sm overflow-auto max-h-48">Waiting for data from bot.html...</pre>
                     <div class="mt-4 flex space-x-2">
                         <button onclick="testBroadcastChannel()" class="btn btn-blue text-sm">📡 Test Broadcast</button>
+                        <button onclick="testRealBotDataBroadcast()" class="btn btn-green text-sm">🎯 Test Real Bot Data</button>
                         <button onclick="clearOutput()" class="btn btn-gray text-sm">🗑️ Clear Output</button>
                     </div>
                 </div>
@@ -312,15 +313,35 @@
                             return;
                         }
                         
-                        // Look for candidate data
+                        // Look for any candidate data - be very permissive
                         const hasName = data.name || data.candidate_name || data.candidateName;
-                        if (hasName || data.status || data.score !== undefined) {
+                        const hasEmail = data.email || data.candidate_email;
+                        const hasScore = data.score !== undefined || data.assessment_score !== undefined;
+                        const hasStatus = data.status || data.assessment_status;
+                        
+                        if (hasName || hasEmail || hasScore || hasStatus) {
                             console.log('🎯 Processing candidate data from BroadcastChannel');
-                            const candidateData = extractCandidateData(data);
+                            
+                            // Enhanced candidate data extraction specifically for BroadcastChannel
+                            const candidateData = extractBroadcastChannelData(data);
+                            console.log('🔍 Extracted candidate data:', candidateData);
+                            
                             if (candidateData.name) {
                                 addNewApplicant(candidateData);
-                                showNotification(`✅ BroadcastChannel: ${candidateData.name} (${candidateData.status}) - Score: ${candidateData.score}%`, 'success', 8000);
+                                showNotification(`✅ BroadcastChannel: Added ${candidateData.name} to ${candidateData.status} section (${candidateData.score}%)`, 'success', 8000);
+                                
+                                // Force UI refresh to ensure it appears
+                                setTimeout(() => {
+                                    refreshUI();
+                                    console.log('🔄 UI refreshed after BroadcastChannel data');
+                                }, 500);
+                            } else {
+                                console.log('⚠️ Could not extract name from candidate data');
+                                showNotification('⚠️ Received data but could not extract candidate name', 'error');
                             }
+                        } else {
+                            console.log('ℹ️ BroadcastChannel message received but no candidate data found');
+                            showNotification(`ℹ️ BroadcastChannel: ${JSON.stringify(data)}`, 'info', 3000);
                         }
                     }
                 };
@@ -334,6 +355,39 @@
             }
         }
         
+        function testRealBotDataBroadcast() {
+            if (botChannel) {
+                console.log('🎯 Testing BroadcastChannel with REAL bot data...');
+                
+                // Exact data format your bot is likely sending
+                const realBotData = {
+                    name: 'Terence Edwin Herbert',
+                    email: 'terence.herbert75@gmail.com',
+                    mobile: '07857553275',
+                    phone: '07857553275',
+                    score: '10/10',
+                    status: 'HIGHLY_SUITABLE',
+                    interviewBooked: true,
+                    sessionId: '1752709265754',
+                    course: 'AI Business Productivity Bootcamp',
+                    source: 'BroadcastChannel Test'
+                };
+                
+                console.log('📡 Sending real bot data via BroadcastChannel:', realBotData);
+                botChannel.postMessage(realBotData);
+                
+                showNotification('🎯 Sent real bot data via BroadcastChannel - Check Applicant Reports tab!', 'success', 8000);
+                
+                // Auto-switch to applicant reports tab after delay
+                setTimeout(() => {
+                    switchTab('applicants');
+                    showNotification('📍 Switched to Applicant Reports - Look for Terence Edwin Herbert in Passed section!', 'info', 5000);
+                }, 2000);
+            } else {
+                showNotification('❌ BroadcastChannel not initialized', 'error');
+            }
+        }
+
         function testBroadcastChannel() {
             if (botChannel) {
                 // Send test message to any listening bots
@@ -422,7 +476,83 @@
             }
         });
 
-        // Enhanced candidate data extraction for bot messages
+        // Enhanced candidate data extraction specifically for BroadcastChannel
+        function extractBroadcastChannelData(data) {
+            console.log('🔍 Extracting BroadcastChannel candidate data from:', data);
+            
+            // Extract basic info with multiple fallbacks
+            const name = data.name || data.candidate_name || data.candidateName || 
+                        data.candidateDetails?.name || '';
+            
+            const email = data.email || data.candidate_email || data.candidateEmail || 
+                         data.candidateDetails?.email || 
+                         (name ? `${name.toLowerCase().replace(/\s+/g, '.')}@example.com` : '');
+            
+            const phone = data.phone || data.mobile || data.candidate_phone || 
+                         data.candidatePhone || data.candidateDetails?.phone || '+44 0000 000000';
+            
+            // Handle score extraction with multiple formats
+            let score = 0;
+            let mappedScore = 0;
+            let status = 'failed';
+            
+            // Handle different score formats
+            if (data.score !== undefined) {
+                if (typeof data.score === 'string' && data.score.includes('/')) {
+                    // Handle "10/10" format
+                    const parts = data.score.split('/');
+                    const numerator = parseInt(parts[0]);
+                    const denominator = parseInt(parts[1]);
+                    score = (numerator / denominator) * 100;
+                } else {
+                    score = parseInt(data.score);
+                }
+            } else if (data.assessment_score !== undefined) {
+                score = parseInt(data.assessment_score);
+            } else if (data.finalScore !== undefined) {
+                score = parseInt(data.finalScore);
+            }
+            
+            // Map bot status to dashboard status and score
+            if (data.status === 'HIGHLY_SUITABLE' || (score >= 90 && score <= 100)) {
+                mappedScore = Math.max(score, 90);
+                status = 'passed';
+            } else if (data.status === 'SUITABLE' || (score >= 70 && score < 90)) {
+                mappedScore = Math.max(score, 70);
+                status = 'waitlist';
+            } else if (data.status === 'NOT_SUITABLE' || score < 70) {
+                mappedScore = Math.min(score, 60);
+                status = 'failed';
+            } else {
+                // Default mapping based on score
+                mappedScore = score > 10 ? score : score * 10; // Convert if needed
+                status = mappedScore >= 80 ? 'passed' : mappedScore >= 60 ? 'waitlist' : 'failed';
+            }
+            
+            const result = {
+                name,
+                email,
+                phone,
+                score: mappedScore,
+                status,
+                bootcamp: data.course || data.bootcamp || data.program || 'AI Business Productivity Bootcamp',
+                responses: data.responses || data.answers || data.assessment_answers || ['BroadcastChannel', 'Assessment', 'Completed'],
+                location: data.location || 'Not specified',
+                employmentStatus: data.employmentStatus || data.employment || 'Not specified',
+                ukResidency: data.ukResidency || data.uk_residency || 'Not specified',
+                interviewBooked: data.interviewBooked || data.interview_booked || data.interviewConfirmed || false,
+                sessionId: data.sessionId || data.session_id || data.sessionID || 'N/A',
+                source: 'Bot Assessment - BroadcastChannel',
+                originalData: data,
+                botStatus: data.status || 'Unknown',
+                originalScore: data.score || 0
+            };
+            
+            console.log('✅ BroadcastChannel data extracted:', result);
+            return result;
+        }
+
+        // Enhanced candidate data extraction for regular messages
         function extractCandidateData(data) {
             console.log('🔍 Extracting candidate data from:', data);
             
@@ -486,8 +616,10 @@
             return result;
         }
 
-        // Add new applicant
+        // Add new applicant (enhanced for BroadcastChannel debugging)
         function addNewApplicant(candidateData) {
+            console.log('📝 Adding new applicant:', candidateData);
+            
             const newApplicant = {
                 id: Date.now() + Math.random(),
                 ...candidateData,
@@ -495,9 +627,25 @@
                 submissionTime: new Date().toLocaleString()
             };
             
+            // Add to applicants array
             applicants.push(newApplicant);
+            console.log(`📊 Total applicants after adding: ${applicants.length}`);
+            console.log(`📊 New applicant details:`, {
+                name: newApplicant.name,
+                status: newApplicant.status,
+                score: newApplicant.score,
+                email: newApplicant.email,
+                source: newApplicant.source
+            });
+            
+            // Update statistics immediately
             updateStats();
+            
+            // Save to localStorage immediately
             saveToLocalStorage();
+            
+            // Refresh UI with detailed logging
+            console.log('🔄 Refreshing UI after adding applicant...');
             refreshUI();
             
             // Update bot stats
@@ -507,9 +655,21 @@
             updateConnectionStatus();
             
             // Auto-save to Firebase
-            if (database) setTimeout(saveToFirebase, 2000);
+            if (database) {
+                console.log('☁️ Scheduling Firebase save...');
+                setTimeout(saveToFirebase, 2000);
+            }
             
-            console.log('✅ Added new applicant:', newApplicant.name);
+            console.log(`✅ Successfully added applicant: ${newApplicant.name} to ${newApplicant.status} section`);
+            
+            // Force scroll to applicant reports tab if not already there
+            setTimeout(() => {
+                const applicantTab = document.getElementById('tab-applicants');
+                if (applicantTab && !applicantTab.classList.contains('tab-active')) {
+                    console.log('📍 Switching to Applicant Reports tab to show new applicant');
+                    switchTab('applicants');
+                }
+            }, 1000);
         }
 
         // 💾 DATA PERSISTENCE
