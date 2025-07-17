@@ -589,7 +589,7 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
+                        <button class="audio-btn" onclick="window.chatBot.openDashboardInNewTab()" style="background: #27ae60;">
                             🖥️ Open Dashboard
                         </button>
                         <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
@@ -713,7 +713,7 @@
                     useDashboardReporting: true,
                     useFormSubmit: false,
                     dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    usePopupDashboard: true
+                    useBroadcastChannel: true
                 };
                 
                 // Firebase Configuration
@@ -731,7 +731,6 @@
                 // Initialize properties
                 this.database = null;
                 this.firebaseApp = null;
-                this.dashboardWindow = null; // For popup dashboard
                 this.broadcastChannel = null; // For BroadcastChannel communication
                 this.currentStep = 'intro';
                 this.chatMode = false;
@@ -1404,7 +1403,7 @@
                 }, 1500);
                 
                 setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard works in background automatically<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting to dashboard';
+                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard communication via BroadcastChannel<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting - completely invisible';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -2274,7 +2273,7 @@ Are you still interested in progressing with this opportunity?`);
                     timestamp: new Date().toISOString(),
                     sessionId: Date.now(),
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '3.2',
+                    version: '3.3-broadcast-only',
                     autoShow: true,
                     isComplete: true,
                     interestLevel: this.candidateData.interestLevel || 5,
@@ -2284,147 +2283,55 @@ Are you still interested in progressing with this opportunity?`);
                     messageType: 'CANDIDATE_REPORT',
                     fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
                     toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    transmissionMethod: this.config.usePopupDashboard ? 'popup' : 'iframe'
+                    transmissionMethod: 'BroadcastChannel'
                 };
                 
-                console.log('📊 ===== DASHBOARD TRANSMISSION =====');
-                console.log('📊 Method:', this.config.usePopupDashboard ? 'POPUP WINDOW' : 'IFRAME');
-                console.log('📊 Dashboard URL:', this.config.dashboardURL);
-                console.log('📊 Data:', reportData);
+                console.log('📡 ===== DASHBOARD TRANSMISSION VIA BROADCASTCHANNEL =====');
+                console.log('📡 Method: BroadcastChannel only (no popups)');
+                console.log('📡 Dashboard URL:', this.config.dashboardURL);
+                console.log('📡 Data:', reportData);
                 
-                if (this.config.usePopupDashboard) {
-                    // Use popup method
-                    this.sendToPopupDashboard(reportData);
-                    this.showPopupDashboardConfirmation(reportData);
-                } else {
-                    // Use iframe method (fallback)
-                    this.sendToIframeDashboard(reportData);
-                }
-                
-                // Also send via BroadcastChannel as additional method
+                // Send via BroadcastChannel
                 if (this.broadcastChannel) {
-                    console.log('📡 Also sending via BroadcastChannel...');
-                    this.sendBroadcastMessage({
+                    console.log('📡 Sending via BroadcastChannel...');
+                    const success = this.sendBroadcastMessage({
                         type: 'CANDIDATE_REPORT',
                         payload: reportData
                     });
-                }
-            }
-
-            sendToIframeDashboard(reportData) {
-                try {
-                    console.log('📊 Using iframe method...');
                     
-                    let transmissionSuccess = false;
-                    
-                    // Method 1: Parent window with specific origin
-                    if (window.parent && window.parent !== window) {
-                        window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 ✅ Method 1: Sent to parent window with specific origin');
-                        transmissionSuccess = true;
-                    }
-                    
-                    // Method 2: Parent window with wildcard origin
-                    if (window.parent) {
-                        window.parent.postMessage(reportData, '*');
-                        console.log('📊 ✅ Method 2: Sent to parent window with wildcard origin');
-                        transmissionSuccess = true;
-                    }
-                    
-                    // Method 3: Top window
-                    if (window.top && window.top !== window) {
-                        window.top.postMessage(reportData, '*');
-                        console.log('📊 ✅ Method 3: Sent to top window');
-                        transmissionSuccess = true;
-                    }
-                    
-                    if (transmissionSuccess) {
-                        this.showDashboardConfirmation(true);
-                        this.addMessage('bot', `
-                            📊 <strong>Report transmission completed!</strong><br>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>✅ Data sent via iframe method</strong><br>
-                                • <strong>Candidate:</strong> ${reportData.name}<br>
-                                • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                                • <strong>Method:</strong> iframe postMessage
-                            </div>
-                        `);
+                    if (success) {
+                        this.showBroadcastConfirmation(reportData);
                     } else {
-                        throw new Error('No iframe communication methods available');
+                        this.addMessage('bot', '❌ <strong>Failed to send via BroadcastChannel</strong><br>Please check if BroadcastChannel is supported in your browser.');
                     }
-                    
-                } catch (error) {
-                    console.error('📊 ❌ Iframe method failed:', error);
-                    this.showDashboardConfirmation(false);
+                } else {
+                    this.addMessage('bot', '❌ <strong>BroadcastChannel not available</strong><br>Please ensure you\'re using a modern browser that supports BroadcastChannel.');
                 }
             }
 
-            showPopupDashboardConfirmation(reportData) {
-                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Hidden & Active' : 'Opening Hidden...';
-                
+            showBroadcastConfirmation(reportData) {
                 this.addMessage('bot', `
-                    📊 <strong>Report sent to hidden dashboard!</strong><br>
+                    📡 <strong>Report sent via BroadcastChannel!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ Hidden Dashboard Method</strong><br>
+                        <strong>✅ BroadcastChannel Method</strong><br>
                         • <strong>Candidate:</strong> ${reportData.name}<br>
                         • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                        • <strong>Dashboard Status:</strong> ${popupStatus}<br>
-                        • <strong>Visibility:</strong> Hidden from applicant<br>
-                        • <strong>Method:</strong> Background popup + BroadcastChannel<br>
-                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}
+                        • <strong>Score:</strong> ${reportData.score}/10<br>
+                        • <strong>Status:</strong> ${reportData.status}<br>
+                        • <strong>Method:</strong> BroadcastChannel 'bot_channel'<br>
+                        • <strong>Session ID:</strong> ${reportData.sessionId}
                     </div>
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
                         <strong>💡 Dashboard Access:</strong><br>
-                        • Dashboard runs hidden in background<br>
-                        • Click "🖥️ Open Dashboard" to view reports<br>
-                        • Data automatically transmitted via BroadcastChannel<br>
-                        • Applicants cannot see the dashboard popup
+                        • No popups needed - completely invisible to applicants<br>
+                        • Open testbot.html in any tab to view reports<br>
+                        • Data flows automatically via BroadcastChannel<br>
+                        • Cross-tab communication without interference
                     </div>
                 `);
             }
 
-            showDashboardConfirmation(success) {
-                const confirmation = document.createElement('div');
-                confirmation.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${success ? '#27ae60' : '#e74c3c'};
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    z-index: 1001;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                    transition: all 0.3s ease;
-                    max-width: 300px;
-                    animation: slideDown 0.5s ease-out;
-                `;
-                
-                if (success) {
-                    confirmation.innerHTML = `
-                        📊 <strong>Dashboard Connected!</strong><br>
-                        <small>Report sent to testbot.html successfully</small>
-                    `;
-                } else {
-                    confirmation.innerHTML = `
-                        ❌ <strong>Dashboard Error!</strong><br>
-                        <small>Could not connect to testbot.html</small>
-                    `;
-                }
-                
-                document.body.appendChild(confirmation);
 
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    confirmation.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (confirmation.parentNode) {
-                            confirmation.parentNode.removeChild(confirmation);
-                        }
-                    }, 300);
-                }, success ? 4000 : 6000);
-            }
 
             showTestbotCode() {
                 this.addMessage('bot', `
@@ -2454,14 +2361,11 @@ Are you still interested in progressing with this opportunity?`);
 &lt;body&gt;
     &lt;div class="header"&gt;
         &lt;h1&gt;🤖 AI Bootcamp Dashboard&lt;/h1&gt;
-        &lt;p&gt;Live candidate assessments from bot.html&lt;/p&gt;
+        &lt;p&gt;Live candidate assessments via BroadcastChannel&lt;/p&gt;
+        &lt;p&gt;&lt;small&gt;Open bot.html in another tab to conduct assessments&lt;/small&gt;&lt;/p&gt;
     &lt;/div&gt;
     
     &lt;div id="status"&gt;Waiting for candidates...&lt;/div&gt;
-    
-    &lt;!-- Embed bot.html as iframe --&gt;
-    &lt;iframe src="https://terence1975-coder.github.io/tender/bot.html" 
-            width="100%" height="600" frameborder="0"&gt;&lt;/iframe&gt;
     
     &lt;div id="candidates-container"&gt;&lt;/div&gt;
     
@@ -2521,20 +2425,21 @@ Are you still interested in progressing with this opportunity?`);
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
                     <strong>✅ This complete HTML file will:</strong><br>
-                    • Embed bot.html as an iframe<br>
-                    • Listen for candidate reports<br>
+                    • Listen for BroadcastChannel messages automatically<br>
                     • Display candidates with scores and interview status<br>
                     • Show connection test confirmations<br>
-                    • Handle all message types from bot.html
+                    • Work across any tabs on same domain<br>
+                    • No popups or iframes needed
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
                     <strong>🔧 Usage Instructions:</strong><br>
                     1. Save this code as testbot.html<br>
                     2. Upload to https://terence1975-coder.github.io/tender/testbot.html<br>
-                    3. Open testbot.html in browser<br>
-                    4. Use embedded bot.html to test candidate assessments<br>
-                    5. Check browser console for detailed logging
+                    3. Open testbot.html in any tab (no embedding needed)<br>
+                    4. Use bot.html to conduct assessments<br>
+                    5. Reports appear automatically via BroadcastChannel<br>
+                    6. Check browser console for detailed logging
                     </div>
                 `);
             }
@@ -2937,11 +2842,11 @@ window.addEventListener('message', function(event) {
                 startupInfo.innerHTML = `
                     🎉 <strong>System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
-                    • Dashboard works in background<br>
-                    • BroadcastChannel communication<br>
+                    • BroadcastChannel communication active<br>
                     • Emily (Irish English) voice enabled<br>
                     • Location fact-checking ready<br>
-                    • Firebase cloud storage active
+                    • Firebase cloud storage active<br>
+                    • No popups - completely invisible
                 `;
                 document.body.appendChild(startupInfo);
                 
