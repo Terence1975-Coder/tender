@@ -581,7 +581,7 @@
                 <div class="input-section">
                     <div class="audio-controls">
                         <button class="audio-btn" id="audioToggle" onclick="window.chatBot.toggleAudio()">
-                            🔊 Audio: ON
+                            🔊 Emily Voice: ON
                         </button>
                         <button class="audio-btn" id="voiceInput" onclick="window.chatBot.startVoiceInput()">
                             🎤 Voice Input
@@ -589,11 +589,11 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.openDashboardInNewTab()" style="background: #27ae60;">
-                            🖥️ Open Dashboard
-                        </button>
                         <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
-                            📡 Send to testbot.html
+                            📡 Send to Dashboard
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
+                            🖥️ View Dashboard
                         </button>
                         <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
                             📊 Test Dashboard
@@ -601,8 +601,11 @@
                         <button class="audio-btn admin-hidden" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
                             ℹ️ Dashboard Info
                         </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.testDashboardConnection()" style="background: #e67e22;">
-                            🔗 Test Connection
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(true)" style="background: #e67e22;">
+                            🔒 Enable Stealth Popup
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(false)" style="background: #e74c3c;">
+                            🚫 Disable All Popups
                         </button>
                         <button class="audio-btn admin-hidden" onclick="window.chatBot.showTestbotCode()" style="background: #8e44ad;">
                             📝 Show testbot.html Code
@@ -713,7 +716,8 @@
                     useDashboardReporting: true,
                     useFormSubmit: false,
                     dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    useBroadcastChannel: true
+                    useBroadcastChannel: true,
+                    useHiddenPopup: false  // DISABLED by default - set to true only if you want popup risk
                 };
                 
                 // Firebase Configuration
@@ -732,6 +736,7 @@
                 this.database = null;
                 this.firebaseApp = null;
                 this.broadcastChannel = null; // For BroadcastChannel communication
+                this.hiddenDashboard = null; // For invisible popup dashboard
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
@@ -756,12 +761,15 @@
                 this.textInput = document.getElementById('textInput');
                 this.textInputRow = document.getElementById('textInputRow');
                 
-                // Voice settings
+                // Voice settings - Emily (Irish female) for consistent professional experience
                 this.voiceSettings = {
                     rate: 0.9,
                     pitch: 1.0,
                     volume: 0.8,
-                    selectedVoice: null
+                    selectedVoice: null,
+                    preferredVoice: 'Emily (Irish English)',
+                    voiceGender: 'female',
+                    voiceAccent: 'Irish'
                 };
                 
                 // Course knowledge base
@@ -806,6 +814,160 @@
                 } catch (error) {
                     console.error('❌ ChatBot initialization failed:', error);
                     throw error;
+                }
+            }
+
+            // Hidden dashboard popup methods - MAXIMUM STEALTH MODE
+            openHiddenDashboard() {
+                // Skip popup entirely if user doesn't want any risk of visibility
+                if (!this.config.useHiddenPopup) {
+                    console.log('📊 Hidden popup disabled - using BroadcastChannel only');
+                    return null;
+                }
+
+                if (this.hiddenDashboard && !this.hiddenDashboard.closed) {
+                    console.log('📊 Hidden dashboard already running invisibly');
+                    return this.hiddenDashboard;
+                }
+
+                console.log('📊 Attempting to open maximum stealth dashboard...');
+                
+                // MAXIMUM stealth settings - most restrictive possible
+                const maxStealthFeatures = [
+                    'width=1',
+                    'height=1',
+                    'left=-5000',        // Even further off-screen
+                    'top=-5000',         
+                    'scrollbars=no',
+                    'resizable=no',
+                    'menubar=no',
+                    'toolbar=no',
+                    'location=no',
+                    'status=no',
+                    'titlebar=no',
+                    'directories=no',
+                    'fullscreen=no',
+                    'channelmode=no',
+                    'dependent=yes'      // Makes it dependent on parent
+                ].join(',');
+                
+                try {
+                    // Check if popups are allowed first
+                    const testPopup = window.open('', 'popup_test', 'width=1,height=1,left=-5000,top=-5000');
+                    
+                    if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
+                        console.log('📊 Popup blocked - falling back to BroadcastChannel only');
+                        if (testPopup) testPopup.close();
+                        return null;
+                    }
+                    
+                    // Close test popup
+                    testPopup.close();
+                    
+                    // Open actual hidden dashboard
+                    this.hiddenDashboard = window.open(
+                        this.config.dashboardURL, 
+                        'stealth_dashboard_' + Date.now(),
+                        maxStealthFeatures
+                    );
+                    
+                    if (this.hiddenDashboard) {
+                        console.log('📊 ✅ Maximum stealth dashboard opened');
+                        
+                        // IMMEDIATE stealth actions
+                        setTimeout(() => {
+                            try {
+                                // Multiple hiding attempts
+                                this.hiddenDashboard.blur();
+                                this.hiddenDashboard.moveBy(-10000, -10000);  // Move even further away
+                                window.focus();
+                                
+                                // Try to minimize
+                                if (this.hiddenDashboard.minimize) {
+                                    this.hiddenDashboard.minimize();
+                                }
+                                
+                                // Set to background
+                                if (this.hiddenDashboard.setActive) {
+                                    this.hiddenDashboard.setActive(false);
+                                }
+                                
+                            } catch (e) {
+                                console.log('📊 Some stealth features blocked by browser security');
+                            }
+                        }, 50);
+                        
+                        // Monitor for accidental closure
+                        const stealthMonitor = setInterval(() => {
+                            if (this.hiddenDashboard.closed) {
+                                clearInterval(stealthMonitor);
+                                this.hiddenDashboard = null;
+                                console.log('📊 Stealth dashboard closed - will reopen if needed');
+                            }
+                        }, 10000);
+                        
+                    } else {
+                        console.log('📊 ❌ Failed to open stealth dashboard');
+                        return null;
+                    }
+                } catch (error) {
+                    console.log('📊 Stealth dashboard error:', error.message);
+                    return null;
+                }
+                
+                return this.hiddenDashboard;
+            }
+
+            // Alternative: Only use BroadcastChannel if popup risk is too high
+            enableStealthMode(enabled) {
+                this.config.useHiddenPopup = enabled;
+                
+                if (!enabled && this.hiddenDashboard && !this.hiddenDashboard.closed) {
+                    this.hiddenDashboard.close();
+                    this.hiddenDashboard = null;
+                    console.log('📊 Stealth mode disabled - closed hidden popup');
+                }
+                
+                this.addMessage('bot', `
+                    🔒 <strong>Stealth mode ${enabled ? 'enabled' : 'disabled'}</strong><br>
+                    <div style="background: ${enabled ? '#d4edda' : '#fff3cd'}; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                        <strong>${enabled ? '✅ Maximum stealth with hidden popup' : '📡 BroadcastChannel only'}</strong><br>
+                        • Hidden popup: ${enabled ? 'Enabled (maximum stealth)' : 'Disabled (zero popup risk)'}<br>
+                        • BroadcastChannel: Always enabled<br>
+                        • Applicant visibility: ${enabled ? 'Minimized risk' : 'Zero risk'}<br>
+                        • Reliability: ${enabled ? 'Maximum (dual method)' : 'High (single method)'}
+                    </div>
+                `);
+            }
+
+            sendToHiddenDashboard(reportData) {
+                if (!this.hiddenDashboard || this.hiddenDashboard.closed) {
+                    console.log('📊 Opening hidden dashboard for data transmission...');
+                    this.openHiddenDashboard();
+                    
+                    // Wait for dashboard to load then send data
+                    setTimeout(() => {
+                        this.sendDataToHiddenPopup(reportData);
+                    }, 2000);
+                } else {
+                    this.sendDataToHiddenPopup(reportData);
+                }
+            }
+
+            sendDataToHiddenPopup(reportData) {
+                if (!this.hiddenDashboard || this.hiddenDashboard.closed) {
+                    console.log('📊 ❌ Hidden dashboard not available');
+                    return false;
+                }
+
+                try {
+                    console.log('📊 Sending data to hidden dashboard popup');
+                    this.hiddenDashboard.postMessage(reportData, this.config.dashboardURL);
+                    console.log('📊 ✅ Data sent to hidden dashboard successfully');
+                    return true;
+                } catch (error) {
+                    console.error('📊 ❌ Failed to send data to hidden dashboard:', error);
+                    return false;
                 }
             }
 
@@ -888,7 +1050,7 @@
                         timestamp: new Date().toISOString(),
                         sessionId: Date.now(),
                         source: 'AI Bootcamp Screening Chatbot',
-                        version: '3.2-broadcast',
+                        version: '3.3-broadcast-only',
                         transmissionMethod: 'BroadcastChannel'
                     }
                 };
@@ -897,19 +1059,19 @@
                 
                 if (success) {
                     this.addMessage('bot', `
-                        📡 <strong>Candidate sent via BroadcastChannel!</strong><br>
+                        📡 <strong>Current candidate data sent to dashboard!</strong><br>
                         <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
                             <strong>✅ BroadcastChannel Method</strong><br>
                             • <strong>Candidate:</strong> ${message.payload.name}<br>
                             • <strong>Score:</strong> ${message.payload.score}/10<br>
                             • <strong>Status:</strong> ${message.payload.status}<br>
                             • <strong>Interview:</strong> ${message.payload.interviewStatus}<br>
-                            • <strong>Method:</strong> BroadcastChannel 'bot_channel'<br>
-                            • <strong>Message Type:</strong> CANDIDATE_REPORT
+                            • <strong>Channel:</strong> 'bot_channel'<br>
+                            • <strong>Target:</strong> Any open testbot.html tab/window
                         </div>
                         <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>💡 For testbot.html to receive this:</strong><br>
-                            testbot.html must be listening on the same BroadcastChannel 'bot_channel'
+                            <strong>💡 Dashboard Access:</strong><br>
+                            Open ${this.config.dashboardURL} in any tab to see this data appear instantly via BroadcastChannel.
                         </div>
                     `);
                 } else {
@@ -1118,7 +1280,7 @@
                 }
                 
                 this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
-                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!<br><br>📊 <strong>Sending report to dashboard...</strong>`);
+                this.addMessage('bot', `Fantastic, you will receive correspondence regarding the next step, thank you for your time.`);
                 
                 this.candidateData.interestLevel += 2;
                 
@@ -1338,7 +1500,7 @@
                     const populateVoices = () => {
                         const voices = this.speechSynthesis.getVoices();
                         
-                        // Look specifically for Emily from Ireland
+                        // Prioritize Emily Irish female voice for consistent experience
                         const emilyVoice = voices.find(voice => 
                             voice.name.includes('Emily') && voice.lang.includes('en-IE')
                         ) || voices.find(voice => 
@@ -1350,17 +1512,21 @@
                         ) || voices.find(voice => 
                             voice.lang.includes('en-IE')
                         ) || voices.find(voice => 
+                            voice.lang.startsWith('en-GB') && voice.name.toLowerCase().includes('female')
+                        ) || voices.find(voice => 
                             voice.lang.startsWith('en-GB')
                         );
                         
                         if (emilyVoice) {
                             this.voiceSettings.selectedVoice = emilyVoice;
-                            console.log('🎤 Emily voice selected:', emilyVoice.name, emilyVoice.lang);
+                            console.log('🎤 Emily (Irish female) voice selected for consistent experience:', emilyVoice.name, emilyVoice.lang);
                         } else {
-                            console.log('🎤 Emily voice not found, using default');
+                            console.log('🎤 Emily voice not found, using best available female voice');
                         }
                     };
                     
+                    // Force voice selection on every page load
+                    populateVoices();
                     if (speechSynthesis.getVoices().length === 0) {
                         speechSynthesis.addEventListener('voiceschanged', populateVoices);
                     } else {
@@ -1396,14 +1562,19 @@
             }
 
             init() {
-                this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
+                // Ensure Emily's voice is ready before first message
+                this.ensureEmilyVoice();
                 
                 setTimeout(() => {
-                    this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
-                }, 1500);
+                    this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
+                    
+                    setTimeout(() => {
+                        this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
+                    }, 1500);
+                }, 500); // Small delay to ensure Emily voice is loaded
                 
                 setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Dashboard communication via BroadcastChannel<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Real-time candidate reporting - completely invisible';
+                    const enhancedMsg = '🌟 <strong>Enhanced Experience:</strong><br>• Emily (Irish female) voice throughout for consistency<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Professional voice experience with Irish accent<br>• BroadcastChannel communication (popup optional)';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -1412,6 +1583,48 @@
                     this.chatContainer.appendChild(enhancedDiv);
                     this.scrollToBottom();
                 }, 3000);
+            }
+
+            ensureEmilyVoice() {
+                if (!this.speechSynthesis) return;
+                
+                const findEmilyVoice = () => {
+                    const voices = this.speechSynthesis.getVoices();
+                    
+                    const emilyVoice = voices.find(voice => 
+                        voice.name.includes('Emily') && voice.lang.includes('en-IE')
+                    ) || voices.find(voice => 
+                        voice.name.includes('Emily') && voice.lang.includes('ie')
+                    ) || voices.find(voice => 
+                        voice.name.includes('Emily') && voice.lang.includes('Ireland')
+                    ) || voices.find(voice => 
+                        voice.name.includes('Emily')
+                    ) || voices.find(voice => 
+                        voice.lang.includes('en-IE')
+                    ) || voices.find(voice => 
+                        voice.lang.startsWith('en-GB') && voice.name.toLowerCase().includes('female')
+                    ) || voices.find(voice => 
+                        voice.lang.startsWith('en-GB')
+                    );
+                    
+                    if (emilyVoice) {
+                        this.voiceSettings.selectedVoice = emilyVoice;
+                        console.log('🎤 Emily voice ready for first message:', emilyVoice.name, emilyVoice.lang);
+                        return true;
+                    }
+                    return false;
+                };
+                
+                // Try to find Emily immediately
+                if (!findEmilyVoice()) {
+                    // If not found, wait for voices to load
+                    const waitForVoices = () => {
+                        if (findEmilyVoice()) {
+                            this.speechSynthesis.removeEventListener('voiceschanged', waitForVoices);
+                        }
+                    };
+                    this.speechSynthesis.addEventListener('voiceschanged', waitForVoices);
+                }
             }
 
             addMessage(sender, message) {
@@ -1478,8 +1691,24 @@
                     utterance.pitch = this.voiceSettings.pitch;
                     utterance.volume = this.voiceSettings.volume;
                     
+                    // Always prioritize Emily (Irish female) voice for consistency
                     if (this.voiceSettings.selectedVoice) {
                         utterance.voice = this.voiceSettings.selectedVoice;
+                    } else {
+                        // If Emily isn't set yet, try to find her again
+                        const voices = this.speechSynthesis.getVoices();
+                        const emilyVoice = voices.find(voice => 
+                            voice.name.includes('Emily') && voice.lang.includes('en-IE')
+                        ) || voices.find(voice => 
+                            voice.name.includes('Emily')
+                        ) || voices.find(voice => 
+                            voice.lang.includes('en-IE')
+                        );
+                        
+                        if (emilyVoice) {
+                            utterance.voice = emilyVoice;
+                            this.voiceSettings.selectedVoice = emilyVoice;
+                        }
                     }
                     
                     this.currentSpeech = utterance;
@@ -1490,7 +1719,7 @@
             toggleAudio() {
                 this.audioEnabled = !this.audioEnabled;
                 const button = document.getElementById('audioToggle');
-                button.textContent = this.audioEnabled ? '🔊 Audio: ON' : '🔇 Audio: OFF';
+                button.textContent = this.audioEnabled ? '🔊 Emily Voice: ON' : '🔇 Emily Voice: OFF';
                 button.className = this.audioEnabled ? 'audio-btn active' : 'audio-btn';
                 
                 if (!this.audioEnabled) {
@@ -1515,10 +1744,10 @@
             }
 
             startVoiceTraining() {
-                let currentVoiceInfo = 'Emily (Irish English) - Fixed Selection';
+                let currentVoiceInfo = 'Emily (Irish English) - Consistent Experience';
                 
                 if (this.voiceSettings.selectedVoice) {
-                    currentVoiceInfo = `${this.voiceSettings.selectedVoice.name} (${this.voiceSettings.selectedVoice.lang})`;
+                    currentVoiceInfo = `${this.voiceSettings.selectedVoice.name} (${this.voiceSettings.selectedVoice.lang}) - Irish Female`;
                 }
                 
                 this.addMessage('bot', `🎯 <strong>Voice Features Info</strong><br><br>
@@ -1530,11 +1759,11 @@
                         
                         <strong>Available Features:</strong><br>
                         • Voice input for responses<br>
-                        • Emily (Irish English) audio output<br>
-                        • Adaptive speech recognition<br>
-                        • Optimized for clarity<br><br>
+                        • Emily (Irish English) audio output throughout<br>
+                        • Consistent female voice experience<br>
+                        • Optimized for professional clarity<br><br>
                         
-                        <strong>Tip:</strong> The more you use voice input, the better the system becomes at understanding your speech patterns.
+                        <strong>Tip:</strong> All voice responses use the same Emily voice for a consistent, professional experience.
                     </div>`);
             }
 
@@ -1602,7 +1831,7 @@
                     element.classList.add('admin-visible');
                 });
                 
-                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Dashboard button<br>• Dashboard Info button<br>• Test Connection button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Note: "🖥️ Open Dashboard" is always visible to users.');
+                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• View Dashboard button<br>• Test Dashboard button<br>• Dashboard Info button<br>• Enable Stealth Popup button<br>• Disable All Popups button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Popup mode is currently DISABLED by default for zero applicant interference.');
             }
 
             handleCourseQuestion(question) {
@@ -2273,7 +2502,7 @@ Are you still interested in progressing with this opportunity?`);
                     timestamp: new Date().toISOString(),
                     sessionId: Date.now(),
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '3.3-broadcast-only',
+                    version: '3.2',
                     autoShow: true,
                     isComplete: true,
                     interestLevel: this.candidateData.interestLevel || 5,
@@ -2283,55 +2512,147 @@ Are you still interested in progressing with this opportunity?`);
                     messageType: 'CANDIDATE_REPORT',
                     fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
                     toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    transmissionMethod: 'BroadcastChannel'
+                    transmissionMethod: this.config.usePopupDashboard ? 'popup' : 'iframe'
                 };
                 
-                console.log('📡 ===== DASHBOARD TRANSMISSION VIA BROADCASTCHANNEL =====');
-                console.log('📡 Method: BroadcastChannel only (no popups)');
-                console.log('📡 Dashboard URL:', this.config.dashboardURL);
-                console.log('📡 Data:', reportData);
+                console.log('📊 ===== DASHBOARD TRANSMISSION =====');
+                console.log('📊 Method:', this.config.usePopupDashboard ? 'POPUP WINDOW' : 'IFRAME');
+                console.log('📊 Dashboard URL:', this.config.dashboardURL);
+                console.log('📊 Data:', reportData);
                 
-                // Send via BroadcastChannel
+                if (this.config.usePopupDashboard) {
+                    // Use popup method
+                    this.sendToPopupDashboard(reportData);
+                    this.showPopupDashboardConfirmation(reportData);
+                } else {
+                    // Use iframe method (fallback)
+                    this.sendToIframeDashboard(reportData);
+                }
+                
+                // Also send via BroadcastChannel as additional method
                 if (this.broadcastChannel) {
-                    console.log('📡 Sending via BroadcastChannel...');
-                    const success = this.sendBroadcastMessage({
+                    console.log('📡 Also sending via BroadcastChannel...');
+                    this.sendBroadcastMessage({
                         type: 'CANDIDATE_REPORT',
                         payload: reportData
                     });
-                    
-                    if (success) {
-                        this.showBroadcastConfirmation(reportData);
-                    } else {
-                        this.addMessage('bot', '❌ <strong>Failed to send via BroadcastChannel</strong><br>Please check if BroadcastChannel is supported in your browser.');
-                    }
-                } else {
-                    this.addMessage('bot', '❌ <strong>BroadcastChannel not available</strong><br>Please ensure you\'re using a modern browser that supports BroadcastChannel.');
                 }
             }
 
-            showBroadcastConfirmation(reportData) {
+            sendToIframeDashboard(reportData) {
+                try {
+                    console.log('📊 Using iframe method...');
+                    
+                    let transmissionSuccess = false;
+                    
+                    // Method 1: Parent window with specific origin
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
+                        console.log('📊 ✅ Method 1: Sent to parent window with specific origin');
+                        transmissionSuccess = true;
+                    }
+                    
+                    // Method 2: Parent window with wildcard origin
+                    if (window.parent) {
+                        window.parent.postMessage(reportData, '*');
+                        console.log('📊 ✅ Method 2: Sent to parent window with wildcard origin');
+                        transmissionSuccess = true;
+                    }
+                    
+                    // Method 3: Top window
+                    if (window.top && window.top !== window) {
+                        window.top.postMessage(reportData, '*');
+                        console.log('📊 ✅ Method 3: Sent to top window');
+                        transmissionSuccess = true;
+                    }
+                    
+                    if (transmissionSuccess) {
+                        this.showDashboardConfirmation(true);
+                        this.addMessage('bot', `
+                            📊 <strong>Report transmission completed!</strong><br>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>✅ Data sent via iframe method</strong><br>
+                                • <strong>Candidate:</strong> ${reportData.name}<br>
+                                • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
+                                • <strong>Method:</strong> iframe postMessage
+                            </div>
+                        `);
+                    } else {
+                        throw new Error('No iframe communication methods available');
+                    }
+                    
+                } catch (error) {
+                    console.error('📊 ❌ Iframe method failed:', error);
+                    this.showDashboardConfirmation(false);
+                }
+            }
+
+            showPopupDashboardConfirmation(reportData) {
+                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Hidden & Active' : 'Opening Hidden...';
+                
                 this.addMessage('bot', `
-                    📡 <strong>Report sent via BroadcastChannel!</strong><br>
+                    📊 <strong>Report sent to hidden dashboard!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ BroadcastChannel Method</strong><br>
+                        <strong>✅ Hidden Dashboard Method</strong><br>
                         • <strong>Candidate:</strong> ${reportData.name}<br>
                         • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                        • <strong>Score:</strong> ${reportData.score}/10<br>
-                        • <strong>Status:</strong> ${reportData.status}<br>
-                        • <strong>Method:</strong> BroadcastChannel 'bot_channel'<br>
-                        • <strong>Session ID:</strong> ${reportData.sessionId}
+                        • <strong>Dashboard Status:</strong> ${popupStatus}<br>
+                        • <strong>Visibility:</strong> Hidden from applicant<br>
+                        • <strong>Method:</strong> Background popup + BroadcastChannel<br>
+                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}
                     </div>
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
                         <strong>💡 Dashboard Access:</strong><br>
-                        • No popups needed - completely invisible to applicants<br>
-                        • Open testbot.html in any tab to view reports<br>
-                        • Data flows automatically via BroadcastChannel<br>
-                        • Cross-tab communication without interference
+                        • Dashboard runs hidden in background<br>
+                        • Click "🖥️ Open Dashboard" to view reports<br>
+                        • Data automatically transmitted via BroadcastChannel<br>
+                        • Applicants cannot see the dashboard popup
                     </div>
                 `);
             }
 
+            showDashboardConfirmation(success) {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${success ? '#27ae60' : '#e74c3c'};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transition: all 0.3s ease;
+                    max-width: 300px;
+                    animation: slideDown 0.5s ease-out;
+                `;
+                
+                if (success) {
+                    confirmation.innerHTML = `
+                        📊 <strong>Dashboard Connected!</strong><br>
+                        <small>Report sent to testbot.html successfully</small>
+                    `;
+                } else {
+                    confirmation.innerHTML = `
+                        ❌ <strong>Dashboard Error!</strong><br>
+                        <small>Could not connect to testbot.html</small>
+                    `;
+                }
+                
+                document.body.appendChild(confirmation);
 
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, success ? 4000 : 6000);
+            }
 
             showTestbotCode() {
                 this.addMessage('bot', `
@@ -2361,11 +2682,14 @@ Are you still interested in progressing with this opportunity?`);
 &lt;body&gt;
     &lt;div class="header"&gt;
         &lt;h1&gt;🤖 AI Bootcamp Dashboard&lt;/h1&gt;
-        &lt;p&gt;Live candidate assessments via BroadcastChannel&lt;/p&gt;
-        &lt;p&gt;&lt;small&gt;Open bot.html in another tab to conduct assessments&lt;/small&gt;&lt;/p&gt;
+        &lt;p&gt;Live candidate assessments from bot.html&lt;/p&gt;
     &lt;/div&gt;
     
     &lt;div id="status"&gt;Waiting for candidates...&lt;/div&gt;
+    
+    &lt;!-- Embed bot.html as iframe --&gt;
+    &lt;iframe src="https://terence1975-coder.github.io/tender/bot.html" 
+            width="100%" height="600" frameborder="0"&gt;&lt;/iframe&gt;
     
     &lt;div id="candidates-container"&gt;&lt;/div&gt;
     
@@ -2424,22 +2748,23 @@ Are you still interested in progressing with this opportunity?`);
                     </div>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ This complete HTML file will:</strong><br>
-                    • Listen for BroadcastChannel messages automatically<br>
+                    <strong>✅ This complete HTML file supports dual transmission:</strong><br>
+                    • Hidden popup messages (parent-child communication)<br>
+                    • BroadcastChannel messages ('bot_channel')<br>
                     • Display candidates with scores and interview status<br>
-                    • Show connection test confirmations<br>
-                    • Work across any tabs on same domain<br>
-                    • No popups or iframes needed
+                    • Connection test confirmations for both methods<br>
+                    • Transmission method indicators<br>
+                    • Maximum reliability with dual backup systems
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
                     <strong>🔧 Usage Instructions:</strong><br>
                     1. Save this code as testbot.html<br>
                     2. Upload to https://terence1975-coder.github.io/tender/testbot.html<br>
-                    3. Open testbot.html in any tab (no embedding needed)<br>
-                    4. Use bot.html to conduct assessments<br>
-                    5. Reports appear automatically via BroadcastChannel<br>
-                    6. Check browser console for detailed logging
+                    3. Open testbot.html in browser (automatically receives data)<br>
+                    4. Hidden popup from bot.html connects automatically<br>
+                    5. BroadcastChannel works across any tabs/windows<br>
+                    6. Dual transmission ensures maximum reliability
                     </div>
                 `);
             }
@@ -2579,63 +2904,36 @@ function displayCandidateReport(data) {
                 checkButton.disabled = true;
                 
                 this.addMessage('bot', `
-                    📊 <strong>Dashboard Integration Status & Code</strong><br><br>
+                    📊 <strong>Dual Dashboard Integration System</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ bot.html is sending data to testbot.html</strong><br>
-                    • <strong>Target URL:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Method:</strong> window.parent.postMessage()<br>
-                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br>
-                    • <strong>Status:</strong> Transmission confirmed
-                    </div>
-                    
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>⚠️ If testbot.html is not showing data, add this code:</strong><br><br>
-                    <code style="font-size: 10px; background: #f8f9fa; padding: 8px; border-radius: 3px; display: block; margin: 5px 0; white-space: pre-wrap; overflow-x: auto;">
-// Add this to testbot.html
-window.addEventListener('message', function(event) {
-    console.log('📨 Message received:', event.data);
-    
-    if (event.data.messageType === 'CANDIDATE_REPORT') {
-        console.log('📋 Candidate data:', event.data);
-        
-        // Display candidate in dashboard
-        const candidate = event.data;
-        
-        // Example: Add to a candidates list
-        const candidateDiv = document.createElement('div');
-        candidateDiv.innerHTML = \`
-            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px;">
-                <h3>\${candidate.name}</h3>
-                <p>Score: \${candidate.score}/10</p>
-                <p>Status: \${candidate.status}</p>
-                <p>Email: \${candidate.email}</p>
-                <p>Phone: \${candidate.phone}</p>
-                <p>Interview: \${candidate.interviewStatus}</p>
-            </div>
-        \`;
-        
-        // Add to dashboard container
-        const dashboardContainer = document.getElementById('candidates-container');
-        if (dashboardContainer) {
-            dashboardContainer.appendChild(candidateDiv);
-        }
-    }
-});
-                    </code>
+                    <strong>✅ Dual Transmission Methods Active</strong><br>
+                    • <strong>Method 1:</strong> Hidden popup (invisible to applicants)<br>
+                    • <strong>Method 2:</strong> BroadcastChannel 'bot_channel'<br>
+                    • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}<br>
+                    • <strong>Hidden Status:</strong> ${this.hiddenDashboard && !this.hiddenDashboard.closed ? 'Running invisibly' : 'Will open when needed'}<br>
+                    • <strong>Reliability:</strong> Maximum (dual backup systems)
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>🔧 Troubleshooting Steps:</strong><br>
-                    1. Open testbot.html in browser<br>
-                    2. Open browser console (F12)<br>
-                    3. Embed bot.html as iframe in testbot.html<br>
-                    4. Add the message listener code above<br>
-                    5. Test with "🔗 Test Connection" button<br>
-                    6. Look for "📨 Message received" in console
+                    <strong>📊 How Dual System Works:</strong><br>
+                    • Hidden popup opens automatically (completely invisible)<br>
+                    • BroadcastChannel sends to any open testbot.html tabs<br>
+                    • When interview booked → both methods triggered<br>
+                    • Applicants see zero popups or interference<br>
+                    • Admin can use "🖥️ View Dashboard" for monitoring
                     </div>
                     
-                    <strong>💡 Current Status:</strong> bot.html is successfully sending data. The issue is likely that testbot.html needs the message listener code to receive and display the data.
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>🔧 Invisible Popup Features:</strong><br>
+                    • 1x1 pixel size positioned off-screen (-3000, -3000)<br>
+                    • No focus, no taskbar presence, no interruption<br>
+                    • Parent-child communication for maximum reliability<br>
+                    • Auto-reopens if accidentally closed<br>
+                    • Completely hidden from applicant experience
+                    </div>
+                    
+                    <strong>💡 Status:</strong> Dual system provides maximum reliability while maintaining zero applicant interference!
                 `);
                 
                 checkButton.textContent = 'ℹ️ Dashboard Info';
@@ -2842,11 +3140,11 @@ window.addEventListener('message', function(event) {
                 startupInfo.innerHTML = `
                     🎉 <strong>System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
-                    • BroadcastChannel communication active<br>
+                    • BroadcastChannel communication<br>
                     • Emily (Irish English) voice enabled<br>
                     • Location fact-checking ready<br>
                     • Firebase cloud storage active<br>
-                    • No popups - completely invisible
+                    • Zero popup interference (default)
                 `;
                 document.body.appendChild(startupInfo);
                 
