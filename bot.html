@@ -709,15 +709,18 @@
             constructor() {
                 console.log('🚀 Starting ChatBot initialization...');
                 
-                // Configuration
+                // Configuration - Enhanced for cross-tab communication
                 this.config = {
                     emailServerUrl: 'DISABLED',
                     emailRecipient: 'DISABLED',
                     useDashboardReporting: true,
                     useFormSubmit: false,
                     dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    useBroadcastChannel: true,
-                    useHiddenPopup: false  // DISABLED by default - set to true only if you want popup risk
+                    useBroadcastChannel: true,  // Primary method for cross-tab
+                    useHiddenPopup: true,       // Secondary method
+                    useLocalStorage: true,      // Tertiary fallback
+                    useIframeMethod: true,      // For iframe scenarios
+                    priorityMethod: 'BroadcastChannel' // Most reliable for separate tabs
                 };
                 
                 // Firebase Configuration
@@ -1280,7 +1283,7 @@
                 }
                 
                 this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
-                this.addMessage('bot', `Fantastic, you will receive correspondence regarding the next step, thank you for your time.`);
+                this.addMessage('bot', `Thank you so much for your time, you will receive a communication or a Teams invite regarding the next step, have a wonderful day.`);
                 
                 this.candidateData.interestLevel += 2;
                 
@@ -2471,253 +2474,369 @@ Are you still interested in progressing with this opportunity?`);
                 }
             }
 
-            // Dashboard reporting methods
+            // Dashboard reporting methods - Enhanced for cross-tab communication
             sendToDashboard() {
+                console.log('📊 ===== ENHANCED CROSS-TAB DASHBOARD REPORTING =====');
+                console.log('📊 Candidate Data:', this.candidateData);
+                console.log('📊 Score:', this.score);
+                console.log('📊 All Responses:', this.candidateData.responses);
+                
                 const reportData = {
+                    messageType: 'CANDIDATE_REPORT',
+                    fromURL: window.location.href,
+                    toURL: this.config.dashboardURL,
+                    timestamp: new Date().toISOString(),
+                    sessionId: Date.now(),
+                    
+                    // Complete candidate information
                     name: this.candidateData.name || "Unknown Applicant",
                     email: this.candidateData.personalDetails?.email || "No email provided",
                     phone: this.candidateData.personalDetails?.mobile || "No phone provided",
-                    score: this.score,
+                    firstName: this.candidateData.personalDetails?.firstName || "",
+                    surname: this.candidateData.personalDetails?.surname || "",
+                    
+                    // Programme details
                     bootcamp: "AI Business Productivity Bootcamp",
                     program: "Cornwall Skills Bootcamp",
+                    provider: "BIT Group",
+                    
+                    // Assessment results
+                    score: this.score,
+                    overallScore: `${this.score}/10`,
+                    
+                    // Screening responses - ALL data captured
                     location: this.candidateData.location || 'Not assessed',
+                    locationResponse: this.candidateData.responses.find(r => r.step === 'location')?.response || 'N/A',
+                    
                     ukResidency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
+                    ukResidencyResponse: this.candidateData.responses.find(r => r.step === 'ukResidency')?.response || 'N/A',
+                    
                     fundingStatus: this.candidateData.fundingStatus || 'Not assessed',
+                    fundingResponse: this.candidateData.responses.find(r => r.step === 'funding')?.response || 'N/A',
+                    
                     employmentStatus: this.candidateData.employmentStatus || 'Not assessed',
+                    employmentResponse: this.candidateData.responses.find(r => r.step === 'employment')?.response || 'N/A',
+                    
                     employerFunding: this.candidateData.employerFunding || 'Not applicable',
+                    employerFundingResponse: this.candidateData.responses.find(r => r.step === 'employerFunding')?.response || 'N/A',
+                    
                     availability: this.candidateData.availability || 'Not assessed',
+                    availabilityResponse: this.candidateData.responses.find(r => r.step === 'schedule')?.response || 'N/A',
+                    
+                    // Interview details
                     interviewBooked: this.candidateData.personalDetails ? true : false,
                     interviewStatus: this.candidateData.personalDetails ? 'BOOKED - Interview confirmed' : 'Not booked',
+                    interviewResponse: this.candidateData.responses.find(r => r.step === 'interview')?.response || 'N/A',
+                    
+                    // Personal details (if provided)
                     personalDetails: this.candidateData.personalDetails || null,
+                    personalDetailsCollected: this.candidateData.personalDetails ? true : false,
+                    
+                    // Complete response history
                     responses: this.candidateData.responses.map(r => ({
                         step: r.step,
                         response: r.response,
                         timestamp: new Date().toISOString()
                     })) || [],
+                    totalResponses: this.candidateData.responses.length,
+                    
+                    // Assessment metadata
                     recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
                                   this.score >= 6 ? 'SUITABLE - Standard processing' : 
                                   'NOT SUITABLE - Does not meet criteria',
                     status: this.score >= 8 ? 'HIGHLY_SUITABLE' : 
                            this.score >= 6 ? 'SUITABLE' : 'NOT_SUITABLE',
-                    timestamp: new Date().toISOString(),
-                    sessionId: Date.now(),
+                    interestLevel: this.candidateData.interestLevel || 5,
+                    
+                    // Additional flags
+                    rescheduleRequested: this.candidateData.rescheduleType ? true : false,
+                    rescheduleType: this.candidateData.rescheduleType || null,
+                    devonWaitingList: this.candidateData.devonWaitingList || false,
+                    
+                    // System metadata
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '3.2',
+                    version: '3.4-cross-tab-enhanced',
                     autoShow: true,
                     isComplete: true,
-                    interestLevel: this.candidateData.interestLevel || 5,
-                    rescheduleRequested: this.candidateData.rescheduleType ? true : false,
-                    personalDetailsCollected: this.candidateData.personalDetails ? true : false,
-                    targetDashboard: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    messageType: 'CANDIDATE_REPORT',
-                    fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
-                    toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    transmissionMethod: this.config.usePopupDashboard ? 'popup' : 'iframe'
+                    transmissionMethod: 'cross-tab-multi-method'
                 };
                 
-                console.log('📊 ===== DASHBOARD TRANSMISSION =====');
-                console.log('📊 Method:', this.config.usePopupDashboard ? 'POPUP WINDOW' : 'IFRAME');
-                console.log('📊 Dashboard URL:', this.config.dashboardURL);
-                console.log('📊 Data:', reportData);
+                console.log('📊 Complete Report Data:', reportData);
                 
-                if (this.config.usePopupDashboard) {
-                    // Use popup method
-                    this.sendToPopupDashboard(reportData);
-                    this.showPopupDashboardConfirmation(reportData);
-                } else {
-                    // Use iframe method (fallback)
-                    this.sendToIframeDashboard(reportData);
+                // Multi-method transmission for maximum reliability
+                const results = {
+                    iframe: this.sendViaIframe(reportData),
+                    broadcast: this.sendViaBroadcast(reportData),
+                    popup: this.sendViaPopup(reportData),
+                    storage: this.sendViaStorage(reportData)
+                };
+                
+                console.log('📊 Transmission Results:', results);
+                
+                // Also save to Firebase cloud storage
+                this.saveToFirebase();
+                
+                // Show success confirmation
+                this.showTransmissionStatus(results);
+            }
+
+            sendViaIframe(reportData) {
+                try {
+                    console.log('📊 Method 1: Attempting iframe transmission...');
+                    let success = false;
+                    
+                    // Try parent window (if embedded as iframe)
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage(reportData, '*');
+                        console.log('📊 ✅ Sent to parent window');
+                        success = true;
+                    }
+                    
+                    // Try top window
+                    if (window.top && window.top !== window) {
+                        window.top.postMessage(reportData, '*');
+                        console.log('📊 ✅ Sent to top window');
+                        success = true;
+                    }
+                    
+                    if (!success) {
+                        console.log('📊 ⚠️ No iframe relationship detected');
+                    }
+                    
+                    return success;
+                } catch (error) {
+                    console.error('📊 ❌ Iframe transmission failed:', error);
+                    return false;
                 }
-                
-                // Also send via BroadcastChannel as additional method
-                if (this.broadcastChannel) {
-                    console.log('📡 Also sending via BroadcastChannel...');
-                    this.sendBroadcastMessage({
+            }
+
+            sendViaBroadcast(reportData) {
+                try {
+                    console.log('📊 Method 2: Attempting BroadcastChannel transmission...');
+                    
+                    if (!this.broadcastChannel) {
+                        console.log('📊 ⚠️ BroadcastChannel not available');
+                        return false;
+                    }
+                    
+                    const broadcastMessage = {
                         type: 'CANDIDATE_REPORT',
-                        payload: reportData
-                    });
+                        payload: reportData,
+                        channel: 'bot_channel',
+                        origin: window.location.origin
+                    };
+                    
+                    this.broadcastChannel.postMessage(broadcastMessage);
+                    console.log('📊 ✅ BroadcastChannel transmission successful');
+                    return true;
+                } catch (error) {
+                    console.error('📊 ❌ BroadcastChannel transmission failed:', error);
+                    return false;
                 }
+            }
+
+            sendViaPopup(reportData) {
+                try {
+                    console.log('📊 Method 3: Attempting popup transmission...');
+                    
+                    // Check if dashboard is already open in a popup
+                    if (this.dashboardWindow && !this.dashboardWindow.closed) {
+                        this.dashboardWindow.postMessage(reportData, '*');
+                        console.log('📊 ✅ Sent to existing dashboard popup');
+                        return true;
+                    }
+                    
+                    // Open hidden dashboard popup for transmission
+                    this.dashboardWindow = window.open(
+                        this.config.dashboardURL, 
+                        'dashboard_' + Date.now(),
+                        'width=1,height=1,left=-3000,top=-3000,scrollbars=no,resizable=no,menubar=no,toolbar=no'
+                    );
+                    
+                    if (this.dashboardWindow) {
+                        // Wait for dashboard to load then send data
+                        setTimeout(() => {
+                            try {
+                                this.dashboardWindow.postMessage(reportData, '*');
+                                console.log('📊 ✅ Sent to new dashboard popup');
+                            } catch (e) {
+                                console.log('📊 ⚠️ Popup message send failed:', e.message);
+                            }
+                        }, 2000);
+                        
+                        return true;
+                    } else {
+                        console.log('📊 ⚠️ Popup blocked or failed to open');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('📊 ❌ Popup transmission failed:', error);
+                    return false;
+                }
+            }
+
+            sendViaStorage(reportData) {
+                try {
+                    console.log('📊 Method 4: Attempting localStorage transmission...');
+                    
+                    // Use localStorage as a communication bridge
+                    const storageKey = 'bootcamp_candidate_report';
+                    const storageData = {
+                        ...reportData,
+                        storageTimestamp: Date.now(),
+                        method: 'localStorage'
+                    };
+                    
+                    localStorage.setItem(storageKey, JSON.stringify(storageData));
+                    
+                    // Trigger storage event for cross-tab communication
+                    localStorage.setItem('bootcamp_report_trigger', Date.now().toString());
+                    
+                    console.log('📊 ✅ localStorage transmission successful');
+                    return true;
+                } catch (error) {
+                    console.error('📊 ❌ localStorage transmission failed:', error);
+                    return false;
+                }
+            }
+
+            showTransmissionStatus(results) {
+                const successCount = Object.values(results).filter(Boolean).length;
+                const totalMethods = Object.keys(results).length;
+                
+                console.log(`📊 Transmission Summary: ${successCount}/${totalMethods} methods successful`);
+                console.log('📊 Methods:', results);
+                
+                // Silent background transmission - no UI message for applicants
+                // All transmission happens transparently
             }
 
             sendToIframeDashboard(reportData) {
-                try {
-                    console.log('📊 Using iframe method...');
-                    
-                    let transmissionSuccess = false;
-                    
-                    // Method 1: Parent window with specific origin
-                    if (window.parent && window.parent !== window) {
-                        window.parent.postMessage(reportData, 'https://terence1975-coder.github.io');
-                        console.log('📊 ✅ Method 1: Sent to parent window with specific origin');
-                        transmissionSuccess = true;
-                    }
-                    
-                    // Method 2: Parent window with wildcard origin
-                    if (window.parent) {
-                        window.parent.postMessage(reportData, '*');
-                        console.log('📊 ✅ Method 2: Sent to parent window with wildcard origin');
-                        transmissionSuccess = true;
-                    }
-                    
-                    // Method 3: Top window
-                    if (window.top && window.top !== window) {
-                        window.top.postMessage(reportData, '*');
-                        console.log('📊 ✅ Method 3: Sent to top window');
-                        transmissionSuccess = true;
-                    }
-                    
-                    if (transmissionSuccess) {
-                        this.showDashboardConfirmation(true);
-                        this.addMessage('bot', `
-                            📊 <strong>Report transmission completed!</strong><br>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>✅ Data sent via iframe method</strong><br>
-                                • <strong>Candidate:</strong> ${reportData.name}<br>
-                                • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                                • <strong>Method:</strong> iframe postMessage
-                            </div>
-                        `);
-                    } else {
-                        throw new Error('No iframe communication methods available');
-                    }
-                    
-                } catch (error) {
-                    console.error('📊 ❌ Iframe method failed:', error);
-                    this.showDashboardConfirmation(false);
-                }
-            }
-
-            showPopupDashboardConfirmation(reportData) {
-                const popupStatus = this.dashboardWindow && !this.dashboardWindow.closed ? 'Hidden & Active' : 'Opening Hidden...';
-                
-                this.addMessage('bot', `
-                    📊 <strong>Report sent to hidden dashboard!</strong><br>
-                    <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ Hidden Dashboard Method</strong><br>
-                        • <strong>Candidate:</strong> ${reportData.name}<br>
-                        • <strong>Interview Status:</strong> ${reportData.interviewStatus}<br>
-                        • <strong>Dashboard Status:</strong> ${popupStatus}<br>
-                        • <strong>Visibility:</strong> Hidden from applicant<br>
-                        • <strong>Method:</strong> Background popup + BroadcastChannel<br>
-                        • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}
-                    </div>
-                    <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>💡 Dashboard Access:</strong><br>
-                        • Dashboard runs hidden in background<br>
-                        • Click "🖥️ Open Dashboard" to view reports<br>
-                        • Data automatically transmitted via BroadcastChannel<br>
-                        • Applicants cannot see the dashboard popup
-                    </div>
-                `);
+                // This method is now replaced by sendViaIframe
+                return this.sendViaIframe(reportData);
             }
 
             showDashboardConfirmation(success) {
-                const confirmation = document.createElement('div');
-                confirmation.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${success ? '#27ae60' : '#e74c3c'};
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    z-index: 1001;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                    transition: all 0.3s ease;
-                    max-width: 300px;
-                    animation: slideDown 0.5s ease-out;
-                `;
-                
-                if (success) {
-                    confirmation.innerHTML = `
-                        📊 <strong>Dashboard Connected!</strong><br>
-                        <small>Report sent to testbot.html successfully</small>
-                    `;
-                } else {
-                    confirmation.innerHTML = `
-                        ❌ <strong>Dashboard Error!</strong><br>
-                        <small>Could not connect to testbot.html</small>
-                    `;
-                }
-                
-                document.body.appendChild(confirmation);
+                // Remove the technical popup message - no longer needed
+                console.log(success ? '📊 ✅ Dashboard transmission confirmed' : '📊 ❌ Dashboard transmission failed');
+            }
 
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    confirmation.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (confirmation.parentNode) {
-                            confirmation.parentNode.removeChild(confirmation);
-                        }
-                    }, 300);
-                }, success ? 4000 : 6000);
+            showPopupDashboardConfirmation(reportData) {
+                // Remove the technical message - no longer needed  
+                console.log('📊 ✅ Popup dashboard transmission attempted for:', reportData.name);
             }
 
             showTestbotCode() {
                 this.addMessage('bot', `
-                    📝 <strong>Complete testbot.html Implementation</strong><br><br>
+                    📝 <strong>Enhanced testbot.html for Cross-Tab Communication</strong><br><br>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #3498db;">
-                    <strong>🔧 Copy this complete code into testbot.html:</strong><br><br>
-                    <code style="font-size: 9px; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; display: block; margin: 10px 0; white-space: pre-wrap; overflow-x: auto;">
+                    <strong>🔧 Complete Cross-Tab Compatible testbot.html:</strong><br><br>
+                    <code style="font-size: 8px; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; display: block; margin: 10px 0; white-space: pre-wrap; overflow-x: auto; max-height: 400px;">
 &lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
     &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-    &lt;title&gt;AI Bootcamp Dashboard&lt;/title&gt;
+    &lt;title&gt;AI Bootcamp Dashboard - Cross-Tab Enhanced&lt;/title&gt;
     &lt;style&gt;
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .candidate { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
-        .header { background: #3498db; color: white; padding: 10px; text-align: center; }
-        .status { padding: 5px 10px; border-radius: 3px; color: white; font-weight: bold; }
-        .suitable { background: #27ae60; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }
+        .header { background: #3498db; color: white; padding: 15px; text-align: center; border-radius: 8px; }
+        .status { padding: 10px; background: #e8f4f8; border-radius: 5px; margin: 10px 0; }
+        .candidate { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .status-badge { padding: 5px 10px; border-radius: 15px; color: white; font-weight: bold; display: inline-block; margin: 5px 0; }
+        .highly-suitable { background: #27ae60; }
+        .suitable { background: #f39c12; }
         .not-suitable { background: #e74c3c; }
-        .highly-suitable { background: #2ecc71; }
+        .interview-booked { background: #9b59b6; color: white; padding: 5px 10px; border-radius: 3px; }
+        .method-indicator { background: #34495e; color: white; padding: 3px 8px; border-radius: 10px; font-size: 11px; margin: 2px; }
         #candidates-container { margin-top: 20px; }
-        .interview-booked { background: #f39c12; color: white; padding: 5px 10px; border-radius: 3px; }
+        .transmission-log { background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin: 10px 0; max-height: 200px; overflow-y: auto; }
     &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
     &lt;div class="header"&gt;
-        &lt;h1&gt;🤖 AI Bootcamp Dashboard&lt;/h1&gt;
-        &lt;p&gt;Live candidate assessments from bot.html&lt;/p&gt;
+        &lt;h1&gt;🤖 AI Bootcamp Dashboard - Cross-Tab Enhanced&lt;/h1&gt;
+        &lt;p&gt;Multi-method candidate reception from bot.html&lt;/p&gt;
     &lt;/div&gt;
     
-    &lt;div id="status"&gt;Waiting for candidates...&lt;/div&gt;
+    &lt;div class="status" id="status"&gt;
+        🔄 Listening for candidates via 4 transmission methods...
+    &lt;/div&gt;
     
-    &lt;!-- Embed bot.html as iframe --&gt;
-    &lt;iframe src="https://terence1975-coder.github.io/tender/bot.html" 
-            width="100%" height="600" frameborder="0"&gt;&lt;/iframe&gt;
+    &lt;div class="transmission-log" id="log"&gt;
+        📡 Transmission Log - Ready for cross-tab communication...&lt;br&gt;
+    &lt;/div&gt;
     
     &lt;div id="candidates-container"&gt;&lt;/div&gt;
     
     &lt;script&gt;
         let candidateCount = 0;
+        let broadcastChannel = null;
         
-        // Listen for messages from bot.html
-        window.addEventListener('message', function(event) {
-            console.log('📨 Message received from bot.html:', event.data);
+        // Initialize BroadcastChannel
+        if ('BroadcastChannel' in window) {
+            broadcastChannel = new BroadcastChannel('bot_channel');
+            broadcastChannel.addEventListener('message', handleBroadcastMessage);
+            log('✅ BroadcastChannel initialized');
+        } else {
+            log('❌ BroadcastChannel not supported');
+        }
+        
+        // Listen for localStorage changes (cross-tab communication)
+        window.addEventListener('storage', handleStorageMessage);
+        
+        // Listen for postMessage (iframe/popup communication)  
+        window.addEventListener('message', handlePostMessage);
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += \`[\${timestamp}] \${message}&lt;br&gt;\`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function handleBroadcastMessage(event) {
+            log('📡 BroadcastChannel message received');
+            console.log('📨 BroadcastChannel data:', event.data);
+            
+            if (event.data.type === 'CANDIDATE_REPORT') {
+                displayCandidate(event.data.payload, 'BroadcastChannel');
+            }
+        }
+        
+        function handleStorageMessage(event) {
+            if (event.key === 'bootcamp_report_trigger') {
+                log('💾 LocalStorage trigger detected');
+                const reportData = localStorage.getItem('bootcamp_candidate_report');
+                if (reportData) {
+                    try {
+                        const candidate = JSON.parse(reportData);
+                        displayCandidate(candidate, 'LocalStorage');
+                    } catch (e) {
+                        log('❌ LocalStorage data parse error: ' + e.message);
+                    }
+                }
+            }
+        }
+        
+        function handlePostMessage(event) {
+            log('📬 PostMessage received from: ' + event.origin);
+            console.log('📨 PostMessage data:', event.data);
             
             if (event.data.messageType === 'CANDIDATE_REPORT') {
-                displayCandidate(event.data);
+                displayCandidate(event.data, 'PostMessage');
             }
-            
-            if (event.data.messageType === 'CONNECTION_TEST') {
-                console.log('🔧 Connection test successful!');
-                alert('✅ Connection working! Bot.html can send data to testbot.html');
-            }
-        });
+        }
         
-        function displayCandidate(data) {
+        function displayCandidate(data, method) {
             candidateCount++;
-            console.log('📋 Displaying candidate:', data.name);
+            log(\`📋 Displaying candidate \${candidateCount}: \${data.name} (via \${method})\`);
             
             const container = document.getElementById('candidates-container');
             const statusDiv = document.getElementById('status');
             
-            statusDiv.innerHTML = \`\${candidateCount} candidate(s) received\`;
+            statusDiv.innerHTML = \`📊 \${candidateCount} candidate(s) received via multiple transmission methods\`;
             
             const candidateDiv = document.createElement('div');
             candidateDiv.className = 'candidate';
@@ -2727,20 +2846,67 @@ Are you still interested in progressing with this opportunity?`);
             else if (data.status === 'SUITABLE') statusClass = 'suitable';
             
             candidateDiv.innerHTML = \`
-                &lt;h3&gt;\${data.name}&lt;/h3&gt;
-                &lt;div class="status \${statusClass}"&gt;\${data.status}&lt;/div&gt;
+                &lt;div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"&gt;
+                    &lt;h3 style="margin: 0;"&gt;\${data.name}&lt;/h3&gt;
+                    &lt;span class="method-indicator"&gt;📡 \${method}&lt;/span&gt;
+                &lt;/div&gt;
+                
+                &lt;div class="status-badge \${statusClass}"&gt;\${data.status.replace('_', ' ')}&lt;/div&gt;
                 \${data.interviewBooked ? '&lt;div class="interview-booked"&gt;📅 Interview Booked&lt;/div&gt;' : ''}
-                &lt;p&gt;&lt;strong&gt;Score:&lt;/strong&gt; \${data.score}/10&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; \${data.email}&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Phone:&lt;/strong&gt; \${data.phone}&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Location:&lt;/strong&gt; \${data.location}&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Employment:&lt;/strong&gt; \${data.employmentStatus}&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Interview Status:&lt;/strong&gt; \${data.interviewStatus}&lt;/p&gt;
-                &lt;p&gt;&lt;strong&gt;Timestamp:&lt;/strong&gt; \${new Date(data.timestamp).toLocaleString()}&lt;/p&gt;
+                
+                &lt;div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;"&gt;
+                    &lt;div&gt;
+                        &lt;strong&gt;📊 Assessment:&lt;/strong&gt;&lt;br&gt;
+                        Score: \${data.score}/10&lt;br&gt;
+                        Location: \${data.location}&lt;br&gt;
+                        UK Residency: \${data.ukResidency}&lt;br&gt;
+                        Employment: \${data.employmentStatus}&lt;br&gt;
+                        Employer Funding: \${data.employerFunding}
+                    &lt;/div&gt;
+                    
+                    &lt;div&gt;
+                        &lt;strong&gt;📞 Contact:&lt;/strong&gt;&lt;br&gt;
+                        Email: \${data.email}&lt;br&gt;
+                        Phone: \${data.phone}&lt;br&gt;
+                        Interview: \${data.interviewStatus}&lt;br&gt;
+                        Availability: \${data.availability}
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                
+                &lt;div style="margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px;"&gt;
+                    &lt;strong&gt;📋 Response History (\${data.totalResponses || 0} responses):&lt;/strong&gt;&lt;br&gt;
+                    \${(data.responses || []).map(r =&gt; \`• \${r.step}: "\${r.response}"\`).join('&lt;br&gt;')}
+                &lt;/div&gt;
+                
+                &lt;div style="margin-top: 10px; font-size: 12px; color: #666;"&gt;
+                    &lt;strong&gt;Session ID:&lt;/strong&gt; \${data.sessionId} | 
+                    &lt;strong&gt;Received:&lt;/strong&gt; \${new Date().toLocaleString()} |
+                    &lt;strong&gt;Method:&lt;/strong&gt; \${method}
+                &lt;/div&gt;
             \`;
             
             container.insertBefore(candidateDiv, container.firstChild);
+            
+            // Auto-scroll to new candidate
+            candidateDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+        
+        // Connection test response
+        function sendTestResponse() {
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({
+                    type: 'DASHBOARD_READY',
+                    timestamp: new Date().toISOString(),
+                    message: 'testbot.html is ready and listening for candidates'
+                });
+            }
+        }
+        
+        // Send ready signal
+        setTimeout(sendTestResponse, 1000);
+        
+        log('🚀 Dashboard ready - All 4 transmission methods active');
+        console.log('📊 Dashboard initialized with cross-tab communication support');
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -2748,154 +2914,126 @@ Are you still interested in progressing with this opportunity?`);
                     </div>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ This complete HTML file supports dual transmission:</strong><br>
-                    • Hidden popup messages (parent-child communication)<br>
-                    • BroadcastChannel messages ('bot_channel')<br>
-                    • Display candidates with scores and interview status<br>
-                    • Connection test confirmations for both methods<br>
-                    • Transmission method indicators<br>
-                    • Maximum reliability with dual backup systems
+                    <strong>✅ Enhanced Cross-Tab Features:</strong><br>
+                    • <strong>BroadcastChannel:</strong> Real-time cross-tab communication<br>
+                    • <strong>LocalStorage Bridge:</strong> Cross-tab data sharing<br>
+                    • <strong>PostMessage:</strong> Iframe and popup communication<br>
+                    • <strong>Multiple Fallbacks:</strong> Maximum reliability<br>
+                    • <strong>Transmission Logging:</strong> Real-time debugging<br>
+                    • <strong>Method Indicators:</strong> Shows how each candidate was received<br>
+                    • <strong>Complete Data Display:</strong> All responses and personal details
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 Usage Instructions:</strong><br>
+                    <strong>🔧 Setup Instructions:</strong><br>
                     1. Save this code as testbot.html<br>
                     2. Upload to https://terence1975-coder.github.io/tender/testbot.html<br>
-                    3. Open testbot.html in browser (automatically receives data)<br>
-                    4. Hidden popup from bot.html connects automatically<br>
-                    5. BroadcastChannel works across any tabs/windows<br>
-                    6. Dual transmission ensures maximum reliability
+                    3. Open testbot.html in any browser tab<br>
+                    4. Open bot.html in another tab (same domain)<br>
+                    5. Complete an assessment in bot.html<br>
+                    6. Watch candidate appear in testbot.html instantly!
                     </div>
                 `);
             }
 
             testDashboardConnection() {
-                console.log('🔧 Testing connection to testbot.html...');
+                console.log('🔧 Testing enhanced cross-tab dashboard connection...');
                 
                 const testData = {
-                    messageType: 'CONNECTION_TEST',
-                    source: 'AI Bootcamp Screening Chatbot',
-                    fromURL: 'https://terence1975-coder.github.io/tender/bot.html',
-                    toURL: 'https://terence1975-coder.github.io/tender/testbot.html',
+                    messageType: 'CANDIDATE_REPORT',
+                    name: 'TEST CANDIDATE - Cross-Tab Communication',
+                    email: 'test@crossTab.com',
+                    phone: '+44 7999 123456',
+                    score: 9,
+                    bootcamp: 'AI Business Productivity Bootcamp',
+                    location: 'Cornwall',
+                    locationResponse: 'I live in Cornwall - TEST',
+                    ukResidency: 'Eligible (3+ years)',
+                    ukResidencyResponse: 'Yes, more than 3 years - TEST',
+                    fundingStatus: 'Eligible',
+                    fundingResponse: 'No, none of those - TEST',
+                    employmentStatus: 'Employed',
+                    employmentResponse: "I'm employed - TEST",
+                    employerFunding: 'Yes, employer will co-fund',
+                    employerFundingResponse: 'Yes, employer will co-fund - TEST',
+                    availability: 'Evening sessions work better',
+                    availabilityResponse: 'Evening sessions work better - TEST',
+                    interviewBooked: true,
+                    interviewStatus: 'BOOKED - Interview confirmed',
+                    interviewResponse: 'Yes, book the interview - TEST',
+                    personalDetails: {
+                        firstName: 'Test',
+                        surname: 'CrossTab',
+                        email: 'test@crossTab.com',
+                        mobile: '+44 7999 123456'
+                    },
+                    responses: [
+                        {step: 'location', response: 'I live in Cornwall - TEST'},
+                        {step: 'ukResidency', response: 'Yes, more than 3 years - TEST'},
+                        {step: 'funding', response: 'No, none of those - TEST'},
+                        {step: 'employment', response: "I'm employed - TEST"},
+                        {step: 'employerFunding', response: 'Yes, employer will co-fund - TEST'},
+                        {step: 'schedule', response: 'Evening sessions work better - TEST'},
+                        {step: 'interview', response: 'Yes, book the interview - TEST'}
+                    ],
+                    recommendation: 'HIGHLY SUITABLE - Schedule interview immediately',
+                    status: 'HIGHLY_SUITABLE',
                     timestamp: new Date().toISOString(),
-                    testMessage: 'Testing sync between bot.html and testbot.html',
                     sessionId: Date.now(),
-                    windowInfo: {
-                        hasParent: window.parent !== window,
-                        hasTop: window.top !== window,
-                        hasOpener: !!window.opener,
-                        currentURL: window.location.href,
-                        userAgent: navigator.userAgent.substring(0, 100)
-                    }
+                    source: 'AI Bootcamp Screening Chatbot - Cross-Tab Test Mode',
+                    fromURL: window.location.href,
+                    toURL: this.config.dashboardURL,
+                    isTestData: true,
+                    testType: 'CROSS_TAB_COMMUNICATION',
+                    version: '3.4-cross-tab-test'
                 };
                 
-                try {
-                    let connectionMethods = [];
+                // Test all transmission methods
+                const results = {
+                    iframe: this.sendViaIframe(testData),
+                    broadcast: this.sendViaBroadcast(testData),
+                    popup: this.sendViaPopup(testData),
+                    storage: this.sendViaStorage(testData)
+                };
+                
+                console.log('📊 Cross-tab test complete:', results);
+                
+                // Display results to admin
+                this.addMessage('bot', `
+                    🔧 <strong>Cross-Tab Dashboard Test Results</strong><br><br>
                     
-                    // Test all methods
-                    if (window.parent && window.parent !== window) {
-                        window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                        window.parent.postMessage(testData, '*');
-                        connectionMethods.push('✅ Parent window (specific + wildcard origin)');
-                    } else {
-                        connectionMethods.push('❌ Parent window not available');
-                    }
-                    
-                    if (window.top && window.top !== window) {
-                        window.top.postMessage(testData, '*');
-                        connectionMethods.push('✅ Top window');
-                    } else {
-                        connectionMethods.push('❌ Top window not available');
-                    }
-                    
-                    if (window.opener) {
-                        window.opener.postMessage(testData, '*');
-                        connectionMethods.push('✅ Opener window');
-                    } else {
-                        connectionMethods.push('❌ Opener window not available');
-                    }
-                    
-                    this.addMessage('bot', `
-                        🔧 <strong>Dashboard Connection Test</strong><br>
-                        <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>📡 Connection Methods:</strong><br>
-                            ${connectionMethods.join('<br>')}<br><br>
-                            
-                            <strong>🔍 Test Data Sent:</strong><br>
-                            • <strong>Message Type:</strong> CONNECTION_TEST<br>
-                            • <strong>Test ID:</strong> ${testData.sessionId}<br>
-                            • <strong>Current URL:</strong> ${window.location.href}<br>
-                            • <strong>Target:</strong> testbot.html
-                        </div>
-                        
-                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>🔧 For testbot.html to receive messages:</strong><br><br>
-                            <strong>Add this code to testbot.html:</strong><br>
-                            <code style="font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 3px; display: block; margin: 5px 0; white-space: pre-wrap;">
-window.addEventListener('message', function(event) {
-    console.log('📨 Received message from bot.html:', event.data);
-    
-    // Handle different message types
-    if (event.data.messageType === 'CANDIDATE_REPORT') {
-        console.log('📋 Candidate assessment received:', event.data);
-        // Add candidate to dashboard here
-        displayCandidateReport(event.data);
-    }
-    
-    if (event.data.messageType === 'CONNECTION_TEST') {
-        console.log('🔧 Connection test received - communication working!');
-        alert('✅ Connection test successful! Bot.html can communicate with testbot.html');
-    }
-});
-
-function displayCandidateReport(data) {
-    // Your code to display candidate data in dashboard
-    console.log('Displaying candidate:', data.name);
-    console.log('Interview status:', data.interviewStatus);
-    console.log('Score:', data.score);
-}
-                            </code>
-                        </div>
-                        
-                        <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>📊 Next Steps:</strong><br>
-                            1. Open testbot.html in browser<br>
-                            2. Open browser console (F12)<br>
-                            3. Look for "📨 Received message from bot.html" logs<br>
-                            4. If no logs appear, check iframe embedding<br>
-                            5. Try the connection test again
-                        </div>
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>🔍 Current Window Context:</strong><br>
-                    • <strong>Current URL:</strong> ${window.location.href}<br>
-                    • <strong>Parent Window:</strong> ${window.parent !== window ? 'Available' : 'Not available'}<br>
-                    • <strong>Top Window:</strong> ${window.top !== window ? 'Available' : 'Not available'}<br>
-                    • <strong>Opener Window:</strong> ${window.opener ? 'Available' : 'Not available'}<br>
-                    • <strong>Running in iframe:</strong> ${window.self !== window.top ? 'Yes' : 'No'}<br>
-                    • <strong>Same origin:</strong> ${window.location.origin}
+                    <strong>📊 Transmission Methods Tested:</strong><br>
+                    • <strong>Iframe:</strong> ${results.iframe ? '✅ Success' : '❌ Failed'}<br>
+                    • <strong>BroadcastChannel:</strong> ${results.broadcast ? '✅ Success' : '❌ Failed'}<br>
+                    • <strong>Popup:</strong> ${results.popup ? '✅ Success' : '❌ Failed'}<br>
+                    • <strong>LocalStorage:</strong> ${results.storage ? '✅ Success' : '❌ Failed'}<br><br>
+                    
+                    <strong>Test Candidate:</strong> ${testData.name}<br>
+                    <strong>Test Score:</strong> ${testData.score}/10<br>
+                    <strong>Session ID:</strong> ${testData.sessionId}
+                    </div>
+                    
+                    <div style="background: ${Object.values(results).some(Boolean) ? '#d4edda' : '#f8d7da'}; padding: 12px; border-radius: 5px; border-left: 4px solid ${Object.values(results).some(Boolean) ? '#27ae60' : '#e74c3c'}; margin: 10px 0;">
+                    <strong>${Object.values(results).some(Boolean) ? '✅ Communication Active!' : '❌ Communication Failed!'}</strong><br>
+                    ${Object.values(results).filter(Boolean).length}/${Object.keys(results).length} transmission methods working<br><br>
+                    
+                    ${results.broadcast ? '<strong>📡 BroadcastChannel active</strong> - Open testbot.html in any tab to receive data<br>' : ''}
+                    ${results.popup ? '<strong>🪟 Popup method active</strong> - Hidden dashboard communication ready<br>' : ''}
+                    ${results.storage ? '<strong>💾 LocalStorage method active</strong> - Cross-tab data bridge ready<br>' : ''}
+                    ${results.iframe ? '<strong>🖼️ Iframe method active</strong> - Parent-child communication ready<br>' : ''}
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>📊 Most Common Issues:</strong><br>
-                    1. <strong>No iframe embedding:</strong> testbot.html must contain bot.html as iframe<br>
-                    2. <strong>Missing message listener:</strong> testbot.html needs addEventListener('message')<br>
-                    3. <strong>Wrong message type:</strong> Check for messageType === 'CANDIDATE_REPORT'<br>
-                    4. <strong>Origin filtering:</strong> event.origin restrictions too strict<br>
-                    5. <strong>Console errors:</strong> JavaScript errors preventing message handling
-                    </div>`);
-                    
-                } catch (error) {
-                    this.addMessage('bot', `
-                        ❌ <strong>Connection test failed:</strong><br>
-                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            <strong>Error:</strong> ${error.message}<br>
-                            <strong>This usually means:</strong><br>
-                            • bot.html is not embedded in testbot.html<br>
-                            • Both pages are not on the same domain<br>
-                            • Browser security restrictions are blocking communication
-                        </div>
-                    `);
-                }
+                    <strong>🔧 To Test Dashboard Reception:</strong><br>
+                    1. Open ${this.config.dashboardURL} in a new tab<br>
+                    2. Check browser console for received messages<br>
+                    3. Look for "TEST CANDIDATE - Cross-Tab Communication"<br>
+                    4. Verify all test data appears in dashboard
+                    </div>
+                `);
+                
+                return Object.values(results).some(Boolean);
             }
 
             async checkServerStatus() {
@@ -2945,66 +3083,14 @@ function displayCandidateReport(data) {
                 testButton.textContent = '🔄 Testing...';
                 testButton.disabled = true;
                 
-                this.testDashboardConnection();
+                console.log('📊 Testing enhanced dashboard connection...');
                 
-                this.addMessage('bot', `
-                    📊 <strong>Testing Dashboard Connection...</strong><br><br>
-                    
-                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Dashboard Test Mode Active!</strong><br>
-                    Email integration has been disabled. The system now uses dashboard reporting to testbot.html via postMessage API.
-                    </div>
-                    
-                    <strong>📊 Test Report Data Format:</strong><br>
-                    • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Method:</strong> window.parent.postMessage()<br>
-                    • <strong>Data Format:</strong> Enhanced candidate report object<br>
-                    • <strong>Auto-display:</strong> Enabled for dashboard<br>
-                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br><br>
-                    
-                    🎉 <strong>Dashboard connection testing complete!</strong> Check the console and testbot.html for received messages.
-                `);
-                
-                const testData = {
-                    name: "Test User",
-                    email: "test@example.com",
-                    phone: "+44 7123 456789",
-                    score: 7,
-                    bootcamp: "AI Business Productivity Bootcamp",
-                    location: "Cornwall",
-                    ukResidency: "Eligible (3+ years)",
-                    fundingStatus: "Eligible",
-                    employmentStatus: "Employed",
-                    employerFunding: "Yes, employer will co-fund",
-                    availability: "Evening sessions work better",
-                    responses: [
-                        {step: "intro", response: "Yes, that works for me"},
-                        {step: "overview", response: "Yes, definitely interested"},
-                        {step: "location", response: "I live in Cornwall"},
-                        {step: "employment", response: "I'm employed"},
-                        {step: "employerFunding", response: "Yes, employer will co-fund"}
-                    ],
-                    recommendation: "SUITABLE - Standard processing",
-                    status: "SUITABLE",
-                    timestamp: new Date().toISOString(),
-                    sessionId: Date.now(),
-                    source: "AI Bootcamp Screening Chatbot",
-                    targetDashboard: "testbot.html",
-                    messageType: "CANDIDATE_REPORT",
-                    autoShow: true,
-                    isTestData: true
-                };
-                
-                try {
-                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                    window.parent.postMessage(testData, '*');
-                    console.log('📊 Test data sent to testbot.html dashboard:', testData);
-                } catch (error) {
-                    console.error('Dashboard test failed:', error);
-                }
+                const success = this.testDashboardConnection();
                 
                 testButton.textContent = '📊 Test Dashboard';
                 testButton.disabled = false;
+                
+                return success;
             }
 
             async sendEmail(type) {
@@ -3022,13 +3108,14 @@ function displayCandidateReport(data) {
             completeAssessment() {
                 this.updateScore();
                 
-                console.log('📊 ASSESSMENT COMPLETE - Triggering dashboard reporting');
+                console.log('📊 ASSESSMENT COMPLETE - Triggering enhanced dashboard reporting');
                 console.log('📊 Dashboard URL: https://terence1975-coder.github.io/tender/testbot.html');
+                console.log('📊 Comprehensive candidate data:', this.candidateData);
                 
-                // Send to dashboard
+                // Send comprehensive report to dashboard (silent background process)
                 this.sendToDashboard();
                 
-                // Auto-save to Firebase
+                // Auto-save to Firebase cloud storage
                 if (this.database && this.candidateData.name && this.candidateData.name !== 'Applicant') {
                     this.saveToFirebase();
                 }
@@ -3068,13 +3155,16 @@ function displayCandidateReport(data) {
                     • Availability: ${this.candidateData.availability || 'Not assessed'}<br>
                     • Interest Level: ${this.candidateData.interestLevel}/10<br>
                     • Overall Score: ${this.score}/10<br>
-                    • Reschedule Type: ${this.candidateData.rescheduleType || 'N/A'}<br><br>
+                    • Interview Status: ${this.candidateData.personalDetails ? 'BOOKED' : 'Not booked'}<br><br>
                     
                     <strong>Next Steps:</strong><br>
                     ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
                     
-                    <strong>📊 testbot.html Report:</strong><br>
-                    A comprehensive screening report has been sent directly to testbot.html via postMessage API. Check the main dashboard for the detailed candidate assessment and leaderboard updates.
+                    <strong>📊 Data Management:</strong><br>
+                    • Comprehensive candidate report generated<br>
+                    • All responses and personal details captured<br>
+                    • Assessment automatically saved to cloud storage<br>
+                    • Dashboard integration active for real-time tracking
                 `;
                 
                 if (reportDetails) {
@@ -3138,13 +3228,14 @@ function displayCandidateReport(data) {
                     z-index: 1000; animation: slideUp 0.5s ease-out;
                 `;
                 startupInfo.innerHTML = `
-                    🎉 <strong>System Ready!</strong><br>
+                    🎉 <strong>Cross-Tab System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
-                    • BroadcastChannel communication<br>
+                    • 4-method dashboard communication<br>
                     • Emily (Irish English) voice enabled<br>
                     • Location fact-checking ready<br>
                     • Firebase cloud storage active<br>
-                    • Zero popup interference (default)
+                    • BroadcastChannel (primary method)<br>
+                    • Cross-tab reports to testbot.html
                 `;
                 document.body.appendChild(startupInfo);
                 
