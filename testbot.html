@@ -10,61 +10,231 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
-        .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
-        .tab-inactive:hover { color: #374151; border-bottom-color: #d1d5db; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
-        .modal.show { display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none; }
-        .btn-green { background: #16a34a; color: white; } .btn-green:hover { background: #15803d; }
-        .btn-blue { background: #2563eb; color: white; } .btn-blue:hover { background: #1d4ed8; }
-        .btn-yellow { background: #ca8a04; color: white; } .btn-yellow:hover { background: #a16207; }
-        .btn-red { background: #dc2626; color: white; } .btn-red:hover { background: #b91c1c; }
-        .btn-gray { background: #f3f4f6; color: #374151; } .btn-gray:hover { background: #e5e7eb; }
-        .card { background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
-        .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        /* Professional Training Company Theme */
+        .main-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%); }
+        .card-bg { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .accent-blue { background: #2563eb; }
+        .accent-cyan { background: #06b6d4; }
+        .accent-purple { background: #7c3aed; }
+        .text-brand { color: #1e40af; }
+        
+        .tab-active { 
+            border-bottom: 3px solid #2563eb; 
+            color: #2563eb; 
+            background: rgba(37, 99, 235, 0.1);
+            border-radius: 8px 8px 0 0;
+        }
+        .tab-inactive { 
+            border-bottom: 3px solid transparent; 
+            color: #64748b; 
+            transition: all 0.3s ease;
+        }
+        .tab-inactive:hover { 
+            color: #1e40af; 
+            background: rgba(37, 99, 235, 0.05);
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .modal { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: -1; visibility: hidden; opacity: 0; }
+        .modal.show { display: none !important; visibility: hidden; opacity: 0; }
+        
+        .btn { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            padding: 0.75rem 1.25rem; 
+            border-radius: 0.5rem; 
+            font-weight: 600; 
+            transition: all 0.3s ease; 
+            cursor: pointer; 
+            border: none; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        
+        .btn-green { background: linear-gradient(45deg, #10b981, #059669); color: white; }
+        .btn-blue { background: linear-gradient(45deg, #2563eb, #1d4ed8); color: white; }
+        .btn-cyan { background: linear-gradient(45deg, #06b6d4, #0891b2); color: white; }
+        .btn-purple { background: linear-gradient(45deg, #7c3aed, #6d28d9); color: white; }
+        .btn-yellow { background: linear-gradient(45deg, #f59e0b, #d97706); color: white; }
+        .btn-red { background: linear-gradient(45deg, #ef4444, #dc2626); color: white; }
+        .btn-gray { background: linear-gradient(45deg, #f8fafc, #e2e8f0); color: #374151; border: 1px solid #d1d5db; }
+        
+        .card { 
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 1rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 100%);
+            transform: translateY(-4px);
+        }
+        
         .firebase-status {
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 10px 15px;
-            border-radius: 20px;
+            padding: 12px 20px;
+            border-radius: 25px;
             color: white;
             font-size: 0.9em;
             font-weight: 600;
             z-index: 1000;
             transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
-        .firebase-connected { background: #27ae60; box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3); }
-        .firebase-disconnected { background: #e74c3c; box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3); }
-        .firebase-saving { background: #f39c12; box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3); }
+        .firebase-connected { 
+            background: linear-gradient(45deg, #10b981, #059669); 
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); 
+        }
+        .firebase-disconnected { 
+            background: linear-gradient(45deg, #ef4444, #dc2626); 
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); 
+        }
+        .firebase-saving { 
+            background: linear-gradient(45deg, #f59e0b, #d97706); 
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); 
+        }
+        
+        .copy-btn {
+            background: linear-gradient(45deg, #06b6d4, #0891b2);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 0.5rem;
+        }
+        .copy-btn:hover {
+            background: linear-gradient(45deg, #0891b2, #0e7490);
+            transform: scale(1.05);
+        }
+        
+        .applicant-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .applicant-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563eb, #06b6d4, #10b981);
+        }
+        .applicant-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-passed { background: linear-gradient(45deg, #10b981, #059669); color: white; }
+        .status-failed { background: linear-gradient(45deg, #ef4444, #dc2626); color: white; }
+        .status-waitlist { background: linear-gradient(45deg, #f59e0b, #d97706); color: white; }
+        .status-processed { background: linear-gradient(45deg, #7c3aed, #6d28d9); color: white; }
+        
+        .score-badge {
+            background: linear-gradient(45deg, #1e40af, #2563eb);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1.25rem;
+            min-width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+        
+        .header-gradient {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #06b6d4 100%);
+            color: white;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            max-width: 400px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: linear-gradient(45deg, #10b981, #059669); }
+        .notification.error { background: linear-gradient(45deg, #ef4444, #dc2626); }
+        .notification.info { background: linear-gradient(45deg, #2563eb, #1d4ed8); }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50">
+<body class="min-h-screen main-bg">
     <!-- Firebase Status Indicator -->
     <div id="firebase-status" class="firebase-status firebase-disconnected">
         🔴 Firebase Disconnected
     </div>
 
     <!-- Header -->
-    <div class="bg-white shadow-sm border-b">
+    <div class="header-gradient shadow-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
+            <div class="flex justify-between items-center py-8">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">🤖 AI Bootcamp Dashboard</h1>
-                    <p class="text-gray-600">Manage screening applications and chatbots</p>
-                    <p class="text-sm text-blue-600">🔗 Connected to: https://terence1975-coder.github.io/tender/bot.html</p>
-                    <div id="connection-status" class="mt-2"></div>
+                    <h1 class="text-4xl font-bold text-white mb-2">🤖 AI Bootcamp Dashboard</h1>
+                    <p class="text-blue-100 text-lg">Manage screening applications and chatbots</p>
+                    <p class="text-sm text-cyan-200 mt-2">🔗 Connected to: https://terence1975-coder.github.io/tender/bot.html</p>
+                    <div id="connection-status" class="mt-3"></div>
                 </div>
-                <div class="flex flex-col space-y-2">
-                    <div class="flex space-x-2">
-                        <button onclick="showCSVData()" class="btn btn-green">📥 Show Excel Data</button>
-                        <button onclick="testBotIntegration()" class="btn btn-blue text-sm">🔗 Test Bot Connection</button>
+                <div class="flex flex-col space-y-3">
+                    <div class="flex space-x-3">
+                        <button onclick="showCSVData()" class="btn btn-green text-sm">📥 Show Excel Data</button>
+                        <button onclick="testBotIntegration()" class="btn btn-cyan text-sm">🔗 Test Bot Connection</button>
                         <button onclick="debugBotConnection()" class="btn btn-red text-sm">🔧 Debug Bot</button>
-                        <button onclick="testRealBotData()" class="btn btn-green text-sm">🎯 Test Real Bot Data</button>
+                        <button onclick="testRealBotData()" class="btn btn-purple text-sm">🎯 Test Real Bot Data</button>
                     </div>
-                    <div class="flex space-x-2">
+                    <div class="flex space-x-3">
                         <button onclick="saveToFirebase()" class="btn btn-blue text-sm">☁️ Save to Cloud</button>
                         <button onclick="loadFromFirebase()" class="btn btn-gray text-sm">📥 Load from Cloud</button>
                         <button onclick="testFirebase()" class="btn btn-yellow text-sm">🧪 Test Firebase</button>
@@ -77,63 +247,63 @@
 
     <!-- Navigation Tabs -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="border-b border-gray-200">
-            <nav class="flex space-x-8">
-                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-2 px-1 font-medium text-sm">📊 Overview</button>
-                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-2 px-1 font-medium text-sm">👥 Applicant Reports</button>
-                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-2 px-1 font-medium text-sm">⚙️ Manage Chatbots</button>
+        <div class="border-b border-white/20 bg-white/10 rounded-t-xl mt-6">
+            <nav class="flex space-x-0">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-active py-4 px-6 font-semibold text-sm">📊 Overview</button>
+                <button onclick="switchTab('applicants')" id="tab-applicants" class="tab-inactive py-4 px-6 font-semibold text-sm">👥 Applicant Reports</button>
+                <button onclick="switchTab('chatbots')" id="tab-chatbots" class="tab-inactive py-4 px-6 font-semibold text-sm">⚙️ Manage Chatbots</button>
             </nav>
         </div>
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <!-- Overview Tab -->
-        <div id="content-overview" class="space-y-6">
+        <div id="content-overview" class="space-y-8 bg-white/10 rounded-b-xl rounded-tr-xl p-6">
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-                <div class="card p-6">
+                <div class="stat-card card p-6">
                     <div class="flex items-center">
-                        <div class="text-3xl">👥</div>
+                        <div class="text-4xl">👥</div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Total Applicants</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-total">0</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Applicants</p>
+                            <p class="text-3xl font-bold text-brand" id="stat-total">0</p>
                         </div>
                     </div>
                 </div>
-                <div class="card p-6">
+                <div class="stat-card card p-6">
                     <div class="flex items-center">
-                        <div class="text-3xl">✅</div>
+                        <div class="text-4xl">✅</div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Passed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-passed">0</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Passed</p>
+                            <p class="text-3xl font-bold text-green-600" id="stat-passed">0</p>
                         </div>
                     </div>
                 </div>
-                <div class="card p-6">
+                <div class="stat-card card p-6">
                     <div class="flex items-center">
-                        <div class="text-3xl">❌</div>
+                        <div class="text-4xl">❌</div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Failed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-failed">0</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Failed</p>
+                            <p class="text-3xl font-bold text-red-600" id="stat-failed">0</p>
                         </div>
                     </div>
                 </div>
-                <div class="card p-6">
+                <div class="stat-card card p-6">
                     <div class="flex items-center">
-                        <div class="text-3xl">⏳</div>
+                        <div class="text-4xl">⏳</div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Waitlist</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-waitlist">0</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Waitlist</p>
+                            <p class="text-3xl font-bold text-yellow-600" id="stat-waitlist">0</p>
                         </div>
                     </div>
                 </div>
-                <div class="card p-6">
+                <div class="stat-card card p-6">
                     <div class="flex items-center">
-                        <div class="text-3xl">✔️</div>
+                        <div class="text-4xl">✔️</div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Processed</p>
-                            <p class="text-2xl font-bold text-gray-900" id="stat-processed">0</p>
+                            <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Processed</p>
+                            <p class="text-3xl font-bold text-purple-600" id="stat-processed">0</p>
                         </div>
                     </div>
                 </div>
@@ -141,21 +311,22 @@
 
             <!-- Recent Activity -->
             <div class="card">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-medium text-gray-900">📝 Recent Applications</h3>
+                <div class="px-8 py-6 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-brand">📝 Recent Applications</h3>
+                    <p class="text-gray-600 mt-1">Latest candidate submissions from your bot</p>
                 </div>
-                <div class="divide-y divide-gray-200" id="recent-applicants"></div>
+                <div class="divide-y divide-gray-100" id="recent-applicants"></div>
             </div>
 
             <!-- BroadcastChannel Debug Output -->
             <div class="card">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-medium text-gray-900">🔗 Bot Communication Channel</h3>
-                    <p class="text-sm text-gray-500">Real-time data from bot.html via BroadcastChannel</p>
+                <div class="px-8 py-6 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-brand">🔗 Bot Communication Channel</h3>
+                    <p class="text-gray-600 mt-1">Real-time data from bot.html via BroadcastChannel</p>
                 </div>
-                <div class="p-6">
-                    <pre id="output" class="bg-gray-100 p-4 rounded-md text-sm overflow-auto max-h-48">Waiting for data from bot.html...</pre>
-                    <div class="mt-4 flex space-x-2">
+                <div class="p-8">
+                    <pre id="output" class="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl text-sm overflow-auto max-h-64 border border-blue-200">Waiting for data from bot.html...</pre>
+                    <div class="mt-6 flex space-x-3">
                         <button onclick="testBroadcastChannel()" class="btn btn-blue text-sm">📡 Test Broadcast</button>
                         <button onclick="testRealBotDataBroadcast()" class="btn btn-green text-sm">🎯 Test Real Bot Data</button>
                         <button onclick="clearOutput()" class="btn btn-gray text-sm">🗑️ Clear Output</button>
@@ -165,86 +336,102 @@
         </div>
 
         <!-- Applicants Tab -->
-        <div id="content-applicants" class="space-y-6" style="display: none;">
+        <div id="content-applicants" class="space-y-8 bg-white/10 rounded-b-xl rounded-tr-xl p-6" style="display: none;">
             <!-- Passed Applicants -->
             <div class="card overflow-hidden">
-                <div class="bg-green-50 px-6 py-4 border-b border-green-200">
+                <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-6 text-white">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-green-800">✅ Passed Applicants (<span id="passed-count">0</span>)</h3>
-                        <button onclick="showCategoryData('passed')" class="text-green-700 hover:text-green-900 text-sm">📥 Export Data</button>
+                        <div>
+                            <h3 class="text-2xl font-bold">✅ Passed Applicants</h3>
+                            <p class="text-green-100 mt-1">High-performing candidates ready for acceptance</p>
+                            <span class="text-3xl font-bold" id="passed-count">0</span>
+                        </div>
+                        <button onclick="showCategoryData('passed')" class="btn btn-gray text-green-700 hover:text-green-900">📥 Export Data</button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="passed-applicants"></div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="passed-applicants"></div>
                 </div>
             </div>
 
             <!-- Waitlist Applicants -->
             <div class="card overflow-hidden">
-                <div class="bg-yellow-50 px-6 py-4 border-b border-yellow-200">
+                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 px-8 py-6 text-white">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-yellow-800">⏳ Waitlist Applicants (<span id="waitlist-count">0</span>)</h3>
-                        <button onclick="showCategoryData('waitlist')" class="text-yellow-700 hover:text-yellow-900 text-sm">📥 Export Data</button>
+                        <div>
+                            <h3 class="text-2xl font-bold">⏳ Waitlist Applicants</h3>
+                            <p class="text-yellow-100 mt-1">Potential candidates for review</p>
+                            <span class="text-3xl font-bold" id="waitlist-count">0</span>
+                        </div>
+                        <button onclick="showCategoryData('waitlist')" class="btn btn-gray text-yellow-700 hover:text-yellow-900">📥 Export Data</button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="waitlist-applicants"></div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="waitlist-applicants"></div>
                 </div>
             </div>
 
             <!-- Failed Applicants -->
             <div class="card overflow-hidden">
-                <div class="bg-red-50 px-6 py-4 border-b border-red-200">
+                <div class="bg-gradient-to-r from-red-500 to-rose-600 px-8 py-6 text-white">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-red-800">❌ Failed Applicants (<span id="failed-count">0</span>)</h3>
-                        <button onclick="showCategoryData('failed')" class="text-red-700 hover:text-red-900 text-sm">📥 Export Data</button>
+                        <div>
+                            <h3 class="text-2xl font-bold">❌ Failed Applicants</h3>
+                            <p class="text-red-100 mt-1">Candidates requiring further development</p>
+                            <span class="text-3xl font-bold" id="failed-count">0</span>
+                        </div>
+                        <button onclick="showCategoryData('failed')" class="btn btn-gray text-red-700 hover:text-red-900">📥 Export Data</button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="failed-applicants"></div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="failed-applicants"></div>
                 </div>
             </div>
 
             <!-- Processed Applicants -->
             <div class="card overflow-hidden">
-                <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
+                <div class="bg-gradient-to-r from-purple-500 to-indigo-600 px-8 py-6 text-white">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-blue-800">✔️ Processed Applicants (<span id="processed-count">0</span>)</h3>
-                        <button onclick="showCategoryData('processed')" class="text-blue-700 hover:text-blue-900 text-sm">📥 Export Data</button>
+                        <div>
+                            <h3 class="text-2xl font-bold">✔️ Processed Applicants</h3>
+                            <p class="text-purple-100 mt-1">Completed applications archived</p>
+                            <span class="text-3xl font-bold" id="processed-count">0</span>
+                        </div>
+                        <button onclick="showCategoryData('processed')" class="btn btn-gray text-purple-700 hover:text-purple-900">📥 Export Data</button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="processed-applicants"></div>
+                <div class="p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="processed-applicants"></div>
                 </div>
             </div>
         </div>
 
         <!-- Chatbots Tab -->
-        <div id="content-chatbots" class="space-y-6" style="display: none;">
-            <div class="card p-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">🤖 Create New Screening Chatbot</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div id="content-chatbots" class="space-y-8 bg-white/10 rounded-b-xl rounded-tr-xl p-6" style="display: none;">
+            <div class="card p-8">
+                <h3 class="text-2xl font-bold text-brand mb-6">🤖 Create New Screening Chatbot</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chatbot Name</label>
-                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Enter chatbot name">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Chatbot Name</label>
+                        <input type="text" id="chatbot-name" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Enter chatbot name">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Course/Bootcamp</label>
-                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Course/Bootcamp</label>
+                        <select id="chatbot-course" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
                             <option>AI Fundamentals</option>
                             <option>Machine Learning</option>
                             <option>Data Science</option>
                         </select>
                     </div>
                 </div>
-                <div class="mt-4">
+                <div class="mt-8">
                     <button onclick="createChatbot()" class="btn btn-blue">➕ Create Chatbot</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal (Hidden) -->
     <div id="modal" class="modal">
         <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
             <div class="flex justify-between items-center p-6 border-b bg-gray-50">
@@ -787,10 +974,16 @@
             document.getElementById('stat-waitlist').textContent = waitlist;
             document.getElementById('stat-processed').textContent = processed;
             
-            document.getElementById('passed-count').textContent = passed;
-            document.getElementById('waitlist-count').textContent = waitlist;
-            document.getElementById('failed-count').textContent = failed;
-            document.getElementById('processed-count').textContent = processed;
+            // Update applicant section counts
+            const passedCountEl = document.getElementById('passed-count');
+            const waitlistCountEl = document.getElementById('waitlist-count');
+            const failedCountEl = document.getElementById('failed-count');
+            const processedCountEl = document.getElementById('processed-count');
+            
+            if (passedCountEl) passedCountEl.textContent = passed;
+            if (waitlistCountEl) waitlistCountEl.textContent = waitlist;
+            if (failedCountEl) failedCountEl.textContent = failed;
+            if (processedCountEl) processedCountEl.textContent = processed;
             
             document.title = `🤖 AI Bootcamp Dashboard (${total} applicants)`;
         }
@@ -806,87 +999,153 @@
             const container = document.getElementById('recent-applicants');
             container.innerHTML = '';
             
-            applicants.slice(0, 5).forEach(applicant => {
-                const statusColor = applicant.status === 'passed' ? 'text-green-600 bg-green-100' :
-                                   applicant.status === 'failed' ? 'text-red-600 bg-red-100' :
-                                   applicant.status === 'waitlist' ? 'text-yellow-600 bg-yellow-100' :
-                                   'text-blue-600 bg-blue-100';
+            const recentApplicants = applicants.slice(-5).reverse(); // Show last 5, most recent first
+            
+            recentApplicants.forEach(applicant => {
+                const statusColors = {
+                    'passed': 'bg-green-100 text-green-800',
+                    'failed': 'bg-red-100 text-red-800',
+                    'waitlist': 'bg-yellow-100 text-yellow-800',
+                    'processed': 'bg-purple-100 text-purple-800'
+                };
+                
+                const statusColor = statusColors[applicant.status] || 'bg-gray-100 text-gray-800';
                 
                 container.innerHTML += `
-                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span class="text-sm font-medium text-gray-600">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
+                    <div class="px-8 py-6 flex items-center justify-between hover:bg-blue-50 transition-colors">
+                        <div class="flex items-center space-x-6">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                                <span class="text-sm font-bold text-white">${applicant.name.split(' ').map(n => n[0]).join('')}</span>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-900">${applicant.name}</p>
-                                <p class="text-sm text-gray-500">${applicant.email}</p>
-                                ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
+                                <p class="text-lg font-semibold text-gray-900">${applicant.name}</p>
+                                <p class="text-sm text-gray-600">${applicant.email}</p>
+                                ${applicant.source ? `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
                             </div>
                         </div>
-                        <div class="flex items-center space-x-4">
-                            <span class="text-sm text-gray-500">${applicant.bootcamp}</span>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}">
-                                ${applicant.status}
+                        <div class="flex items-center space-x-6">
+                            <div class="text-right">
+                                <p class="text-sm text-gray-600">${applicant.bootcamp}</p>
+                                <p class="text-2xl font-bold text-brand">${applicant.score}%</p>
+                            </div>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${statusColor}">
+                                ${applicant.status.toUpperCase()}
                             </span>
                         </div>
                     </div>
                 `;
             });
+            
+            if (recentApplicants.length === 0) {
+                container.innerHTML = `
+                    <div class="px-8 py-12 text-center text-gray-500">
+                        <div class="text-4xl mb-4">👥</div>
+                        <p class="text-lg">No applicants yet</p>
+                        <p class="text-sm">New applications will appear here</p>
+                    </div>
+                `;
+            }
         }
 
         function populateApplicantSections() {
             ['passed', 'waitlist', 'failed', 'processed'].forEach(status => {
                 const container = document.getElementById(status + '-applicants');
+                if (!container) return;
+                
                 container.innerHTML = '';
                 
                 const filtered = applicants.filter(a => a.status === status);
-                const colorClass = status === 'passed' ? 'green' : status === 'failed' ? 'red' : status === 'waitlist' ? 'yellow' : 'blue';
                 
                 filtered.forEach(applicant => {
+                    const statusConfig = {
+                        'passed': { color: 'green', bgClass: 'bg-green-50', borderClass: 'border-green-200' },
+                        'failed': { color: 'red', bgClass: 'bg-red-50', borderClass: 'border-red-200' },
+                        'waitlist': { color: 'yellow', bgClass: 'bg-yellow-50', borderClass: 'border-yellow-200' },
+                        'processed': { color: 'purple', bgClass: 'bg-purple-50', borderClass: 'border-purple-200' }
+                    };
+                    
+                    const config = statusConfig[status];
+                    
                     const actionButtons = status === 'processed' ? 
-                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-2 text-sm">↩️ Restore</button>
+                        `<button onclick="restoreFromProcessed(${applicant.id})" class="w-full btn btn-gray mb-3 text-sm">↩️ Restore</button>
                          <button onclick="deleteApplicant(${applicant.id})" class="w-full btn btn-red text-sm">🗑️ Delete</button>` :
-                        `<button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-${colorClass} mb-2">📋 View Report</button>
-                         <div class="flex space-x-2">
-                             <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-blue text-sm">✔️ Process</button>
+                        `<button onclick="showIndividualReport(${JSON.stringify(applicant).replace(/"/g, '&quot;')})" class="w-full btn btn-blue mb-3">📋 View Report</button>
+                         <div class="flex space-x-3">
+                             <button onclick="moveToProcessed(${applicant.id})" class="flex-1 btn btn-purple text-sm">✔️ Process</button>
                              <button onclick="deleteApplicant(${applicant.id})" class="flex-1 btn btn-red text-sm">🗑️ Delete</button>
                          </div>`;
 
                     container.innerHTML += `
-                        <div class="border border-${colorClass}-200 rounded-lg p-4 bg-${colorClass}-50 hover:shadow-md transition-shadow">
-                            <div class="flex items-start justify-between mb-3">
+                        <div class="applicant-card ${config.bgClass} ${config.borderClass}">
+                            <div class="flex items-start justify-between mb-4">
                                 <div class="flex-grow">
-                                    <h4 class="font-medium text-gray-900">${applicant.name}</h4>
-                                    <p class="text-sm text-gray-600">${applicant.email}</p>
-                                    <p class="text-sm text-gray-600">${applicant.phone}</p>
-                                    ${applicant.location && applicant.location !== 'Not specified' ? `<p class="text-sm text-blue-600">📍 ${applicant.location}</p>` : ''}
-                                    ${applicant.source ? `<p class="text-xs text-blue-600">${applicant.source}</p>` : ''}
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h4 class="text-xl font-bold text-gray-900">${applicant.name}</h4>
+                                        <div class="score-badge">${applicant.score}%</div>
+                                    </div>
+                                    
+                                    <div class="space-y-2 mb-4">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">📧 ${applicant.email}</span>
+                                            <button onclick="copyToClipboard('${applicant.email}')" class="copy-btn">📋 Copy</button>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">📱 ${applicant.phone}</span>
+                                            <button onclick="copyToClipboard('${applicant.phone}')" class="copy-btn">📋 Copy</button>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-sm text-gray-600">👤 ${applicant.name}</span>
+                                            <button onclick="copyToClipboard('${applicant.name}')" class="copy-btn">📋 Copy</button>
+                                        </div>
+                                        ${applicant.location && applicant.location !== 'Not specified' ? 
+                                            `<p class="text-sm text-blue-600">📍 ${applicant.location}</p>` : ''}
+                                        ${applicant.source ? 
+                                            `<p class="text-xs text-blue-600 font-medium">${applicant.source}</p>` : ''}
+                                        ${applicant.interviewBooked ? 
+                                            `<p class="text-sm text-green-600 font-semibold">✅ Interview Booked</p>` : ''}
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                        <span class="font-medium">${applicant.bootcamp}</span>
+                                        <span>${applicant.date}</span>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <span class="status-badge status-${status}">${status.toUpperCase()}</span>
+                                    </div>
                                 </div>
-                                <span class="text-lg font-bold text-${colorClass}-600">${applicant.score}%</span>
-                            </div>
-                            <div class="flex items-center justify-between text-sm text-gray-500 mb-3">
-                                <span>${applicant.bootcamp}</span>
-                                <span>${applicant.date}</span>
                             </div>
                             ${actionButtons}
                         </div>
                     `;
                 });
+                
+                if (filtered.length === 0) {
+                    const emojis = { passed: '✅', failed: '❌', waitlist: '⏳', processed: '✔️' };
+                    container.innerHTML = `
+                        <div class="text-center py-12 text-gray-500">
+                            <div class="text-6xl mb-4">${emojis[status]}</div>
+                            <p class="text-xl">No ${status} applicants yet</p>
+                            <p class="text-sm">New ${status} candidates will appear here</p>
+                        </div>
+                    `;
+                }
             });
         }
 
         function updateConnectionStatus() {
             const statusEl = document.getElementById('connection-status');
+            if (!statusEl) return;
+            
             const firebaseStatus = database ? '🟢 Firebase' : '🔴 Offline';
             const botIcon = botStats.connectionStatus === 'Connected' ? '🟢' : '🟡';
             
             statusEl.innerHTML = `
-                <div class="flex items-center space-x-4 text-sm">
-                    <span class="text-gray-600">${botIcon} Bot: ${botStats.connectionStatus}</span>
-                    <span class="text-gray-600">${firebaseStatus}</span>
-                    <span class="text-gray-500">Messages: ${botStats.totalReceived} | Last: ${botStats.lastReceived}</span>
-                    <button onclick="showMessageLog()" class="text-blue-600 hover:text-blue-800 text-xs underline">View Log</button>
+                <div class="flex items-center space-x-6 text-sm">
+                    <span class="text-blue-100 bg-blue-800/30 px-3 py-1 rounded-full">${botIcon} Bot: ${botStats.connectionStatus}</span>
+                    <span class="text-blue-100 bg-blue-800/30 px-3 py-1 rounded-full">${firebaseStatus}</span>
+                    <span class="text-blue-100">Messages: ${botStats.totalReceived} | Last: ${botStats.lastReceived}</span>
+                    <button onclick="showMessageLog()" class="text-cyan-200 hover:text-cyan-100 text-xs underline font-medium">View Log</button>
                 </div>
             `;
         }
@@ -901,36 +1160,50 @@
         }
 
         function showModal(title, content) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-content').value = content;
-            document.getElementById('modal').classList.add('show');
+            // Modal disabled for applicant security - no popups visible
+            console.log('Modal request blocked for security:', title);
+            return false;
         }
 
         function closeModal() {
-            document.getElementById('modal').classList.remove('show');
+            // Modal disabled for applicant security
+            return false;
         }
 
-        function copyToClipboard() {
-            const content = document.getElementById('modal-content').value;
-            navigator.clipboard.writeText(content).then(() => {
-                const btn = document.getElementById('copy-btn');
-                btn.textContent = '✅ Copied!';
-                setTimeout(() => btn.textContent = 'Copy to Clipboard', 2000);
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(`📋 Copied: ${text}`, 'success', 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification(`📋 Copied: ${text}`, 'success', 2000);
             });
         }
 
         function showNotification(message, type = 'info', duration = 5000) {
             const notification = document.createElement('div');
-            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-            notification.className = `fixed top-4 left-4 ${bgColor} text-white p-4 rounded-lg shadow-lg z-50 max-w-md`;
+            notification.className = `notification ${type}`;
             notification.innerHTML = `
                 <div class="flex items-center justify-between">
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">✕</button>
+                    <span class="font-medium">${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200 text-xl">✕</button>
                 </div>
             `;
             document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), duration);
+            
+            // Trigger animation
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Remove notification
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
         }
 
         // 🔧 ACTION FUNCTIONS
@@ -977,23 +1250,28 @@
         }
 
         function showCSVData() {
+            // Silent operation - no popup for applicants
             const csv = [
                 ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
                 ...applicants.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
             ].map(row => row.join(',')).join('\n');
-            showModal('📊 CSV Data - All Applicants', csv);
+            console.log('CSV Data Generated (Hidden from applicants):', csv);
+            showNotification('📊 Data processed (admin only)', 'info', 2000);
         }
 
         function showCategoryData(status) {
+            // Silent operation - no popup for applicants
             const filtered = applicants.filter(a => a.status === status);
             const csv = [
                 ['Name', 'Email', 'Phone', 'Date', 'Status', 'Score', 'Bootcamp'],
                 ...filtered.map(a => [a.name, a.email, a.phone, a.date, a.status, a.score, a.bootcamp])
             ].map(row => row.join(',')).join('\n');
-            showModal(`📊 ${status.charAt(0).toUpperCase() + status.slice(1)} Applicants`, csv);
+            console.log(`${status} Data Generated (Hidden from applicants):`, csv);
+            showNotification(`📊 ${status} data processed (admin only)`, 'info', 2000);
         }
 
         function showIndividualReport(applicant) {
+            // Silent operation - no popup for applicants  
             const report = `AI BOOTCAMP SCREENING REPORT
 ============================
 
@@ -1027,7 +1305,8 @@ ${applicant.status === 'passed' ? 'ACCEPTED - Candidate meets requirements' :
   'PROCESSED - Application has been reviewed'}
 
 Generated: ${new Date().toLocaleString()}`;
-            showModal(`📋 Report - ${applicant.name}`, report);
+            console.log(`Individual Report Generated (Hidden from applicants):`, report);
+            showNotification(`📋 Report generated for ${applicant.name} (admin only)`, 'info', 2000);
         }
 
         function testRealBotData() {
@@ -1058,34 +1337,11 @@ Generated: ${new Date().toLocaleString()}`;
                 addNewApplicant(extracted);
                 showNotification(`🎯 SUCCESS! Added real bot data: ${extracted.name} - ${extracted.status} (${extracted.score}%)`, 'success', 8000);
                 
-                // Show detailed success report
+                // Auto switch to applicants tab
                 setTimeout(() => {
-                    showModal('🎯 Real Bot Data Test Results', `✅ SUCCESS! Dashboard can process your bot data correctly.
-
-ORIGINAL BOT DATA:
-${JSON.stringify(realBotData, null, 2)}
-
-PROCESSED AS:
-- Name: ${extracted.name}
-- Email: ${extracted.email}  
-- Phone: ${extracted.phone}
-- Score: ${extracted.score}% (from "${realBotData.score}")
-- Status: ${extracted.status} (from "${realBotData.status}")
-- Interview Booked: ${extracted.interviewBooked}
-- Session ID: ${extracted.sessionId}
-
-🔧 ISSUE IDENTIFIED:
-Your bot is working perfectly and sending the right data! 
-The issue is likely that your bot is configured to send to "testbot.html" 
-but you're using a different dashboard filename.
-
-🚀 SOLUTIONS:
-1. Save this dashboard as "testbot.html" and upload it
-2. Or update your bot configuration to use this dashboard's URL
-3. Make sure you open the dashboard from your bot page (parent/child relationship)
-
-The dashboard IS receiving and CAN process your bot data correctly!`);
-                }, 1000);
+                    switchTab('applicants');
+                    showNotification('📍 Switched to Applicant Reports - Look for Terence in Passed section!', 'info', 5000);
+                }, 2000);
             } else {
                 showNotification('❌ Failed to process real bot data - check extraction logic', 'error');
             }
@@ -1144,7 +1400,8 @@ TROUBLESHOOTING:
 2. Ensure dashboard is parent window
 3. Verify postMessage syntax
 4. Check CORS/security restrictions`;
-            showModal('🔧 Bot Connection Debug', report);
+            console.log('🔧 Bot Connection Debug Report:', report);
+            showNotification('🔧 Debug info logged to console (admin only)', 'info', 3000);
         }
 
         function showMessageLog() {
@@ -1152,7 +1409,8 @@ TROUBLESHOOTING:
                 messageLog.slice(-20).map(log => 
                     `${log.timestamp} | ${log.origin} | ${JSON.stringify(log.data)}`
                 ).join('\n');
-            showModal('📨 Message Log (Last 20)', logContent);
+            console.log('📨 Message Log (Last 20):', logContent);
+            showNotification('📨 Message log displayed in console (admin only)', 'info', 2000);
         }
 
         function testFirebase() {
@@ -1181,7 +1439,8 @@ TROUBLESHOOTING:
         function createChatbot() {
             const name = document.getElementById('chatbot-name').value;
             if (name.trim()) {
-                showModal('🤖 Chatbot Created', `Chatbot "${name}" created successfully!\n\nThis is a demo feature.`);
+                console.log(`🤖 Chatbot "${name}" created successfully! (Demo feature)`);
+                showNotification(`🤖 Chatbot "${name}" created successfully!`, 'success');
                 document.getElementById('chatbot-name').value = '';
             }
         }
