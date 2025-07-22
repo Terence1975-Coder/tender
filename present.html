@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Artificial Intelligence - Training Summary</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0.75in;
+        }
+        
+        @media print {
+            body {
+                background: white !important;
+            }
+            .page {
+                margin: 0 !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            .download-btn, .download-container {
+                display: none !important;
+            }
+        }
+        
+        .download-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #2980b9, #27ae60);
+        }
+        
+        .download-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .download-icon {
+            font-size: 18px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page {
+            background: white;
+            min-height: 100vh;
+            padding: 40px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            page-break-after: always;
+        }
+        
+        .cover-page {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        
+        .cover-page h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .cover-page h2 {
+            font-size: 1.5em;
+            font-weight: 300;
+            margin-bottom: 40px;
+        }
+        
+        .ai-icon {
+            font-size: 5em;
+            margin: 30px 0;
+            background: linear-gradient(45deg, #00ff88, #00b4db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .toc li {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .toc a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .toc a:hover {
+            color: #3498db;
+        }
+        
+        .key-points {
+            background: #e8f6fd;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .key-points h4 {
+            color: #2980b9;
+            margin-top: 0;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: #3498db;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-left: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -35px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            background: #3498db;
+            border-radius: 50%;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #ff9a56 0%, #ffad56 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .section-divider {
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #2ecc71, #f39c12);
+            border: none;
+            margin: 30px 0;
+            border-radius: 2px;
+        }
+        
+        ul, ol {
+            padding-left: 25px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cover Page -->
+    <div class="page cover-page">
+        <div class="ai-icon">🤖</div>
+        <h1>Understanding Artificial Intelligence</h1>
+        <h2>Training Summary & Reference Guide</h2>
+        <p style="margin-top: 60px; font-size: 1.1em;">A comprehensive overview of AI fundamentals, applications, and best practices</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="page">
+        <h1>📋 Table of Contents</h1>
+        <div class="toc">
+            <ul>
+                <li><a href="#section1">1. What is Artificial Intelligence?</a> <span>Page 3</span></li>
+                <li><a href="#section2">2. History & Milestones of AI</a> <span>Page 4</span></li>
+                <li><a href="#section3">3. Types of AI</a> <span>Page 5</span></li>
+                <li><a href="#section4">4. Key Technologies Behind AI</a> <span>Page 6</span></li>
+                <li><a href="#section5">5. Real-World Applications</a> <span>Page 7</span></li>
+                <li><a href="#section6">6. AI vs Automation</a> <span>Page 8</span></li>
+                <li><a href="#section7">7. AI Decision-Making Process</a> <span>Page 9</span></li>
+                <li><a href="#section8">8. Ethical Considerations & Challenges</a> <span>Page 10</span></li>
+                <li><a href="#section9">9. Understanding AI Limitations</a> <span>Page 11</span></li>
+                <li><a href="#section10">10. Implementation Guidelines</a> <span>Page 12</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Section 1: What is AI -->
+    <div class="page" id="section1">
+        <h1>🧠 What is Artificial Intelligence?</h1>
+        
+        <div class="key-points">
+            <h4>Key Definition</h4>
+            <p><strong>AI is the simulation of human intelligence in machines</strong> that are programmed to think, learn, and solve problems.</p>
+        </div>
+
+        <h2>Core AI Functions</h2>
+        <ul>
+            <li><strong>Learning:</strong> Acquiring knowledge from data and experience</li>
+            <li><strong>Reasoning:</strong> Using logic to reach conclusions</li>
+            <li><strong>Problem-solving:</strong> Finding solutions to complex challenges</li>
+            <li><strong>Perception:</strong> Interpreting sensory data</li>
+            <li><strong>Language Understanding:</strong> Processing and generating human language</li>
+        </ul>
+
+        <div class="highlight-box">
+            <h3>Remember: AI = Algorithms + Data</h3>
+            <p>AI is not magic—it's mathematics and computer science working together to recognize patterns and make predictions.</p>
+        </div>
+    </div>
+
+    <!-- Section 2: History & Milestones -->
+    <div class="page" id="section2">
+        <h1>📜 History & Milestones of AI</h1>
+        
+        <div class="timeline">
+            <div class="timeline-item">
+                <strong>1950:</strong> Alan Turing's foundational paper "Computing Machinery and Intelligence"
+            </div>
+            <div class="timeline-item">
+                <strong>1956:</strong> Dartmouth Conference - AI officially named as a field
+            </div>
+            <div class="timeline-item">
+                <strong>1960s-70s:</strong> Symbolic AI and rule-based systems development
+            </div>
+            <div class="timeline-item">
+                <strong>1980s:</strong> Expert systems gain commercial success
+            </div>
+            <div class="timeline-item">
+                <strong>1997:</strong> IBM Deep Blue defeats world chess champion
+            </div>
+            <div class="timeline-item">
+                <strong>2010s:</strong> Deep Learning revolution begins
+            </div>
+            <div class="timeline-item">
+                <strong>2011:</strong> IBM Watson wins Jeopardy!
+            </div>
+            <div class="timeline-item">
+                <strong>2016:</strong> AlphaGo beats professional Go player
+            </div>
+            <div class="timeline-item">
+                <strong>2020s:</strong> AI integration across industries
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Types of AI -->
+    <div class="page" id="section3">
+        <h1>🔍 Types of AI</h1>
+        
+        <h2>By Capability Level</h2>
+        <div class="key-points">
+            <h4>Three Stages of AI Development</h4>
+            <ul>
+                <li><strong>Narrow AI (Current):</strong> Designed for specific tasks (Siri, Netflix recommendations)</li>
+                <li><strong>General AI (Future):</strong> Human-level intelligence across all domains</li>
+                <li><strong>Super AI (Theoretical):</strong> Intelligence exceeding human capabilities</li>
+            </ul>
+        </div>
+
+        <h2>By Functionality</h2>
+        <ul>
+            <li><strong>Reactive Machines:</strong> Respond to current situations (chess computers)</li>
+            <li><strong>Limited Memory:</strong> Learn from historical data (self-driving cars)</li>
+            <li><strong>Theory of Mind:</strong> Understanding emotions and intentions (developing)</li>
+            <li><strong>Self-Aware AI:</strong> Conscious artificial intelligence (hypothetical)</li>
+        </ul>
+
+        <h2>MCP AI vs Agentic AI</h2>
+        <table class="comparison-table">
+            <tr>
+                <th>MCP AI (Most Common Pattern)</th>
+                <th>Agentic AI</th>
+            </tr>
+            <tr>
+                <td>Predictive, pattern-based responses</td>
+                <td>Goal-directed, autonomous action</td>
+            </tr>
+            <tr>
+                <td>Passive and reactive</td>
+                <td>Proactive decision-making</td>
+            </tr>
+            <tr>
+                <td>Example: Language models, recommenders</td>
+                <td>Example: AlphaGo, autonomous vehicles</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Section 4: Key Technologies -->
+    <div class="page" id="section4">
+        <h1>⚙️ Key Technologies Behind AI</h1>
+        
+        <h2>Machine Learning (ML)</h2>
+        <div class="key-points">
+            <h4>The Foundation of Modern AI</h4>
+            <p>Gives computers the ability to learn without being explicitly programmed for every task.</p>
+        </div>
+
+        <h3>Types of Machine Learning</h3>
+        <ul>
+            <li><strong>Supervised Learning:</strong> Learning from labeled examples (classification, regression)</li>
+            <li><strong>Unsupervised Learning:</strong> Finding patterns in unlabeled data (clustering)</li>
+            <li><strong>Reinforcement Learning:</strong> Learning through trial and error with rewards</li>
+        </ul>
+
+        <h2>Deep Learning</h2>
+        <p>A subset of ML using artificial neural networks with multiple layers to automatically extract features from data.</p>
+
+        <h2>Natural Language Processing (NLP)</h2>
+        <p>Enables computers to understand, interpret, and generate human language.</p>
+
+        <h2>Computer Vision</h2>
+        <p>Allows machines to interpret and understand visual information from the world.</p>
+
+        <hr class="section-divider">
+        
+        <div class="highlight-box">
+            <h3>Mathematical Foundation</h3>
+            <p>AI is built on linear algebra, calculus, statistics, and probability. Neural networks are essentially matrix operations at scale.</p>
+        </div>
+    </div>
+
+    <!-- Section 5: Real-World Applications -->
+    <div class="page" id="section5">
+        <h1>🌍 Real-World Applications</h1>
+        
+        <h2>Healthcare</h2>
+        <ul>
+            <li>Medical image analysis and diagnosis</li>
+            <li>Drug discovery and development</li>
+            <li>Personalized treatment plans</li>
+        </ul>
+
+        <h2>Automotive</h2>
+        <ul>
+            <li>Self-driving vehicles</li>
+            <li>Traffic optimization</li>
+            <li>Predictive maintenance</li>
+        </ul>
+
+        <h2>Finance</h2>
+        <ul>
+            <li>Algorithmic trading</li>
+            <li>Fraud detection</li>
+            <li>Credit risk assessment</li>
+            <li>Robo-advisors</li>
+        </ul>
+
+        <h2>Customer Service</h2>
+        <ul>
+            <li>Intelligent chatbots</li>
+            <li>Sentiment analysis</li>
+            <li>Personalized recommendations</li>
+        </ul>
+
+        <h2>Other Industries</h2>
+        <ul>
+            <li><strong>Agriculture:</strong> Crop monitoring, precision farming</li>
+            <li><strong>Manufacturing:</strong> Quality control, predictive maintenance</li>
+            <li><strong>Retail:</strong> Inventory management, price optimization</li>
+            <li><strong>Energy:</strong> Smart grid management, renewable energy optimization</li>
+        </ul>
+    </div>
+
+    <!-- Section 6: AI vs Automation -->
+    <div class="page" id="section6">
+        <h1>🤖 AI vs Automation: Key Differences</h1>
+        
+        <table class="comparison-table">
+            <tr>
+                <th>Aspect</th>
+                <th>Automation</th>
+                <th>AI</th>
+            </tr>
+            <tr>
+                <td><strong>Approach</strong></td>
+                <td>Rule-based, fixed logic</td>
+                <td>Data-driven, adaptive learning</td>
+            </tr>
+            <tr>
+                <td><strong>Tasks</strong></td>
+                <td>Repetitive, predictable</td>
+                <td>Complex, pattern recognition</td>
+            </tr>
+            <tr>
+                <td><strong>Data Handling</strong></td>
+                <td>Structured, low variability</td>
+                <td>Unstructured, high variability</td>
+            </tr>
+            <tr>
+                <td><strong>Adaptability</strong></td>
+                <td>Static, requires manual updates</td>
+                <td>Dynamic, learns from new data</td>
+            </tr>
+            <tr>
+                <td><strong>Cost</strong></td>
+                <td>Lower initial investment</td>
+                <td>Higher, requires data & expertise</td>
+            </tr>
+            <tr>
+                <td><strong>Maintenance</strong></td>
+                <td>Easy to maintain</td>
+                <td>Requires retraining, monitoring</td>
+            </tr>
+        </table>
+
+        <h2>When to Use Each</h2>
+        <div class="key-points">
+            <h4>Use Automation When:</h4>
+            <ul>
+                <li>Tasks are highly repetitive</li>
+                <li>Rules are clearly defined</li>
+                <li>Few exceptions or edge cases</li>
+                <li>Low data variability</li>
+            </ul>
+        </div>
+
+        <div class="key-points">
+            <h4>Use AI When:</h4>
+            <ul>
+                <li>Pattern recognition is required</li>
+                <li>Dealing with unstructured data</li>
+                <li>Inputs are evolving or ambiguous</li>
+                <li>Adaptability is needed</li>
+            </ul>
+        </div>
+
+        <div class="highlight-box">
+            <h3>Best Practice: Combine Both</h3>
+            <p>Use AI for intelligent decision-making and automation for execution. Example: AI detects fraud, automation blocks transactions.</p>
+        </div>
+    </div>
+
+    <!-- Section 7: AI Decision-Making -->
+    <div class="page" id="section7">
+        <h1>🧭 AI Decision-Making Process</h1>
+        
+        <h2>How AI Systems Make Decisions</h2>
+        <ol>
+            <li><strong>Data Collection:</strong> Gathering information from the environment</li>
+            <li><strong>Data Processing:</strong> Using trained models (e.g., neural networks)</li>
+            <li><strong>Pattern Recognition:</strong> Identifying patterns and drawing inferences</li>
+            <li><strong>Action Selection:</strong> Choosing actions based on predictions or optimization goals</li>
+        </ol>
+
+        <div class="key-points">
+            <h4>Decision Quality Factors</h4>
+            <ul>
+                <li><strong>Training Data Quality:</strong> Clean, representative, unbiased data</li>
+                <li><strong>Algorithm Selection:</strong> Appropriate model for the problem</li>
+                <li><strong>Context Awareness:</strong> Understanding the environment and constraints</li>
+            </ul>
+        </div>
+
+        <h2>Statistical Nature of AI</h2>
+        <p>AI systems work through <strong>probabilistic models</strong> rather than deterministic rules. They make educated guesses based on patterns learned from data.</p>
+
+        <div class="highlight-box">
+            <h3>Important: AI is Statistical Guesswork</h3>
+            <p>AI provides probabilistic outputs, not absolute truths. Always consider confidence levels and potential errors.</p>
+        </div>
+    </div>
+
+    <!-- Section 8: Ethics & Challenges -->
+    <div class="page" id="section8">
+        <h1>⚖️ Ethical Considerations & Challenges</h1>
+        
+        <h2>Key Ethical Issues</h2>
+        <ul>
+            <li><strong>Bias & Fairness:</strong> AI can perpetuate or amplify existing biases</li>
+            <li><strong>Privacy:</strong> Personal data collection and usage concerns</li>
+            <li><strong>Job Displacement:</strong> Automation may eliminate certain roles</li>
+            <li><strong>Accountability:</strong> Who is responsible for AI decisions?</li>
+        </ul>
+
+        <h2>Technical Challenges</h2>
+        <ul>
+            <li><strong>Data Quality:</strong> Garbage in, garbage out principle</li>
+            <li><strong>Interpretability:</strong> Understanding how AI makes decisions</li>
+            <li><strong>Security:</strong> Protecting AI systems from attacks</li>
+            <li><strong>Regulation:</strong> Keeping up with rapidly evolving technology</li>
+        </ul>
+
+        <h2>Real Risks vs. Myths</h2>
+        <div class="key-points">
+            <h4>Real Risks to Address:</h4>
+            <ul>
+                <li>Algorithmic bias in hiring, lending, criminal justice</li>
+                <li>Misinformation and deepfakes</li>
+                <li>Surveillance and privacy violations</li>
+                <li>Economic disruption and job displacement</li>
+            </ul>
+        </div>
+
+        <div class="key-points">
+            <h4>Myths to Dispel:</h4>
+            <ul>
+                <li>AI will become conscious or sentient</li>
+                <li>AI will take over the world</li>
+                <li>AI has emotions or desires</li>
+                <li>AI can solve any problem</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Section 9: Understanding AI Limitations -->
+    <div class="page" id="section9">
+        <h1>🚫 Understanding AI Limitations</h1>
+        
+        <div class="highlight-box">
+            <h3>Core Truth: AI Is Mathematics, Not Magic</h3>
+            <p>AI systems are sophisticated mathematical models, not sentient beings.</p>
+        </div>
+
+        <h2>What AI Is NOT</h2>
+        <ul>
+            <li><strong>Not Conscious:</strong> No self-awareness, emotions, or desires</li>
+            <li><strong>Not Infallible:</strong> Makes mistakes and has limitations</li>
+            <li><strong>Not Creative:</strong> Combines existing patterns, doesn't truly innovate</li>
+            <li><strong>Not Understanding:</strong> Processes patterns without comprehension</li>
+        </ul>
+
+        <h2>Common Misconceptions</h2>
+        <div class="key-points">
+            <h4>Anthropomorphization Dangers</h4>
+            <ul>
+                <li>Treating AI as human-like leads to unrealistic expectations</li>
+                <li>Can result in over-reliance on AI systems</li>
+                <li>May lead to poor policy decisions</li>
+                <li>Creates unnecessary fear or overconfidence</li>
+            </ul>
+        </div>
+
+        <h2>The Role of Humans</h2>
+        <ul>
+            <li><strong>Design & Development:</strong> Creating AI systems</li>
+            <li><strong>Training & Oversight:</strong> Ensuring proper learning</li>
+            <li><strong>Governance & Ethics:</strong> Setting boundaries and rules</li>
+            <li><strong>Final Accountability:</strong> Taking responsibility for outcomes</li>
+        </ul>
+
+        <div class="highlight-box">
+            <h3>Remember: AI is a Tool, Not an Overlord</h3>
+            <p>Humans remain in control and responsible for AI applications and decisions.</p>
+        </div>
+    </div>
+
+    <!-- Section 10: Implementation Guidelines -->
+    <div class="page" id="section10">
+        <h1>🚀 Implementation Guidelines</h1>
+        
+        <h2>Decision Framework</h2>
+        <div class="key-points">
+            <h4>Choose Your Approach:</h4>
+            <ol>
+                <li><strong>Is the task rule-based?</strong> → Use Automation</li>
+                <li><strong>Is pattern recognition needed?</strong> → Use AI</li>
+                <li><strong>Need both?</strong> → Combine AI + Automation</li>
+            </ol>
+        </div>
+
+        <h2>Best Practices</h2>
+        <ul>
+            <li><strong>Start Small:</strong> Begin with pilot projects and scale gradually</li>
+            <li><strong>Ensure Data Quality:</strong> Clean, representative, unbiased data</li>
+            <li><strong>Monitor Continuously:</strong> Track performance and adjust as needed</li>
+            <li><strong>Maintain Human Oversight:</strong> Keep humans in the decision loop</li>
+            <li><strong>Document Everything:</strong> Maintain clear records for accountability</li>
+            <li><strong>Consider Ethics:</strong> Evaluate fairness, privacy, and societal impact</li>
+        </ul>
+
+        <h2>Success Factors</h2>
+        <ul>
+            <li><strong>Clear Objectives:</strong> Define specific, measurable goals</li>
+            <li><strong>Stakeholder Buy-in:</strong> Ensure leadership and user support</li>
+            <li><strong>Adequate Resources:</strong> Invest in data, talent, and infrastructure</li>
+            <li><strong>Change Management:</strong> Prepare organization for transformation</li>
+        </ul>
+
+        <div class="highlight-box">
+            <h3>Key Takeaway</h3>
+            <p>Match the solution to the problem. Use automation for consistency, AI for adaptability, and always maintain transparency about capabilities and limitations.</p>
+        </div>
+
+        <hr class="section-divider">
+
+        <div class="footer">
+            <p><strong>AI Training Summary</strong> | Understanding the fundamentals of Artificial Intelligence</p>
+            <p>Remember: AI is a powerful tool that requires responsible implementation and human oversight.</p>
+        </div>
+    </div>
+
+    <!-- Download Button -->
+    <div class="download-container">
+        <button class="download-btn" onclick="downloadWord()" title="Download as Word Document">
+            <span class="download-icon">📄</span>
+            Download Word
+        </button>
+    </div>
+
+    <script>
+        function downloadWord() {
+            const btn = document.querySelector('.download-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="download-icon">⏳</span> Generating Word Doc...';
+            btn.disabled = true;
+
+            // Hide download button
+            const downloadContainer = document.querySelector('.download-container');
+            downloadContainer.style.display = 'none';
+
+            // Get the content without the download button
+            const contentPages = document.querySelectorAll('.page');
+            let wordContent = '';
+
+            contentPages.forEach((page, index) => {
+                // Skip the cover page for cleaner content
+                if (index === 0) {
+                    wordContent += `
+                    <div style="text-align: center; margin-bottom: 50px;">
+                        <h1 style="font-size: 36px; color: #2c3e50; margin-bottom: 20px;">Understanding Artificial Intelligence</h1>
+                        <h2 style="font-size: 24px; color: #34495e; margin-bottom: 40px;">Training Summary & Reference Guide</h2>
+                        <p style="font-size: 18px; color: #7f8c8d;">A comprehensive overview of AI fundamentals, applications, and best practices</p>
+                        <div style="page-break-after: always;"></div>
+                    </div>`;
+                } else {
+                    // Get the inner HTML and clean it up for Word
+                    let pageContent = page.innerHTML;
+                    
+                    // Replace HTML elements with Word-compatible formatting
+                    pageContent = pageContent
+                        .replace(/<h1[^>]*>/g, '<h1 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">')
+                        .replace(/<h2[^>]*>/g, '<h2 style="color: #34495e; margin-top: 30px; border-left: 4px solid #3498db; padding-left: 15px;">')
+                        .replace(/<h3[^>]*>/g, '<h3 style="color: #2c3e50;">')
+                        .replace(/<div class="key-points"[^>]*>/g, '<div style="background: #e8f6fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0;">')
+                        .replace(/<div class="highlight-box"[^>]*>/g, '<div style="background: #ff9a56; color: white; padding: 20px; margin: 20px 0; text-align: center;">')
+                        .replace(/<div class="timeline-item"[^>]*>/g, '<div style="background: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #3498db;">')
+                        .replace(/<table class="comparison-table"[^>]*>/g, '<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">')
+                        .replace(/<th[^>]*>/g, '<th style="background: #3498db; color: white; padding: 12px; border: 1px solid #ddd;">')
+                        .replace(/<td[^>]*>/g, '<td style="padding: 12px; border: 1px solid #ddd;">')
+                        .replace(/<hr class="section-divider"[^>]*>/g, '<hr style="height: 3px; background: linear-gradient(90deg, #3498db, #2ecc71, #f39c12); border: none; margin: 30px 0;">');
+                    
+                    wordContent += `<div style="page-break-after: always;">${pageContent}</div>`;
+                }
+            });
+
+            // Create the Word document content
+            const wordDocument = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>AI Training Summary</title>
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <w:WordDocument>
+                            <w:View>Print</w:View>
+                            <w:Zoom>90</w:Zoom>
+                            <w:DoNotPromptForConvert/>
+                            <w:DoNotShowInsertionsAndDeletions/>
+                        </w:WordDocument>
+                    </xml>
+                    <![endif]-->
+                    <style>
+                        @page { margin: 1in; }
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                        h1, h2, h3 { margin-top: 24px; margin-bottom: 12px; }
+                        ul, ol { margin: 12px 0; padding-left: 24px; }
+                        li { margin: 6px 0; }
+                        table { border-collapse: collapse; width: 100%; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        .page-break { page-break-before: always; }
+                    </style>
+                </head>
+                <body>${wordContent}</body>
+                </html>
+            `;
+
+            // Create and download the file
+            const blob = new Blob([wordDocument], {
+                type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            });
+            
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'AI_Training_Summary.doc';
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            
+            // Restore button
+            setTimeout(() => {
+                downloadContainer.style.display = 'block';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showNotification('Word document downloaded successfully!', 'success', 4000);
+            }, 500);
+        }
+
+        function showNotification(message, type, duration = 3000) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 320px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                font-size: 14px;
+                line-height: 1.4;
+                ${type === 'success' ? 'background: #27ae60;' : 
+                  type === 'error' ? 'background: #e74c3c;' : 
+                  'background: #3498db;'}
+            `;
+            notification.textContent = message;
+            
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                    style.remove();
+                }, 300);
+            }, duration);
+        }
+
+        // Keyboard shortcut Ctrl+D for download
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                downloadWord();
+            }
+        });
+    </script>
+</body>
+</html>
