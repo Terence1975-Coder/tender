@@ -115,6 +115,12 @@
             box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
         }
 
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .clear-btn {
             background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
@@ -122,6 +128,15 @@
 
         .clear-btn:hover {
             box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        .share-btn {
+            background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .share-btn:hover {
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
         }
 
         .file-input {
@@ -157,6 +172,12 @@
             white-space: nowrap;
         }
 
+        .file-status {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-left: 5px;
+        }
+
         .remove-file {
             background: #dc3545;
             color: white;
@@ -177,6 +198,25 @@
 
         .video-player-section.active {
             display: block;
+        }
+
+        .share-section {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .share-link {
+            background: white;
+            padding: 12px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+            color: #007bff;
         }
 
         video {
@@ -324,6 +364,42 @@
             line-height: 1.6;
         }
 
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2em;
@@ -364,6 +440,14 @@
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>Processing Videos...</h3>
+            <p id="loadingMessage">Uploading to Firebase...</p>
+        </div>
+    </div>
+
     <div class="video-container">
         <div class="header">
             <h1>ThinkBit Training</h1>
@@ -397,6 +481,15 @@
             </div>
             
             <div class="video-player-section" id="playerSection">
+                <div class="share-section" id="shareSection" style="display: none;">
+                    <h3>🔗 Share Your Meeting</h3>
+                    <p>Share this link with your team to view the meeting clips:</p>
+                    <div class="share-link" id="shareLink"></div>
+                    <button class="upload-btn share-btn" onclick="copyShareLink()">
+                        <span>📋</span> Copy Link
+                    </button>
+                </div>
+                
                 <video id="mainVideo" controls preload="metadata">
                     Your browser does not support the video tag.
                 </video>
@@ -439,9 +532,33 @@
         </div>
     </div>
 
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+            authDomain: "prospecting-f2f42.firebaseapp.com",
+            databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "prospecting-f2f42",
+            storageBucket: "prospecting-f2f42.firebasestorage.app",
+            messagingSenderId: "292034226428",
+            appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+            measurementId: "G-WWB0JTX2L2"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        const database = firebase.database();
+
         let uploadedVideos = [];
         let currentVideoIndex = 0;
+        let currentSessionId = null;
+
         const video = document.getElementById('mainVideo');
         const videoTitle = document.getElementById('videoTitle');
         const videoStatus = document.getElementById('videoStatus');
@@ -456,6 +573,19 @@
         const uploadedFiles = document.getElementById('uploadedFiles');
         const emptyState = document.getElementById('emptyState');
         const playlist = document.getElementById('playlist');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const shareSection = document.getElementById('shareSection');
+        const shareLink = document.getElementById('shareLink');
+
+        // Check for shared session on load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            if (sessionId) {
+                loadSharedSession(sessionId);
+            }
+        });
 
         // Drag and drop functionality
         uploadSection.addEventListener('dragover', (e) => {
@@ -474,28 +604,142 @@
             handleFiles(files);
         });
 
+        function showLoading(message) {
+            loadingMessage.textContent = message;
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
         function handleFileSelect(event) {
             const files = Array.from(event.target.files);
             handleFiles(files);
         }
 
-        function handleFiles(files) {
-            files.forEach(file => {
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            showLoading('Preparing to upload videos...');
+            
+            for (const file of files) {
                 if (file.type.startsWith('video/') && uploadedVideos.length < 4) {
                     const videoData = {
                         file: file,
                         name: file.name,
-                        url: URL.createObjectURL(file),
-                        title: `Meeting Clip ${uploadedVideos.length + 1}`
+                        title: `Meeting Clip ${uploadedVideos.length + 1}`,
+                        status: 'uploading'
                     };
                     uploadedVideos.push(videoData);
                 }
-            });
+            }
             
             updateUploadedFilesList();
             
             if (uploadedVideos.length > 0) {
                 emptyState.style.display = 'none';
+                
+                // Generate session ID for this upload batch
+                currentSessionId = generateSessionId();
+                
+                // Upload files to Firebase
+                await uploadToFirebase();
+            }
+            
+            hideLoading();
+        }
+
+        async function uploadToFirebase() {
+            try {
+                const videoUrls = [];
+                
+                for (let i = 0; i < uploadedVideos.length; i++) {
+                    const videoData = uploadedVideos[i];
+                    if (videoData.file) {
+                        loadingMessage.textContent = `Uploading video ${i + 1} of ${uploadedVideos.length}...`;
+                        
+                        // Upload to Firebase Storage
+                        const fileName = `videos/${currentSessionId}/video_${i + 1}_${Date.now()}.mp4`;
+                        const storageRef = storage.ref(fileName);
+                        
+                        const uploadTask = await storageRef.put(videoData.file);
+                        const downloadUrl = await uploadTask.ref.getDownloadURL();
+                        
+                        videoUrls.push({
+                            title: videoData.title,
+                            url: downloadUrl,
+                            name: videoData.name
+                        });
+                        
+                        // Update local video data
+                        uploadedVideos[i].url = downloadUrl;
+                        uploadedVideos[i].status = 'completed';
+                        updateUploadedFilesList();
+                    }
+                }
+                
+                // Save session data to Firebase Database
+                loadingMessage.textContent = 'Saving session data...';
+                await database.ref(`sessions/${currentSessionId}`).set({
+                    videos: videoUrls,
+                    createdAt: Date.now(),
+                    title: 'ThinkBit Training Meeting'
+                });
+                
+                // Show share link
+                const currentUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${currentUrl}?session=${currentSessionId}`;
+                shareLink.textContent = shareUrl;
+                shareSection.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed. Please try again.');
+            }
+        }
+
+        async function loadSharedSession(sessionId) {
+            try {
+                showLoading('Loading shared meeting...');
+                
+                const snapshot = await database.ref(`sessions/${sessionId}`).once('value');
+                const sessionData = snapshot.val();
+                
+                if (sessionData && sessionData.videos) {
+                    uploadedVideos = sessionData.videos.map(video => ({
+                        ...video,
+                        status: 'completed'
+                    }));
+                    
+                    currentSessionId = sessionId;
+                    
+                    // Show player directly
+                    uploadSection.style.display = 'none';
+                    playerSection.classList.add('active');
+                    
+                    setupEventListeners();
+                    createPlaylist();
+                    loadVideo(0);
+                    
+                    // Show share section
+                    const currentUrl = window.location.origin + window.location.pathname;
+                    const shareUrl = `${currentUrl}?session=${sessionId}`;
+                    shareLink.textContent = shareUrl;
+                    shareSection.style.display = 'block';
+                } else {
+                    alert('Session not found or expired.');
+                }
+                
+            } catch (error) {
+                console.error('Error loading session:', error);
+                alert('Failed to load shared session.');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -504,16 +748,25 @@
             uploadedVideos.forEach((video, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
+                
+                let statusText = '';
+                if (video.status === 'uploading') statusText = '⏳ Uploading...';
+                else if (video.status === 'completed') statusText = '✅ Ready';
+                
                 fileItem.innerHTML = `
-                    <span class="file-name">${video.name}</span>
+                    <div>
+                        <span class="file-name">${video.name}</span>
+                        <div class="file-status">${statusText}</div>
+                    </div>
                     <button class="remove-file" onclick="removeFile(${index})">×</button>
                 `;
                 uploadedFiles.appendChild(fileItem);
             });
+            
+            updateStartButton();
         }
 
         function removeFile(index) {
-            URL.revokeObjectURL(uploadedVideos[index].url);
             uploadedVideos.splice(index, 1);
             updateUploadedFilesList();
             
@@ -524,15 +777,16 @@
             
             if (uploadedVideos.length === 0) {
                 emptyState.style.display = 'block';
+                shareSection.style.display = 'none';
                 showUploadSection();
             }
         }
 
         function clearAllFiles() {
-            uploadedVideos.forEach(video => URL.revokeObjectURL(video.url));
             uploadedVideos = [];
             uploadedFiles.innerHTML = '';
             emptyState.style.display = 'block';
+            shareSection.style.display = 'none';
             showUploadSection();
         }
 
@@ -550,6 +804,21 @@
         function showUploadSection() {
             uploadSection.style.display = 'block';
             playerSection.classList.remove('active');
+        }
+
+        function copyShareLink() {
+            navigator.clipboard.writeText(shareLink.textContent).then(() => {
+                alert('Share link copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareLink.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Share link copied to clipboard!');
+            });
         }
 
         function createPlaylist() {
@@ -633,82 +902,3 @@
                     currentTime.textContent = formatTime(video.currentTime);
                 }
             });
-            
-            video.addEventListener('error', (e) => {
-                console.error('Video error:', e);
-                videoStatus.textContent = `⚠️ Error loading ${uploadedVideos[currentVideoIndex].name}`;
-            });
-        }
-
-        function togglePlayPause() {
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        }
-
-        function nextVideo() {
-            if (currentVideoIndex < uploadedVideos.length - 1) {
-                loadVideo(currentVideoIndex + 1);
-            }
-        }
-
-        function previousVideo() {
-            if (currentVideoIndex > 0) {
-                loadVideo(currentVideoIndex - 1);
-            }
-        }
-
-        function restartSequence() {
-            loadVideo(0);
-            video.currentTime = 0;
-        }
-
-        // Add a "Start Player" button when files are uploaded
-        function updateStartButton() {
-            const existingBtn = document.getElementById('startPlayerBtn');
-            if (existingBtn) existingBtn.remove();
-            
-            if (uploadedVideos.length > 0) {
-                const startBtn = document.createElement('button');
-                startBtn.id = 'startPlayerBtn';
-                startBtn.className = 'upload-btn';
-                startBtn.innerHTML = '<span>▶</span> Start Player';
-                startBtn.onclick = startPlayer;
-                startBtn.style.marginTop = '15px';
-                startBtn.style.width = '100%';
-                uploadedFiles.appendChild(startBtn);
-            }
-        }
-
-        // Update the handleFiles function to include start button
-        const originalHandleFiles = handleFiles;
-        handleFiles = function(files) {
-            originalHandleFiles(files);
-            updateStartButton();
-        };
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (playerSection.classList.contains('active')) {
-                switch(e.key) {
-                    case ' ':
-                        e.preventDefault();
-                        togglePlayPause();
-                        break;
-                    case 'ArrowLeft':
-                        previousVideo();
-                        break;
-                    case 'ArrowRight':
-                        nextVideo();
-                        break;
-                    case 'r':
-                        restartSequence();
-                        break;
-                }
-            }
-        });
-    </script>
-</body>
-</html>
