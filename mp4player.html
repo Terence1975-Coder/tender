@@ -902,3 +902,77 @@
                     currentTime.textContent = formatTime(video.currentTime);
                 }
             });
+            
+            video.addEventListener('error', (e) => {
+                console.error('Video error:', e);
+                videoStatus.textContent = `⚠️ Error loading ${uploadedVideos[currentVideoIndex].name}`;
+            });
+        }
+
+        function togglePlayPause() {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+
+        function nextVideo() {
+            if (currentVideoIndex < uploadedVideos.length - 1) {
+                loadVideo(currentVideoIndex + 1);
+            }
+        }
+
+        function previousVideo() {
+            if (currentVideoIndex > 0) {
+                loadVideo(currentVideoIndex - 1);
+            }
+        }
+
+        function restartSequence() {
+            loadVideo(0);
+            video.currentTime = 0;
+        }
+
+        // Add a "Start Player" button when files are uploaded
+        function updateStartButton() {
+            const existingBtn = document.getElementById('startPlayerBtn');
+            if (existingBtn) existingBtn.remove();
+            
+            const allUploaded = uploadedVideos.every(video => video.status === 'completed');
+            
+            if (uploadedVideos.length > 0 && allUploaded) {
+                const startBtn = document.createElement('button');
+                startBtn.id = 'startPlayerBtn';
+                startBtn.className = 'upload-btn';
+                startBtn.innerHTML = '<span>▶</span> Start Player';
+                startBtn.onclick = startPlayer;
+                startBtn.style.marginTop = '15px';
+                startBtn.style.width = '100%';
+                uploadedFiles.appendChild(startBtn);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (playerSection.classList.contains('active')) {
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        togglePlayPause();
+                        break;
+                    case 'ArrowLeft':
+                        previousVideo();
+                        break;
+                    case 'ArrowRight':
+                        nextVideo();
+                        break;
+                    case 'r':
+                        restartSequence();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
