@@ -55,6 +55,130 @@
             background: white;
         }
 
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-header h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.3em;
+        }
+
+        .upload-header p {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .upload-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .clear-btn:hover {
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .uploaded-files {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .file-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-name {
+            font-size: 0.9em;
+            color: #495057;
+            font-weight: 500;
+            flex: 1;
+            margin-right: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .remove-file {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-player-section {
+            display: none;
+        }
+
+        .video-player-section.active {
+            display: block;
+        }
+
         video {
             width: 100%;
             height: auto;
@@ -184,19 +308,20 @@
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .instructions {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+        .empty-state {
             text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
         }
 
-        .instructions h3 {
-            margin-bottom: 10px;
-            color: #b45309;
+        .empty-state h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            line-height: 1.6;
         }
 
         @media (max-width: 768px) {
@@ -206,6 +331,16 @@
             
             .video-wrapper {
                 padding: 25px;
+            }
+            
+            .upload-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .upload-btn, .clear-btn {
+                width: 100%;
+                justify-content: center;
             }
             
             .controls {
@@ -221,6 +356,10 @@
             .playlist {
                 grid-template-columns: 1fr;
             }
+
+            .uploaded-files {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -232,63 +371,76 @@
         </div>
         
         <div class="video-wrapper">
-            <div class="instructions">
-                <h3>📁 Setup Instructions</h3>
-                <p>Place your 4 MP4 files in the same folder as this HTML file and name them: <strong>video1.mp4</strong>, <strong>video2.mp4</strong>, <strong>video3.mp4</strong>, and <strong>video4.mp4</strong></p>
-            </div>
-            
-            <video id="mainVideo" controls preload="metadata">
-                <source src="video1.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            
-            <div class="progress-section">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-header">
+                    <h3>📁 Upload Your Meeting Videos</h3>
+                    <p>Upload up to 4 MP4 files to create your continuous meeting playback</p>
                 </div>
-                <div class="time-display">
-                    <span id="currentTime">0:00</span>
-                    <span id="totalTime">0:00</span>
+                
+                <div class="upload-controls">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        <span>📂</span> Select Files
+                    </button>
+                    <button class="upload-btn clear-btn" onclick="clearAllFiles()">
+                        <span>🗑️</span> Clear All
+                    </button>
+                </div>
+                
+                <input type="file" id="fileInput" class="file-input" multiple accept="video/mp4,video/*" onchange="handleFileSelect(event)">
+                
+                <div class="uploaded-files" id="uploadedFiles"></div>
+                
+                <div class="empty-state" id="emptyState">
+                    <h3>🎬 Drag & Drop Videos Here</h3>
+                    <p>Or click "Select Files" to choose your MP4 meeting clips.<br>Videos will play continuously in the order you upload them.</p>
                 </div>
             </div>
             
-            <div class="video-info">
-                <div class="video-title" id="videoTitle">Meeting Clip 1</div>
-                <div class="video-status" id="videoStatus">Video 1 of 4 - Ready to play</div>
-            </div>
-            
-            <div class="controls">
-                <button class="control-btn" id="prevBtn" onclick="previousVideo()">
-                    <span>⏮</span> Previous
-                </button>
-                <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">
-                    <span>▶</span> Play
-                </button>
-                <button class="control-btn" id="nextBtn" onclick="nextVideo()">
-                    Next <span>⏭</span>
-                </button>
-                <button class="control-btn" onclick="restartSequence()">
-                    <span>🔄</span> Restart All
-                </button>
-            </div>
-            
-            <div class="playlist" id="playlist">
-                <div class="playlist-item active" onclick="loadVideo(0)">Meeting Clip 1</div>
-                <div class="playlist-item" onclick="loadVideo(1)">Meeting Clip 2</div>
-                <div class="playlist-item" onclick="loadVideo(2)">Meeting Clip 3</div>
-                <div class="playlist-item" onclick="loadVideo(3)">Meeting Clip 4</div>
+            <div class="video-player-section" id="playerSection">
+                <video id="mainVideo" controls preload="metadata">
+                    Your browser does not support the video tag.
+                </video>
+                
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+                
+                <div class="video-info">
+                    <div class="video-title" id="videoTitle">Meeting Clip 1</div>
+                    <div class="video-status" id="videoStatus">Video 1 of 4 - Ready to play</div>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-btn" id="prevBtn" onclick="previousVideo()">
+                        <span>⏮</span> Previous
+                    </button>
+                    <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">
+                        <span>▶</span> Play
+                    </button>
+                    <button class="control-btn" id="nextBtn" onclick="nextVideo()">
+                        Next <span>⏭</span>
+                    </button>
+                    <button class="control-btn" onclick="restartSequence()">
+                        <span>🔄</span> Restart All
+                    </button>
+                    <button class="upload-btn" onclick="showUploadSection()">
+                        <span>📂</span> Change Videos
+                    </button>
+                </div>
+                
+                <div class="playlist" id="playlist"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const videos = [
-            { title: "Meeting Clip 1", filename: "video1.mp4" },
-            { title: "Meeting Clip 2", filename: "video2.mp4" },
-            { title: "Meeting Clip 3", filename: "video3.mp4" },
-            { title: "Meeting Clip 4", filename: "video4.mp4" }
-        ];
-
+        let uploadedVideos = [];
         let currentVideoIndex = 0;
         const video = document.getElementById('mainVideo');
         const videoTitle = document.getElementById('videoTitle');
@@ -299,6 +451,118 @@
         const progressFill = document.getElementById('progressFill');
         const currentTime = document.getElementById('currentTime');
         const totalTime = document.getElementById('totalTime');
+        const uploadSection = document.getElementById('uploadSection');
+        const playerSection = document.getElementById('playerSection');
+        const uploadedFiles = document.getElementById('uploadedFiles');
+        const emptyState = document.getElementById('emptyState');
+        const playlist = document.getElementById('playlist');
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('video/'));
+            handleFiles(files);
+        });
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            files.forEach(file => {
+                if (file.type.startsWith('video/') && uploadedVideos.length < 4) {
+                    const videoData = {
+                        file: file,
+                        name: file.name,
+                        url: URL.createObjectURL(file),
+                        title: `Meeting Clip ${uploadedVideos.length + 1}`
+                    };
+                    uploadedVideos.push(videoData);
+                }
+            });
+            
+            updateUploadedFilesList();
+            
+            if (uploadedVideos.length > 0) {
+                emptyState.style.display = 'none';
+            }
+        }
+
+        function updateUploadedFilesList() {
+            uploadedFiles.innerHTML = '';
+            uploadedVideos.forEach((video, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${video.name}</span>
+                    <button class="remove-file" onclick="removeFile(${index})">×</button>
+                `;
+                uploadedFiles.appendChild(fileItem);
+            });
+        }
+
+        function removeFile(index) {
+            URL.revokeObjectURL(uploadedVideos[index].url);
+            uploadedVideos.splice(index, 1);
+            updateUploadedFilesList();
+            
+            // Update titles
+            uploadedVideos.forEach((video, i) => {
+                video.title = `Meeting Clip ${i + 1}`;
+            });
+            
+            if (uploadedVideos.length === 0) {
+                emptyState.style.display = 'block';
+                showUploadSection();
+            }
+        }
+
+        function clearAllFiles() {
+            uploadedVideos.forEach(video => URL.revokeObjectURL(video.url));
+            uploadedVideos = [];
+            uploadedFiles.innerHTML = '';
+            emptyState.style.display = 'block';
+            showUploadSection();
+        }
+
+        function startPlayer() {
+            if (uploadedVideos.length === 0) return;
+            
+            uploadSection.style.display = 'none';
+            playerSection.classList.add('active');
+            
+            setupEventListeners();
+            createPlaylist();
+            loadVideo(0);
+        }
+
+        function showUploadSection() {
+            uploadSection.style.display = 'block';
+            playerSection.classList.remove('active');
+        }
+
+        function createPlaylist() {
+            playlist.innerHTML = '';
+            uploadedVideos.forEach((video, index) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                if (index === 0) item.classList.add('active');
+                item.textContent = video.title;
+                item.onclick = () => loadVideo(index);
+                playlist.appendChild(item);
+            });
+        }
 
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);
@@ -307,14 +571,14 @@
         }
 
         function loadVideo(index) {
-            if (index < 0 || index >= videos.length) return;
+            if (index < 0 || index >= uploadedVideos.length) return;
             
             currentVideoIndex = index;
-            const currentVideo = videos[index];
+            const currentVideo = uploadedVideos[index];
             
-            video.src = currentVideo.filename;
+            video.src = currentVideo.url;
             videoTitle.textContent = currentVideo.title;
-            videoStatus.textContent = `Video ${index + 1} of ${videos.length}`;
+            videoStatus.textContent = `Video ${index + 1} of ${uploadedVideos.length}`;
             
             // Update playlist active state
             document.querySelectorAll('.playlist-item').forEach((item, i) => {
@@ -323,7 +587,7 @@
             
             // Update button states
             prevBtn.disabled = index === 0;
-            nextBtn.disabled = index === videos.length - 1;
+            nextBtn.disabled = index === uploadedVideos.length - 1;
             
             // Reset progress
             progressFill.style.width = '0%';
@@ -338,11 +602,11 @@
             
             video.addEventListener('loadedmetadata', () => {
                 totalTime.textContent = formatTime(video.duration);
-                videoStatus.textContent = `Video ${currentVideoIndex + 1} of ${videos.length} - Ready to play`;
+                videoStatus.textContent = `Video ${currentVideoIndex + 1} of ${uploadedVideos.length} - Ready to play`;
             });
             
             video.addEventListener('ended', () => {
-                if (currentVideoIndex < videos.length - 1) {
+                if (currentVideoIndex < uploadedVideos.length - 1) {
                     videoStatus.textContent = 'Moving to next video...';
                     setTimeout(() => {
                         nextVideo();
@@ -372,7 +636,7 @@
             
             video.addEventListener('error', (e) => {
                 console.error('Video error:', e);
-                videoStatus.textContent = `⚠️ Error loading ${videos[currentVideoIndex].filename}`;
+                videoStatus.textContent = `⚠️ Error loading ${uploadedVideos[currentVideoIndex].name}`;
             });
         }
 
@@ -385,7 +649,7 @@
         }
 
         function nextVideo() {
-            if (currentVideoIndex < videos.length - 1) {
+            if (currentVideoIndex < uploadedVideos.length - 1) {
                 loadVideo(currentVideoIndex + 1);
             }
         }
@@ -401,28 +665,48 @@
             video.currentTime = 0;
         }
 
-        // Initialize the player
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            loadVideo(0);
-        });
+        // Add a "Start Player" button when files are uploaded
+        function updateStartButton() {
+            const existingBtn = document.getElementById('startPlayerBtn');
+            if (existingBtn) existingBtn.remove();
+            
+            if (uploadedVideos.length > 0) {
+                const startBtn = document.createElement('button');
+                startBtn.id = 'startPlayerBtn';
+                startBtn.className = 'upload-btn';
+                startBtn.innerHTML = '<span>▶</span> Start Player';
+                startBtn.onclick = startPlayer;
+                startBtn.style.marginTop = '15px';
+                startBtn.style.width = '100%';
+                uploadedFiles.appendChild(startBtn);
+            }
+        }
+
+        // Update the handleFiles function to include start button
+        const originalHandleFiles = handleFiles;
+        handleFiles = function(files) {
+            originalHandleFiles(files);
+            updateStartButton();
+        };
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case ' ':
-                    e.preventDefault();
-                    togglePlayPause();
-                    break;
-                case 'ArrowLeft':
-                    previousVideo();
-                    break;
-                case 'ArrowRight':
-                    nextVideo();
-                    break;
-                case 'r':
-                    restartSequence();
-                    break;
+            if (playerSection.classList.contains('active')) {
+                switch(e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        togglePlayPause();
+                        break;
+                    case 'ArrowLeft':
+                        previousVideo();
+                        break;
+                    case 'ArrowRight':
+                        nextVideo();
+                        break;
+                    case 'r':
+                        restartSequence();
+                        break;
+                }
             }
         });
     </script>
