@@ -625,9 +625,11 @@
         async function handleFiles(files) {
             if (files.length === 0) return;
             
+            console.log('Starting file handling...', files);
             showLoading('Preparing to upload videos...');
             
             for (const file of files) {
+                console.log('Processing file:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + 'MB', 'Type:', file.type);
                 if (file.type.startsWith('video/') && uploadedVideos.length < 4) {
                     const videoData = {
                         file: file,
@@ -646,9 +648,22 @@
                 
                 // Generate session ID for this upload batch
                 currentSessionId = generateSessionId();
+                console.log('Generated session ID:', currentSessionId);
                 
-                // Upload files to Firebase
-                await uploadToFirebase();
+                // Test Firebase connection first
+                try {
+                    console.log('Testing Firebase connection...');
+                    await database.ref('test').set({ timestamp: Date.now() });
+                    console.log('Firebase connection successful');
+                    
+                    // Upload files to Firebase
+                    await uploadToFirebase();
+                } catch (error) {
+                    console.error('Firebase connection test failed:', error);
+                    hideLoading();
+                    alert('Firebase connection failed. Please check your internet connection and try again.');
+                    return;
+                }
             }
             
             hideLoading();
@@ -656,32 +671,87 @@
 
         async function uploadToFirebase() {
             try {
+                console.log('Starting Firebase upload process...');
                 const videoUrls = [];
+                
+                // Check Firebase Storage rules first
+                console.log('Firebase Storage reference:', storage);
                 
                 for (let i = 0; i < uploadedVideos.length; i++) {
                     const videoData = uploadedVideos[i];
                     if (videoData.file) {
-                        loadingMessage.textContent = `Uploading video ${i + 1} of ${uploadedVideos.length}...`;
+                        const fileSizeMB = (videoData.file.size / 1024 / 1024).toFixed(1);
+                        console.log(`Uploading video ${i + 1}:`, videoData.name, `(${fileSizeMB}MB)`);
                         
-                        // Upload to Firebase Storage
+                        loadingMessage.textContent = `Uploading video ${i + 1} of ${uploadedVideos.length} (${fileSizeMB}MB)...`;
+                        
+                        // Upload to Firebase Storage with progress tracking
                         const fileName = `videos/${currentSessionId}/video_${i + 1}_${Date.now()}.mp4`;
+                        console.log('Storage path:', fileName);
+                        
                         const storageRef = storage.ref(fileName);
+                        console.log('Storage reference created:', storageRef);
                         
-                        const uploadTask = await storageRef.put(videoData.file);
-                        const downloadUrl = await uploadTask.ref.getDownloadURL();
-                        
-                        videoUrls.push({
-                            title: videoData.title,
-                            url: downloadUrl,
-                            name: videoData.name
-                        });
-                        
-                        // Update local video data
-                        uploadedVideos[i].url = downloadUrl;
-                        uploadedVideos[i].status = 'completed';
-                        updateUploadedFilesList();
+                        try {
+                            const uploadTask = storageRef.put(videoData.file);
+                            console.log('Upload task started:', uploadTask);
+                            
+                            // Track upload progress
+                            uploadTask.on('state_changed', 
+                                (snapshot) => {
+                                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                    console.log(`Upload progress: ${progress.toFixed(1)}%`);
+                                    loadingMessage.textContent = `Uploading video ${i + 1} of ${uploadedVideos.length} - ${progress.toFixed(0)}% (${fileSizeMB}MB)`;
+                                },
+                                (error) => {
+                                    console.error('Upload state error:', error);
+                                    console.error('Error code:', error.code);
+                                    console.error('Error message:', error.message);
+                                    throw error;
+                                }
+                            );
+                            
+                            // Wait for upload to complete
+                            console.log('Waiting for upload to complete...');
+                            await uploadTask;
+                            console.log('Upload completed successfully');
+                            
+                            const downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
+                            console.log('Download URL obtained:', downloadUrl);
+                            
+                            videoUrls.push({
+                                title: videoData.title,
+                                url: downloadUrl,
+                                name: videoData.name
+                            });
+                            
+                            // Update local video data
+                            uploadedVideos[i].url = downloadUrl;
+                            uploadedVideos[i].status = 'completed';
+                            updateUploadedFilesList();
+                            
+                        } catch (uploadError) {
+                            console.error('Individual upload error:', uploadError);
+                            console.error('Upload error details:', uploadError.code, uploadError.message);
+                            
+                            // Provide specific error messages
+                            let errorMessage = 'Upload failed: ';
+                            if (uploadError.code === 'storage/unauthorized') {
+                                errorMessage += 'Firebase Storage permissions denied. Please check your Firebase rules.';
+                            } else if (uploadError.code === 'storage/canceled') {
+                                errorMessage += 'Upload was canceled.';
+                            } else if (uploadError.code === 'storage/unknown') {
+                                errorMessage += 'Unknown error occurred. Please try again.';
+                            } else {
+                                errorMessage += uploadError.message;
+                            }
+                            
+                            throw new Error(errorMessage);
+                        }
                     }
                 }
+                
+                console.log('All uploads completed, saving session data...');
                 
                 // Save session data to Firebase Database
                 loadingMessage.textContent = 'Saving session data...';
@@ -691,15 +761,37 @@
                     title: 'ThinkBit Training Meeting'
                 });
                 
+                console.log('Session data saved successfully');
+                
                 // Show share link
                 const currentUrl = window.location.origin + window.location.pathname;
                 const shareUrl = `${currentUrl}?session=${currentSessionId}`;
                 shareLink.textContent = shareUrl;
                 shareSection.style.display = 'block';
                 
+                console.log('Share URL generated:', shareUrl);
+                
             } catch (error) {
-                console.error('Upload error:', error);
-                alert('Upload failed. Please try again.');
+                console.error('Firebase upload error:', error);
+                hideLoading();
+                
+                // Show user-friendly error message
+                let userMessage = 'Upload failed. ';
+                if (error.message.includes('permissions') || error.message.includes('unauthorized')) {
+                    userMessage += 'Please check Firebase Storage permissions and try again.';
+                } else if (error.message.includes('network')) {
+                    userMessage += 'Please check your internet connection and try again.';
+                } else {
+                    userMessage += `Error: ${error.message}`;
+                }
+                
+                alert(userMessage);
+                
+                // Reset video status
+                uploadedVideos.forEach(video => {
+                    video.status = 'error';
+                });
+                updateUploadedFilesList();
             }
         }
 
