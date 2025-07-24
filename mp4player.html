@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThinkBit Training - Meeting Clips</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding: 30px;
+            background: white;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .video-info {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .video-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .playlist {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .playlist-item {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .playlist-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        .playlist-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .video-wrapper {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .control-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <div class="header">
+            <h1>ThinkBit Training</h1>
+            <p>Team Meeting - Continuous Playback</p>
+        </div>
+        
+        <div class="video-wrapper">
+            <video id="mainVideo" controls preload="metadata">
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="video-info">
+                <div class="video-title" id="videoTitle">Loading...</div>
+                <div id="videoStatus">Preparing videos...</div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="prevBtn" onclick="previousVideo()">⏮ Previous</button>
+                <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">▶ Play</button>
+                <button class="control-btn" id="nextBtn" onclick="nextVideo()">Next ⏭</button>
+                <button class="control-btn" onclick="restartSequence()">🔄 Restart All</button>
+            </div>
+            
+            <div class="playlist" id="playlist">
+                <div class="loading">Loading video playlist...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const videos = [
+            {
+                title: "Meeting Clip 1",
+                url: "https://drive.google.com/uc?export=download&id=1k4Zf8e_OmV3TlYhgVLAbaBjS1OrNdoVT"
+            },
+            {
+                title: "Meeting Clip 2", 
+                url: "https://drive.google.com/uc?export=download&id=1sYZoocnEUwG174xaVjleVKpyL9HqLklA"
+            },
+            {
+                title: "Meeting Clip 3",
+                url: "https://drive.google.com/uc?export=download&id=1aAuU1ENoSYp6DJexfNByEJVd01-Yu3Qx"
+            },
+            {
+                title: "Meeting Clip 4",
+                url: "https://drive.google.com/uc?export=download&id=1C-DMi5w5aGQCqqV6miHMOLq7hXkRNOdW"
+            }
+        ];
+
+        let currentVideoIndex = 0;
+        const video = document.getElementById('mainVideo');
+        const videoTitle = document.getElementById('videoTitle');
+        const videoStatus = document.getElementById('videoStatus');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressFill = document.getElementById('progressFill');
+        const playlist = document.getElementById('playlist');
+
+        function initializePlayer() {
+            createPlaylist();
+            loadVideo(0);
+            setupEventListeners();
+        }
+
+        function createPlaylist() {
+            playlist.innerHTML = '';
+            videos.forEach((video, index) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                if (index === 0) item.classList.add('active');
+                item.textContent = video.title;
+                item.onclick = () => loadVideo(index);
+                playlist.appendChild(item);
+            });
+        }
+
+        function loadVideo(index) {
+            if (index < 0 || index >= videos.length) return;
+            
+            currentVideoIndex = index;
+            const currentVideo = videos[index];
+            
+            video.src = currentVideo.url;
+            videoTitle.textContent = currentVideo.title;
+            videoStatus.textContent = `Video ${index + 1} of ${videos.length}`;
+            
+            // Update playlist active state
+            document.querySelectorAll('.playlist-item').forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+            
+            // Update button states
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === videos.length - 1;
+            
+            // Update overall progress
+            updateOverallProgress();
+        }
+
+        function setupEventListeners() {
+            video.addEventListener('loadstart', () => {
+                videoStatus.textContent = 'Loading video...';
+            });
+            
+            video.addEventListener('canplay', () => {
+                videoStatus.textContent = `Video ${currentVideoIndex + 1} of ${videos.length} - Ready to play`;
+            });
+            
+            video.addEventListener('ended', () => {
+                if (currentVideoIndex < videos.length - 1) {
+                    setTimeout(() => {
+                        nextVideo();
+                        video.play();
+                    }, 1000);
+                } else {
+                    videoStatus.textContent = 'All videos completed!';
+                    playPauseBtn.textContent = '▶ Play';
+                }
+            });
+            
+            video.addEventListener('play', () => {
+                playPauseBtn.textContent = '⏸ Pause';
+            });
+            
+            video.addEventListener('pause', () => {
+                playPauseBtn.textContent = '▶ Play';
+            });
+            
+            video.addEventListener('timeupdate', updateOverallProgress);
+            
+            video.addEventListener('error', (e) => {
+                console.error('Video error:', e);
+                videoStatus.textContent = 'Error loading video. Trying next...';
+                if (currentVideoIndex < videos.length - 1) {
+                    setTimeout(() => nextVideo(), 2000);
+                }
+            });
+        }
+
+        function updateOverallProgress() {
+            const videoProgress = video.duration ? (video.currentTime / video.duration) : 0;
+            const overallProgress = ((currentVideoIndex + videoProgress) / videos.length) * 100;
+            progressFill.style.width = overallProgress + '%';
+        }
+
+        function togglePlayPause() {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+
+        function nextVideo() {
+            if (currentVideoIndex < videos.length - 1) {
+                loadVideo(currentVideoIndex + 1);
+            }
+        }
+
+        function previousVideo() {
+            if (currentVideoIndex > 0) {
+                loadVideo(currentVideoIndex - 1);
+            }
+        }
+
+        function restartSequence() {
+            loadVideo(0);
+            video.currentTime = 0;
+            if (!video.paused) {
+                video.play();
+            }
+        }
+
+        // Initialize the player when page loads
+        document.addEventListener('DOMContentLoaded', initializePlayer);
+    </script>
+</body>
+</html>
