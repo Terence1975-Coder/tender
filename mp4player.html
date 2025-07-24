@@ -26,7 +26,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            max-width: 1000px;
+            max-width: 1200px;
             width: 100%;
             backdrop-filter: blur(10px);
         }
@@ -34,41 +34,43 @@
         .header {
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
-            padding: 25px;
+            padding: 30px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 8px;
+            font-size: 2.5em;
+            margin-bottom: 10px;
             font-weight: 300;
         }
 
         .header p {
-            font-size: 1.1em;
+            font-size: 1.2em;
             opacity: 0.9;
         }
 
         .video-wrapper {
             position: relative;
-            padding: 30px;
+            padding: 40px;
             background: white;
         }
 
         video {
             width: 100%;
             height: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             outline: none;
+            min-height: 400px;
+            background: #f8f9fa;
         }
 
         .controls {
-            margin-top: 25px;
+            margin-top: 30px;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
             flex-wrap: wrap;
         }
 
@@ -76,22 +78,25 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 15px 30px;
+            border-radius: 30px;
             cursor: pointer;
-            font-size: 1em;
+            font-size: 1.1em;
             font-weight: 500;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
         }
 
         .control-btn:active {
-            transform: translateY(0);
+            transform: translateY(-1px);
         }
 
         .control-btn:disabled {
@@ -100,87 +105,121 @@
             transform: none;
         }
 
+        .progress-section {
+            margin: 25px 0;
+        }
+
         .progress-bar {
             width: 100%;
-            height: 6px;
+            height: 8px;
             background: #e0e0e0;
-            border-radius: 3px;
-            margin: 20px 0;
+            border-radius: 4px;
             overflow: hidden;
+            margin-bottom: 10px;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 3px;
+            border-radius: 4px;
             transition: width 0.3s ease;
             width: 0%;
         }
 
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+        }
+
         .video-info {
             text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 1.1em;
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
         }
 
         .video-title {
             font-weight: 600;
             color: #2c3e50;
-            margin-bottom: 5px;
+            font-size: 1.3em;
+            margin-bottom: 8px;
+        }
+
+        .video-status {
+            color: #666;
+            font-size: 1.1em;
         }
 
         .playlist {
-            margin-top: 20px;
+            margin-top: 25px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
         }
 
         .playlist-item {
-            padding: 12px 16px;
+            padding: 15px 20px;
             background: #f8f9fa;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 3px solid transparent;
             text-align: center;
+            font-weight: 500;
         }
 
         .playlist-item:hover {
             background: #e9ecef;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .playlist-item.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .loading {
-            text-align: center;
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
             padding: 20px;
-            color: #666;
-            font-style: italic;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #b45309;
         }
 
         @media (max-width: 768px) {
             .header h1 {
-                font-size: 1.8em;
+                font-size: 2em;
             }
             
             .video-wrapper {
-                padding: 20px;
+                padding: 25px;
             }
             
             .controls {
                 flex-direction: column;
-                gap: 10px;
+                gap: 15px;
             }
             
             .control-btn {
                 width: 100%;
+                justify-content: center;
+            }
+            
+            .playlist {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -193,51 +232,61 @@
         </div>
         
         <div class="video-wrapper">
+            <div class="instructions">
+                <h3>📁 Setup Instructions</h3>
+                <p>Place your 4 MP4 files in the same folder as this HTML file and name them: <strong>video1.mp4</strong>, <strong>video2.mp4</strong>, <strong>video3.mp4</strong>, and <strong>video4.mp4</strong></p>
+            </div>
+            
             <video id="mainVideo" controls preload="metadata">
-                <source src="" type="video/mp4">
+                <source src="video1.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
             
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTime">0:00</span>
+                    <span id="totalTime">0:00</span>
+                </div>
             </div>
             
             <div class="video-info">
-                <div class="video-title" id="videoTitle">Loading...</div>
-                <div id="videoStatus">Preparing videos...</div>
+                <div class="video-title" id="videoTitle">Meeting Clip 1</div>
+                <div class="video-status" id="videoStatus">Video 1 of 4 - Ready to play</div>
             </div>
             
             <div class="controls">
-                <button class="control-btn" id="prevBtn" onclick="previousVideo()">⏮ Previous</button>
-                <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">▶ Play</button>
-                <button class="control-btn" id="nextBtn" onclick="nextVideo()">Next ⏭</button>
-                <button class="control-btn" onclick="restartSequence()">🔄 Restart All</button>
+                <button class="control-btn" id="prevBtn" onclick="previousVideo()">
+                    <span>⏮</span> Previous
+                </button>
+                <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">
+                    <span>▶</span> Play
+                </button>
+                <button class="control-btn" id="nextBtn" onclick="nextVideo()">
+                    Next <span>⏭</span>
+                </button>
+                <button class="control-btn" onclick="restartSequence()">
+                    <span>🔄</span> Restart All
+                </button>
             </div>
             
             <div class="playlist" id="playlist">
-                <div class="loading">Loading video playlist...</div>
+                <div class="playlist-item active" onclick="loadVideo(0)">Meeting Clip 1</div>
+                <div class="playlist-item" onclick="loadVideo(1)">Meeting Clip 2</div>
+                <div class="playlist-item" onclick="loadVideo(2)">Meeting Clip 3</div>
+                <div class="playlist-item" onclick="loadVideo(3)">Meeting Clip 4</div>
             </div>
         </div>
     </div>
 
     <script>
         const videos = [
-            {
-                title: "Meeting Clip 1",
-                url: "https://drive.google.com/uc?export=download&id=1k4Zf8e_OmV3TlYhgVLAbaBjS1OrNdoVT"
-            },
-            {
-                title: "Meeting Clip 2", 
-                url: "https://drive.google.com/uc?export=download&id=1sYZoocnEUwG174xaVjleVKpyL9HqLklA"
-            },
-            {
-                title: "Meeting Clip 3",
-                url: "https://drive.google.com/uc?export=download&id=1aAuU1ENoSYp6DJexfNByEJVd01-Yu3Qx"
-            },
-            {
-                title: "Meeting Clip 4",
-                url: "https://drive.google.com/uc?export=download&id=1C-DMi5w5aGQCqqV6miHMOLq7hXkRNOdW"
-            }
+            { title: "Meeting Clip 1", filename: "video1.mp4" },
+            { title: "Meeting Clip 2", filename: "video2.mp4" },
+            { title: "Meeting Clip 3", filename: "video3.mp4" },
+            { title: "Meeting Clip 4", filename: "video4.mp4" }
         ];
 
         let currentVideoIndex = 0;
@@ -248,24 +297,13 @@
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
         const progressFill = document.getElementById('progressFill');
-        const playlist = document.getElementById('playlist');
+        const currentTime = document.getElementById('currentTime');
+        const totalTime = document.getElementById('totalTime');
 
-        function initializePlayer() {
-            createPlaylist();
-            loadVideo(0);
-            setupEventListeners();
-        }
-
-        function createPlaylist() {
-            playlist.innerHTML = '';
-            videos.forEach((video, index) => {
-                const item = document.createElement('div');
-                item.className = 'playlist-item';
-                if (index === 0) item.classList.add('active');
-                item.textContent = video.title;
-                item.onclick = () => loadVideo(index);
-                playlist.appendChild(item);
-            });
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
         function loadVideo(index) {
@@ -274,7 +312,7 @@
             currentVideoIndex = index;
             const currentVideo = videos[index];
             
-            video.src = currentVideo.url;
+            video.src = currentVideo.filename;
             videoTitle.textContent = currentVideo.title;
             videoStatus.textContent = `Video ${index + 1} of ${videos.length}`;
             
@@ -287,8 +325,10 @@
             prevBtn.disabled = index === 0;
             nextBtn.disabled = index === videos.length - 1;
             
-            // Update overall progress
-            updateOverallProgress();
+            // Reset progress
+            progressFill.style.width = '0%';
+            currentTime.textContent = '0:00';
+            totalTime.textContent = '0:00';
         }
 
         function setupEventListeners() {
@@ -296,45 +336,44 @@
                 videoStatus.textContent = 'Loading video...';
             });
             
-            video.addEventListener('canplay', () => {
+            video.addEventListener('loadedmetadata', () => {
+                totalTime.textContent = formatTime(video.duration);
                 videoStatus.textContent = `Video ${currentVideoIndex + 1} of ${videos.length} - Ready to play`;
             });
             
             video.addEventListener('ended', () => {
                 if (currentVideoIndex < videos.length - 1) {
+                    videoStatus.textContent = 'Moving to next video...';
                     setTimeout(() => {
                         nextVideo();
                         video.play();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    videoStatus.textContent = 'All videos completed!';
-                    playPauseBtn.textContent = '▶ Play';
+                    videoStatus.textContent = '🎉 All videos completed!';
+                    playPauseBtn.innerHTML = '<span>▶</span> Play';
                 }
             });
             
             video.addEventListener('play', () => {
-                playPauseBtn.textContent = '⏸ Pause';
+                playPauseBtn.innerHTML = '<span>⏸</span> Pause';
             });
             
             video.addEventListener('pause', () => {
-                playPauseBtn.textContent = '▶ Play';
+                playPauseBtn.innerHTML = '<span>▶</span> Play';
             });
             
-            video.addEventListener('timeupdate', updateOverallProgress);
+            video.addEventListener('timeupdate', () => {
+                if (video.duration) {
+                    const progress = (video.currentTime / video.duration) * 100;
+                    progressFill.style.width = progress + '%';
+                    currentTime.textContent = formatTime(video.currentTime);
+                }
+            });
             
             video.addEventListener('error', (e) => {
                 console.error('Video error:', e);
-                videoStatus.textContent = 'Error loading video. Trying next...';
-                if (currentVideoIndex < videos.length - 1) {
-                    setTimeout(() => nextVideo(), 2000);
-                }
+                videoStatus.textContent = `⚠️ Error loading ${videos[currentVideoIndex].filename}`;
             });
-        }
-
-        function updateOverallProgress() {
-            const videoProgress = video.duration ? (video.currentTime / video.duration) : 0;
-            const overallProgress = ((currentVideoIndex + videoProgress) / videos.length) * 100;
-            progressFill.style.width = overallProgress + '%';
         }
 
         function togglePlayPause() {
@@ -360,13 +399,32 @@
         function restartSequence() {
             loadVideo(0);
             video.currentTime = 0;
-            if (!video.paused) {
-                video.play();
-            }
         }
 
-        // Initialize the player when page loads
-        document.addEventListener('DOMContentLoaded', initializePlayer);
+        // Initialize the player
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            loadVideo(0);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'ArrowLeft':
+                    previousVideo();
+                    break;
+                case 'ArrowRight':
+                    nextVideo();
+                    break;
+                case 'r':
+                    restartSequence();
+                    break;
+            }
+        });
     </script>
 </body>
 </html>
