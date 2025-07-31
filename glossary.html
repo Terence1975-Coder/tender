@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete AI Glossary - AIRE1 Course</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* AI-themed animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 255, 0, 0.05) 0%, transparent 50%);
+            animation: aiGlow 8s ease-in-out infinite alternate;
+            z-index: -2;
+        }
+
+        /* Animated circuit pattern */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: circuitMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes aiGlow {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            100% { transform: scale(1.1) rotate(2deg); opacity: 0.8; }
+        }
+
+        @keyframes circuitMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(20px, 20px); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
+            100% { text-shadow: 0 0 30px rgba(0, 255, 255, 0.8), 0 0 40px rgba(0, 255, 255, 0.3); }
+        }
+
+        h2 {
+            color: #ff6b9d;
+            margin: 30px 0 15px 0;
+            font-size: 1.8em;
+            border-bottom: 2px solid rgba(255, 107, 157, 0.3);
+            padding-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 107, 157, 0.3);
+        }
+
+        h3 {
+            color: #4ecdc4;
+            margin: 25px 0 10px 0;
+            font-size: 1.4em;
+        }
+
+        h4 {
+            color: #ffd93d;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #b0b0b0;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .nav-link {
+            color: #00ffff !important;
+            text-decoration: none !important;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid transparent;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: rgba(0, 255, 255, 0.5);
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .term {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #00ffff;
+            transition: all 0.3s ease;
+        }
+
+        .term:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+            border-left-width: 5px;
+        }
+
+        .term strong {
+            color: #00ffff;
+            font-size: 1.1em;
+        }
+
+        .highlighted-section {
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 255, 0, 0.1)) !important;
+            border: 2px solid #00ff00 !important;
+            border-radius: 10px !important;
+            padding: 20px !important;
+            margin: 10px 0 !important;
+            animation: highlightPulse 2s ease-in-out 3;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3) !important;
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+                border-color: #00ff00;
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
+                border-color: #40ff40;
+            }
+        }
+
+        .toc {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+
+        .tip-box, .mistake-box {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tip-box {
+            border-left-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .mistake-box {
+            border-left-color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .example {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #ffd700;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .section {
+            margin: 40px 0;
+            scroll-margin-top: 100px;
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #00ffff, #ff6b9d);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: none;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .scroll-to-top:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            h1 { font-size: 2em; }
+            h2 { font-size: 1.5em; }
+        }
+
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            margin: 30px 0;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Complete AI Glossary & Practical Guide</h1>
+        <p class="subtitle">AIRE1 - AI in Business Course</p>
+
+        <hr>
+
+        <div class="section">
+            <h2><span class="emoji">📚</span>How to Use This Guide</h2>
+            <p><strong>Welcome to your complete AI reference!</strong> This guide combines essential AI terms with practical tips you can use right away.</p>
+            
+            <p><strong>🔍 Quick Navigation:</strong></p>
+            <ul>
+                <li><strong>Highlighted terms</strong> have practical tips and examples - click to jump to guidance</li>
+                <li><strong>Numbers</strong> help you find terms quickly</li>
+                <li><strong>Real examples</strong> show you exactly what to do</li>
+                <li><strong>Common mistakes</strong> help you avoid pitfalls</li>
+            </ul>
+            
+            <p><strong>💡 Pro Tip:</strong> Bookmark this document - you'll reference it throughout the course and beyond!</p>
+        </div>
+
+        <hr>
+
+        <div class="toc section">
+            <h2><span class="emoji">📋</span>Table of Contents</h2>
+            <ul>
+                <li><span class="nav-link" data-target="core-concepts">1. Core AI Concepts (Terms 1.1-1.9)</span></li>
+                <li><span class="nav-link" data-target="llm-advanced">2. LLM-Specific and Advanced Terms (Terms 2.1-2.10)</span></li>
+                <li><span class="nav-link" data-target="prompting">3. Prompting & Interaction Techniques (Terms 3.1-3.10)</span></li>
+                <li><span class="nav-link" data-target="ethics">4. Ethics, Safety, and Trust (Terms 4.1-4.7)</span></li>
+                <li><span class="nav-link" data-target="business">5. Business and Productivity Applications (Terms 5.1-5.6)</span></li>
+                <li><span class="nav-link" data-target="tools">6. AI Tools & Platforms (Terms 6.1-6.6)</span></li>
+                <li><span class="nav-link" data-target="development">7. AI Development & Methodology (Terms 7.1-7.7)</span></li>
+                <li><span class="nav-link" data-target="practical-tips">8. 🎯 Practical Tips & Examples</span></li>
+                <li><span class="nav-link" data-target="common-mistakes">9. ❌ Common Mistakes to Avoid</span></li>
+            </ul>
+        </div>
+
+        <hr>
+
+        <div id="core-concepts" class="section">
+            <h2>1. Core AI Concepts</h2>
+            
+            <div class="term">
+                <strong>1.1 Artificial Intelligence (AI)</strong><br>
+                The ability of a machine to perform tasks that typically require human intelligence, such as learning, problem-solving, and decision-making.
+            </div>
+
+            <div class="term">
+                <strong>1.2 Machine Learning (ML)</strong><br>
+                A subset of AI in which systems learn patterns from data to improve performance without being explicitly programmed.
+            </div>
+
+            <div class="term">
+                <strong>1.3 Deep Learning</strong><br>
+                A subfield of ML that uses multi-layered neural networks to process and learn from large amounts of data, especially for tasks like image or speech recognition.
+            </div>
+
+            <div class="term">
+                <strong>1.4 Natural Language Processing (NLP)</strong><br>
+                A branch of AI that deals with understanding, interpreting, and generating human language (text or speech). <span class="nav-link" data-target="tip-7">→ See Tip 7</span>
+            </div>
+
+            <div class="term">
+                <strong>1.5 Large Language Model (LLM)</strong><br>
+                A deep learning model trained on massive textual datasets to generate and understand human-like language (e.g., GPT-4, Claude, Gemini).
+            </div>
+
+            <div class="term">
+                <strong>1.6 Generative AI</strong><br>
+                AI systems that can create new content such as text, images, audio, or code based on learned patterns from training data. <span class="nav-link" data-target="tip-9">→ See Tip 9</span>
+            </div>
+
+            <div class="term">
+                <strong>1.7 Neural Network</strong><br>
+                A structure of algorithms modeled after the human brain, used for recognizing patterns and making predictions in AI systems.
+            </div>
+
+            <div class="term">
+                <strong>1.8 Embeddings</strong><br>
+                A mathematical way of representing data (like words or images) as vectors so that semantic relationships can be calculated. <span class="nav-link" data-target="tip-12">→ See Tip 12</span>
+            </div>
+
+            <div class="term">
+                <strong>1.9 Token</strong><br>
+                A small unit of text (word or part of a word) that LLMs use as input and output during text generation.
+            </div>
+        </div>
+
+        <div id="llm-advanced" class="section">
+            <h2>2. LLM-Specific and Advanced Terms</h2>
+            
+            <div class="term">
+                <strong>2.1 Prompt Engineering</strong><br>
+                Crafting effective prompts to guide an AI model's behavior and output in a desirable way. <span class="nav-link" data-target="tip-1">→ See Tips 1, 8</span>
+            </div>
+
+            <div class="term">
+                <strong>2.2 Inference</strong><br>
+                The process of using a trained model to make predictions or generate responses from new input.
+            </div>
+
+            <div class="term">
+                <strong>2.3 Fine-Tuning</strong><br>
+                Customizing a pre-trained model by continuing training it on a smaller, task-specific dataset. <span class="nav-link" data-target="mistake-3">→ See Mistake 3</span>
+            </div>
+
+            <div class="term">
+                <strong>2.4 Context Window</strong><br>
+                The maximum amount of text (tokens) an LLM can consider at once. Longer context windows allow the model to understand and respond based on more prior content. <span class="nav-link" data-target="tip-4">→ See Tip 4</span>
+            </div>
+
+            <div class="term">
+                <strong>2.5 Hallucination</strong><br>
+                When an AI model generates information that is factually incorrect, fabricated, or nonsensical, despite sounding plausible. <span class="nav-link" data-target="tip-2">→ See Tip 2</span>
+            </div>
+
+            <div class="term">
+                <strong>2.6 Zero-Shot Learning</strong><br>
+                A model's ability to perform a task it was not explicitly trained for, using general knowledge. <span class="nav-link" data-target="mistake-1">→ See Mistake 1</span>
+            </div>
+
+            <div class="term">
+                <strong>2.7 Few-Shot Learning</strong><br>
+                A model's ability to learn or adapt to a new task with only a few examples provided in the prompt. <span class="nav-link" data-target="tip-3">→ See Tips 3, Mistake 1</span>
+            </div>
+
+            <div class="term">
+                <strong>2.8 Chain of Thought Prompting</strong><br>
+                A prompting technique that encourages the model to reason step-by-step, improving problem-solving performance. <span class="nav-link" data-target="tip-11">→ See Tip 11</span>
+            </div>
+
+            <div class="term">
+                <strong>2.9 Retrieval-Augmented Generation (RAG)</strong><br>
+                An approach that combines LLMs with external data retrieval (e.g., search engines or vector databases) to produce more accurate and current outputs. <span class="nav-link" data-target="tip-2">→ See Tips 2, 12</span>
+            </div>
+
+            <div class="term">
+                <strong>2.10 Vector Database</strong><br>
+                A database optimized for storing and querying embeddings, used in AI applications like search, recommendation, and semantic memory. <span class="nav-link" data-target="tip-12">→ See Tip 12</span>
+            </div>
+        </div>
+
+        <div id="prompting" class="section">
+            <h2>3. Prompting & Interaction Techniques</h2>
+            
+            <div class="term">
+                <strong>3.1 Grounding</strong><br>
+                The technique of keeping an AI system aligned with a specific goal, context, or topic over multiple interactions. Grounding helps maintain consistency, relevance, and factual correctness. <span class="nav-link" data-target="tip-1">→ See Tips 1, 2</span>
+            </div>
+
+            <div class="term">
+                <strong>3.2 Contextual Grounding</strong><br>
+                Providing clear, structured information (e.g., role, objective, constraints) within a prompt to ensure the AI understands the scope and purpose of the conversation or task. <span class="nav-link" data-target="tip-1">→ See Tip 1</span>
+            </div>
+
+            <div class="term">
+                <strong>3.3 System Prompt (or System Message)</strong><br>
+                An invisible or upfront message that sets the behavior, tone, or scope for an AI model during a session. It helps "prime" the model for role-based or long-form interactions. <span class="nav-link" data-target="tip-1">→ See Tip 1</span>
+            </div>
+
+            <div class="term">
+                <strong>3.4 Session Memory / Conversational Memory</strong><br>
+                The ability (real or simulated) for an AI to retain information from earlier in a conversation and use it appropriately later. This is useful for keeping track of instructions, personas, or steps in long tasks. <span class="nav-link" data-target="tip-4">→ See Tip 4</span>
+            </div>
+
+            <div class="term">
+                <strong>3.5 Few-Shot Prompting</strong><br>
+                Including a few examples of input-output pairs in a prompt to help the model learn the pattern of the task.
+            </div>
+
+            <div class="term">
+                <strong>3.6 Zero-Shot Prompting</strong><br>
+                Asking the AI to perform a task without any examples, relying on its pretraining alone.
+            </div>
+
+            <div class="term">
+                <strong>3.7 Temperature (in AI Models)</strong><br>
+                A setting that controls the randomness of AI outputs. Lower temperatures (e.g., 0.2) produce more focused, deterministic results; higher values (e.g., 0.8) make responses more creative but riskier. <span class="nav-link" data-target="tip-3">→ See Tip 3</span>
+            </div>
+
+            <div class="term">
+                <strong>3.8 Top-p Sampling (Nucleus Sampling)</strong><br>
+                A sampling method that limits the AI's output to the top most probable tokens, increasing coherence while maintaining some creativity.
+            </div>
+
+            <div class="term">
+                <strong>3.9 Reinforcement Prompting</strong><br>
+                Reiterating objectives or constraints during an interaction to refocus the AI or correct drift (i.e., when the AI starts to veer off-topic).
+            </div>
+
+            <div class="term">
+                <strong>3.10 AI Hallucination</strong><br>
+                (See "Hallucination" above) -- This specifically refers to LLMs generating content that seems plausible but is factually false or invented.
+            </div>
+        </div>
+
+        <div id="ethics" class="section">
+            <h2>4. Ethics, Safety, and Trust</h2>
+            
+            <div class="term">
+                <strong>4.1 Bias in AI</strong><br>
+                Systematic errors or unfair outcomes produced by an AI due to biased training data or flawed model design. <span class="nav-link" data-target="tip-7">→ See Tips 7, Mistake 2</span>
+            </div>
+
+            <div class="term">
+                <strong>4.2 Responsible AI</strong><br>
+                Developing and using AI in a way that aligns with ethical values, transparency, fairness, and legal compliance. <span class="nav-link" data-target="mistake-2">→ See Mistake 2</span>
+            </div>
+
+            <div class="term">
+                <strong>4.3 Explainability (Interpretability)</strong><br>
+                The degree to which an AI system's processes and outputs can be understood and interpreted by humans. <span class="nav-link" data-target="tip-10">→ See Tips 10, 15</span>
+            </div>
+
+            <div class="term">
+                <strong>4.4 Ethical AI</strong><br>
+                AI systems designed and deployed to ensure fairness, non-discrimination, transparency, and respect for human rights. <span class="nav-link" data-target="tip-15">→ See Tips 15, Mistake 2</span>
+            </div>
+
+            <div class="term">
+                <strong>4.5 AI Governance</strong><br>
+                Rules, frameworks, and policies that guide the safe and ethical use of AI technologies within organizations or society. <span class="nav-link" data-target="tip-13">→ See Tips 13, 15</span>
+            </div>
+
+            <div class="term">
+                <strong>4.6 Ethical Dilemmas in AI</strong><br>
+                Challenges that arise when AI decisions conflict with privacy, fairness, accountability, or other human values.
+            </div>
+
+            <div class="term">
+                <strong>4.7 AI Hallucination</strong><br>
+                (See "Hallucination" above) -- This specifically refers to LLMs generating content that seems plausible but is factually false or invented.
+            </div>
+        </div>
+
+        <div id="business" class="section">
+            <h2>5. Business and Productivity Applications</h2>
+            
+            <div class="term">
+                <strong>5.1 Workflow Automation</strong><br>
+                Using AI or software tools to perform routine business tasks automatically, reducing the need for manual intervention. <span class="nav-link" data-target="tip-5">→ See Tip 5</span>
+            </div>
+
+            <div class="term">
+                <strong>5.2 Predictive Analytics</strong><br>
+                Using AI to analyze data trends and make forecasts about future outcomes, such as demand or customer behavior. <span class="nav-link" data-target="tip-6">→ See Tips 6, 14</span>
+            </div>
+
+            <div class="term">
+                <strong>5.3 Decision Support System (DSS)</strong><br>
+                Tools that use AI to assist users in making data-informed decisions by simulating outcomes and evaluating scenarios. <span class="nav-link" data-target="tip-10">→ See Tips 10, 14</span>
+            </div>
+
+            <div class="term">
+                <strong>5.4 Personalization</strong><br>
+                Tailoring content, recommendations, or experiences using AI based on individual user behavior or preferences.
+            </div>
+
+            <div class="term">
+                <strong>5.5 Sentiment Analysis</strong><br>
+                An NLP technique used to detect the emotional tone (positive, negative, neutral) of text data such as reviews or comments. <span class="nav-link" data-target="tip-7">→ See Tip 7</span>
+            </div>
+
+            <div class="term">
+                <strong>5.6 Chatbot / Virtual Assistant</strong><br>
+                AI tools that simulate human conversation to assist users with queries, support, or transactions.
+            </div>
+        </div>
+
+        <div id="tools" class="section">
+            <h2>6. AI Tools & Platforms</h2>
+            
+            <div class="term">
+                <strong>6.1 Microsoft Copilot</strong><br>
+                An AI assistant embedded in Microsoft 365 tools to help automate tasks, summarize content, and generate documents. <span class="nav-link" data-target="tip-8">→ See Tip 8</span>
+            </div>
+
+            <div class="term">
+                <strong>6.2 Google Gemini</strong><br>
+                Google's AI-powered tool embedded into Workspace apps like Docs and Sheets to support writing, analysis, and collaboration.
+            </div>
+
+            <div class="term">
+                <strong>6.3 Midjourney</strong><br>
+                A generative AI tool that creates images based on descriptive text prompts. <span class="nav-link" data-target="tip-9">→ See Tip 9</span>
+            </div>
+
+            <div class="term">
+                <strong>6.4 n8n</strong><br>
+                An open-source tool for automating workflows between different services with a low-code/no-code interface. <span class="nav-link" data-target="tip-5">→ See Tip 5</span>
+            </div>
+
+            <div class="term">
+                <strong>6.5 Make.com (formerly Integromat)</strong><br>
+                A visual platform for creating automated workflows between apps, widely used for business process automation. <span class="nav-link" data-target="tip-5">→ See Tip 5</span>
+            </div>
+
+            <div class="term">
+                <strong>6.6 ChatGPT / Claude / Bard</strong><br>
+                Examples of advanced LLMs that use deep learning to understand and generate natural language for various tasks.
+            </div>
+        </div>
+
+        <div id="development" class="section">
+            <h2>7. AI Development & Methodology</h2>
+            
+            <div class="term">
+                <strong>7.1 Training Data</strong><br>
+                The dataset used to teach a model how to perform a task by identifying patterns and making associations. <span class="nav-link" data-target="tip-6">→ See Tip 6</span>
+            </div>
+
+            <div class="term">
+                <strong>7.2 Model</strong><br>
+                A trained algorithm that performs a specific task such as text generation, classification, or prediction.
+            </div>
+
+            <div class="term">
+                <strong>7.3 Iteration</strong><br>
+                A repeated process of refining a model, prompt, or workflow through cycles of feedback, testing, and improvement. <span class="nav-link" data-target="mistake-3">→ See Mistake 3</span>
+            </div>
+
+            <div class="term">
+                <strong>7.4 Overfitting</strong><br>
+                When an AI model learns the training data too well—including noise or anomalies—resulting in poor performance on new, unseen data. <span class="nav-link" data-target="tip-6">→ See Tip 6</span>
+            </div>
+
+            <div class="term">
+                <strong>7.5 Underfitting</strong><br>
+                When a model is too simplistic to capture patterns in the data, resulting in inaccurate predictions or outputs.
+            </div>
+
+            <div class="term">
+                <strong>7.6 Autonomous Agent</strong><br>
+                An AI system that can independently make decisions and perform tasks without human intervention, often used in automation and robotics. <span class="nav-link" data-target="tip-13">→ See Tip 13</span>
+            </div>
+
+            <div class="term">
+                <strong>7.7 Artificial General Intelligence (AGI)</strong><br>
+                A hypothetical AI that can perform any intellectual task a human can—currently not achieved.
+            </div>
+        </div>
+
+        <hr>
+
+        <div id="practical-tips" class="section">
+            <h2><span class="emoji">🎯</span>Practical Tips & Examples</h2>
+            <p><em>Click any tip number to jump back to related terms in the glossary above</em></p>
+
+            <h3><span class="emoji">🎯</span>Prompting Best Practices</h3>
+
+            <div id="tip-1" class="tip-box">
+                <h4>Tip 1: Effective Grounding Techniques</h4>
+                <p><strong>Related Terms:</strong> Grounding (3.1), System Prompt (3.3), Contextual Grounding (3.2), Prompt Engineering (2.1)</p>
+                <p><strong>What it means:</strong> Keep your AI conversations focused and on-track</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Start with clear role definitions: "You are a business analyst helping me..."</li>
+                    <li>Restate your goals when conversations drift: "Remember, we're focusing on cost reduction strategies"</li>
+                    <li>Use consistent terms throughout long chats</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"As a marketing expert, help me create email campaigns. Keep responses under 200 words and focus on B2B software companies."</em>
+                </div>
+            </div>
+
+            <div id="tip-2" class="tip-box">
+                <h4>Tip 2: Managing Hallucinations</h4>
+                <p><strong>Related Terms:</strong> Hallucination (2.5), Grounding (3.1), RAG (2.9)</p>
+                <p><strong>What it means:</strong> Stop AI from making up fake information</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Always double-check facts, especially dates and statistics</li>
+                    <li>Ask for sources: "Can you provide sources for these statistics?"</li>
+                    <li>Use fact-checking tools when available</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Instead of "What's Microsoft's revenue?" try "What was Microsoft's reported revenue in their latest quarterly earnings? Please note if you're uncertain."</em>
+                </div>
+            </div>
+
+            <div id="tip-3" class="tip-box">
+                <h4>Tip 3: Temperature Control for Different Tasks</h4>
+                <p><strong>Related Terms:</strong> Temperature (3.7), Few-Shot Learning (2.7)</p>
+                <p><strong>What it means:</strong> Adjust AI creativity based on your needs</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Low temperature (0.1-0.3) = More reliable, factual outputs</li>
+                    <li>High temperature (0.7-0.9) = More creative, varied ideas</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Financial reports = low temperature; Marketing brainstorming = higher temperature</em>
+                </div>
+            </div>
+
+            <div id="tip-4" class="tip-box">
+                <h4>Tip 4: Context Window Management</h4>
+                <p><strong>Related Terms:</strong> Context Window (2.4), Session Memory (3.4)</p>
+                <p><strong>What it means:</strong> Handle long conversations without losing track</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Summarize key points when conversations get long</li>
+                    <li>Break big tasks into smaller pieces</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Before we continue, let me summarize our discussion: [key points]. Now let's move to the next phase..."</em>
+                </div>
+            </div>
+
+            <h3><span class="emoji">💼</span>Business Application Tips</h3>
+
+            <div id="tip-5" class="tip-box">
+                <h4>Tip 5: Workflow Automation Planning</h4>
+                <p><strong>Related Terms:</strong> Workflow Automation (5.1), n8n (6.4), Make.com (6.5)</p>
+                <p><strong>What it means:</strong> Smart planning before you automate anything</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Map out your manual process first</li>
+                    <li>Start with simple, repetitive tasks</li>
+                    <li>Test with small amounts of data</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Email notification → Data entry → Report generation (simple flow first, complex branching later)</em>
+                </div>
+            </div>
+
+            <div id="tip-6" class="tip-box">
+                <h4>Tip 6: Predictive Analytics Implementation</h4>
+                <p><strong>Related Terms:</strong> Predictive Analytics (5.2), Training Data (7.1), Overfitting (7.4)</p>
+                <p><strong>What it means:</strong> Make AI predictions work in the real world</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Use current, relevant data for training</li>
+                    <li>Watch for when patterns change over time</li>
+                    <li>Always have humans review important decisions</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Sales forecasting models should be updated quarterly to catch seasonal changes</em>
+                </div>
+            </div>
+
+            <div id="tip-7" class="tip-box">
+                <h4>Tip 7: Sentiment Analysis in Customer Service</h4>
+                <p><strong>Related Terms:</strong> Sentiment Analysis (5.5), NLP (1.4), Bias in AI (4.1)</p>
+                <p><strong>What it means:</strong> Use AI to understand customer emotions, but stay smart about it</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Combine AI sentiment scores with human judgment</li>
+                    <li>Watch out for cultural and language biases</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"The AI shows negative sentiment, but let's review the full context before escalating"</em>
+                </div>
+            </div>
+
+            <h3><span class="emoji">🛠️</span>Tool-Specific Guidelines</h3>
+
+            <div id="tip-8" class="tip-box">
+                <h4>Tip 8: Microsoft Copilot Optimization</h4>
+                <p><strong>Related Terms:</strong> Microsoft Copilot (6.1), Prompt Engineering (2.1)</p>
+                <p><strong>What it means:</strong> Get better results from Copilot</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Be specific about how you want documents formatted</li>
+                    <li>Use bullet points for complex instructions</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Create a project timeline in table format with columns for Task, Owner, Deadline, and Status"</em>
+                </div>
+            </div>
+
+            <div id="tip-9" class="tip-box">
+                <h4>Tip 9: Effective Use of Midjourney</h4>
+                <p><strong>Related Terms:</strong> Midjourney (6.3), Generative AI (1.6)</p>
+                <p><strong>What it means:</strong> Create better AI-generated images</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Include style details and specific descriptions</li>
+                    <li>Use the right image proportions for your needs</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Professional headshot, corporate environment, natural lighting, business attire --ar 1:1"</em>
+                </div>
+            </div>
+
+            <div id="tip-10" class="tip-box">
+                <h4>Tip 10: Building Reliable Decision Support Systems</h4>
+                <p><strong>Related Terms:</strong> Decision Support System (5.3), Explainability (4.3)</p>
+                <p><strong>What it means:</strong> Make AI recommendations you can trust</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Always show confidence levels</li>
+                    <li>Explain the reasoning behind recommendations</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Recommendation: Increase inventory by 15% (Confidence: 78%). Reasoning: Sales trend +12%, seasonal factor +3%"</em>
+                </div>
+            </div>
+
+            <h3><span class="emoji">🚀</span>Advanced Techniques</h3>
+
+            <div id="tip-11" class="tip-box">
+                <h4>Tip 11: Chain of Thought for Complex Problem Solving</h4>
+                <p><strong>Related Terms:</strong> Chain of Thought Prompting (2.8)</p>
+                <p><strong>What it means:</strong> Get AI to think through problems step-by-step</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Break problems into logical steps</li>
+                    <li>Ask AI to "think step by step"</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Let's solve this budget allocation problem step by step: 1) List all departments, 2) Identify priorities, 3) Calculate proportional needs..."</em>
+                </div>
+            </div>
+
+            <div id="tip-12" class="tip-box">
+                <h4>Tip 12: Using RAG for Accurate Information</h4>
+                <p><strong>Related Terms:</strong> RAG (2.9), Vector Database (2.10), Embeddings (1.8)</p>
+                <p><strong>What it means:</strong> Combine AI generation with real-time information lookup</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Use AI with live data searches</li>
+                    <li>Cross-check information from multiple sources</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>"Search our internal knowledge base for the latest pricing policy, then generate a customer response"</em>
+                </div>
+            </div>
+
+            <div id="tip-13" class="tip-box">
+                <h4>Tip 13: Autonomous Agent Supervision</h4>
+                <p><strong>Related Terms:</strong> Autonomous Agent (7.6), AI Governance (4.5)</p>
+                <p><strong>What it means:</strong> Keep AI agents under control</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Set clear limits and stop conditions</li>
+                    <li>Check on agent actions regularly</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Set spending limits for AI agents managing ad campaigns</em>
+                </div>
+            </div>
+
+            <h3><span class="emoji">📊</span>Measurement & Evaluation</h3>
+
+            <div id="tip-14" class="tip-box">
+                <h4>Tip 14: Measuring AI Implementation Success</h4>
+                <p><strong>Related Terms:</strong> Predictive Analytics (5.2), Decision Support System (5.3)</p>
+                <p><strong>What it means:</strong> Know if your AI is actually helping</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Define success metrics before you start</li>
+                    <li>Compare AI-assisted vs. manual processes</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Track time saved, accuracy improvements, user satisfaction scores</em>
+                </div>
+            </div>
+
+            <div id="tip-15" class="tip-box">
+                <h4>Tip 15: Ethical AI Monitoring</h4>
+                <p><strong>Related Terms:</strong> Ethical AI (4.4), AI Governance (4.5), Explainability (4.3)</p>
+                <p><strong>What it means:</strong> Keep your AI fair and trustworthy</p>
+                <p><strong>How to do it:</strong></p>
+                <ul>
+                    <li>Regular bias checks and fairness reviews</li>
+                    <li>Keep humans in the loop for important decisions</li>
+                </ul>
+                <div class="example">
+                    <strong>Real Example:</strong> <em>Monthly review of AI hiring recommendations for demographic balance</em>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div id="common-mistakes" class="section">
+            <h2><span class="emoji">❌</span>Common Mistakes to Avoid</h2>
+
+            <div id="mistake-1" class="mistake-box">
+                <h4>Mistake 1: Over-relying on Zero-Shot Performance</h4>
+                <p><strong>Related Terms:</strong> Zero-Shot Learning (2.6), Few-Shot Learning (2.7)</p>
+                <p><strong>The Problem:</strong> Assuming AI understands complex tasks without examples</p>
+                <p><strong>The Fix:</strong></p>
+                <ul>
+                    <li>Provide examples for complex or industry-specific tasks</li>
+                    <li>Don't assume AI knows your business jargon</li>
+                </ul>
+                <p><strong>Prevention:</strong> Always test with examples first</p>
+            </div>
+
+            <div id="mistake-2" class="mistake-box">
+                <h4>Mistake 2: Ignoring Bias in Training Data</h4>
+                <p><strong>Related Terms:</strong> Bias in AI (4.1), Responsible AI (4.2), Ethical AI (4.4)</p>
+                <p><strong>The Problem:</strong> AI systems creating unfair or discriminatory outcomes</p>
+                <p><strong>The Fix:</strong></p>
+                <ul>
+                    <li>Regularly check AI outputs for fairness</li>
+                    <li>Test with diverse scenarios and datasets</li>
+                </ul>
+                <div class="example">
+                    <strong>Prevention Example:</strong> <em>Check if hiring AI tools favor certain demographics</em>
+                </div>
+            </div>
+
+            <div id="mistake-3" class="mistake-box">
+                <h4>Mistake 3: Poor Iteration Practices</h4>
+                <p><strong>Related Terms:</strong> Iteration (7.3), Fine-Tuning (2.3)</p>
+                <p><strong>The Problem:</strong> Making too many changes at once without tracking what works</p>
+                <p><strong>The Fix:</strong></p>
+                <ul>
+                    <li>Document what changes improve performance</li>
+                    <li>Test one change at a time</li>
+                </ul>
+                <div class="example">
+                    <strong>Prevention Example:</strong> <em>Change one prompt element at a time to see what works</em>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="section" style="text-align: center; margin-top: 50px;">
+            <p><em>This complete guide supports learners in the AIRE1 - AI in Business course, providing both essential definitions and practical guidance for real-world AI implementation.</em></p>
+        </div>
+    </div>
+
+    <button class="scroll-to-top" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Fixed smooth scrolling with green highlighting - no popups!
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Prevent any default behavior
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const targetId = this.getAttribute('data-target');
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        // Remove previous highlights
+                        document.querySelectorAll('.highlighted-section').forEach(el => {
+                            el.classList.remove('highlighted-section');
+                        });
+                        
+                        // Scroll to target smoothly
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        
+                        // Add green highlight with delay
+                        setTimeout(() => {
+                            targetElement.classList.add('highlighted-section');
+                            
+                            // Remove highlight after animation completes
+                            setTimeout(() => {
+                                targetElement.classList.remove('highlighted-section');
+                            }, 6000);
+                        }, 500);
+                    }
+                    
+                    // Explicitly return false to prevent any browser navigation
+                    return false;
+                });
+            });
+        });
+
+        // Scroll to top functionality
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Show/hide scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollButton = document.querySelector('.scroll-to-top');
+            if (window.pageYOffset > 300) {
+                scrollButton.style.display = 'block';
+            } else {
+                scrollButton.style.display = 'none';
+            }
+        });
+
+        // Interactive hover effects for terms
+        document.addEventListener('DOMContentLoaded', function() {
+            const terms = document.querySelectorAll('.term');
+            terms.forEach(term => {
+                term.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateX(10px)';
+                    this.style.borderLeftWidth = '5px';
+                });
+                
+                term.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateX(0)';
+                    this.style.borderLeftWidth = '3px';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
