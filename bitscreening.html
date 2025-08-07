@@ -1024,30 +1024,49 @@
             sendToMake(applicantData) {
                 if (!this.config.useMakeIntegration || !this.config.makeWebhookURL) {
                     console.log('📊 Make.com integration disabled or no webhook URL provided');
-                    return Promise.reject('Make.com not configured');
+                    return Promise.reject(new Error('Make.com not configured'));
                 }
 
-                console.log('📊 Sending data to Make.com webhook:', this.config.makeWebhookURL);
+                console.log('📊 ===== SENDING TO MAKE.COM WEBHOOK =====');
+                console.log('📊 Webhook URL:', this.config.makeWebhookURL);
+                console.log('📊 Expected URL: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                console.log('📊 URLs Match:', this.config.makeWebhookURL === 'https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                console.log('📊 Data being sent:', applicantData);
                 
                 return fetch(this.config.makeWebhookURL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'User-Agent': 'AI Bootcamp Screening Chatbot v4.0'
                     },
                     body: JSON.stringify(applicantData)
                 })
                 .then(response => {
+                    console.log('📊 Make.com webhook response status:', response.status);
+                    console.log('📊 Make.com webhook response headers:', response.headers);
+                    
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
-                    return response.json().catch(() => ({})); // Handle empty responses
+                    
+                    // Handle both JSON and text responses
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
+                    } else {
+                        return response.text().then(text => ({ message: text || 'Success' }));
+                    }
                 })
                 .then(result => {
                     console.log('📊 ✅ Data sent to Make.com successfully:', result);
+                    console.log('📊 ✅ Webhook URL confirmed: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
                     return result;
                 })
                 .catch(error => {
                     console.error('📊 ❌ Make.com webhook failed:', error);
+                    console.error('📊 ❌ Webhook URL was:', this.config.makeWebhookURL);
+                    console.error('📊 ❌ Expected URL: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
                     throw error;
                 });
             }
@@ -1562,21 +1581,23 @@
                 }
                 
                 this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
-                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!<br><br>📊 <strong>Sending report to dashboard...</strong>`);
+                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!<br><br>📊 <strong>🚀 AUTOMATICALLY SENDING REPORT TO MAKE.COM...</strong>`);
                 
                 this.candidateData.interestLevel += 2;
                 
-                // LOG: Confirming Make.com reporting will happen
-                console.log('📊 ===== INTERVIEW BOOKING CONFIRMED =====');
-                console.log('📊 Target: Make.com EU2 Webhook');
+                // LOG: Confirming Make.com reporting will happen IMMEDIATELY
+                console.log('📊 ===== "BOOK MY INTERVIEW" CLICKED - IMMEDIATE MAKE.COM TRANSMISSION =====');
+                console.log('📊 Target Webhook: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
                 console.log('📊 Candidate Name:', `${firstName} ${surname}`);
                 console.log('📊 Candidate Email:', email);
                 console.log('📊 Candidate Mobile:', mobile);
-                console.log('📊 Candidate data ready for transmission:', this.candidateData);
-                console.log('📊 About to trigger completeAssessment() -> sendToDashboard()');
+                console.log('📊 Candidate data ready for immediate transmission:', this.candidateData);
+                console.log('📊 About to trigger IMMEDIATE completeAssessment() -> sendToDashboard() -> sendToMake()');
                 
-                // Complete assessment which triggers Make.com reporting
-                this.completeAssessment();
+                // IMMEDIATE TRANSMISSION TO MAKE.COM - This happens RIGHT NOW when "Book My Interview" is clicked
+                setTimeout(() => {
+                    this.completeAssessment();
+                }, 1000);
             }
 
             // Firebase cloud storage methods
@@ -2597,6 +2618,9 @@ Are you still interested in progressing with this opportunity?`);
                                                    transition: background 0.3s ease; width: 100%; max-width: 250px;">
                                         📅 Book My Interview
                                     </button>
+                                    <div style="font-size: 11px; color: #666; margin-top: 8px;">
+                                        ⚡ This will automatically send your assessment to Make.com
+                                    </div>
                                 </div>
                             </div>
                         `;
