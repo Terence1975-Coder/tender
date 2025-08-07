@@ -1161,17 +1161,17 @@
                     </div>
                 `);
             }
-            // Dashboard reporting methods - Make.com Integration
+            // Dashboard reporting methods - Make.com Integration with AUTO-SEND
             sendToDashboard() {
-                console.log('📊 ===== MAKE.COM INTEGRATION TRANSMISSION =====');
-                console.log('📊 Preparing data for Make.com webhook processing');
+                console.log('📊 ===== AUTO MAKE.COM INTEGRATION TRANSMISSION =====');
+                console.log('📊 Preparing data for automatic Make.com webhook processing');
                 
                 // Prepare comprehensive data for Make.com
                 const makeData = this.prepareMakeData();
                 
-                console.log('📊 Make.com data prepared:', makeData);
+                console.log('📊 Make.com data prepared for auto-transmission:', makeData);
                 
-                // Send to Make.com webhook
+                // AUTOMATIC Send to Make.com webhook
                 this.sendToMake(makeData)
                     .then(result => {
                         this.showMakeSuccessConfirmation(makeData, result);
@@ -1195,9 +1195,9 @@
 
             showMakeSuccessConfirmation(makeData, result) {
                 this.addMessage('bot', `
-                    📊 <strong>Candidate data sent to Make.com successfully!</strong><br>
+                    📊 <strong>✅ AUTO-TRANSMISSION TO MAKE.COM SUCCESSFUL!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ Webhook Delivered Successfully</strong><br>
+                        <strong>🎉 Webhook Delivered Automatically</strong><br>
                         • <strong>Applicant:</strong> ${makeData.full_name}<br>
                         • <strong>Interview Status:</strong> ${makeData.interview_status}<br>
                         • <strong>Score:</strong> ${makeData.overall_score}/10 (${makeData.score_percentage}%)<br>
@@ -1205,26 +1205,28 @@
                         • <strong>Submission ID:</strong> ${makeData.submission_id}<br>
                         • <strong>Lead Quality:</strong> ${makeData.lead_quality}<br>
                         • <strong>Next Action:</strong> ${makeData.next_action}<br>
-                        • <strong>Webhook URL:</strong> hook.eu2.make.com
+                        • <strong>Webhook URL:</strong> hook.eu2.make.com<br>
+                        • <strong>Method:</strong> Automatic upon interview booking
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>🔄 Your Make.com Scenario Will Now:</strong><br>
-                        • Process the candidate data automatically<br>
-                        • Add to Google Sheets or database<br>
-                        • Send notifications if configured<br>
-                        • Trigger any connected workflows<br>
-                        • Route to appropriate team members
+                        <strong>🔄 Your Make.com Scenario is Now Processing:</strong><br>
+                        • Candidate data received automatically<br>
+                        • Adding to Google Sheets or database<br>
+                        • Sending notifications if configured<br>
+                        • Triggering connected workflows<br>
+                        • Routing to appropriate team members<br>
+                        • No manual intervention required!
                     </div>
                     
                     <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>📋 Complete Data Package Sent:</strong><br>
+                        <strong>📋 Complete Assessment Package Delivered:</strong><br>
                         • Personal details and contact information<br>
                         • Complete assessment scores and criteria<br>
                         • Interview booking status and requirements<br>
                         • Recommendation and next actions<br>
                         • All screening responses with timestamps<br>
-                        • Structured data ready for processing
+                        • Structured data ready for immediate processing
                     </div>
                 `);
             }
@@ -3235,10 +3237,11 @@ function displayCandidateReport(data) {
             completeAssessment() {
                 this.updateScore();
                 
-                console.log('📊 ASSESSMENT COMPLETE - Triggering Make.com webhook transmission');
+                console.log('📊 ===== ASSESSMENT COMPLETE - AUTO-TRIGGERING MAKE.COM =====');
                 console.log('📊 Make.com Webhook: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                console.log('📊 Auto-transmission will occur automatically upon interview booking or assessment completion');
                 
-                // Send to Make.com
+                // AUTOMATIC Send to Make.com (this triggers sendToDashboard which calls Make.com)
                 this.sendToDashboard();
                 
                 // Auto-save to Firebase
