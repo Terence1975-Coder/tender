@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Interior Design Presentation</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #8B7355 0%, #A68B5B 100%);
+            color: white;
+            margin-bottom: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, #D2691E 0%, #CD853F 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .upload-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .upload-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 2px dashed rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .upload-card:hover {
+            border-color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.15);
+        }
+
+        .upload-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .file-input-button:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        .section {
+            background: white;
+            margin: 30px 0;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 25px;
+            color: #8B7355;
+            border-bottom: 3px solid #D2691E;
+            padding-bottom: 10px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: #A68B5B;
+        }
+
+        .image-container {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            border: 3px solid #D2691E;
+            border-radius: 15px;
+            background: #ffffff;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .placeholder-text {
+            color: #8B7355;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+
+        .room-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .room-section {
+            padding: 25px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            border-left: 5px solid #D2691E;
+        }
+
+        .room-title {
+            font-size: 1.5rem;
+            color: #8B7355;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .design-element {
+            margin: 25px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+            border-radius: 10px;
+            border-left: 4px solid #D2691E;
+        }
+
+        .element-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #8B7355;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .element-icon {
+            width: 20px;
+            height: 20px;
+            background: #D2691E;
+            border-radius: 50%;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .color-swatch::after {
+            content: attr(data-color);
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .weathered-wood { background: linear-gradient(45deg, #E5E5E5, #D3D3D3, #C0C0C0); }
+        .linen-gray { background: linear-gradient(45deg, #B8B8B8, #A8A8A8); }
+        .charcoal { background: linear-gradient(45deg, #4A4A4A, #2F2F2F); }
+        .terracotta { background: linear-gradient(45deg, #D2691E, #CD853F); }
+        .warm-white { background: linear-gradient(45deg, #FFFEF7, #FDF6E3); }
+
+        .key-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+            border: 1px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            transform: translateY(-3px);
+        }
+
+        .feature-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #8B7355;
+            margin-bottom: 10px;
+        }
+
+        .conclusion {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+
+        .signature {
+            margin-top: 30px;
+            font-style: italic;
+            color: #8B7355;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .room-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .color-palette {
+                justify-content: center;
+            }
+
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .texture-description {
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.95rem;
+        }
+
+        .benefit-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .benefit-list li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .benefit-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #D2691E;
+            font-weight: bold;
+        }
+
+        .furniture-concepts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .concept-card {
+            text-align: center;
+            padding: 25px;
+            background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .concept-card h3 {
+            color: #8B7355;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .reset-button {
+            background: #8B7355;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .reset-button:hover {
+            background: #A68B5B;
+        }
+
+        .edit-button {
+            background: linear-gradient(135deg, #8B7355 0%, #A68B5B 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            min-width: 180px;
+        }
+
+        .edit-button:hover {
+            background: linear-gradient(135deg, #A68B5B 0%, #8B7355 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 115, 85, 0.4);
+        }
+
+        .edit-button:active {
+            transform: translateY(0);
+        }
+
+        .editable {
+            border: 2px dashed #D2691E !important;
+            padding: 8px !important;
+            border-radius: 4px !important;
+            background: rgba(210, 105, 30, 0.05) !important;
+            outline: none;
+        }
+
+        .editable:focus {
+            border-color: #8B7355 !important;
+            background: rgba(139, 115, 85, 0.1) !important;
+        }
+
+        .editing-mode {
+            position: relative;
+        }
+
+        .editing-mode::before {
+            content: "📝 EDITING MODE ACTIVE";
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #D2691E;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Firebase Status Styles */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .firebase-connected {
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+        }
+
+        .firebase-disconnected {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+
+        .firebase-saving {
+            background: rgba(241, 196, 15, 0.9);
+            color: white;
+        }
+
+        .firebase-loading {
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+        }
+
+        .save-button {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+            box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .save-button:hover {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .load-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .load-button:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Offline</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>LIVING & DINING ROOM TRANSFORMATION</h1>
+            <p>A Contemporary Design Proposal for Mack & Jessica</p>
+            <p style="font-size: 1rem; margin-top: 10px;">Presented by Designer Interiors 90'</p>
+        </div>
+
+        <div class="upload-section">
+            <h2>Customize Your Design Presentation</h2>
+            <p>Upload your own images to replace the layout diagrams and concepts below</p>
+            
+            <div class="upload-grid">
+                <div class="upload-card">
+                    <h3>Floor Plan Image</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="floorplan-upload" class="file-input" accept="image/*">
+                        <label for="floorplan-upload" class="file-input-button">Choose Floor Plan Image</label>
+                    </div>
+                    <button class="reset-button" onclick="resetImage('floorplan')">Reset to Original</button>
+                </div>
+                
+                <div class="upload-card">
+                    <h3>Living Room Concept</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="living-upload" class="file-input" accept="image/*">
+                        <label for="living-upload" class="file-input-button">Choose Living Room Image</label>
+                    </div>
+                    <button class="reset-button" onclick="resetImage('living')">Reset to Original</button>
+                </div>
+                
+                <div class="upload-card">
+                    <h3>Dining Room Concept</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="dining-upload" class="file-input" accept="image/*">
+                        <label for="dining-upload" class="file-input-button">Choose Dining Room Image</label>
+                    </div>
+                    <button class="reset-button" onclick="resetImage('dining')">Reset to Original</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Design Vision</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8; color: #555;">
+                Transform your open-plan living and dining space into a sophisticated, contemporary haven that seamlessly blends natural textures with modern elegance. Our design approach focuses on creating a cohesive flow between spaces while maintaining distinct functional zones, using a carefully curated palette of weathered woods, soft linens, and warm terracotta accents.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Proposed Design Layout</h2>
+            <div class="image-container" id="floorplan-container">
+                <svg width="450" height="320" viewBox="0 0 450 320" id="floorplan-svg">
+                    <!-- Outer boundary -->
+                    <rect x="30" y="30" width="350" height="260" fill="none" stroke="#333" stroke-width="4"/>
+                    
+                    <!-- TV alcove in dining room -->
+                    <rect x="140" y="30" width="40" height="20" fill="none" stroke="#333" stroke-width="3"/>
+                    <rect x="147" y="37" width="26" height="6" fill="#8B4513"/>
+                    
+                    <!-- TV unit in lounge -->
+                    <rect x="140" y="130" width="40" height="20" fill="none" stroke="#333" stroke-width="3"/>
+                    <rect x="155" y="137" width="10" height="6" fill="#333"/>
+                    <text x="160" y="128" font-family="Arial" font-size="10" text-anchor="middle" fill="#666" font-weight="bold">TV</text>
+                    
+                    <!-- Room division lines -->
+                    <line x1="30" y1="150" x2="180" y2="150" stroke="#333" stroke-width="3"/>
+                    <line x1="180" y1="30" x2="180" y2="290" stroke="#333" stroke-width="3"/>
+                    <line x1="180" y1="210" x2="380" y2="210" stroke="#333" stroke-width="3"/>
+                    
+                    <!-- Entrance -->
+                    <rect x="30" y="230" width="80" height="60" fill="none" stroke="#333" stroke-width="3"/>
+                    <text x="70" y="265" font-family="Arial" font-size="12" text-anchor="middle" fill="#333" font-weight="bold">ENTRANCE</text>
+                    
+                    <!-- Small entrance feature -->
+                    <rect x="30" y="200" width="25" height="15" fill="#8B4513"/>
+                    
+                    <!-- DINING ROOM -->
+                    <text x="105" y="70" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B7355" font-weight="bold">DINING ROOM</text>
+                    
+                    <!-- Dining table (brown) -->
+                    <rect x="65" y="80" width="80" height="50" fill="#8B4513" rx="8"/>
+                    
+                    <!-- Dining chairs (charcoal upholstery) -->
+                    <rect x="50" y="85" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="50" y="82" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <rect x="148" y="85" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="148" y="82" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <rect x="50" y="115" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="50" y="130" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <rect x="148" y="115" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="148" y="130" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <rect x="90" y="70" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="90" y="67" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <rect x="108" y="70" width="12" height="15" fill="#4A4A4A" rx="2"/>
+                    <rect x="108" y="67" width="12" height="5" fill="#4A4A4A" rx="2"/>
+                    
+                    <!-- LOUNGE -->
+                    <text x="105" y="170" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B7355" font-weight="bold">LOUNGE</text>
+                    
+                    <!-- L-shaped sectional sofa (charcoal) -->
+                    <rect x="50" y="185" width="100" height="25" fill="#4A4A4A" rx="5"/>
+                    <rect x="50" y="205" width="25" height="20" fill="#4A4A4A" rx="5"/>
+                    
+                    <!-- Scatter cushions (terracotta) -->
+                    <circle cx="70" cy="195" r="4" fill="#D2691E"/>
+                    <circle cx="90" cy="195" r="4" fill="#CD853F"/>
+                    <circle cx="110" cy="195" r="4" fill="#D2691E"/>
+                    <circle cx="130" cy="195" r="4" fill="#CD853F"/>
+                    
+                    <!-- Coffee tables (dark) -->
+                    <rect x="85" y="240" width="30" height="20" fill="#2F2F2F" rx="3"/>
+                    <rect x="115" y="255" width="25" height="15" fill="#2F2F2F" rx="3"/>
+                    
+                    <!-- KITCHEN -->
+                    <text x="280" y="250" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B7355" font-weight="bold">KITCHEN</text>
+                    
+                    <!-- STAIRS -->
+                    <text x="280" y="120" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B7355" font-weight="bold">STAIRS</text>
+                    
+                    <!-- Stairs pattern -->
+                    <line x1="200" y1="50" x2="360" y2="50" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="70" x2="360" y2="70" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="90" x2="360" y2="90" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="110" x2="360" y2="110" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="130" x2="360" y2="130" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="150" x2="360" y2="150" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="170" x2="360" y2="170" stroke="#666" stroke-width="1"/>
+                    <line x1="200" y1="190" x2="360" y2="190" stroke="#666" stroke-width="1"/>
+                    
+                    <!-- Title label -->
+                    <text x="300" y="315" font-family="Arial" font-size="14" text-anchor="middle" fill="#8B7355" font-weight="bold">MACK & JESSICA</text>
+                    <text x="225" y="20" font-family="Arial" font-size="12" text-anchor="middle" fill="#8B7355">FLOOR PLAN</text>
+                    <text x="225" y="15" font-family="Arial" font-size="10" text-anchor="middle" fill="#666">LOUNGE & DINING ROOM</text>
+                </svg>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 25px; background: #f9f9f9; border-radius: 12px; border-left: 5px solid #D2691E;">
+                <h4 style="color: #8B7355; margin-bottom: 15px;">Design Integration with Existing Layout:</h4>
+                <ul class="benefit-list">
+                    <li><strong>Weathered Wood Feature Wall:</strong> Behind TV area to create stunning focal point</li>
+                    <li><strong>Charcoal Upholstery:</strong> Sectional sofa and all dining chairs for unified sophistication</li>
+                    <li><strong>Terracotta Accent Cushions:</strong> Strategic placement on sectional for warmth and personality</li>
+                    <li><strong>Linen-Gray Curtains:</strong> Floor-to-ceiling treatments throughout for elegant consistency</li>
+                    <li><strong>Open-Plan Flow:</strong> Design maintains natural traffic patterns while enhancing visual appeal</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Proposed Furniture & Styling</h2>
+            <div class="furniture-concepts">
+                <div class="concept-card">
+                    <h3>Living Room Concept</h3>
+                    <div class="image-container" id="living-container">
+                        <svg width="320" height="260" viewBox="0 0 320 260" id="living-svg">
+                            <!-- Background feature wall -->
+                            <rect x="10" y="10" width="300" height="240" fill="url(#modernWoodPattern)" opacity="0.2"/>
+                            
+                            <!-- TV feature wall -->
+                            <rect x="250" y="80" width="60" height="120" fill="url(#modernWoodPattern)" opacity="0.8"/>
+                            <rect x="270" y="120" width="20" height="40" fill="#333" rx="2"/>
+                            <text x="280" y="145" font-family="Arial" font-size="10" text-anchor="middle" fill="white">TV</text>
+                            
+                            <!-- Modern sectional sofa -->
+                            <rect x="50" y="140" width="160" height="35" fill="#4A4A4A" rx="6"/>
+                            <rect x="50" y="170" width="35" height="25" fill="#4A4A4A" rx="4"/>
+                            <rect x="180" y="170" width="30" height="25" fill="#4A4A4A" rx="4"/>
+                            
+                            <!-- Scatter cushions -->
+                            <ellipse cx="90" cy="150" rx="8" ry="6" fill="#D2691E"/>
+                            <ellipse cx="120" cy="150" rx="8" ry="6" fill="#CD853F"/>
+                            <ellipse cx="150" cy="150" rx="8" ry="6" fill="#D2691E"/>
+                            <ellipse cx="180" cy="150" rx="8" ry="6" fill="#CD853F"/>
+                            
+                            <!-- Round coffee table -->
+                            <circle cx="140" cy="100" r="25" fill="#8B4513"/>
+                            <circle cx="140" cy="100" r="20" fill="#A0522D" opacity="0.8"/>
+                            
+                            <!-- Curtains -->
+                            <rect x="20" y="20" width="8" height="200" fill="#B8B8B8" opacity="0.7"/>
+                            <rect x="30" y="20" width="40" height="200" fill="#A8A8A8" opacity="0.3"/>
+                            
+                            <!-- Floor lamp -->
+                            <line x1="230" y1="190" x2="230" y2="70" stroke="#666" stroke-width="3"/>
+                            <circle cx="230" cy="70" r="12" fill="#F5F5DC" opacity="0.8"/>
+                            
+                            <!-- Accent rug -->
+                            <ellipse cx="140" cy="130" rx="80" ry="40" fill="none" stroke="#8B7355" stroke-width="2" stroke-dasharray="5,5" opacity="0.6"/>
+                            
+                            <text x="160" y="240" font-family="Arial" font-size="12" text-anchor="middle" fill="#8B7355" font-style="italic">Weathered Wood Feature Wall</text>
+                            
+                            <defs>
+                                <pattern id="modernWoodPattern" patternUnits="userSpaceOnUse" width="8" height="8">
+                                    <rect width="8" height="8" fill="#E5E5E5"/>
+                                    <path d="M0,8 L8,0" stroke="#D3D3D3" stroke-width="1"/>
+                                    <path d="M2,8 L8,2" stroke="#C8C8C8" stroke-width="0.5"/>
+                                    <path d="M0,6 L6,0" stroke="#D8D8D8" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h3>Dining Room Concept</h3>
+                    <div class="image-container" id="dining-container">
+                        <svg width="320" height="260" viewBox="0 0 320 260" id="dining-svg">
+                            <!-- Background -->
+                            <rect x="10" y="10" width="300" height="240" fill="#F8F8F8"/>
+                            
+                            <!-- Accent wall -->
+                            <rect x="10" y="10" width="300" height="40" fill="url(#modernWoodPattern2)" opacity="0.6"/>
+                            
+                            <!-- Modern dining table -->
+                            <ellipse cx="160" cy="130" rx="70" ry="40" fill="#8B4513"/>
+                            <ellipse cx="160" cy="127" rx="68" ry="38" fill="#A0522D" opacity="0.9"/>
+                            
+                            <!-- Dining chairs with new upholstery -->
+                            <rect x="100" y="90" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="100" y="85" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <rect x="205" y="90" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="205" y="85" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <rect x="100" y="170" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="100" y="195" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <rect x="205" y="170" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="205" y="195" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <rect x="140" y="70" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="140" y="65" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <rect x="175" y="70" width="15" height="25" fill="#4A4A4A" rx="3"/>
+                            <rect x="175" y="65" width="15" height="8" fill="#4A4A4A" rx="2"/>
+                            
+                            <!-- Table centerpiece -->
+                            <circle cx="160" cy="130" r="8" fill="#F5F5DC"/>
+                            <rect x="150" y="125" width="20" height="10" fill="#90EE90" opacity="0.6"/>
+                            
+                            <!-- Curtains -->
+                            <rect x="270" y="60" width="8" height="160" fill="#B8B8B8" opacity="0.7"/>
+                            <rect x="280" y="60" width="30" height="160" fill="#A8A8A8" opacity="0.3"/>
+                            
+                            <!-- Terracotta accents -->
+                            <rect x="140" y="115" width="40" height="6" fill="#D2691E" opacity="0.8" rx="3"/>
+                            <text x="160" y="120" font-family="Arial" font-size="8" text-anchor="middle" fill="#8B4513">Table Runner</text>
+                            
+                            <!-- Wall art suggestion -->
+                            <rect x="40" y="80" width="50" height="35" fill="none" stroke="#8B7355" stroke-width="2" stroke-dasharray="3,3"/>
+                            <text x="65" y="100" font-family="Arial" font-size="8" text-anchor="middle" fill="#666">Statement</text>
+                            <text x="65" y="110" font-family="Arial" font-size="8" text-anchor="middle" fill="#666">Artwork</text>
+                            
+                            <text x="160" y="240" font-family="Arial" font-size="12" text-anchor="middle" fill="#8B7355" font-style="italic">Coordinated Design Elements</text>
+                            
+                            <defs>
+                                <pattern id="modernWoodPattern2" patternUnits="userSpaceOnUse" width="8" height="8">
+                                    <rect width="8" height="8" fill="#E5E5E5"/>
+                                    <path d="M0,8 L8,0" stroke="#D3D3D3" stroke-width="1"/>
+                                    <path d="M2,8 L8,2" stroke="#C8C8C8" stroke-width="0.5"/>
+                                    <path d="M0,6 L6,0" stroke="#D8D8D8" stroke-width="0.5"/>
+                                </pattern>
+                            </defs>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%); border-radius: 12px; border-left: 5px solid #D2691E;">
+                <h4 style="color: #8B7355; margin-bottom: 15px;">Furniture & Styling Strategy:</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <p><strong>Existing Pieces to Reupholster:</strong></p>
+                        <ul class="benefit-list">
+                            <li>Brown sectional sofa → Charcoal textured fabric</li>
+                            <li>Current dining chairs → Matching charcoal upholstery</li>
+                            <li>Maximize investment in quality furniture frames</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p><strong>New Elements to Add:</strong></p>
+                        <ul class="benefit-list">
+                            <li>4-6 terracotta scatter cushions in varying textures</li>
+                            <li>Coordinating table runner and placemats</li>
+                            <li>Strategic lighting and artwork placement</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Color Palette</h2>
+            <div class="color-palette">
+                <div class="color-swatch weathered-wood" data-color="Weathered Wood"></div>
+                <div class="color-swatch linen-gray" data-color="Linen Gray"></div>
+                <div class="color-swatch charcoal" data-color="Charcoal"></div>
+                <div class="color-swatch terracotta" data-color="Terracotta"></div>
+                <div class="color-swatch warm-white" data-color="Warm White"></div>
+            </div>
+            <p style="margin-top: 40px; font-size: 1rem; color: #666;">
+                This sophisticated palette combines the organic warmth of weathered wood textures with the refined elegance of linen-inspired grays. Charcoal anchors the scheme with depth, while terracotta accents add life and personality. Warm whites brighten and balance the overall composition.
+            </p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Room-by-Room Design Strategy</h2>
+            <div class="room-grid">
+                <div class="room-section">
+                    <h3 class="room-title">LIVING ROOM</h3>
+                    
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Wallpaper Application
+                        </div>
+                        <p><strong>Feature Wall:</strong> Apply the weathered wood wallpaper to the main wall behind the TV area to create a stunning focal point that adds texture and visual interest.</p>
+                        <div class="texture-description">Creates depth and natural warmth while maintaining contemporary sophistication</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Upholstery Transformation
+                        </div>
+                        <p><strong>Sectional Sofa:</strong> Reupholster the existing brown sectional in our charcoal textured fabric to create a more modern, sophisticated foundation piece.</p>
+                        <div class="texture-description">Rich, tactile fabric that provides luxury comfort and visual grounding</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Window Treatments
+                        </div>
+                        <p><strong>Curtains:</strong> Replace current curtains with floor-to-ceiling linen-look panels in soft gray, hung on sleek track systems for clean, contemporary lines.</p>
+                        <div class="texture-description">Enhances room height and adds elegant texture while filtering natural light beautifully</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Accent Elements
+                        </div>
+                        <p><strong>Scatter Cushions:</strong> Introduce 4-6 terracotta cushions in varying sizes and textures across the sectional to add warmth and personality.</p>
+                        <div class="texture-description">Provides the perfect pop of color against the neutral backdrop</div>
+                    </div>
+                </div>
+
+                <div class="room-section">
+                    <h3 class="room-title">DINING ROOM</h3>
+                    
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Seating Upgrade
+                        </div>
+                        <p><strong>Dining Chairs:</strong> Reupholster existing dining chairs in the same charcoal fabric as the sofa to create visual continuity across the open-plan space.</p>
+                        <div class="texture-description">Unifies the color scheme while providing comfortable, stylish seating</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Wall Treatment
+                        </div>
+                        <p><strong>Accent Wall:</strong> Consider a subtle application of weathered wood wallpaper on the dining room wall to echo the living room feature wall.</p>
+                        <div class="texture-description">Creates cohesive flow while maintaining each space's distinct character</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Soft Furnishings
+                        </div>
+                        <p><strong>Additional Elements:</strong> Add a terracotta table runner and coordinating placemats for special occasions, plus small scatter cushions for any additional seating.</p>
+                        <div class="texture-description">Ties the color palette together while adding warmth to dining experiences</div>
+                    </div>
+
+                    <div class="design-element">
+                        <div class="element-title">
+                            <div class="element-icon"></div>
+                            Window Consistency
+                        </div>
+                        <p><strong>Curtain Extension:</strong> Extend the linen-gray curtain treatment to dining room windows for seamless visual flow throughout the space.</p>
+                        <div class="texture-description">Maintains design consistency and enhances the open-plan concept</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Key Design Benefits</h2>
+            <div class="key-features">
+                <div class="feature-card">
+                    <div class="feature-title">Enhanced Natural Light</div>
+                    <p>The linen-gray curtains will filter light beautifully while the weathered wood wallpaper adds warmth without darkening the space.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">Sophisticated Texture Play</div>
+                    <p>Multiple textures create visual interest and luxury appeal - smooth linens, rich fabrics, and organic wood patterns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">Cohesive Flow</div>
+                    <p>The consistent color palette and material choices create seamless transitions between living and dining areas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">Contemporary Elegance</div>
+                    <p>Clean lines and modern materials elevate the space while maintaining comfort and livability for family life.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">Flexible Styling</div>
+                    <p>The neutral base allows for seasonal changes through accessories, artwork, and decorative elements.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-title">Practical Luxury</div>
+                    <p>All materials chosen for durability and easy maintenance while providing high-end aesthetic appeal.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Investment Summary</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8;">
+                This comprehensive transformation will modernize your living and dining spaces while working with your existing layout and key furniture pieces. The investment focuses on high-impact changes that deliver maximum visual transformation: feature wallpaper installation, professional upholstery work, custom window treatments, and carefully selected accent pieces.
+            </p>
+            <ul class="benefit-list" style="margin-top: 20px;">
+                <li>Maximizes your existing furniture investment through strategic reupholstering</li>
+                <li>Creates a designer look through professional wallpaper application</li>
+                <li>Enhances natural light with custom window treatments</li>
+                <li>Provides long-term value through quality materials and timeless design</li>
+                <li>Transforms the space without requiring new major furniture purchases</li>
+            </ul>
+        </div>
+
+        <div class="conclusion">
+            <h2 style="color: #8B7355; margin-bottom: 20px;">Ready to Transform Your Space?</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8;">
+                This design proposal will create a sophisticated, contemporary living and dining space that perfectly balances modern elegance with family comfort. The carefully chosen materials and strategic implementation will deliver a stunning transformation that feels both luxurious and liveable.
+            </p>
+            <div class="signature">
+                <p><strong>Designer Interiors 90'</strong></p>
+                <p>Creating Beautiful Spaces for Modern Living</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0; padding: 20px;">
+            <button id="save-btn" class="save-button">
+                💾 Save to Cloud
+            </button>
+            <button id="load-btn" class="load-button">
+                📥 Load from Cloud
+            </button>
+            <button id="edit-btn" class="edit-button">
+                <span id="edit-icon">✏️</span> <span id="edit-text">Edit Document</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Manager Class
+        class FirebaseManager {
+            constructor() {
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
+                };
+                
+                this.firebaseApp = null;
+                this.database = null;
+                
+                // Initialize Firebase
+                this.initializeFirebase();
+            }
+            
+            // Initialize Firebase
+            initializeFirebase() {
+                try {
+                    console.log('🔥 Starting Firebase initialization...');
+                    
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        return;
+                    }
+
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        return;
+                    }
+
+                    console.log('🔥 Initializing Firebase with config...');
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    // Monitor connection status
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                        } else {
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                }
+            }
+            
+            // Update Firebase status indicator
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                } else {
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
+                }
+            }
+            
+            // Save data to Firebase
+            saveData(collectionName, data) {
+                return new Promise((resolve, reject) => {
+                    if (!this.database) {
+                        console.log('🔥 Firebase not connected - cannot save');
+                        reject(new Error('Firebase not connected'));
+                        return;
+                    }
+
+                    this.updateFirebaseStatus('saving');
+                    const dataId = this.generateId(data.name || 'record');
+                    const timestamp = new Date().toISOString();
+
+                    const saveData = {
+                        id: dataId,
+                        ...data,
+                        timestamp: timestamp,
+                        sessionId: Date.now()
+                    };
+
+                    this.database.ref(`${collectionName}/${dataId}`).set(saveData)
+                    .then(() => {
+                        this.updateFirebaseStatus('connected');
+                        console.log('🔥 Data saved:', dataId);
+                        this.showSaveConfirmation();
+                        resolve(dataId);
+                    })
+                    .catch((error) => {
+                        this.updateFirebaseStatus('disconnected');
+                        console.error('🔥 Firebase save error:', error);
+                        reject(error);
+                    });
+                });
+            }
+            
+            // Load data from Firebase
+            loadData(collectionName, limit = 10) {
+                return new Promise((resolve, reject) => {
+                    if (!this.database) {
+                        console.log('🔥 Firebase not connected - cannot load');
+                        reject(new Error('Firebase not connected'));
+                        return;
+                    }
+
+                    this.updateFirebaseStatus('loading');
+                    
+                    this.database.ref(collectionName)
+                        .orderByChild('timestamp')
+                        .limitToLast(limit)
+                        .once('value')
+                    .then((snapshot) => {
+                        this.updateFirebaseStatus('connected');
+                        const data = snapshot.val();
+                        
+                        if (!data) {
+                            console.log('🔥 No data found in Firebase');
+                            resolve([]);
+                            return;
+                        }
+
+                        const dataArray = Object.values(data).reverse();
+                        console.log(`🔥 Loaded ${dataArray.length} records from Firebase`);
+                        resolve(dataArray);
+                    })
+                    .catch((error) => {
+                        this.updateFirebaseStatus('disconnected');
+                        console.error('🔥 Firebase load error:', error);
+                        reject(error);
+                    });
+                });
+            }
+            
+            // Generate unique ID
+            generateId(name = 'record') {
+                const cleanName = name.replace(/\s+/g, '-').toLowerCase();
+                const timestamp = Date.now();
+                return `${cleanName}-${timestamp}`;
+            }
+            
+            // Show save confirmation
+            showSaveConfirmation(text = 'Saved to Cloud') {
+                const confirmation = document.createElement('div');
+                confirmation.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    left: 20px;
+                    background: #27ae60;
+                    color: white;
+                    padding: 8px 15px;
+                    border-radius: 15px;
+                    font-weight: 600;
+                    font-size: 12px;
+                    z-index: 1001;
+                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+                    transition: all 0.3s ease;
+                `;
+                confirmation.textContent = `✓ ${text}`;
+                document.body.appendChild(confirmation);
+
+                setTimeout(() => {
+                    confirmation.style.opacity = '0';
+                    confirmation.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        if (confirmation.parentNode) {
+                            confirmation.parentNode.removeChild(confirmation);
+                        }
+                    }, 300);
+                }, 2000);
+            }
+        }
+
+        // Initialize Firebase Manager
+        const firebaseManager = new FirebaseManager();
+
+        // Store original SVGs
+        const originalSVGs = {
+            floorplan: document.getElementById('floorplan-svg').outerHTML,
+            living: document.getElementById('living-svg').outerHTML,
+            dining: document.getElementById('dining-svg').outerHTML
+        };
+
+        // Handle file uploads
+        document.getElementById('floorplan-upload').addEventListener('change', function(e) {
+            handleImageUpload(e, 'floorplan');
+        });
+
+        document.getElementById('living-upload').addEventListener('change', function(e) {
+            handleImageUpload(e, 'living');
+        });
+
+        document.getElementById('dining-upload').addEventListener('change', function(e) {
+            handleImageUpload(e, 'dining');
+        });
+
+        function handleImageUpload(event, type) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const container = document.getElementById(type + '-container');
+                    container.innerHTML = `<img src="${e.target.result}" alt="${type} image" class="uploaded-image">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetImage(type) {
+            const container = document.getElementById(type + '-container');
+            container.innerHTML = originalSVGs[type];
+            
+            // Clear the file input
+            document.getElementById(type + '-upload').value = '';
+        }
+
+        // Edit functionality
+        let isEditMode = false;
+        const EDIT_PASSCODE = '1975';
+
+        document.getElementById('edit-btn').addEventListener('click', function() {
+            if (!isEditMode) {
+                // Prompt for passcode
+                const enteredPasscode = prompt('Enter passcode to edit document:');
+                
+                if (enteredPasscode === EDIT_PASSCODE) {
+                    enableEditMode();
+                } else if (enteredPasscode !== null) { // User didn't cancel
+                    alert('Incorrect passcode. Access denied.');
+                }
+            } else {
+                disableEditMode();
+            }
+        });
+
+        function enableEditMode() {
+            isEditMode = true;
+            document.body.classList.add('editing-mode');
+            
+            // Update button
+            document.getElementById('edit-text').textContent = 'Exit Edit Mode';
+            document.getElementById('edit-icon').textContent = '💾';
+            
+            // Make text elements editable
+            const editableSelectors = [
+                'h1', 'h2', 'h3', 'h4', 'p', 'li', 'text',
+                '.header p', '.section-title', '.room-title', 
+                '.element-title', '.feature-title'
+            ];
+            
+            editableSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    // Skip SVG text elements and buttons
+                    if (element.tagName.toLowerCase() !== 'text' && 
+                        !element.closest('svg') && 
+                        !element.closest('button') &&
+                        !element.closest('.file-input-button')) {
+                        
+                        element.contentEditable = true;
+                        element.classList.add('editable');
+                        
+                        // Save original content
+                        element.setAttribute('data-original', element.textContent);
+                    }
+                });
+            });
+        }
+
+        function disableEditMode() {
+            isEditMode = false;
+            document.body.classList.remove('editing-mode');
+            
+            // Update button
+            document.getElementById('edit-text').textContent = 'Edit Document';
+            document.getElementById('edit-icon').textContent = '✏️';
+            
+            // Remove editable properties
+            const editableElements = document.querySelectorAll('.editable');
+            editableElements.forEach(element => {
+                element.contentEditable = false;
+                element.classList.remove('editable');
+            });
+            
+            // Show save confirmation
+            alert('Changes saved! Document is now in view-only mode.');
+        }
+
+        // Firebase Save/Load functionality
+        document.getElementById('save-btn').addEventListener('click', function() {
+            saveDocumentToFirebase();
+        });
+
+        document.getElementById('load-btn').addEventListener('click', function() {
+            loadDocumentFromFirebase();
+        });
+
+        function saveDocumentToFirebase() {
+            // Collect all text content from the document
+            const documentData = {
+                name: 'Interior Design Document',
+                content: {
+                    title: document.querySelector('.header h1').textContent,
+                    subtitle: document.querySelector('.header p').textContent,
+                    sections: []
+                }
+            };
+
+            // Collect all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach((section, index) => {
+                const title = section.querySelector('.section-title')?.textContent || '';
+                const paragraphs = Array.from(section.querySelectorAll('p')).map(p => p.textContent);
+                const lists = Array.from(section.querySelectorAll('ul, ol')).map(list => 
+                    Array.from(list.querySelectorAll('li')).map(li => li.textContent)
+                );
+
+                documentData.content.sections.push({
+                    index: index,
+                    title: title,
+                    paragraphs: paragraphs,
+                    lists: lists
+                });
+            });
+
+            // Save to Firebase
+            firebaseManager.saveData('interior-designs', documentData)
+                .then((id) => {
+                    console.log('Document saved with ID:', id);
+                })
+                .catch((error) => {
+                    console.error('Failed to save document:', error);
+                    alert('Failed to save to cloud. Check connection.');
+                });
+        }
+
+        function loadDocumentFromFirebase() {
+            firebaseManager.loadData('interior-designs', 1)
+                .then((documents) => {
+                    if (documents.length === 0) {
+                        alert('No saved documents found in cloud.');
+                        return;
+                    }
+
+                    const latestDoc = documents[0];
+                    
+                    if (confirm('Load the latest document from cloud? This will replace current content.')) {
+                        // Restore document content
+                        if (latestDoc.content.title) {
+                            document.querySelector('.header h1').textContent = latestDoc.content.title;
+                        }
+                        if (latestDoc.content.subtitle) {
+                            document.querySelector('.header p').textContent = latestDoc.content.subtitle;
+                        }
+
+                        // Restore sections (simplified - you can expand this)
+                        latestDoc.content.sections.forEach((sectionData, index) => {
+                            const sections = document.querySelectorAll('.section');
+                            if (sections[index] && sectionData.title) {
+                                const titleElement = sections[index].querySelector('.section-title');
+                                if (titleElement) {
+                                    titleElement.textContent = sectionData.title;
+                                }
+                            }
+                        });
+
+                        firebaseManager.showSaveConfirmation('Loaded from Cloud');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Failed to load document:', error);
+                    alert('Failed to load from cloud. Check connection.');
+                });
+        }
+
+        // Prevent accidental navigation away during edit mode
+        window.addEventListener('beforeunload', function(e) {
+            if (isEditMode) {
+                e.preventDefault();
+                e.returnValue = 'You are in edit mode. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+    </script>
+</body>
+</html>
