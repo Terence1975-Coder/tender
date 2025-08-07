@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Interior Design Presentation</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -524,11 +521,105 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
+
+        /* Additional Image Features */
+        .add-image-btn {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .editing-mode .add-image-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .add-image-btn:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            transform: translateY(-1px);
+        }
+
+        .additional-image {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .additional-image img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .image-caption {
+            margin-top: 8px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 5px;
+            border: 1px dashed transparent;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .editing-mode .image-caption {
+            border-color: #D2691E;
+            background: rgba(210, 105, 30, 0.05);
+        }
+
+        .remove-image-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 5px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .editing-mode .remove-image-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .remove-image-btn:hover {
+            background: #c0392b;
+        }
+
+        .upload-section-edit {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .editing-mode .upload-section-edit {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <!-- Firebase Status Indicator -->
-    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Offline</div>
+    <!-- Storage Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-connected">🟢 Storage Ready</div>
 
     <div class="container">
         <div class="header">
@@ -537,7 +628,7 @@
             <p style="font-size: 1rem; margin-top: 10px;">Presented by Designer Interiors 90'</p>
         </div>
 
-        <div class="upload-section">
+        <div class="upload-section upload-section-edit">
             <h2>Customize Your Design Presentation</h2>
             <p>Upload your own images to replace the layout diagrams and concepts below</p>
             
@@ -573,6 +664,9 @@
 
         <div class="section">
             <h2 class="section-title">Design Vision</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <p style="font-size: 1.1rem; line-height: 1.8; color: #555;">
                 Transform your open-plan living and dining space into a sophisticated, contemporary haven that seamlessly blends natural textures with modern elegance. Our design approach focuses on creating a cohesive flow between spaces while maintaining distinct functional zones, using a carefully curated palette of weathered woods, soft linens, and warm terracotta accents.
             </p>
@@ -580,6 +674,9 @@
 
         <div class="section">
             <h2 class="section-title">Proposed Design Layout</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <div class="image-container" id="floorplan-container">
                 <svg width="450" height="320" viewBox="0 0 450 320" id="floorplan-svg">
                     <!-- Outer boundary -->
@@ -685,6 +782,9 @@
 
         <div class="section">
             <h2 class="section-title">Proposed Furniture & Styling</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <div class="furniture-concepts">
                 <div class="concept-card">
                     <h3>Living Room Concept</h3>
@@ -828,6 +928,9 @@
 
         <div class="section">
             <h2 class="section-title">Color Palette</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <div class="color-palette">
                 <div class="color-swatch weathered-wood" data-color="Weathered Wood"></div>
                 <div class="color-swatch linen-gray" data-color="Linen Gray"></div>
@@ -842,6 +945,9 @@
 
         <div class="section">
             <h2 class="section-title">Room-by-Room Design Strategy</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <div class="room-grid">
                 <div class="room-section">
                     <h3 class="room-title">LIVING ROOM</h3>
@@ -927,6 +1033,9 @@
 
         <div class="section">
             <h2 class="section-title">Key Design Benefits</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <div class="key-features">
                 <div class="feature-card">
                     <div class="feature-title">Enhanced Natural Light</div>
@@ -957,6 +1066,9 @@
 
         <div class="section">
             <h2 class="section-title">Investment Summary</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">
+                📷 Add Image
+            </button>
             <p style="font-size: 1.1rem; line-height: 1.8;">
                 This comprehensive transformation will modernize your living and dining spaces while working with your existing layout and key furniture pieces. The investment focuses on high-impact changes that deliver maximum visual transformation: feature wallpaper installation, professional upholstery work, custom window treatments, and carefully selected accent pieces.
             </p>
@@ -982,10 +1094,10 @@
 
         <div style="text-align: center; margin: 30px 0; padding: 20px;">
             <button id="save-btn" class="save-button">
-                💾 Save to Cloud
+                💾 Save Document
             </button>
             <button id="load-btn" class="load-button">
-                📥 Load from Cloud
+                📥 Load Document
             </button>
             <button id="edit-btn" class="edit-button">
                 <span id="edit-icon">✏️</span> <span id="edit-text">Edit Document</span>
@@ -994,157 +1106,88 @@
     </div>
 
     <script>
-        // Firebase Manager Class
-        class FirebaseManager {
+        // Simple Storage Manager (No Firebase dependencies)
+        class StorageManager {
             constructor() {
-                // Firebase Configuration
-                this.firebaseConfig = {
-                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-                    authDomain: "prospecting-f2f42.firebaseapp.com",
-                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
-                    projectId: "prospecting-f2f42",
-                    storageBucket: "prospecting-f2f42.firebasestorage.app",
-                    messagingSenderId: "292034226428",
-                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-                    measurementId: "G-WWB0JTX2L2"
-                };
-                
-                this.firebaseApp = null;
-                this.database = null;
-                
-                // Initialize Firebase
-                this.initializeFirebase();
+                this.storageKey = 'interior-design-doc';
             }
             
-            // Initialize Firebase
-            initializeFirebase() {
-                try {
-                    console.log('🔥 Starting Firebase initialization...');
-                    
-                    if (typeof firebase === 'undefined') {
-                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
-                        this.updateFirebaseStatus('disconnected');
-                        return;
-                    }
-
-                    if (firebase.apps.length > 0) {
-                        console.log('🔥 Firebase already initialized');
-                        this.firebaseApp = firebase.apps[0];
-                        this.database = firebase.database();
-                        this.updateFirebaseStatus('connected');
-                        return;
-                    }
-
-                    console.log('🔥 Initializing Firebase with config...');
-                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
-                    this.database = firebase.database();
-                    
-                    // Monitor connection status
-                    this.database.ref('.info/connected').on('value', (snapshot) => {
-                        if (snapshot.val() === true) {
-                            this.updateFirebaseStatus('connected');
-                            console.log('🔥 Firebase connected successfully');
-                        } else {
-                            this.updateFirebaseStatus('disconnected');
-                            console.log('🔥 Firebase disconnected');
-                        }
-                    });
-                    
-                } catch (error) {
-                    console.error('🔥 Firebase initialization failed:', error);
-                    this.updateFirebaseStatus('disconnected');
-                }
-            }
-            
-            // Update Firebase status indicator
-            updateFirebaseStatus(status) {
+            // Update status indicator
+            updateStatus(status) {
                 const statusElement = document.getElementById('firebase-status');
                 if (!statusElement) return;
                 
                 if (status === 'connected') {
                     statusElement.className = 'firebase-status firebase-connected';
-                    statusElement.innerHTML = '🟢 Firebase Connected';
+                    statusElement.innerHTML = '🟢 Storage Ready';
                 } else if (status === 'saving') {
                     statusElement.className = 'firebase-status firebase-saving';
-                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                    statusElement.innerHTML = '🟡 Saving...';
                 } else if (status === 'loading') {
                     statusElement.className = 'firebase-status firebase-loading';
-                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                    statusElement.innerHTML = '🔵 Loading...';
                 } else {
                     statusElement.className = 'firebase-status firebase-disconnected';
-                    statusElement.innerHTML = '🔴 Firebase Offline';
+                    statusElement.innerHTML = '🔴 Storage Offline';
                 }
             }
             
-            // Save data to Firebase
+            // Save data locally
             saveData(collectionName, data) {
                 return new Promise((resolve, reject) => {
-                    if (!this.database) {
-                        console.log('🔥 Firebase not connected - cannot save');
-                        reject(new Error('Firebase not connected'));
-                        return;
-                    }
+                    try {
+                        this.updateStatus('saving');
+                        const dataId = this.generateId(data.name || 'record');
+                        const timestamp = new Date().toISOString();
 
-                    this.updateFirebaseStatus('saving');
-                    const dataId = this.generateId(data.name || 'record');
-                    const timestamp = new Date().toISOString();
+                        const saveData = {
+                            id: dataId,
+                            ...data,
+                            timestamp: timestamp,
+                            sessionId: Date.now()
+                        };
 
-                    const saveData = {
-                        id: dataId,
-                        ...data,
-                        timestamp: timestamp,
-                        sessionId: Date.now()
-                    };
-
-                    this.database.ref(`${collectionName}/${dataId}`).set(saveData)
-                    .then(() => {
-                        this.updateFirebaseStatus('connected');
-                        console.log('🔥 Data saved:', dataId);
+                        // Use a simple memory storage instead of localStorage
+                        if (!window.designStorage) {
+                            window.designStorage = {};
+                        }
+                        
+                        window.designStorage[this.storageKey] = saveData;
+                        
+                        this.updateStatus('connected');
+                        console.log('Data saved locally:', dataId);
                         this.showSaveConfirmation();
                         resolve(dataId);
-                    })
-                    .catch((error) => {
-                        this.updateFirebaseStatus('disconnected');
-                        console.error('🔥 Firebase save error:', error);
+                    } catch (error) {
+                        this.updateStatus('disconnected');
+                        console.error('Save error:', error);
                         reject(error);
-                    });
+                    }
                 });
             }
             
-            // Load data from Firebase
+            // Load data locally
             loadData(collectionName, limit = 10) {
                 return new Promise((resolve, reject) => {
-                    if (!this.database) {
-                        console.log('🔥 Firebase not connected - cannot load');
-                        reject(new Error('Firebase not connected'));
-                        return;
-                    }
-
-                    this.updateFirebaseStatus('loading');
-                    
-                    this.database.ref(collectionName)
-                        .orderByChild('timestamp')
-                        .limitToLast(limit)
-                        .once('value')
-                    .then((snapshot) => {
-                        this.updateFirebaseStatus('connected');
-                        const data = snapshot.val();
+                    try {
+                        this.updateStatus('loading');
                         
-                        if (!data) {
-                            console.log('🔥 No data found in Firebase');
+                        if (!window.designStorage || !window.designStorage[this.storageKey]) {
+                            console.log('No saved data found');
+                            this.updateStatus('connected');
                             resolve([]);
                             return;
                         }
 
-                        const dataArray = Object.values(data).reverse();
-                        console.log(`🔥 Loaded ${dataArray.length} records from Firebase`);
-                        resolve(dataArray);
-                    })
-                    .catch((error) => {
-                        this.updateFirebaseStatus('disconnected');
-                        console.error('🔥 Firebase load error:', error);
+                        const data = window.designStorage[this.storageKey];
+                        this.updateStatus('connected');
+                        console.log('Data loaded from memory');
+                        resolve([data]);
+                    } catch (error) {
+                        this.updateStatus('disconnected');
+                        console.error('Load error:', error);
                         reject(error);
-                    });
+                    }
                 });
             }
             
@@ -1156,7 +1199,7 @@
             }
             
             // Show save confirmation
-            showSaveConfirmation(text = 'Saved to Cloud') {
+            showSaveConfirmation(text = 'Saved Locally') {
                 const confirmation = document.createElement('div');
                 confirmation.style.cssText = `
                     position: fixed;
@@ -1187,8 +1230,9 @@
             }
         }
 
-        // Initialize Firebase Manager
-        const firebaseManager = new FirebaseManager();
+        // Initialize Storage Manager
+        const storageManager = new StorageManager();
+        storageManager.updateStatus('connected');
 
         // Store original SVGs
         const originalSVGs = {
@@ -1302,23 +1346,108 @@
             alert('Changes saved! Document is now in view-only mode.');
         }
 
-        // Firebase Save/Load functionality
+        // Save/Load functionality
         document.getElementById('save-btn').addEventListener('click', function() {
-            saveDocumentToFirebase();
+            saveDocumentToStorage();
         });
 
         document.getElementById('load-btn').addEventListener('click', function() {
-            loadDocumentFromFirebase();
+            loadDocumentFromStorage();
         });
 
-        function saveDocumentToFirebase() {
+        // Additional Image Management
+        let imageCounter = 0;
+
+        function addImageToSection(button) {
+            const section = button.closest('.section');
+            const imageId = `additional-image-${++imageCounter}`;
+            
+            // Create file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.className = 'hidden-file-input';
+            fileInput.id = `file-${imageId}`;
+            
+            // Handle file selection
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        createImageElement(section, e.target.result, imageId);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Add to document and trigger click
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            
+            // Clean up
+            setTimeout(() => {
+                if (fileInput.parentNode) {
+                    fileInput.parentNode.removeChild(fileInput);
+                }
+            }, 1000);
+        }
+
+        function createImageElement(section, imageSrc, imageId) {
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'additional-image';
+            imageDiv.id = imageId;
+            
+            imageDiv.innerHTML = `
+                <img src="${imageSrc}" alt="Additional design image">
+                <div class="image-caption" contenteditable="true" placeholder="Add image caption...">
+                    Click to add caption...
+                </div>
+                <button class="remove-image-btn" onclick="removeImage('${imageId}')">
+                    🗑️ Remove
+                </button>
+            `;
+            
+            // Insert after the section title and add-image button
+            const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
+            if (insertPoint) {
+                section.insertBefore(imageDiv, insertPoint);
+            } else {
+                section.appendChild(imageDiv);
+            }
+            
+            // Auto-save if storage available
+            if (storageManager) {
+                setTimeout(() => {
+                    saveDocumentToStorage();
+                }, 1000);
+            }
+        }
+
+        function removeImage(imageId) {
+            const imageElement = document.getElementById(imageId);
+            if (imageElement && confirm('Remove this image?')) {
+                imageElement.remove();
+                
+            // Auto-save if storage available
+            if (storageManager) {
+                setTimeout(() => {
+                    saveDocumentToStorage();
+                }, 500);
+            }
+            }
+        }
+
+        // Enhanced Storage Save to include additional images
+        function saveDocumentToStorage() {
             // Collect all text content from the document
             const documentData = {
                 name: 'Interior Design Document',
                 content: {
                     title: document.querySelector('.header h1').textContent,
                     subtitle: document.querySelector('.header p').textContent,
-                    sections: []
+                    sections: [],
+                    additionalImages: []
                 }
             };
 
@@ -1331,36 +1460,50 @@
                     Array.from(list.querySelectorAll('li')).map(li => li.textContent)
                 );
 
+                // Collect additional images in this section
+                const additionalImages = Array.from(section.querySelectorAll('.additional-image')).map(imgDiv => ({
+                    id: imgDiv.id,
+                    src: imgDiv.querySelector('img').src,
+                    caption: imgDiv.querySelector('.image-caption').textContent,
+                    sectionIndex: index
+                }));
+
                 documentData.content.sections.push({
                     index: index,
                     title: title,
                     paragraphs: paragraphs,
-                    lists: lists
+                    lists: lists,
+                    additionalImages: additionalImages
                 });
             });
 
-            // Save to Firebase
-            firebaseManager.saveData('interior-designs', documentData)
+            // Save to storage
+            storageManager.saveData('interior-designs', documentData)
                 .then((id) => {
                     console.log('Document saved with ID:', id);
                 })
                 .catch((error) => {
                     console.error('Failed to save document:', error);
-                    alert('Failed to save to cloud. Check connection.');
+                    alert('Failed to save. Storage not available.');
                 });
         }
 
-        function loadDocumentFromFirebase() {
-            firebaseManager.loadData('interior-designs', 1)
+        // Enhanced Storage Load to restore additional images
+        function loadDocumentFromStorage() {
+            storageManager.loadData('interior-designs', 1)
                 .then((documents) => {
                     if (documents.length === 0) {
-                        alert('No saved documents found in cloud.');
+                        alert('No saved documents found.');
                         return;
                     }
 
                     const latestDoc = documents[0];
                     
-                    if (confirm('Load the latest document from cloud? This will replace current content.')) {
+                    if (confirm('Load the latest document? This will replace current content.')) {
+                        // Clear existing additional images
+                        const existingImages = document.querySelectorAll('.additional-image');
+                        existingImages.forEach(img => img.remove());
+                        
                         // Restore document content
                         if (latestDoc.content.title) {
                             document.querySelector('.header h1').textContent = latestDoc.content.title;
@@ -1369,24 +1512,60 @@
                             document.querySelector('.header p').textContent = latestDoc.content.subtitle;
                         }
 
-                        // Restore sections (simplified - you can expand this)
+                        // Restore sections and their additional images
                         latestDoc.content.sections.forEach((sectionData, index) => {
                             const sections = document.querySelectorAll('.section');
-                            if (sections[index] && sectionData.title) {
-                                const titleElement = sections[index].querySelector('.section-title');
-                                if (titleElement) {
-                                    titleElement.textContent = sectionData.title;
+                            if (sections[index]) {
+                                const section = sections[index];
+                                
+                                // Restore section title
+                                if (sectionData.title) {
+                                    const titleElement = section.querySelector('.section-title');
+                                    if (titleElement) {
+                                        titleElement.textContent = sectionData.title;
+                                    }
+                                }
+                                
+                                // Restore additional images for this section
+                                if (sectionData.additionalImages) {
+                                    sectionData.additionalImages.forEach(imgData => {
+                                        createImageElementFromData(section, imgData);
+                                    });
                                 }
                             }
                         });
 
-                        firebaseManager.showSaveConfirmation('Loaded from Cloud');
+                        storageManager.showSaveConfirmation('Loaded Successfully');
                     }
                 })
                 .catch((error) => {
                     console.error('Failed to load document:', error);
-                    alert('Failed to load from cloud. Check connection.');
+                    alert('Failed to load. Storage not available.');
                 });
+        }
+
+        function createImageElementFromData(section, imgData) {
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'additional-image';
+            imageDiv.id = imgData.id;
+            
+            imageDiv.innerHTML = `
+                <img src="${imgData.src}" alt="Additional design image">
+                <div class="image-caption" contenteditable="true">
+                    ${imgData.caption}
+                </div>
+                <button class="remove-image-btn" onclick="removeImage('${imgData.id}')">
+                    🗑️ Remove
+                </button>
+            `;
+            
+            // Insert after the section title and add-image button
+            const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
+            if (insertPoint) {
+                section.insertBefore(imageDiv, insertPoint);
+            } else {
+                section.appendChild(imageDiv);
+            }
         }
 
         // Prevent accidental navigation away during edit mode
