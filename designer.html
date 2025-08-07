@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Interior Design Presentation</title>
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -618,8 +621,8 @@
     </style>
 </head>
 <body>
-    <!-- Storage Status Indicator -->
-    <div id="firebase-status" class="firebase-status firebase-connected">🟢 Download Ready</div>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Connecting...</div>
 
     <div class="container">
         <div class="header">
@@ -1094,10 +1097,10 @@
 
         <div style="text-align: center; margin: 30px 0; padding: 20px;">
             <button id="save-btn" class="save-button">
-                💾 Download Document
+                💾 Save to Cloud
             </button>
             <button id="load-btn" class="load-button">
-                📁 Upload Document
+                📥 Load from Cloud
             </button>
             <button id="edit-btn" class="edit-button">
                 <span id="edit-icon">✏️</span> <span id="edit-text">Edit Document</span>
@@ -1106,143 +1109,273 @@
     </div>
 
     <script>
-        // Enhanced Storage Manager with Download/Upload capability
-        class StorageManager {
+        // Firebase Manager Class - RESTORED
+        class FirebaseManager {
             constructor() {
-                this.storageKey = 'interior-design-doc';
-                this.autoSaveEnabled = true;
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
+                };
+                
+                this.firebaseApp = null;
+                this.database = null;
+                this.isConnected = false;
+                
+                // Initialize Firebase
+                this.initializeFirebase();
             }
             
-            // Update status indicator
-            updateStatus(status) {
+            // Initialize Firebase
+            async initializeFirebase() {
+                try {
+                    console.log('🔥 Starting Firebase initialization...');
+                    
+                    // Wait for Firebase to load
+                    let attempts = 0;
+                    while (typeof firebase === 'undefined' && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        return;
+                    }
+
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
+                        this.database = firebase.database();
+                        this.isConnected = true;
+                        this.updateFirebaseStatus('connected');
+                        this.setupConnectionMonitoring();
+                        return;
+                    }
+
+                    console.log('🔥 Initializing Firebase with config...');
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    this.isConnected = true;
+                    this.updateFirebaseStatus('connected');
+                    this.setupConnectionMonitoring();
+                    
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
+                    this.isConnected = false;
+                }
+            }
+            
+            // Setup connection monitoring
+            setupConnectionMonitoring() {
+                if (this.database) {
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.isConnected = true;
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                        } else {
+                            this.isConnected = false;
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                }
+            }
+            
+            // Update Firebase status indicator
+            updateFirebaseStatus(status) {
                 const statusElement = document.getElementById('firebase-status');
                 if (!statusElement) return;
                 
                 if (status === 'connected') {
                     statusElement.className = 'firebase-status firebase-connected';
-                    statusElement.innerHTML = '🟢 Download Ready';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
                 } else if (status === 'saving') {
                     statusElement.className = 'firebase-status firebase-saving';
-                    statusElement.innerHTML = '🟡 Preparing Download...';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
                 } else if (status === 'loading') {
                     statusElement.className = 'firebase-status firebase-loading';
-                    statusElement.innerHTML = '🔵 Loading File...';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
                 } else {
                     statusElement.className = 'firebase-status firebase-disconnected';
-                    statusElement.innerHTML = '🔴 No Saved Data';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
                 }
             }
             
-            // Save data as downloadable file
+            // Save data to Firebase
             saveData(collectionName, data) {
                 return new Promise((resolve, reject) => {
-                    try {
-                        this.updateStatus('saving');
-                        const dataId = this.generateId(data.name || 'record');
-                        const timestamp = new Date().toISOString();
-
-                        const saveData = {
-                            id: dataId,
-                            ...data,
-                            timestamp: timestamp,
-                            sessionId: Date.now()
-                        };
-
-                        // Create downloadable JSON file
-                        const jsonString = JSON.stringify(saveData, null, 2);
-                        const blob = new Blob([jsonString], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        
-                        // Create download link
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = url;
-                        downloadLink.download = `interior-design-${new Date().toISOString().split('T')[0]}.json`;
-                        
-                        // Auto-download
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        document.body.removeChild(downloadLink);
-                        
-                        // Clean up
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        
-                        this.updateStatus('connected');
-                        console.log('Data saved as download:', dataId);
-                        this.showSaveConfirmation('Downloaded Successfully');
-                        resolve(dataId);
-                    } catch (error) {
-                        this.updateStatus('disconnected');
-                        console.error('Save error:', error);
-                        reject(error);
+                    if (!this.database || !this.isConnected) {
+                        console.log('🔥 Firebase not connected - cannot save');
+                        reject(new Error('Firebase not connected'));
+                        return;
                     }
+
+                    this.updateFirebaseStatus('saving');
+                    const dataId = 'interior-design-mack-jessica'; // Fixed ID for this document
+                    const timestamp = new Date().toISOString();
+
+                    const saveData = {
+                        id: dataId,
+                        ...data,
+                        timestamp: timestamp,
+                        lastModified: Date.now()
+                    };
+
+                    this.database.ref(`${collectionName}/${dataId}`).set(saveData)
+                    .then(() => {
+                        this.updateFirebaseStatus('connected');
+                        console.log('🔥 Data saved to Firebase:', dataId);
+                        this.showSaveConfirmation('Saved to Cloud');
+                        resolve(dataId);
+                    })
+                    .catch((error) => {
+                        this.updateFirebaseStatus('disconnected');
+                        console.error('🔥 Firebase save error:', error);
+                        reject(error);
+                    });
                 });
             }
             
-            // Load data from uploaded file
+            // Load data from Firebase
             loadData(collectionName, limit = 10) {
                 return new Promise((resolve, reject) => {
-                    this.updateStatus('loading');
+                    if (!this.database || !this.isConnected) {
+                        console.log('🔥 Firebase not connected - cannot load');
+                        reject(new Error('Firebase not connected'));
+                        return;
+                    }
+
+                    this.updateFirebaseStatus('loading');
+                    const dataId = 'interior-design-mack-jessica'; // Fixed ID for this document
                     
-                    // Create file input for upload
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = '.json';
-                    fileInput.style.display = 'none';
-                    
-                    fileInput.addEventListener('change', (event) => {
-                        const file = event.target.files[0];
-                        if (!file) {
-                            this.updateStatus('connected');
+                    this.database.ref(`${collectionName}/${dataId}`).once('value')
+                    .then((snapshot) => {
+                        this.updateFirebaseStatus('connected');
+                        const data = snapshot.val();
+                        
+                        if (!data) {
+                            console.log('🔥 No data found in Firebase');
                             resolve([]);
                             return;
                         }
-                        
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            try {
-                                const data = JSON.parse(e.target.result);
-                                this.updateStatus('connected');
-                                console.log('Data loaded from file');
-                                this.showSaveConfirmation('File Loaded Successfully');
-                                resolve([data]);
-                            } catch (error) {
-                                this.updateStatus('disconnected');
-                                console.error('File parse error:', error);
-                                alert('Invalid file format. Please select a valid design file.');
-                                reject(error);
-                            }
-                        };
-                        
-                        reader.onerror = () => {
-                            this.updateStatus('disconnected');
-                            reject(new Error('File read error'));
-                        };
-                        
-                        reader.readAsText(file);
+
+                        console.log('🔥 Data loaded from Firebase');
+                        resolve([data]);
+                    })
+                    .catch((error) => {
+                        this.updateFirebaseStatus('disconnected');
+                        console.error('🔥 Firebase load error:', error);
+                        reject(error);
                     });
-                    
-                    // Add to document and trigger
-                    document.body.appendChild(fileInput);
-                    fileInput.click();
-                    
-                    // Clean up
-                    setTimeout(() => {
-                        if (fileInput.parentNode) {
-                            fileInput.parentNode.removeChild(fileInput);
-                        }
-                    }, 1000);
                 });
             }
             
-            // Generate unique ID
-            generateId(name = 'record') {
-                const cleanName = name.replace(/\s+/g, '-').toLowerCase();
-                const timestamp = Date.now();
-                return `${cleanName}-${timestamp}`;
+            // Auto-load data on page load
+            async autoLoadData() {
+                try {
+                    const documents = await this.loadData('interior-designs');
+                    if (documents.length > 0) {
+                        const latestDoc = documents[0];
+                        this.restoreDocumentFromData(latestDoc);
+                        this.showSaveConfirmation('Document Restored from Cloud');
+                    }
+                } catch (error) {
+                    console.log('🔥 No existing data to restore or connection failed');
+                }
+            }
+            
+            // Restore document from Firebase data
+            restoreDocumentFromData(docData) {
+                if (!docData.content) return;
+                
+                // Clear existing additional images
+                const existingImages = document.querySelectorAll('.additional-image');
+                existingImages.forEach(img => img.remove());
+                
+                // Restore document content
+                if (docData.content.title) {
+                    const titleEl = document.querySelector('.header h1');
+                    if (titleEl) titleEl.textContent = docData.content.title;
+                }
+                
+                if (docData.content.subtitle) {
+                    const subtitleEl = document.querySelector('.header p');
+                    if (subtitleEl) subtitleEl.textContent = docData.content.subtitle;
+                }
+
+                // Restore sections and their additional images
+                if (docData.content.sections) {
+                    docData.content.sections.forEach((sectionData, index) => {
+                        const sections = document.querySelectorAll('.section');
+                        if (sections[index]) {
+                            const section = sections[index];
+                            
+                            // Restore section title
+                            if (sectionData.title) {
+                                const titleElement = section.querySelector('.section-title');
+                                if (titleElement) {
+                                    titleElement.textContent = sectionData.title;
+                                }
+                            }
+                            
+                            // Restore paragraphs
+                            if (sectionData.paragraphs) {
+                                const paragraphs = section.querySelectorAll('p');
+                                sectionData.paragraphs.forEach((text, pIndex) => {
+                                    if (paragraphs[pIndex] && text.trim()) {
+                                        paragraphs[pIndex].textContent = text;
+                                    }
+                                });
+                            }
+                            
+                            // Restore additional images for this section
+                            if (sectionData.additionalImages) {
+                                sectionData.additionalImages.forEach(imgData => {
+                                    this.createImageElementFromData(section, imgData);
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Create image element from data
+            createImageElementFromData(section, imgData) {
+                const imageDiv = document.createElement('div');
+                imageDiv.className = 'additional-image';
+                imageDiv.id = imgData.id;
+                
+                imageDiv.innerHTML = `
+                    <img src="${imgData.src}" alt="Additional design image">
+                    <div class="image-caption" contenteditable="true">
+                        ${imgData.caption || 'Click to add caption...'}
+                    </div>
+                    <button class="remove-image-btn" onclick="removeImage('${imgData.id}')">
+                        🗑️ Remove
+                    </button>
+                `;
+                
+                // Insert after the section title and add-image button
+                const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
+                if (insertPoint) {
+                    section.insertBefore(imageDiv, insertPoint);
+                } else {
+                    section.appendChild(imageDiv);
+                }
             }
             
             // Show save confirmation
-            showSaveConfirmation(text = 'Action Complete') {
+            showSaveConfirmation(text = 'Saved to Cloud') {
                 const confirmation = document.createElement('div');
                 confirmation.style.cssText = `
                     position: fixed;
@@ -1269,13 +1402,12 @@
                             confirmation.parentNode.removeChild(confirmation);
                         }
                     }, 300);
-                }, 3000);
+                }, 2000);
             }
         }
 
-        // Initialize Storage Manager
-        const storageManager = new StorageManager();
-        storageManager.updateStatus('connected');
+        // Initialize Firebase Manager
+        const firebaseManager = new FirebaseManager();
 
         // Store original SVGs
         const originalSVGs = {
@@ -1385,19 +1517,22 @@
                 element.classList.remove('editable');
             });
             
-            // Show save confirmation with download reminder
-            if (confirm('Changes saved! Click "Download Document" to save your work permanently. Would you like to download now?')) {
-                saveDocumentToStorage();
+            // Auto-save to Firebase when exiting edit mode
+            if (firebaseManager && firebaseManager.isConnected) {
+                saveDocumentToFirebase();
+                alert('Changes saved to cloud! Document is now in view-only mode.');
+            } else {
+                alert('Changes saved locally! Firebase connection required for cloud sync.');
             }
         }
 
-        // Save/Load functionality
+        // Firebase Save/Load functionality
         document.getElementById('save-btn').addEventListener('click', function() {
-            saveDocumentToStorage();
+            saveDocumentToFirebase();
         });
 
         document.getElementById('load-btn').addEventListener('click', function() {
-            loadDocumentFromStorage();
+            loadDocumentFromFirebase();
         });
 
         // Additional Image Management
@@ -1461,8 +1596,12 @@
                 section.appendChild(imageDiv);
             }
             
-            // No auto-save - user must manually download
-            console.log('Image added - remember to download document to save permanently');
+            // Auto-save to Firebase if connected
+            if (firebaseManager && firebaseManager.isConnected) {
+                setTimeout(() => {
+                    saveDocumentToFirebase();
+                }, 1000);
+            }
         }
 
         function removeImage(imageId) {
@@ -1470,16 +1609,20 @@
             if (imageElement && confirm('Remove this image?')) {
                 imageElement.remove();
                 
-            // No auto-save - user must manually download
-            console.log('Image removed - remember to download document to save permanently');
+            // Auto-save to Firebase if connected
+            if (firebaseManager && firebaseManager.isConnected) {
+                setTimeout(() => {
+                    saveDocumentToFirebase();
+                }, 500);
+            }
             }
         }
 
-        // Enhanced Storage Save to include additional images
-        function saveDocumentToStorage() {
+        // Enhanced Firebase Save to include additional images
+        function saveDocumentToFirebase() {
             // Collect all text content from the document
             const documentData = {
-                name: 'Interior Design Document',
+                name: 'Interior Design Document - Mack & Jessica',
                 content: {
                     title: document.querySelector('.header h1').textContent,
                     subtitle: document.querySelector('.header p').textContent,
@@ -1514,70 +1657,35 @@
                 });
             });
 
-            // Save to storage
-            storageManager.saveData('interior-designs', documentData)
+            // Save to Firebase
+            firebaseManager.saveData('interior-designs', documentData)
                 .then((id) => {
-                    console.log('Document saved with ID:', id);
+                    console.log('Document saved to Firebase with ID:', id);
                 })
                 .catch((error) => {
-                    console.error('Failed to save document:', error);
-                    alert('Failed to create download file.');
+                    console.error('Failed to save document to Firebase:', error);
+                    alert('Failed to save to cloud. Please check your internet connection.');
                 });
         }
 
-        // Enhanced Storage Load to restore additional images
-        function loadDocumentFromStorage() {
-            storageManager.loadData('interior-designs', 1)
+        // Enhanced Firebase Load to restore additional images
+        function loadDocumentFromFirebase() {
+            firebaseManager.loadData('interior-designs', 1)
                 .then((documents) => {
                     if (documents.length === 0) {
-                        alert('No saved documents found.');
+                        alert('No saved documents found in cloud.');
                         return;
                     }
 
                     const latestDoc = documents[0];
                     
-                    if (confirm('Load the latest document? This will replace current content.')) {
-                        // Clear existing additional images
-                        const existingImages = document.querySelectorAll('.additional-image');
-                        existingImages.forEach(img => img.remove());
-                        
-                        // Restore document content
-                        if (latestDoc.content.title) {
-                            document.querySelector('.header h1').textContent = latestDoc.content.title;
-                        }
-                        if (latestDoc.content.subtitle) {
-                            document.querySelector('.header p').textContent = latestDoc.content.subtitle;
-                        }
-
-                        // Restore sections and their additional images
-                        latestDoc.content.sections.forEach((sectionData, index) => {
-                            const sections = document.querySelectorAll('.section');
-                            if (sections[index]) {
-                                const section = sections[index];
-                                
-                                // Restore section title
-                                if (sectionData.title) {
-                                    const titleElement = section.querySelector('.section-title');
-                                    if (titleElement) {
-                                        titleElement.textContent = sectionData.title;
-                                    }
-                                }
-                                
-                                // Restore additional images for this section
-                                if (sectionData.additionalImages) {
-                                    sectionData.additionalImages.forEach(imgData => {
-                                        createImageElementFromData(section, imgData);
-                                    });
-                                }
-                            }
-                        });
-
-                        storageManager.showSaveConfirmation('Loaded Successfully');
+                    if (confirm('Load the latest document from cloud? This will replace current content.')) {
+                        firebaseManager.restoreDocumentFromData(latestDoc);
                     }
                 })
                 .catch((error) => {
-                    console.error('Failed to load document:', error);
-                    alert('Failed to load. Storage not available.');
+                    console.error('Failed to load document from Firebase:', error);
+                    alert('Failed to load from cloud. Please check your internet connection.');
                 });
         }
 
@@ -1604,6 +1712,15 @@
                 section.appendChild(imageDiv);
             }
         }
+
+        // Auto-load existing data when page loads
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (firebaseManager && firebaseManager.isConnected) {
+                    firebaseManager.autoLoadData();
+                }
+            }, 2000);
+        });
 
         // Prevent accidental navigation away during edit mode
         window.addEventListener('beforeunload', function(e) {
