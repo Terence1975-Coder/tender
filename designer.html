@@ -650,12 +650,15 @@
         }
 
         .enlarged-image {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 95%;
+            max-height: 95%;
+            width: auto;
+            height: auto;
             border-radius: 10px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             transform: scale(0.8);
             transition: transform 0.3s ease;
+            object-fit: contain;
         }
 
         .image-overlay.show .enlarged-image {
@@ -740,6 +743,17 @@
             <button class="add-image-btn" onclick="addImageToSection(this)">
                 📷 Add Image
             </button>
+            
+            <!-- Floor Plan Upload Controls - Only visible in edit mode -->
+            <div class="upload-section-edit" style="background: linear-gradient(135deg, #8B7355 0%, #A68B5B 100%); color: white; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                <h3 style="margin-bottom: 15px; font-size: 1.2rem;">📋 Replace Floor Plan</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="floorplan-upload" class="file-input" accept="image/*">
+                    <label for="floorplan-upload" class="file-input-button">Choose Floor Plan Image</label>
+                </div>
+                <button class="reset-button" onclick="resetImage('floorplan')" style="margin-top: 10px;">Reset to Original</button>
+            </div>
+            
             <div class="image-container" id="floorplan-container">
                 <svg width="450" height="320" viewBox="0 0 450 320" id="floorplan-svg">
                     <!-- Outer boundary -->
@@ -851,6 +865,17 @@
             <div class="furniture-concepts">
                 <div class="concept-card">
                     <h3>Living Room Concept</h3>
+                    
+                    <!-- Living Room Upload Controls - Only visible in edit mode -->
+                    <div class="upload-section-edit" style="background: linear-gradient(135deg, #D2691E 0%, #CD853F 100%); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; font-size: 0.9rem;">
+                        <h4 style="margin-bottom: 10px; font-size: 1rem;">🛋️ Replace Living Room Image</h4>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="living-upload" class="file-input" accept="image/*">
+                            <label for="living-upload" class="file-input-button" style="padding: 8px 16px; font-size: 0.9rem;">Choose Image</label>
+                        </div>
+                        <button class="reset-button" onclick="resetImage('living')" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Reset</button>
+                    </div>
+                    
                     <div class="image-container" id="living-container">
                         <svg width="320" height="260" viewBox="0 0 320 260" id="living-svg">
                             <!-- Background feature wall -->
@@ -903,6 +928,17 @@
                 
                 <div class="concept-card">
                     <h3>Dining Room Concept</h3>
+                    
+                    <!-- Dining Room Upload Controls - Only visible in edit mode -->
+                    <div class="upload-section-edit" style="background: linear-gradient(135deg, #D2691E 0%, #CD853F 100%); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; font-size: 0.9rem;">
+                        <h4 style="margin-bottom: 10px; font-size: 1rem;">🍽️ Replace Dining Room Image</h4>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="dining-upload" class="file-input" accept="image/*">
+                            <label for="dining-upload" class="file-input-button" style="padding: 8px 16px; font-size: 0.9rem;">Choose Image</label>
+                        </div>
+                        <button class="reset-button" onclick="resetImage('dining')" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Reset</button>
+                    </div>
+                    
                     <div class="image-container" id="dining-container">
                         <svg width="320" height="260" viewBox="0 0 320 260" id="dining-svg">
                             <!-- Background -->
@@ -1826,12 +1862,16 @@
             }
         }
 
-        // Image enlargement functionality
+        // Image enlargement functionality - ENHANCED
         function enlargeImage(img) {
             // Create overlay
             const overlay = document.createElement('div');
             overlay.className = 'image-overlay';
-            overlay.onclick = closeImageOverlay;
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    closeImageOverlay();
+                }
+            };
             
             // Create enlarged image
             const enlargedImg = document.createElement('img');
@@ -1839,11 +1879,19 @@
             enlargedImg.alt = img.alt;
             enlargedImg.className = 'enlarged-image';
             
+            // Prevent image click from closing overlay
+            enlargedImg.onclick = function(e) {
+                e.stopPropagation();
+            };
+            
             // Create close button
             const closeBtn = document.createElement('div');
             closeBtn.className = 'close-overlay';
             closeBtn.innerHTML = '×';
-            closeBtn.onclick = closeImageOverlay;
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                closeImageOverlay();
+            };
             
             // Add elements to overlay
             overlay.appendChild(enlargedImg);
@@ -1851,6 +1899,9 @@
             
             // Add to body
             document.body.appendChild(overlay);
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
             
             // Animate in
             setTimeout(() => {
@@ -1865,6 +1916,10 @@
             const overlay = window.currentOverlay;
             if (overlay) {
                 overlay.classList.remove('show');
+                
+                // Restore body scroll
+                document.body.style.overflow = '';
+                
                 setTimeout(() => {
                     if (overlay.parentNode) {
                         overlay.parentNode.removeChild(overlay);
