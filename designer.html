@@ -1251,18 +1251,18 @@
                    placeholder="Document ID (e.g., mack-jessica-design)" 
                    value="mack-jessica-design">
             
-            <button id="save-to-cloud" class="save-cloud-btn">
+            <button id="save-to-cloud" class="save-cloud-btn" onclick="manualSaveToCloud()">
                 <span id="save-icon">☁️</span> Save to Cloud
             </button>
             
-            <button id="load-from-cloud" class="load-cloud-btn">
+            <button id="load-from-cloud" class="load-cloud-btn" onclick="manualLoadFromCloud()">
                 <span id="load-icon">📥</span> Load from Cloud
             </button>
             
             <div id="save-status" class="save-status" style="display: none;"></div>
             
             <div style="margin-top: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; font-size: 0.8rem; color: #666;">
-                <strong>Firebase Status:</strong> Real-time cloud saving with your Firebase project. Document changes are automatically saved when connected.
+                <strong>Firebase Status:</strong> <span id="firebase-debug-info">Initializing...</span>
             </div>
         </div>
     </div>
