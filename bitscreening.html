@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Bootcamp Screening Chatbot - Latest Version</title>
     
-    <!-- No external dependencies needed -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <style>
         * {
@@ -145,6 +147,151 @@
             from {
                 transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
+            }
+
+                        // Make.com specific methods
+            sendToMakeWebhook() {
+                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
+                    this.addMessage('bot', '⚠️ No candidate data available to send. Please complete a screening assessment first.');
+                    return;
+                }
+
+                console.log('📊 Manual Make.com transmission requested');
+                const makeData = this.prepareMakeData();
+                
+                this.sendToMake(makeData)
+                    .then(result => {
+                        this.addMessage('bot', `
+                            🚀 <strong>Manual transmission to Make.com complete!</strong><br>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>✅ Data sent successfully</strong><br>
+                                • <strong>Candidate:</strong> ${makeData.full_name}<br>
+                                • <strong>Score:</strong> ${makeData.overall_score}/10<br>
+                                • <strong>Status:</strong> ${makeData.status}<br>
+                                • <strong>Webhook:</strong> hook.eu2.make.com<br>
+                                • <strong>Method:</strong> Manual trigger
+                            </div>
+                        `);
+                    })
+                    .catch(error => {
+                        this.addMessage('bot', `
+                            ❌ <strong>Make.com transmission failed</strong><br>
+                            <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>Error:</strong> ${error.message}<br>
+                                <strong>Candidate:</strong> ${makeData.full_name}<br>
+                                <strong>Please check your Make.com scenario is active</strong>
+                            </div>
+                        `);
+                    });
+            }
+
+            testMakeConnection() {
+                const testButton = document.getElementById('testMake');
+                if (testButton) {
+                    testButton.textContent = '🔄 Testing...';
+                    testButton.disabled = true;
+                }
+
+                const testData = {
+                    test: true,
+                    message: 'Make.com connection test',
+                    timestamp: new Date().toISOString(),
+                    source: 'AI Bootcamp Screening Chatbot',
+                    webhook_url: this.config.makeWebhookURL,
+                    test_candidate: {
+                        full_name: 'Test User',
+                        email: 'test@example.com',
+                        phone: '+44 7123 456789',
+                        overall_score: 8,
+                        status: 'TEST_DATA',
+                        interview_status: 'Test booking'
+                    }
+                };
+
+                this.sendToMake(testData)
+                    .then(result => {
+                        this.addMessage('bot', `
+                            🔧 <strong>Make.com connection test successful!</strong><br>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>✅ Webhook responding correctly</strong><br>
+                                • <strong>URL:</strong> hook.eu2.make.com<br>
+                                • <strong>Status:</strong> Connected<br>
+                                • <strong>Response:</strong> ${JSON.stringify(result)}<br>
+                                • <strong>Test completed:</strong> ${new Date().toLocaleString()}
+                            </div>
+                            
+                            <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>💡 Your Make.com scenario should now show:</strong><br>
+                                • Test data received successfully<br>
+                                • Webhook trigger activated<br>
+                                • Any connected modules processing test data<br>
+                                • Check Make.com execution history for details
+                            </div>
+                        `);
+                    })
+                    .catch(error => {
+                        this.addMessage('bot', `
+                            🔧 <strong>Make.com connection test failed</strong><br>
+                            <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>❌ Connection error:</strong> ${error.message}<br>
+                                • <strong>URL:</strong> ${this.config.makeWebhookURL}<br>
+                                • <strong>Check:</strong> Make.com scenario is active<br>
+                                • <strong>Check:</strong> Webhook URL is correct<br>
+                                • <strong>Check:</strong> No firewall blocking requests
+                            </div>
+                        `);
+                    })
+                    .finally(() => {
+                        if (testButton) {
+                            testButton.textContent = '🔧 Test Make.com';
+                            testButton.disabled = false;
+                        }
+                    });
+            }
+
+            showMakeIntegration() {
+                this.addMessage('bot', `
+                    📊 <strong>Make.com Integration Status</strong><br><br>
+                    
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                    <strong>✅ Active Webhook Configuration</strong><br>
+                    • <strong>Webhook URL:</strong> https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc<br>
+                    • <strong>Method:</strong> POST<br>
+                    • <strong>Content-Type:</strong> application/json<br>
+                    • <strong>Status:</strong> Ready for transmission<br>
+                    • <strong>Region:</strong> EU (Europe)
+                    </div>
+                    
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>🔄 Data Flow Process</strong><br>
+                    1. Candidate completes screening assessment<br>
+                    2. Personal details collected (if interview booked)<br>
+                    3. Comprehensive data package prepared<br>
+                    4. Secure HTTPS transmission to Make.com<br>
+                    5. Your scenario processes and routes the data<br>
+                    6. Connected services receive structured data
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>📋 Data Structure Sent to Make.com</strong><br>
+                    • <strong>Personal:</strong> full_name, first_name, surname, email, phone<br>
+                    • <strong>Assessment:</strong> overall_score, score_percentage, recommendation<br>
+                    • <strong>Status:</strong> interview_status, interview_booked, lead_quality<br>
+                    • <strong>Details:</strong> location, employment, funding status, availability<br>
+                    • <strong>Meta:</strong> timestamp, submission_id, source, session_id<br>
+                    • <strong>Responses:</strong> detailed_responses (JSON), all screening answers
+                    </div>
+                    
+                    <div style="background: #f0f8ff; padding: 12px; border-radius: 5px; border-left: 4px solid #6f42c1; margin: 10px 0;">
+                    <strong>🎯 Integration Benefits</strong><br>
+                    • Real-time candidate data delivery<br>
+                    • No manual data entry required<br>
+                    • Structured JSON format for easy processing<br>
+                    • Automatic backup to Firebase cloud<br>
+                    • Complete audit trail with timestamps<br>
+                    • Ready for Google Sheets, CRM, or database integration
+                    </div>
+                `);
             }
             to {
                 transform: translateX(-50%) translateY(0);
@@ -493,8 +640,8 @@
             display: inline-block;
         }
 
-        /* Make.com Status Styles */
-        .make-status {
+        /* Firebase Status Styles */
+        .firebase-status {
             position: fixed;
             top: 20px;
             left: 20px;
@@ -508,20 +655,25 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
-        .make-connected {
+        .firebase-connected {
             background: linear-gradient(135deg, #7dd321 0%, #6bb81c 100%);
             box-shadow: 0 2px 10px rgba(125, 211, 33, 0.3);
         }
 
-        .make-disconnected {
+        .firebase-disconnected {
             background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
             box-shadow: 0 2px 10px rgba(198, 40, 40, 0.3);
         }
 
-        .make-sending {
+        .firebase-saving {
             background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
             box-shadow: 0 2px 10px rgba(255, 152, 0, 0.3);
             animation: pulse 1.5s infinite;
+        }
+
+        .firebase-loading {
+            background: linear-gradient(135deg, #2c5866 0%, #1e3a4a 100%);
+            box-shadow: 0 2px 10px rgba(46, 88, 102, 0.3);
         }
 
         .cloud-controls {
@@ -618,9 +770,9 @@
     </style>
 </head>
 <body>
-    <!-- Make.com Status Indicator -->
-    <div id="make-status" class="make-status make-disconnected">
-        🔴 Make.com Disconnected
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">
+        🔴 Firebase Disconnected
     </div>
     
     <div class="container">
@@ -656,26 +808,14 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
-                            📡 Send to Dashboard
+                        <button class="audio-btn" onclick="window.chatBot.sendToMakeWebhook()" style="background: #9b59b6;">
+                            🚀 Send to Make.com
                         </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
-                            🖥️ View Dashboard
+                        <button class="audio-btn admin-hidden" id="testMake" onclick="window.chatBot.testMakeConnection()" style="background: #27ae60;">
+                            🔧 Test Make.com
                         </button>
-                        <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
-                            📊 Test Dashboard
-                        </button>
-                        <button class="audio-btn admin-hidden" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
-                            ℹ️ Dashboard Info
-                        </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(true)" style="background: #e67e22;">
-                            🔒 Enable Stealth Popup
-                        </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(false)" style="background: #e74c3c;">
-                            🚫 Disable All Popups
-                        </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showTestbotCode()" style="background: #8e44ad;">
-                            📝 Show testbot.html Code
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showMakeIntegration()" style="background: #3498db;">
+                            📊 Make.com Info
                         </button>
                         <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
@@ -709,22 +849,26 @@
                 <div class="assessment-content">
                     <!-- Cloud Controls -->
                     <div class="cloud-controls">
-                        <button class="cloud-btn save" onclick="window.chatBot.sendApplicationData()" title="Send current session to Make.com">
-                            🔗 Send to Make.com
+                        <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
+                            ☁️ Save
                         </button>
-                        <button class="cloud-btn" onclick="window.chatBot.showMakeStatus()" title="View Make.com webhook status">
-                            📊 Make.com Status
+                        <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
+                            📥 Load
+                        </button>
+                        <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
+                            📊 Stats
                         </button>
                     </div>
                     
                     <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
-                        <strong>🎉 Production Features:</strong><br>
-                        • 📊 Make.com webhook integration<br>
+                        <strong>🎉 Make.com Integration Active:</strong><br>
+                        • 🚀 Direct webhook transmission to Make.com<br>
+                        • ☁️ Firebase cloud storage backup<br>
                         • 🔍 Internet location fact-checking<br>
                         • 💬 Course Q&A with source references<br>
                         • 🔊 Smart audio for assessment questions<br>
                         • 📋 Live candidate tracking<br>
-                        • 📊 Complete assessment history
+                        • 📊 Complete assessment transmission
                     </div>
                     
                     <div class="criteria-item" id="location">
@@ -774,16 +918,32 @@
                 
                 // Configuration
                 this.config = {
-                    makeWebhookURL: 'https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc',
+                    emailServerUrl: 'DISABLED',
+                    emailRecipient: 'DISABLED',
+                    useDashboardReporting: false,
+                    useFormSubmit: false,
+                    dashboardURL: 'DISABLED',
+                    useBroadcastChannel: false,
+                    useHiddenPopup: false,
                     useMakeIntegration: true,
-                    dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    useBroadcastChannel: true,
-                    useHiddenPopup: false
+                    makeWebhookURL: 'https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc'
+                };
+                
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
                 };
                 
                 // Initialize properties
-                this.broadcastChannel = null;
-                this.hiddenDashboard = null;
+                this.database = null;
+                this.firebaseApp = null;
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
@@ -851,10 +1011,9 @@
                 // Initialize components
                 try {
                     this.initAudio();
-                    this.initBroadcastChannel();
                     this.init();
-                    this.updateMakeStatus('disconnected');
-                    console.log('✅ ChatBot initialization completed successfully');
+                    this.initializeFirebase();
+                    console.log('✅ ChatBot initialization completed successfully - Make.com integration ready');
                 } catch (error) {
                     console.error('❌ ChatBot initialization failed:', error);
                     throw error;
@@ -862,118 +1021,56 @@
             }
 
             // Make.com integration methods
-            updateMakeStatus(status) {
-                const statusElement = document.getElementById('make-status');
-                if (!statusElement) return;
+            sendToMake(applicantData) {
+                if (!this.config.useMakeIntegration || !this.config.makeWebhookURL) {
+                    console.log('📊 Make.com integration disabled or no webhook URL provided');
+                    return Promise.reject('Make.com not configured');
+                }
+
+                console.log('📊 Sending data to Make.com webhook:', this.config.makeWebhookURL);
                 
-                if (status === 'connected') {
-                    statusElement.className = 'make-status make-connected';
-                    statusElement.innerHTML = '🟢 Make.com Connected';
-                } else if (status === 'sending') {
-                    statusElement.className = 'make-status make-sending';
-                    statusElement.innerHTML = '🟡 Sending to Make.com...';
-                } else {
-                    statusElement.className = 'make-status make-disconnected';
-                    statusElement.innerHTML = '🔴 Make.com Disconnected';
-                }
-            }
-
-            sendApplicationData(applicationData = null) {
-                if (!applicationData) {
-                    applicationData = this.prepareMakeData();
-                }
-
-                if (this.config.makeWebhookURL.includes('your-webhook-id')) {
-                    this.addMessage('bot', `
-                        ⚠️ <strong>Make.com webhook URL not configured</strong><br>
-                        <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                            Please replace 'your-webhook-id' in the webhook URL with your actual Make.com webhook ID.
-                        </div>
-                    `);
-                    return;
-                }
-
-                this.updateMakeStatus('sending');
-                
-                fetch(this.config.makeWebhookURL, {
+                return fetch(this.config.makeWebhookURL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(applicationData)
+                    body: JSON.stringify(applicantData)
                 })
-                .then(function(response) {
-                    if (response.ok) {
-                        window.chatBot.updateMakeStatus('connected');
-                        window.chatBot.addMessage('bot', `
-                            ✅ <strong>Application submitted successfully to Make.com!</strong><br>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>Data sent:</strong> ${applicationData.full_name}<br>
-                                <strong>Score:</strong> ${applicationData.overall_score}/10<br>
-                                <strong>Status:</strong> ${applicationData.status}
-                            </div>
-                        `);
-                        
-                        setTimeout(function() {
-                            window.chatBot.updateMakeStatus('disconnected');
-                        }, 3000);
-                    } else {
+                .then(response => {
+                    if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
+                    return response.json().catch(() => ({})); // Handle empty responses
                 })
-                .catch(function(error) {
-                    window.chatBot.updateMakeStatus('disconnected');
-                    window.chatBot.addMessage('bot', `
-                        ❌ <strong>Failed to submit application to Make.com</strong><br>
-                        <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                            Error: ${error.message}
-                        </div>
-                    `);
+                .then(result => {
+                    console.log('📊 ✅ Data sent to Make.com successfully:', result);
+                    return result;
+                })
+                .catch(error => {
+                    console.error('📊 ❌ Make.com webhook failed:', error);
+                    throw error;
                 });
             }
 
-            showMakeStatus() {
-                const webhookConfigured = !this.config.makeWebhookURL.includes('your-webhook-id');
-                
-                this.addMessage('bot', `
-                    📊 <strong>Make.com Integration Status</strong><br>
-                    <div style="background: #f8f9fa; padding: 12px; border-radius: 5px; margin: 10px 0;">
-                        <strong>Webhook URL:</strong> ${this.config.makeWebhookURL}<br>
-                        <strong>Configuration:</strong> ${webhookConfigured ? '✅ Configured' : '❌ Needs setup'}<br>
-                        <strong>Integration Active:</strong> ${this.config.useMakeIntegration ? '✅ Yes' : '❌ No'}<br>
-                        <strong>Last Status:</strong> ${document.getElementById('make-status').textContent}
-                    </div>
-                    
-                    ${!webhookConfigured ? `
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                        <strong>⚠️ Setup Required:</strong><br>
-                        1. Create a new scenario in Make.com<br>
-                        2. Add a "Webhooks > Custom webhook" trigger<br>
-                        3. Copy the webhook URL<br>
-                        4. Replace 'your-webhook-id' in the code
-                    </div>
-                    ` : ''}
-                `);
-            }
             prepareMakeData() {
-                // Prepare comprehensive data structure for Make.com
-                var timestamp = new Date();
-                var dateOnly = timestamp.toISOString().split('T')[0];
-                var timeOnly = timestamp.toTimeString().split(' ')[0];
+                // Prepare comprehensive data structure for Google Sheets
+                const timestamp = new Date();
+                const dateOnly = timestamp.toISOString().split('T')[0];
+                const timeOnly = timestamp.toTimeString().split(' ')[0];
                 
                 return {
                     // Google Sheets friendly column names
-                    submission_id: 'BIT-' + Date.now(),
+                    submission_id: `BIT-${Date.now()}`,
                     date: dateOnly,
                     time: timeOnly,
                     timestamp: timestamp.toISOString(),
                     
                     // Personal Details
                     full_name: this.candidateData.name || 'Not provided',
-                    first_name: (this.candidateData.personalDetails && this.candidateData.personalDetails.firstName) || '',
-                    surname: (this.candidateData.personalDetails && this.candidateData.personalDetails.surname) || '',
-                    email: (this.candidateData.personalDetails && this.candidateData.personalDetails.email) || 'Not provided',
-                    phone: (this.candidateData.personalDetails && this.candidateData.personalDetails.mobile) || 'Not provided',
+                    first_name: this.candidateData.personalDetails?.firstName || '',
+                    surname: this.candidateData.personalDetails?.surname || '',
+                    email: this.candidateData.personalDetails?.email || 'Not provided',
+                    phone: this.candidateData.personalDetails?.mobile || 'Not provided',
                     
                     // Assessment Results
                     overall_score: this.score,
@@ -1007,15 +1104,14 @@
                     provider: 'BIT Training',
                     duration: '12 weeks (21 July - 9 October)',
                     
-                    // Response Analysis
                     interest_level: this.candidateData.interestLevel || 5,
-                    total_responses: (this.candidateData.responses && this.candidateData.responses.length) || 0,
+                    total_responses: this.candidateData.responses?.length || 0,
                     reschedule_requested: this.candidateData.rescheduleType ? 'YES' : 'NO',
                     reschedule_type: this.candidateData.rescheduleType || 'None',
                     
                     // System Information
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '4.0-make-only',
+                    version: '4.0-make-integration',
                     session_id: Date.now(),
                     user_agent: navigator.userAgent.substring(0, 100),
                     
@@ -1024,7 +1120,7 @@
                     personal_details_json: JSON.stringify(this.candidateData.personalDetails || {}),
                     
                     // Dashboard Integration
-                    dashboard_target: 'Make.com Webhook',
+                    dashboard_target: 'BIT Training Dashboard',
                     auto_update: true,
                     notification_required: this.score >= 6 ? true : false,
                     
@@ -1039,7 +1135,50 @@
                     communication_consent: true,
                     data_processing_consent: true
                 };
-            } backup...');
+            }
+
+            showMakeConfigurationHelp() {
+                this.addMessage('bot', `
+                    🔧 <strong>Make.com Integration Setup Complete!</strong><br>
+                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
+                        <strong>✅ Webhook URL Configured:</strong><br>
+                        https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc<br><br>
+                        
+                        <strong>📊 Data Flow:</strong><br>
+                        1. Applicant completes screening<br>
+                        2. System sends data to your Make.com webhook<br>
+                        3. Make.com processes and routes data<br>
+                        4. Data appears in connected systems (Google Sheets, etc.)
+                    </div>
+                    
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                        <strong>🔄 Make.com Scenario Features:</strong><br>
+                        • Receive candidate screening data<br>
+                        • Add to Google Sheets automatically<br>
+                        • Send notifications/emails<br>
+                        • Integrate with CRM systems<br>
+                        • Process interview bookings
+                    </div>
+                `);
+            }
+            // Dashboard reporting methods - Make.com Integration
+            sendToDashboard() {
+                console.log('📊 ===== MAKE.COM INTEGRATION TRANSMISSION =====');
+                console.log('📊 Preparing data for Make.com webhook processing');
+                
+                // Prepare comprehensive data for Make.com
+                const makeData = this.prepareMakeData();
+                
+                console.log('📊 Make.com data prepared:', makeData);
+                
+                // Send to Make.com webhook
+                this.sendToMake(makeData)
+                    .then(result => {
+                        this.showMakeSuccessConfirmation(makeData, result);
+                        
+                        // Also save to Firebase as backup if available
+                        if (this.database) {
+                            console.log('📊 Also saving to Firebase as backup...');
                             this.saveToFirebase();
                         }
                     })
@@ -1056,33 +1195,36 @@
 
             showMakeSuccessConfirmation(makeData, result) {
                 this.addMessage('bot', `
-                    📊 <strong>Applicant data sent to Make.com successfully!</strong><br>
+                    📊 <strong>Candidate data sent to Make.com successfully!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>✅ Make.com Automation Triggered</strong><br>
+                        <strong>✅ Webhook Delivered Successfully</strong><br>
                         • <strong>Applicant:</strong> ${makeData.full_name}<br>
                         • <strong>Interview Status:</strong> ${makeData.interview_status}<br>
                         • <strong>Score:</strong> ${makeData.overall_score}/10 (${makeData.score_percentage}%)<br>
                         • <strong>Recommendation:</strong> ${makeData.status}<br>
                         • <strong>Submission ID:</strong> ${makeData.submission_id}<br>
                         • <strong>Lead Quality:</strong> ${makeData.lead_quality}<br>
-                        • <strong>Next Action:</strong> ${makeData.next_action}
+                        • <strong>Next Action:</strong> ${makeData.next_action}<br>
+                        • <strong>Webhook URL:</strong> hook.eu2.make.com
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>🔄 Make.com Automation Will:</strong><br>
-                        • Add new row to Google Sheets<br>
-                        • Update dashboard with applicant details<br>
-                        • Trigger follow-up workflows<br>
-                        • Send notifications if configured
+                        <strong>🔄 Your Make.com Scenario Will Now:</strong><br>
+                        • Process the candidate data automatically<br>
+                        • Add to Google Sheets or database<br>
+                        • Send notifications if configured<br>
+                        • Trigger any connected workflows<br>
+                        • Route to appropriate team members
                     </div>
                     
                     <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>📋 Data Sent to Google Sheets:</strong><br>
+                        <strong>📋 Complete Data Package Sent:</strong><br>
                         • Personal details and contact information<br>
                         • Complete assessment scores and criteria<br>
                         • Interview booking status and requirements<br>
                         • Recommendation and next actions<br>
-                        • All screening responses and timestamps
+                        • All screening responses with timestamps<br>
+                        • Structured data ready for processing
                     </div>
                 `);
             }
@@ -1111,16 +1253,15 @@
 
             // BroadcastChannel communication methods
             initBroadcastChannel() {
-                var self = this;
                 try {
                     if ('BroadcastChannel' in window) {
                         this.broadcastChannel = new BroadcastChannel('bot_channel');
                         console.log('📡 BroadcastChannel initialized successfully');
                         
                         // Listen for messages from testbot.html
-                        this.broadcastChannel.addEventListener('message', function(event) {
+                        this.broadcastChannel.addEventListener('message', (event) => {
                             console.log('📨 Received BroadcastChannel message:', event.data);
-                            self.handleBroadcastMessage(event.data);
+                            this.handleBroadcastMessage(event.data);
                         });
                     } else {
                         console.log('📡 BroadcastChannel not supported in this browser');
@@ -1189,7 +1330,7 @@
                         timestamp: new Date().toISOString(),
                         sessionId: Date.now(),
                         source: 'AI Bootcamp Screening Chatbot',
-                        version: '4.0-make-only',
+                        version: '3.3-broadcast-only',
                         transmissionMethod: 'BroadcastChannel'
                     }
                 };
@@ -1198,7 +1339,7 @@
                 
                 if (success) {
                     this.addMessage('bot', `
-                        📡 <strong>Current candidate data sent via BroadcastChannel!</strong><br>
+                        📡 <strong>Current candidate data sent to dashboard!</strong><br>
                         <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
                             <strong>✅ BroadcastChannel Method</strong><br>
                             • <strong>Candidate:</strong> ${message.payload.name}<br>
@@ -1208,9 +1349,76 @@
                             • <strong>Channel:</strong> 'bot_channel'<br>
                             • <strong>Target:</strong> Any open testbot.html tab/window
                         </div>
+                        <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                            <strong>💡 Dashboard Access:</strong><br>
+                            Open ${this.config.dashboardURL} in any tab to see this data appear instantly via BroadcastChannel.
+                        </div>
                     `);
                 } else {
                     this.addMessage('bot', '❌ Failed to send via BroadcastChannel');
+                }
+            }
+            // Firebase methods - CRITICAL: Define before any calls
+            updateFirebaseStatus(status) {
+                const statusElement = document.getElementById('firebase-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'firebase-status firebase-connected';
+                    statusElement.innerHTML = '🟢 Firebase Connected';
+                } else if (status === 'saving') {
+                    statusElement.className = 'firebase-status firebase-saving';
+                    statusElement.innerHTML = '🟡 Saving to Cloud...';
+                } else if (status === 'loading') {
+                    statusElement.className = 'firebase-status firebase-loading';
+                    statusElement.innerHTML = '🔵 Loading from Cloud...';
+                } else {
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                    statusElement.innerHTML = '🔴 Firebase Offline';
+                }
+            }
+
+            initializeFirebase() {
+                try {
+                    console.log('🔥 Starting Firebase initialization...');
+                    
+                    if (typeof firebase === 'undefined') {
+                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
+                        this.updateFirebaseStatus('disconnected');
+                        return;
+                    }
+
+                    if (firebase.apps.length > 0) {
+                        console.log('🔥 Firebase already initialized');
+                        this.firebaseApp = firebase.apps[0];
+                        this.database = firebase.database();
+                        this.updateFirebaseStatus('connected');
+                        return;
+                    }
+
+                    console.log('🔥 Initializing Firebase with config...');
+                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
+                    this.database = firebase.database();
+                    
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            this.updateFirebaseStatus('connected');
+                            console.log('🔥 Firebase connected successfully');
+                        } else {
+                            this.updateFirebaseStatus('disconnected');
+                            console.log('🔥 Firebase disconnected');
+                        }
+                    });
+                    
+                    setInterval(() => {
+                        if (this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                            this.autoSaveCandidate();
+                        }
+                    }, 60000);
+                        
+                } catch (error) {
+                    console.error('🔥 Firebase initialization failed:', error);
+                    this.updateFirebaseStatus('disconnected');
                 }
             }
 
@@ -1358,7 +1566,7 @@
                 
                 // LOG: Confirming Make.com reporting will happen
                 console.log('📊 ===== INTERVIEW BOOKING CONFIRMED =====');
-                console.log('📊 Target: Make.com webhook');
+                console.log('📊 Target: Make.com EU2 Webhook');
                 console.log('📊 Candidate Name:', `${firstName} ${surname}`);
                 console.log('📊 Candidate Email:', email);
                 console.log('📊 Candidate Mobile:', mobile);
@@ -1636,10 +1844,8 @@
                     this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
                 }, 1500);
                 
-                // NO auto-opening of hidden dashboard - only if explicitly enabled
-                
                 setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced BIT Training Experience:</strong><br>• Professional BIT Training interface design<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• BroadcastChannel communication (popup optional)';
+                    const enhancedMsg = '🌟 <strong>Enhanced BIT Training Experience:</strong><br>• Professional BIT Training interface design<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Make.com webhook integration for data processing';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -1683,16 +1889,13 @@
             }
 
             showOptions(options) {
-                var self = this;
                 this.responseButtons.innerHTML = '';
-                options.forEach(function(option) {
-                    var button = document.createElement('button');
+                options.forEach(option => {
+                    const button = document.createElement('button');
                     button.className = 'btn btn-primary';
                     button.textContent = option;
-                    button.onclick = function() { 
-                        self.handleResponse(option); 
-                    };
-                    self.responseButtons.appendChild(button);
+                    button.onclick = () => this.handleResponse(option);
+                    this.responseButtons.appendChild(button);
                 });
             }
 
@@ -1809,8 +2012,8 @@
             }
 
             handleTextInput() {
-                var input = document.getElementById('textInput');
-                var question = input.value.trim();
+                const input = document.getElementById('textInput');
+                const question = input.value.trim();
                 
                 if (!question) return;
                 
@@ -1835,77 +2038,72 @@
 
             restoreHiddenElements() {
                 // Show all admin-hidden elements
-                var hiddenElements = document.querySelectorAll('.admin-hidden');
-                for (var i = 0; i < hiddenElements.length; i++) {
-                    var element = hiddenElements[i];
+                const hiddenElements = document.querySelectorAll('.admin-hidden');
+                hiddenElements.forEach(element => {
                     element.classList.remove('admin-hidden');
                     element.classList.add('admin-visible');
-                }
+                });
                 
-                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• View Dashboard button<br>• Test Dashboard button<br>• Dashboard Info button<br>• Enable Stealth Popup button<br>• Disable All Popups button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Popup mode is currently DISABLED by default for zero applicant interference.');
+                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Make.com button<br>• Make.com Info button<br><br>All hidden elements are now visible. Make.com integration is active and ready for candidate data transmission.');
             }
 
             handleCourseQuestion(question) {
-                var self = this;
-                var lowerQuestion = question.toLowerCase();
-                var response = '';
+                const lowerQuestion = question.toLowerCase();
+                let response = '';
                 
                 // Course duration and schedule
                 if (lowerQuestion.includes('long') || lowerQuestion.includes('duration') || lowerQuestion.includes('weeks') || lowerQuestion.includes('when')) {
-                    response = '📅 <strong>Programme Duration & Schedule:</strong><br>' +
-                        '• <strong>Duration:</strong> ' + this.courseKnowledge.duration + '<br>' +
-                        '• <strong>Sessions:</strong> ' + this.courseKnowledge.schedule + '<br>' +
-                        '• <strong>Days:</strong> ' + this.courseKnowledge.days + '<br><br>' +
-                        '<em>For more detailed information, visit: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em>';
+                    response = `📅 <strong>Programme Duration & Schedule:</strong><br>
+                        • <strong>Duration:</strong> ${this.courseKnowledge.duration}<br>
+                        • <strong>Sessions:</strong> ${this.courseKnowledge.schedule}<br>
+                        • <strong>Days:</strong> ${this.courseKnowledge.days}<br><br>
+                        <em>For more detailed information, visit: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
                 }
                 
                 // Cost and funding
                 else if (lowerQuestion.includes('cost') || lowerQuestion.includes('price') || lowerQuestion.includes('pay') || lowerQuestion.includes('money') || lowerQuestion.includes('fund') || lowerQuestion.includes('free')) {
-                    response = '💰 <strong>Programme Funding:</strong><br>' +
-                        '• <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>' +
-                        '• <strong>Employed candidates:</strong> £297.98 employer contribution<br>' +
-                        '• <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>' +
-                        '• <strong>Funding Source:</strong> Cornwall Council partnership<br><br>' +
-                        '<em>More funding details: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em>';
+                    response = `💰 <strong>Programme Funding:</strong><br>
+                        • <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>
+                        • <strong>Employed candidates:</strong> £297.98 employer contribution<br>
+                        • <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>
+                        • <strong>Funding Source:</strong> Cornwall Council partnership<br><br>
+                        <em>More funding details: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
                 }
                 
                 // Default comprehensive response for unmatched questions
                 else {
-                    response = '💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>' +
-                        '🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>' +
-                        '💰 <strong>Cost:</strong> Fully funded for most participants<br>' +
-                        '📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>' +
-                        '🌐 <strong>Where:</strong> 100% online delivery<br>' +
-                        '🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>' +
-                        '<strong>Popular Questions:</strong><br>' +
-                        '• "How much does it cost?" • "What will I learn?"<br>' +
-                        '• "When does it start?" • "Am I eligible?"<br>' +
-                        '• "What support is provided?" • "How do I apply?"<br><br>' +
-                        '<em>Complete information: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em><br><br>' +
-                        'Feel free to ask about any specific aspect!';
+                    response = `💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>
+                        🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>
+                        💰 <strong>Cost:</strong> Fully funded for most participants<br>
+                        📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>
+                        🌐 <strong>Where:</strong> 100% online delivery<br>
+                        🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>
+                        <strong>Popular Questions:</strong><br>
+                        • "How much does it cost?" • "What will I learn?"<br>
+                        • "When does it start?" • "Am I eligible?"<br>
+                        • "What support is provided?" • "How do I apply?"<br><br>
+                        <em>Complete information: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em><br><br>
+                        Feel free to ask about any specific aspect!`;
                 }
                 
-                setTimeout(function() {
-                    self.showTyping();
-                    setTimeout(function() {
-                        self.hideTyping();
-                        self.addMessage('bot', '<div class="faq-response">' + response + '</div>');
+                setTimeout(() => {
+                    this.showTyping();
+                    setTimeout(() => {
+                        this.hideTyping();
+                        this.addMessage('bot', `<div class="faq-response">${response}</div>`);
                     }, 1000);
                 }, 500);
             }
 
             handleResponse(response) {
-                var self = this;
                 // Check if this is a course-related question even in screening mode
-                var lowerResponse = response.toLowerCase();
-                var courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
+                const lowerResponse = response.toLowerCase();
+                const courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
                 
-                var isCourseQuestion = courseKeywords.some(function(keyword) { 
-                    return lowerResponse.includes(keyword); 
-                });
+                const isCourseQuestion = courseKeywords.some(keyword => lowerResponse.includes(keyword));
                 
                 // Critical screening steps that should NEVER be treated as course questions
-                var criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
+                const criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
                 
                 if (this.chatMode) {
                     // In chat mode, handle as course question
@@ -1916,12 +2114,15 @@
                     this.addMessage('user', response);
                     this.addMessage('bot', '💡 <strong>Quick course info:</strong> Let me answer that, then we\'ll continue with your screening.');
                     
-                    setTimeout(function() {
-                        self.handleCourseQuestion(response);
+                    setTimeout(() => {
+                        this.handleCourseQuestion(response);
                         
                         // After answering, continue with screening flow
-                        setTimeout(function() {
-                            self.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
+                        setTimeout(() => {
+                            this.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
+                            
+                            // Don't process as a screening response, just continue
+                            return;
                         }, 2000);
                     }, 1000);
                     return;
@@ -1929,13 +2130,13 @@
                 
                 // Normal screening flow
                 this.addMessage('user', response);
-                this.candidateData.responses.push({step: this.currentStep, response: response});
+                this.candidateData.responses.push({step: this.currentStep, response});
                 
-                setTimeout(function() {
-                    self.showTyping();
-                    setTimeout(function() {
-                        self.hideTyping();
-                        self.processResponse(response);
+                setTimeout(() => {
+                    this.showTyping();
+                    setTimeout(() => {
+                        this.hideTyping();
+                        this.processResponse(response);
                     }, 1000);
                 }, 500);
             }
@@ -2093,18 +2294,15 @@ Are you still interested in progressing with this opportunity?`);
             }
             
             async factCheckLocation(location) {
-                var searchQuery = location + ' Cornwall UK location county';
-                return new Promise(function(resolve) {
-                    setTimeout(function() {
-                        resolve(window.chatBot.simulateLocationAPI(location, searchQuery));
-                    }, 800);
-                });
+                const searchQuery = `${location} Cornwall UK location county`;
+                await new Promise(resolve => setTimeout(resolve, 800));
+                return await this.simulateLocationAPI(location, searchQuery);
             }
             
             async simulateLocationAPI(location, searchQuery) {
-                var cleanLocation = location.toLowerCase().trim();
+                const cleanLocation = location.toLowerCase().trim();
                 
-                var cornwallTowns = {
+                const cornwallTowns = {
                     'truro': { county: 'Cornwall', confidence: 0.99 },
                     'falmouth': { county: 'Cornwall', confidence: 0.99 },
                     'penzance': { county: 'Cornwall', confidence: 0.99 },
@@ -2165,7 +2363,7 @@ Are you still interested in progressing with this opportunity?`);
                 };
                 
                 if (cornwallTowns[cleanLocation]) {
-                    var result = cornwallTowns[cleanLocation];
+                    const result = cornwallTowns[cleanLocation];
                     return {
                         isInCornwall: result.county === 'Cornwall',
                         county: result.county,
@@ -2174,7 +2372,7 @@ Are you still interested in progressing with this opportunity?`);
                     };
                 }
                 
-                return this.simulateWebSearch(location);
+                return await this.simulateWebSearch(location);
             }
             
             async simulateWebSearch(location) {
@@ -3037,11 +3235,16 @@ function displayCandidateReport(data) {
             completeAssessment() {
                 this.updateScore();
                 
-                console.log('📊 ASSESSMENT COMPLETE - Triggering Make.com reporting');
-                console.log('📊 Make.com webhook URL:', this.config.makeWebhookURL);
+                console.log('📊 ASSESSMENT COMPLETE - Triggering Make.com webhook transmission');
+                console.log('📊 Make.com Webhook: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
                 
                 // Send to Make.com
                 this.sendToDashboard();
+                
+                // Auto-save to Firebase
+                if (this.database && this.candidateData.name && this.candidateData.name !== 'Applicant') {
+                    this.saveToFirebase();
+                }
                 
                 const finalReport = document.getElementById('finalReport');
                 const recommendation = document.getElementById('recommendation');
@@ -3083,8 +3286,8 @@ function displayCandidateReport(data) {
                     <strong>Next Steps:</strong><br>
                     ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
                     
-                    <strong>🔗 Make.com Integration:</strong><br>
-                    Application data has been sent to Make.com webhook for automated processing, Google Sheets logging, and dashboard updates.
+                    <strong>🚀 Make.com Integration:</strong><br>
+                    Comprehensive screening data has been sent to your Make.com webhook for automatic processing. The data includes all assessment details, personal information, and structured responses ready for your connected systems.
                 `;
                 
                 if (reportDetails) {
@@ -3104,54 +3307,59 @@ function displayCandidateReport(data) {
                 window.chatBot = new ChatBot();
                 console.log('✅ ChatBot instance created successfully');
                 
-                // Check Firebase availability - REMOVED
-                console.log('⚠️ Firebase removed - using Make.com only');
-                
-                // Check window context for dashboard sync
-                if (window.parent !== window) {
-                    console.log('✅ Running in iframe - dashboard sync available');
+                // Check Firebase availability
+                if (typeof firebase !== 'undefined') {
+                    console.log('✅ Firebase SDK loaded successfully');
                 } else {
-                    console.log('ℹ️ Running standalone - dashboard sync may be limited');
+                    console.log('⚠️ Firebase SDK not loaded - will run in offline mode');
                 }
+                
+                // Check Make.com integration
+                console.log('✅ Make.com integration active - webhook ready for candidate data');
                 
             } catch (error) {
                 console.error('❌ ChatBot initialization failed:', error);
                 
                 // Show error in UI
-                var errorDiv = document.createElement('div');
-                errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);' +
-                    'background: #e74c3c; color: white; padding: 20px; border-radius: 10px;' +
-                    'z-index: 9999; max-width: 400px; text-align: center;';
-                errorDiv.innerHTML = '<h3>❌ Initialization Error</h3>' +
-                    '<p>' + error.message + '</p>' +
-                    '<button onclick="location.reload()" style="background: white; color: #e74c3c; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">' +
-                    'Reload Page</button>';
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: #e74c3c; color: white; padding: 20px; border-radius: 10px;
+                    z-index: 9999; max-width: 400px; text-align: center;
+                `;
+                errorDiv.innerHTML = `
+                    <h3>❌ Initialization Error</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()" style="background: white; color: #e74c3c; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                        Reload Page
+                    </button>
+                `;
                 document.body.appendChild(errorDiv);
             }
             
             // Show startup notification
-            setTimeout(function() {
-                var startupInfo = document.createElement('div');
-                startupInfo.style.cssText = 'position: fixed; bottom: 20px; left: 20px;' +
-                    'background: #27ae60; color: white; padding: 10px 15px;' +
-                    'border-radius: 10px; font-size: 12px; max-width: 220px;' +
-                    'z-index: 1000; animation: slideUp 0.5s ease-out;';
-                startupInfo.innerHTML = '🎉 <strong>BIT Training System Ready!</strong><br>' +
-                    '• AI Business Productivity Bootcamp<br>' +
-                    '• Professional BIT Training interface<br>' +
-                    '• Make.com webhook integration<br>' +
-                    '• Emily (Irish English) voice enabled<br>' +
-                    '• Location fact-checking ready<br>' +
-                    '• BroadcastChannel communication active';
+            setTimeout(() => {
+                const startupInfo = document.createElement('div');
+                startupInfo.style.cssText = `
+                    position: fixed; bottom: 20px; left: 20px;
+                    background: #27ae60; color: white; padding: 10px 15px;
+                    border-radius: 10px; font-size: 12px; max-width: 220px;
+                    z-index: 1000; animation: slideUp 0.5s ease-out;
+                `;
+                startupInfo.innerHTML = `
+                    🎉 <strong>BIT Training System Ready!</strong><br>
+                    • AI Business Productivity Bootcamp<br>
+                    • Professional BIT Training interface<br>
+                    • Make.com webhook integration active<br>
+                    • Emily (Irish English) voice enabled<br>
+                    • Location fact-checking ready<br>
+                    • Firebase cloud storage active
+                `;
                 document.body.appendChild(startupInfo);
                 
-                setTimeout(function() { 
-                    if (startupInfo.parentNode) {
-                        startupInfo.parentNode.removeChild(startupInfo); 
-                    }
-                }, 4000);
+                setTimeout(() => startupInfo.remove(), 4000);
             }, 2000);
-        });
+        });;
         
         const style = document.createElement('style');
         style.textContent = `
