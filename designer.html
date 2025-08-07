@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Interior Design Presentation</title>
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -57,6 +54,11 @@
             border-radius: 15px;
             margin: 30px 0;
             text-align: center;
+            display: none;
+        }
+
+        .editing-mode .upload-section {
+            display: block;
         }
 
         .upload-section h2 {
@@ -243,6 +245,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
             transition: transform 0.3s ease;
+            cursor: pointer;
         }
 
         .color-swatch:hover {
@@ -258,6 +261,99 @@
             font-size: 0.8rem;
             color: #666;
             white-space: nowrap;
+        }
+
+        .editing-mode .color-swatch {
+            border: 3px dashed #D2691E !important;
+            position: relative;
+        }
+
+        .editing-mode .color-swatch::before {
+            content: '🎨';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #D2691E;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            z-index: 10;
+        }
+
+        .color-picker-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .color-picker-popup h3 {
+            margin-bottom: 15px;
+            color: #8B7355;
+        }
+
+        .color-picker-popup input[type="color"] {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .color-picker-popup input[type="text"] {
+            width: 200px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: inherit;
+        }
+
+        .color-picker-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .color-picker-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .save-color {
+            background: #8B7355;
+            color: white;
+        }
+
+        .cancel-color {
+            background: #ddd;
+            color: #333;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
         }
 
         .weathered-wood { background: linear-gradient(45deg, #E5E5E5, #D3D3D3, #C0C0C0); }
@@ -450,243 +546,9 @@
             z-index: 1000;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-
-        /* Firebase Status Styles */
-        .firebase-status {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1000;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .firebase-connected {
-            background: rgba(39, 174, 96, 0.9);
-            color: white;
-        }
-
-        .firebase-disconnected {
-            background: rgba(231, 76, 60, 0.9);
-            color: white;
-        }
-
-        .firebase-saving {
-            background: rgba(241, 196, 15, 0.9);
-            color: white;
-        }
-
-        .firebase-loading {
-            background: rgba(52, 152, 219, 0.9);
-            color: white;
-        }
-
-        .save-button {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0 10px;
-            box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
-        }
-
-        .save-button:hover {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
-        }
-
-        .load-button {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0 10px;
-            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
-        }
-
-        .load-button:hover {
-            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-        }
-
-        /* Additional Image Features */
-        .add-image-btn {
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            margin: 10px 5px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .editing-mode .add-image-btn {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .add-image-btn:hover {
-            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
-            transform: translateY(-1px);
-        }
-
-        .additional-image {
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .additional-image img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .image-caption {
-            margin-top: 8px;
-            font-style: italic;
-            color: #666;
-            font-size: 0.9rem;
-            padding: 5px;
-            border: 1px dashed transparent;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .editing-mode .image-caption {
-            border-color: #D2691E;
-            background: rgba(210, 105, 30, 0.05);
-        }
-
-        .remove-image-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            margin-top: 5px;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-
-        .editing-mode .remove-image-btn {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .remove-image-btn:hover {
-            background: #c0392b;
-        }
-
-        .upload-section-edit {
-            opacity: 0.5;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-
-        .editing-mode .upload-section-edit {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .hidden-file-input {
-            display: none;
-        }
-
-        /* Image enlargement styles */
-        .clickable-image {
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .clickable-image:hover {
-            transform: scale(1.02);
-        }
-
-        .image-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .image-overlay.show {
-            opacity: 1;
-        }
-
-        .enlarged-image {
-            max-width: 95%;
-            max-height: 95%;
-            width: auto;
-            height: auto;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            transform: scale(0.8);
-            transition: transform 0.3s ease;
-            object-fit: contain;
-        }
-
-        .image-overlay.show .enlarged-image {
-            transform: scale(1);
-        }
-
-        .close-overlay {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            color: white;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 10001;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            transition: color 0.3s ease;
-        }
-
-        .close-overlay:hover {
-            color: #ff6b6b;
-        }
     </style>
 </head>
 <body>
-    <!-- Firebase Status Indicator -->
-    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Connecting...</div>
-
     <div class="container">
         <div class="header">
             <h1>LIVING & DINING ROOM TRANSFORMATION</h1>
@@ -694,7 +556,7 @@
             <p style="font-size: 1rem; margin-top: 10px;">Presented by Designer Interiors 90'</p>
         </div>
 
-        <div class="upload-section upload-section-edit">
+        <div class="upload-section">
             <h2>Customize Your Design Presentation</h2>
             <p>Upload your own images to replace the layout diagrams and concepts below</p>
             
@@ -730,9 +592,6 @@
 
         <div class="section">
             <h2 class="section-title">Design Vision</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <p style="font-size: 1.1rem; line-height: 1.8; color: #555;">
                 Transform your open-plan living and dining space into a sophisticated, contemporary haven that seamlessly blends natural textures with modern elegance. Our design approach focuses on creating a cohesive flow between spaces while maintaining distinct functional zones, using a carefully curated palette of weathered woods, soft linens, and warm terracotta accents.
             </p>
@@ -740,20 +599,6 @@
 
         <div class="section">
             <h2 class="section-title">Proposed Design Layout</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
-            
-            <!-- Floor Plan Upload Controls - Only visible in edit mode -->
-            <div class="upload-section-edit" style="background: linear-gradient(135deg, #8B7355 0%, #A68B5B 100%); color: white; padding: 20px; border-radius: 12px; margin: 15px 0;">
-                <h3 style="margin-bottom: 15px; font-size: 1.2rem;">📋 Replace Floor Plan</h3>
-                <div class="file-input-wrapper">
-                    <input type="file" id="floorplan-upload" class="file-input" accept="image/*">
-                    <label for="floorplan-upload" class="file-input-button">Choose Floor Plan Image</label>
-                </div>
-                <button class="reset-button" onclick="resetImage('floorplan')" style="margin-top: 10px;">Reset to Original</button>
-            </div>
-            
             <div class="image-container" id="floorplan-container">
                 <svg width="450" height="320" viewBox="0 0 450 320" id="floorplan-svg">
                     <!-- Outer boundary -->
@@ -859,23 +704,9 @@
 
         <div class="section">
             <h2 class="section-title">Proposed Furniture & Styling</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <div class="furniture-concepts">
                 <div class="concept-card">
                     <h3>Living Room Concept</h3>
-                    
-                    <!-- Living Room Upload Controls - Only visible in edit mode -->
-                    <div class="upload-section-edit" style="background: linear-gradient(135deg, #D2691E 0%, #CD853F 100%); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; font-size: 0.9rem;">
-                        <h4 style="margin-bottom: 10px; font-size: 1rem;">🛋️ Replace Living Room Image</h4>
-                        <div class="file-input-wrapper">
-                            <input type="file" id="living-upload" class="file-input" accept="image/*">
-                            <label for="living-upload" class="file-input-button" style="padding: 8px 16px; font-size: 0.9rem;">Choose Image</label>
-                        </div>
-                        <button class="reset-button" onclick="resetImage('living')" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Reset</button>
-                    </div>
-                    
                     <div class="image-container" id="living-container">
                         <svg width="320" height="260" viewBox="0 0 320 260" id="living-svg">
                             <!-- Background feature wall -->
@@ -928,17 +759,6 @@
                 
                 <div class="concept-card">
                     <h3>Dining Room Concept</h3>
-                    
-                    <!-- Dining Room Upload Controls - Only visible in edit mode -->
-                    <div class="upload-section-edit" style="background: linear-gradient(135deg, #D2691E 0%, #CD853F 100%); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; font-size: 0.9rem;">
-                        <h4 style="margin-bottom: 10px; font-size: 1rem;">🍽️ Replace Dining Room Image</h4>
-                        <div class="file-input-wrapper">
-                            <input type="file" id="dining-upload" class="file-input" accept="image/*">
-                            <label for="dining-upload" class="file-input-button" style="padding: 8px 16px; font-size: 0.9rem;">Choose Image</label>
-                        </div>
-                        <button class="reset-button" onclick="resetImage('dining')" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Reset</button>
-                    </div>
-                    
                     <div class="image-container" id="dining-container">
                         <svg width="320" height="260" viewBox="0 0 320 260" id="dining-svg">
                             <!-- Background -->
@@ -1027,26 +847,33 @@
 
         <div class="section">
             <h2 class="section-title">Color Palette</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <div class="color-palette">
-                <div class="color-swatch weathered-wood" data-color="Weathered Wood"></div>
-                <div class="color-swatch linen-gray" data-color="Linen Gray"></div>
-                <div class="color-swatch charcoal" data-color="Charcoal"></div>
-                <div class="color-swatch terracotta" data-color="Terracotta"></div>
-                <div class="color-swatch warm-white" data-color="Warm White"></div>
+                <div class="color-swatch weathered-wood" data-color="Weathered Wood" data-original-class="weathered-wood"></div>
+                <div class="color-swatch linen-gray" data-color="Linen Gray" data-original-class="linen-gray"></div>
+                <div class="color-swatch charcoal" data-color="Charcoal" data-original-class="charcoal"></div>
+                <div class="color-swatch terracotta" data-color="Terracotta" data-original-class="terracotta"></div>
+                <div class="color-swatch warm-white" data-color="Warm White" data-original-class="warm-white"></div>
             </div>
             <p style="margin-top: 40px; font-size: 1rem; color: #666;">
                 This sophisticated palette combines the organic warmth of weathered wood textures with the refined elegance of linen-inspired grays. Charcoal anchors the scheme with depth, while terracotta accents add life and personality. Warm whites brighten and balance the overall composition.
             </p>
         </div>
 
+        <!-- Color Picker Popup -->
+        <div class="overlay" id="color-overlay"></div>
+        <div class="color-picker-popup" id="color-picker">
+            <h3>Edit Color</h3>
+            <input type="color" id="color-input" value="#8B7355">
+            <br>
+            <input type="text" id="color-name-input" placeholder="Color Name" maxlength="20">
+            <div class="color-picker-buttons">
+                <button class="color-picker-btn save-color" onclick="saveColor()">Save</button>
+                <button class="color-picker-btn cancel-color" onclick="cancelColor()">Cancel</button>
+            </div>
+        </div>
+
         <div class="section">
             <h2 class="section-title">Room-by-Room Design Strategy</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <div class="room-grid">
                 <div class="room-section">
                     <h3 class="room-title">LIVING ROOM</h3>
@@ -1132,9 +959,6 @@
 
         <div class="section">
             <h2 class="section-title">Key Design Benefits</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <div class="key-features">
                 <div class="feature-card">
                     <div class="feature-title">Enhanced Natural Light</div>
@@ -1165,9 +989,6 @@
 
         <div class="section">
             <h2 class="section-title">Investment Summary</h2>
-            <button class="add-image-btn" onclick="addImageToSection(this)">
-                📷 Add Image
-            </button>
             <p style="font-size: 1.1rem; line-height: 1.8;">
                 This comprehensive transformation will modernize your living and dining spaces while working with your existing layout and key furniture pieces. The investment focuses on high-impact changes that deliver maximum visual transformation: feature wallpaper installation, professional upholstery work, custom window treatments, and carefully selected accent pieces.
             </p>
@@ -1192,12 +1013,6 @@
         </div>
 
         <div style="text-align: center; margin: 30px 0; padding: 20px;">
-            <button id="save-btn" class="save-button">
-                💾 Save to Cloud
-            </button>
-            <button id="load-btn" class="load-button">
-                📥 Load from Cloud
-            </button>
             <button id="edit-btn" class="edit-button">
                 <span id="edit-icon">✏️</span> <span id="edit-text">Edit Document</span>
             </button>
@@ -1205,324 +1020,6 @@
     </div>
 
     <script>
-        // Firebase Manager Class - RESTORED
-        class FirebaseManager {
-            constructor() {
-                // Firebase Configuration
-                this.firebaseConfig = {
-                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-                    authDomain: "prospecting-f2f42.firebaseapp.com",
-                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
-                    projectId: "prospecting-f2f42",
-                    storageBucket: "prospecting-f2f42.firebasestorage.app",
-                    messagingSenderId: "292034226428",
-                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-                    measurementId: "G-WWB0JTX2L2"
-                };
-                
-                this.firebaseApp = null;
-                this.database = null;
-                this.isConnected = false;
-                
-                // Initialize Firebase
-                this.initializeFirebase();
-            }
-            
-            // Initialize Firebase
-            async initializeFirebase() {
-                try {
-                    console.log('🔥 Starting Firebase initialization...');
-                    
-                    // Wait for Firebase to load
-                    let attempts = 0;
-                    while (typeof firebase === 'undefined' && attempts < 50) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        attempts++;
-                    }
-                    
-                    if (typeof firebase === 'undefined') {
-                        console.log('🔥 Firebase SDK not loaded - running in offline mode');
-                        this.updateFirebaseStatus('disconnected');
-                        return;
-                    }
-
-                    if (firebase.apps.length > 0) {
-                        console.log('🔥 Firebase already initialized');
-                        this.firebaseApp = firebase.apps[0];
-                        this.database = firebase.database();
-                        this.isConnected = true;
-                        this.updateFirebaseStatus('connected');
-                        this.setupConnectionMonitoring();
-                        return;
-                    }
-
-                    console.log('🔥 Initializing Firebase with config...');
-                    this.firebaseApp = firebase.initializeApp(this.firebaseConfig);
-                    this.database = firebase.database();
-                    this.isConnected = true;
-                    this.updateFirebaseStatus('connected');
-                    this.setupConnectionMonitoring();
-                    
-                } catch (error) {
-                    console.error('🔥 Firebase initialization failed:', error);
-                    this.updateFirebaseStatus('disconnected');
-                    this.isConnected = false;
-                }
-            }
-            
-            // Setup connection monitoring
-            setupConnectionMonitoring() {
-                if (this.database) {
-                    this.database.ref('.info/connected').on('value', (snapshot) => {
-                        if (snapshot.val() === true) {
-                            this.isConnected = true;
-                            this.updateFirebaseStatus('connected');
-                            console.log('🔥 Firebase connected successfully');
-                        } else {
-                            this.isConnected = false;
-                            this.updateFirebaseStatus('disconnected');
-                            console.log('🔥 Firebase disconnected');
-                        }
-                    });
-                }
-            }
-            
-            // Update Firebase status indicator
-            updateFirebaseStatus(status) {
-                const statusElement = document.getElementById('firebase-status');
-                if (!statusElement) return;
-                
-                if (status === 'connected') {
-                    statusElement.className = 'firebase-status firebase-connected';
-                    statusElement.innerHTML = '🟢 Firebase Connected';
-                } else if (status === 'saving') {
-                    statusElement.className = 'firebase-status firebase-saving';
-                    statusElement.innerHTML = '🟡 Saving to Cloud...';
-                } else if (status === 'loading') {
-                    statusElement.className = 'firebase-status firebase-loading';
-                    statusElement.innerHTML = '🔵 Loading from Cloud...';
-                } else {
-                    statusElement.className = 'firebase-status firebase-disconnected';
-                    statusElement.innerHTML = '🔴 Firebase Offline';
-                }
-            }
-            
-            // Save data to Firebase
-            saveData(collectionName, data) {
-                return new Promise((resolve, reject) => {
-                    if (!this.database || !this.isConnected) {
-                        console.log('🔥 Firebase not connected - cannot save');
-                        reject(new Error('Firebase not connected'));
-                        return;
-                    }
-
-                    this.updateFirebaseStatus('saving');
-                    const dataId = 'interior-design-mack-jessica'; // Fixed ID for this document
-                    const timestamp = new Date().toISOString();
-
-                    const saveData = {
-                        id: dataId,
-                        ...data,
-                        timestamp: timestamp,
-                        lastModified: Date.now()
-                    };
-
-                    this.database.ref(`${collectionName}/${dataId}`).set(saveData)
-                    .then(() => {
-                        this.updateFirebaseStatus('connected');
-                        console.log('🔥 Data saved to Firebase:', dataId);
-                        this.showSaveConfirmation('Saved to Cloud');
-                        resolve(dataId);
-                    })
-                    .catch((error) => {
-                        this.updateFirebaseStatus('disconnected');
-                        console.error('🔥 Firebase save error:', error);
-                        reject(error);
-                    });
-                });
-            }
-            
-            // Load data from Firebase
-            loadData(collectionName, limit = 10) {
-                return new Promise((resolve, reject) => {
-                    if (!this.database || !this.isConnected) {
-                        console.log('🔥 Firebase not connected - cannot load');
-                        reject(new Error('Firebase not connected'));
-                        return;
-                    }
-
-                    this.updateFirebaseStatus('loading');
-                    const dataId = 'interior-design-mack-jessica'; // Fixed ID for this document
-                    
-                    this.database.ref(`${collectionName}/${dataId}`).once('value')
-                    .then((snapshot) => {
-                        this.updateFirebaseStatus('connected');
-                        const data = snapshot.val();
-                        
-                        if (!data) {
-                            console.log('🔥 No data found in Firebase');
-                            resolve([]);
-                            return;
-                        }
-
-                        console.log('🔥 Data loaded from Firebase');
-                        resolve([data]);
-                    })
-                    .catch((error) => {
-                        this.updateFirebaseStatus('disconnected');
-                        console.error('🔥 Firebase load error:', error);
-                        reject(error);
-                    });
-                });
-            }
-            
-            // Auto-load data on page load
-            async autoLoadData() {
-                try {
-                    const documents = await this.loadData('interior-designs');
-                    if (documents.length > 0) {
-                        const latestDoc = documents[0];
-                        this.restoreDocumentFromData(latestDoc);
-                        this.showSaveConfirmation('Document Restored from Cloud');
-                    }
-                } catch (error) {
-                    console.log('🔥 No existing data to restore or connection failed');
-                }
-            }
-            
-            // Restore document from Firebase data
-            restoreDocumentFromData(docData) {
-                if (!docData.content) return;
-                
-                // Clear existing additional images
-                const existingImages = document.querySelectorAll('.additional-image');
-                existingImages.forEach(img => img.remove());
-                
-                // Restore uploaded main images
-                if (docData.content.uploadedImages) {
-                    if (docData.content.uploadedImages.floorplan) {
-                        const floorplanContainer = document.getElementById('floorplan-container');
-                        floorplanContainer.innerHTML = `<img src="${docData.content.uploadedImages.floorplan}" alt="floorplan image" class="uploaded-image clickable-image" onclick="enlargeImage(this)">`;
-                    }
-                    
-                    if (docData.content.uploadedImages.living) {
-                        const livingContainer = document.getElementById('living-container');
-                        livingContainer.innerHTML = `<img src="${docData.content.uploadedImages.living}" alt="living image" class="uploaded-image clickable-image" onclick="enlargeImage(this)">`;
-                    }
-                    
-                    if (docData.content.uploadedImages.dining) {
-                        const diningContainer = document.getElementById('dining-container');
-                        diningContainer.innerHTML = `<img src="${docData.content.uploadedImages.dining}" alt="dining image" class="uploaded-image clickable-image" onclick="enlargeImage(this)">`;
-                    }
-                }
-                
-                // Restore document content
-                if (docData.content.title) {
-                    const titleEl = document.querySelector('.header h1');
-                    if (titleEl) titleEl.textContent = docData.content.title;
-                }
-                
-                if (docData.content.subtitle) {
-                    const subtitleEl = document.querySelector('.header p');
-                    if (subtitleEl) subtitleEl.textContent = docData.content.subtitle;
-                }
-
-                // Restore sections and their additional images
-                if (docData.content.sections) {
-                    docData.content.sections.forEach((sectionData, index) => {
-                        const sections = document.querySelectorAll('.section');
-                        if (sections[index]) {
-                            const section = sections[index];
-                            
-                            // Restore section title
-                            if (sectionData.title) {
-                                const titleElement = section.querySelector('.section-title');
-                                if (titleElement) {
-                                    titleElement.textContent = sectionData.title;
-                                }
-                            }
-                            
-                            // Restore paragraphs
-                            if (sectionData.paragraphs) {
-                                const paragraphs = section.querySelectorAll('p');
-                                sectionData.paragraphs.forEach((text, pIndex) => {
-                                    if (paragraphs[pIndex] && text.trim()) {
-                                        paragraphs[pIndex].textContent = text;
-                                    }
-                                });
-                            }
-                            
-                            // Restore additional images for this section
-                            if (sectionData.additionalImages) {
-                                sectionData.additionalImages.forEach(imgData => {
-                                    this.createImageElementFromData(section, imgData);
-                                });
-                            }
-                        }
-                    });
-                }
-            }
-            
-            // Create image element from data
-            createImageElementFromData(section, imgData) {
-                const imageDiv = document.createElement('div');
-                imageDiv.className = 'additional-image';
-                imageDiv.id = imgData.id;
-                
-                imageDiv.innerHTML = `
-                    <img src="${imgData.src}" alt="Additional design image" class="clickable-image" onclick="enlargeImage(this)">
-                    <div class="image-caption" contenteditable="true">
-                        ${imgData.caption || 'Click to add caption...'}
-                    </div>
-                    <button class="remove-image-btn" onclick="removeImage('${imgData.id}')">
-                        🗑️ Remove
-                    </button>
-                `;
-                
-                // Insert after the section title and add-image button
-                const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
-                if (insertPoint) {
-                    section.insertBefore(imageDiv, insertPoint);
-                } else {
-                    section.appendChild(imageDiv);
-                }
-            }
-            
-            // Show save confirmation
-            showSaveConfirmation(text = 'Saved to Cloud') {
-                const confirmation = document.createElement('div');
-                confirmation.style.cssText = `
-                    position: fixed;
-                    top: 80px;
-                    left: 20px;
-                    background: #27ae60;
-                    color: white;
-                    padding: 8px 15px;
-                    border-radius: 15px;
-                    font-weight: 600;
-                    font-size: 12px;
-                    z-index: 1001;
-                    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-                    transition: all 0.3s ease;
-                `;
-                confirmation.textContent = `✓ ${text}`;
-                document.body.appendChild(confirmation);
-
-                setTimeout(() => {
-                    confirmation.style.opacity = '0';
-                    confirmation.style.transform = 'translateY(-20px)';
-                    setTimeout(() => {
-                        if (confirmation.parentNode) {
-                            confirmation.parentNode.removeChild(confirmation);
-                        }
-                    }, 300);
-                }, 2000);
-            }
-        }
-
-        // Initialize Firebase Manager
-        const firebaseManager = new FirebaseManager();
-
         // Store original SVGs
         const originalSVGs = {
             floorplan: document.getElementById('floorplan-svg').outerHTML,
@@ -1530,7 +1027,7 @@
             dining: document.getElementById('dining-svg').outerHTML
         };
 
-        // Handle file uploads with Firebase persistence
+        // Handle file uploads
         document.getElementById('floorplan-upload').addEventListener('change', function(e) {
             handleImageUpload(e, 'floorplan');
         });
@@ -1549,14 +1046,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const container = document.getElementById(type + '-container');
-                    container.innerHTML = `<img src="${e.target.result}" alt="${type} image" class="uploaded-image clickable-image" onclick="enlargeImage(this)">`;
-                    
-                    // Save the uploaded image to Firebase
-                    if (firebaseManager && firebaseManager.isConnected) {
-                        setTimeout(() => {
-                            saveDocumentToFirebase();
-                        }, 500);
-                    }
+                    container.innerHTML = `<img src="${e.target.result}" alt="${type} image" class="uploaded-image">`;
                 };
                 reader.readAsDataURL(file);
             }
@@ -1568,31 +1058,33 @@
             
             // Clear the file input
             document.getElementById(type + '-upload').value = '';
-            
-            // Save the reset to Firebase
-            if (firebaseManager && firebaseManager.isConnected) {
-                setTimeout(() => {
-                    saveDocumentToFirebase();
-                }, 500);
-            }
         }
 
         // Edit functionality
         let isEditMode = false;
         const EDIT_PASSCODE = '1975';
 
-        document.getElementById('edit-btn').addEventListener('click', function() {
-            if (!isEditMode) {
-                // Prompt for passcode
-                const enteredPasscode = prompt('Enter passcode to edit document:');
-                
-                if (enteredPasscode === EDIT_PASSCODE) {
-                    enableEditMode();
-                } else if (enteredPasscode !== null) { // User didn't cancel
-                    alert('Incorrect passcode. Access denied.');
-                }
-            } else {
-                disableEditMode();
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const editBtn = document.getElementById('edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Edit button clicked!'); // Debug log
+                    
+                    if (!isEditMode) {
+                        // Prompt for passcode
+                        const enteredPasscode = prompt('Enter passcode to edit document:');
+                        
+                        if (enteredPasscode === EDIT_PASSCODE) {
+                            enableEditMode();
+                        } else if (enteredPasscode !== null) { // User didn't cancel
+                            alert('Incorrect passcode. Access denied.');
+                        }
+                    } else {
+                        disableEditMode();
+                    }
+                });
             }
         });
 
@@ -1628,7 +1120,89 @@
                     }
                 });
             });
+            
+            // Add color swatch click handlers
+            const colorSwatches = document.querySelectorAll('.color-swatch');
+            colorSwatches.forEach(swatch => {
+                swatch.addEventListener('click', function() {
+                    if (isEditMode) {
+                        editColorSwatch(this);
+                    }
+                });
+            });
         }
+
+        let currentEditingSwatch = null;
+
+        function editColorSwatch(swatch) {
+            currentEditingSwatch = swatch;
+            
+            // Get current color from computed style
+            const computedStyle = window.getComputedStyle(swatch);
+            const currentBackground = computedStyle.background;
+            
+            // Try to extract a color from the gradient (simplified)
+            let colorHex = '#8B7355'; // default fallback
+            if (currentBackground.includes('rgb')) {
+                // Extract first RGB value from gradient
+                const rgbMatch = currentBackground.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (rgbMatch) {
+                    const r = parseInt(rgbMatch[1]);
+                    const g = parseInt(rgbMatch[2]);
+                    const b = parseInt(rgbMatch[3]);
+                    colorHex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                }
+            }
+            
+            // Set current values in popup
+            document.getElementById('color-input').value = colorHex;
+            document.getElementById('color-name-input').value = swatch.getAttribute('data-color');
+            
+            // Show popup
+            document.getElementById('color-overlay').style.display = 'block';
+            document.getElementById('color-picker').style.display = 'block';
+        }
+
+        function saveColor() {
+            if (currentEditingSwatch) {
+                const newColor = document.getElementById('color-input').value;
+                const newName = document.getElementById('color-name-input').value || 'Custom Color';
+                
+                // Update the swatch
+                currentEditingSwatch.style.background = `linear-gradient(45deg, ${newColor}, ${adjustBrightness(newColor, -20)})`;
+                currentEditingSwatch.setAttribute('data-color', newName);
+                
+                // Close popup
+                cancelColor();
+            }
+        }
+
+        function cancelColor() {
+            document.getElementById('color-overlay').style.display = 'none';
+            document.getElementById('color-picker').style.display = 'none';
+            currentEditingSwatch = null;
+        }
+
+        function adjustBrightness(hex, percent) {
+            // Remove # if present
+            hex = hex.replace('#', '');
+            
+            // Parse hex to RGB
+            const num = parseInt(hex, 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        // Close popup when clicking overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('color-overlay').addEventListener('click', cancelColor);
+        });
 
         function disableEditMode() {
             isEditMode = false;
@@ -1645,305 +1219,9 @@
                 element.classList.remove('editable');
             });
             
-            // Auto-save to Firebase when exiting edit mode
-            if (firebaseManager && firebaseManager.isConnected) {
-                saveDocumentToFirebase();
-                alert('Changes saved to cloud! Document is now in view-only mode.');
-            } else {
-                alert('Changes saved locally! Firebase connection required for cloud sync.');
-            }
+            // Show save confirmation
+            alert('Changes saved! Document is now in view-only mode.');
         }
-
-        // Firebase Save/Load functionality
-        document.getElementById('save-btn').addEventListener('click', function() {
-            saveDocumentToFirebase();
-        });
-
-        document.getElementById('load-btn').addEventListener('click', function() {
-            loadDocumentFromFirebase();
-        });
-
-        // Additional Image Management
-        let imageCounter = 0;
-
-        function addImageToSection(button) {
-            const section = button.closest('.section');
-            const imageId = `additional-image-${++imageCounter}`;
-            
-            // Create file input
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.className = 'hidden-file-input';
-            fileInput.id = `file-${imageId}`;
-            
-            // Handle file selection
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        createImageElement(section, e.target.result, imageId);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Add to document and trigger click
-            document.body.appendChild(fileInput);
-            fileInput.click();
-            
-            // Clean up
-            setTimeout(() => {
-                if (fileInput.parentNode) {
-                    fileInput.parentNode.removeChild(fileInput);
-                }
-            }, 1000);
-        }
-
-        function createImageElement(section, imageSrc, imageId) {
-            const imageDiv = document.createElement('div');
-            imageDiv.className = 'additional-image';
-            imageDiv.id = imageId;
-            
-            imageDiv.innerHTML = `
-                <img src="${imageSrc}" alt="Additional design image" class="clickable-image" onclick="enlargeImage(this)">
-                <div class="image-caption" contenteditable="true" placeholder="Add image caption...">
-                    Click to add caption...
-                </div>
-                <button class="remove-image-btn" onclick="removeImage('${imageId}')">
-                    🗑️ Remove
-                </button>
-            `;
-            
-            // Insert after the section title and add-image button
-            const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
-            if (insertPoint) {
-                section.insertBefore(imageDiv, insertPoint);
-            } else {
-                section.appendChild(imageDiv);
-            }
-            
-            // Auto-save to Firebase if connected
-            if (firebaseManager && firebaseManager.isConnected) {
-                setTimeout(() => {
-                    saveDocumentToFirebase();
-                }, 1000);
-            }
-        }
-
-        function removeImage(imageId) {
-            const imageElement = document.getElementById(imageId);
-            if (imageElement && confirm('Remove this image?')) {
-                imageElement.remove();
-                
-            // Auto-save to Firebase if connected
-            if (firebaseManager && firebaseManager.isConnected) {
-                setTimeout(() => {
-                    saveDocumentToFirebase();
-                }, 500);
-            }
-            }
-        }
-
-        // Enhanced Firebase Save to include ALL images
-        function saveDocumentToFirebase() {
-            // Collect all text content from the document
-            const documentData = {
-                name: 'Interior Design Document - Mack & Jessica',
-                content: {
-                    title: document.querySelector('.header h1').textContent,
-                    subtitle: document.querySelector('.header p').textContent,
-                    sections: [],
-                    additionalImages: [],
-                    uploadedImages: {
-                        floorplan: null,
-                        living: null,
-                        dining: null
-                    }
-                }
-            };
-
-            // Save uploaded main images
-            const floorplanImg = document.querySelector('#floorplan-container .uploaded-image');
-            if (floorplanImg) {
-                documentData.content.uploadedImages.floorplan = floorplanImg.src;
-            }
-            
-            const livingImg = document.querySelector('#living-container .uploaded-image');
-            if (livingImg) {
-                documentData.content.uploadedImages.living = livingImg.src;
-            }
-            
-            const diningImg = document.querySelector('#dining-container .uploaded-image');
-            if (diningImg) {
-                documentData.content.uploadedImages.dining = diningImg.src;
-            }
-
-            // Collect all sections
-            const sections = document.querySelectorAll('.section');
-            sections.forEach((section, index) => {
-                const title = section.querySelector('.section-title')?.textContent || '';
-                const paragraphs = Array.from(section.querySelectorAll('p')).map(p => p.textContent);
-                const lists = Array.from(section.querySelectorAll('ul, ol')).map(list => 
-                    Array.from(list.querySelectorAll('li')).map(li => li.textContent)
-                );
-
-                // Collect additional images in this section
-                const additionalImages = Array.from(section.querySelectorAll('.additional-image')).map(imgDiv => ({
-                    id: imgDiv.id,
-                    src: imgDiv.querySelector('img').src,
-                    caption: imgDiv.querySelector('.image-caption').textContent,
-                    sectionIndex: index
-                }));
-
-                documentData.content.sections.push({
-                    index: index,
-                    title: title,
-                    paragraphs: paragraphs,
-                    lists: lists,
-                    additionalImages: additionalImages
-                });
-            });
-
-            // Save to Firebase
-            firebaseManager.saveData('interior-designs', documentData)
-                .then((id) => {
-                    console.log('Document saved to Firebase with ID:', id);
-                })
-                .catch((error) => {
-                    console.error('Failed to save document to Firebase:', error);
-                    alert('Failed to save to cloud. Please check your internet connection.');
-                });
-        }
-
-        // Enhanced Firebase Load to restore additional images
-        function loadDocumentFromFirebase() {
-            firebaseManager.loadData('interior-designs', 1)
-                .then((documents) => {
-                    if (documents.length === 0) {
-                        alert('No saved documents found in cloud.');
-                        return;
-                    }
-
-                    const latestDoc = documents[0];
-                    
-                    if (confirm('Load the latest document from cloud? This will replace current content.')) {
-                        firebaseManager.restoreDocumentFromData(latestDoc);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Failed to load document from Firebase:', error);
-                    alert('Failed to load from cloud. Please check your internet connection.');
-                });
-        }
-
-        function createImageElementFromData(section, imgData) {
-            const imageDiv = document.createElement('div');
-            imageDiv.className = 'additional-image';
-            imageDiv.id = imgData.id;
-            
-            imageDiv.innerHTML = `
-                <img src="${imgData.src}" alt="Additional design image">
-                <div class="image-caption" contenteditable="true">
-                    ${imgData.caption}
-                </div>
-                <button class="remove-image-btn" onclick="removeImage('${imgData.id}')">
-                    🗑️ Remove
-                </button>
-            `;
-            
-            // Insert after the section title and add-image button
-            const insertPoint = section.querySelector('.add-image-btn').nextElementSibling || section.children[2];
-            if (insertPoint) {
-                section.insertBefore(imageDiv, insertPoint);
-            } else {
-                section.appendChild(imageDiv);
-            }
-        }
-
-        // Image enlargement functionality - ENHANCED
-        function enlargeImage(img) {
-            // Create overlay
-            const overlay = document.createElement('div');
-            overlay.className = 'image-overlay';
-            overlay.onclick = function(e) {
-                if (e.target === overlay) {
-                    closeImageOverlay();
-                }
-            };
-            
-            // Create enlarged image
-            const enlargedImg = document.createElement('img');
-            enlargedImg.src = img.src;
-            enlargedImg.alt = img.alt;
-            enlargedImg.className = 'enlarged-image';
-            
-            // Prevent image click from closing overlay
-            enlargedImg.onclick = function(e) {
-                e.stopPropagation();
-            };
-            
-            // Create close button
-            const closeBtn = document.createElement('div');
-            closeBtn.className = 'close-overlay';
-            closeBtn.innerHTML = '×';
-            closeBtn.onclick = function(e) {
-                e.stopPropagation();
-                closeImageOverlay();
-            };
-            
-            // Add elements to overlay
-            overlay.appendChild(enlargedImg);
-            overlay.appendChild(closeBtn);
-            
-            // Add to body
-            document.body.appendChild(overlay);
-            
-            // Prevent body scroll
-            document.body.style.overflow = 'hidden';
-            
-            // Animate in
-            setTimeout(() => {
-                overlay.classList.add('show');
-            }, 10);
-            
-            // Store reference for cleanup
-            window.currentOverlay = overlay;
-        }
-        
-        function closeImageOverlay() {
-            const overlay = window.currentOverlay;
-            if (overlay) {
-                overlay.classList.remove('show');
-                
-                // Restore body scroll
-                document.body.style.overflow = '';
-                
-                setTimeout(() => {
-                    if (overlay.parentNode) {
-                        overlay.parentNode.removeChild(overlay);
-                    }
-                    window.currentOverlay = null;
-                }, 300);
-            }
-        }
-        
-        // Close on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && window.currentOverlay) {
-                closeImageOverlay();
-            }
-        });
-
-        // Auto-load existing data when page loads
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                if (firebaseManager && firebaseManager.isConnected) {
-                    firebaseManager.autoLoadData();
-                }
-            }, 2000);
-        });
 
         // Prevent accidental navigation away during edit mode
         window.addEventListener('beforeunload', function(e) {
