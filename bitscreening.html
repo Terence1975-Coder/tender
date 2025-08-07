@@ -902,10 +902,10 @@
                     },
                     body: JSON.stringify(applicationData)
                 })
-                .then(response => {
+                .then(function(response) {
                     if (response.ok) {
-                        this.updateMakeStatus('connected');
-                        this.addMessage('bot', `
+                        window.chatBot.updateMakeStatus('connected');
+                        window.chatBot.addMessage('bot', `
                             ✅ <strong>Application submitted successfully to Make.com!</strong><br>
                             <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
                                 <strong>Data sent:</strong> ${applicationData.full_name}<br>
@@ -914,16 +914,16 @@
                             </div>
                         `);
                         
-                        setTimeout(() => {
-                            this.updateMakeStatus('disconnected');
+                        setTimeout(function() {
+                            window.chatBot.updateMakeStatus('disconnected');
                         }, 3000);
                     } else {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                 })
-                .catch(error => {
-                    this.updateMakeStatus('disconnected');
-                    this.addMessage('bot', `
+                .catch(function(error) {
+                    window.chatBot.updateMakeStatus('disconnected');
+                    window.chatBot.addMessage('bot', `
                         ❌ <strong>Failed to submit application to Make.com</strong><br>
                         <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
                             Error: ${error.message}
@@ -957,23 +957,23 @@
             }
             prepareMakeData() {
                 // Prepare comprehensive data structure for Make.com
-                const timestamp = new Date();
-                const dateOnly = timestamp.toISOString().split('T')[0];
-                const timeOnly = timestamp.toTimeString().split(' ')[0];
+                var timestamp = new Date();
+                var dateOnly = timestamp.toISOString().split('T')[0];
+                var timeOnly = timestamp.toTimeString().split(' ')[0];
                 
                 return {
                     // Google Sheets friendly column names
-                    submission_id: `BIT-${Date.now()}`,
+                    submission_id: 'BIT-' + Date.now(),
                     date: dateOnly,
                     time: timeOnly,
                     timestamp: timestamp.toISOString(),
                     
                     // Personal Details
                     full_name: this.candidateData.name || 'Not provided',
-                    first_name: this.candidateData.personalDetails?.firstName || '',
-                    surname: this.candidateData.personalDetails?.surname || '',
-                    email: this.candidateData.personalDetails?.email || 'Not provided',
-                    phone: this.candidateData.personalDetails?.mobile || 'Not provided',
+                    first_name: (this.candidateData.personalDetails && this.candidateData.personalDetails.firstName) || '',
+                    surname: (this.candidateData.personalDetails && this.candidateData.personalDetails.surname) || '',
+                    email: (this.candidateData.personalDetails && this.candidateData.personalDetails.email) || 'Not provided',
+                    phone: (this.candidateData.personalDetails && this.candidateData.personalDetails.mobile) || 'Not provided',
                     
                     // Assessment Results
                     overall_score: this.score,
@@ -1009,7 +1009,7 @@
                     
                     // Response Analysis
                     interest_level: this.candidateData.interestLevel || 5,
-                    total_responses: this.candidateData.responses?.length || 0,
+                    total_responses: (this.candidateData.responses && this.candidateData.responses.length) || 0,
                     reschedule_requested: this.candidateData.rescheduleType ? 'YES' : 'NO',
                     reschedule_type: this.candidateData.rescheduleType || 'None',
                     
@@ -1111,15 +1111,16 @@
 
             // BroadcastChannel communication methods
             initBroadcastChannel() {
+                var self = this;
                 try {
                     if ('BroadcastChannel' in window) {
                         this.broadcastChannel = new BroadcastChannel('bot_channel');
                         console.log('📡 BroadcastChannel initialized successfully');
                         
                         // Listen for messages from testbot.html
-                        this.broadcastChannel.addEventListener('message', (event) => {
+                        this.broadcastChannel.addEventListener('message', function(event) {
                             console.log('📨 Received BroadcastChannel message:', event.data);
-                            this.handleBroadcastMessage(event.data);
+                            self.handleBroadcastMessage(event.data);
                         });
                     } else {
                         console.log('📡 BroadcastChannel not supported in this browser');
@@ -1682,13 +1683,16 @@
             }
 
             showOptions(options) {
+                var self = this;
                 this.responseButtons.innerHTML = '';
-                options.forEach(option => {
-                    const button = document.createElement('button');
+                options.forEach(function(option) {
+                    var button = document.createElement('button');
                     button.className = 'btn btn-primary';
                     button.textContent = option;
-                    button.onclick = () => this.handleResponse(option);
-                    this.responseButtons.appendChild(button);
+                    button.onclick = function() { 
+                        self.handleResponse(option); 
+                    };
+                    self.responseButtons.appendChild(button);
                 });
             }
 
@@ -1805,8 +1809,8 @@
             }
 
             handleTextInput() {
-                const input = document.getElementById('textInput');
-                const question = input.value.trim();
+                var input = document.getElementById('textInput');
+                var question = input.value.trim();
                 
                 if (!question) return;
                 
@@ -1831,72 +1835,77 @@
 
             restoreHiddenElements() {
                 // Show all admin-hidden elements
-                const hiddenElements = document.querySelectorAll('.admin-hidden');
-                hiddenElements.forEach(element => {
+                var hiddenElements = document.querySelectorAll('.admin-hidden');
+                for (var i = 0; i < hiddenElements.length; i++) {
+                    var element = hiddenElements[i];
                     element.classList.remove('admin-hidden');
                     element.classList.add('admin-visible');
-                });
+                }
                 
                 this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• View Dashboard button<br>• Test Dashboard button<br>• Dashboard Info button<br>• Enable Stealth Popup button<br>• Disable All Popups button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Popup mode is currently DISABLED by default for zero applicant interference.');
             }
 
             handleCourseQuestion(question) {
-                const lowerQuestion = question.toLowerCase();
-                let response = '';
+                var self = this;
+                var lowerQuestion = question.toLowerCase();
+                var response = '';
                 
                 // Course duration and schedule
                 if (lowerQuestion.includes('long') || lowerQuestion.includes('duration') || lowerQuestion.includes('weeks') || lowerQuestion.includes('when')) {
-                    response = `📅 <strong>Programme Duration & Schedule:</strong><br>
-                        • <strong>Duration:</strong> ${this.courseKnowledge.duration}<br>
-                        • <strong>Sessions:</strong> ${this.courseKnowledge.schedule}<br>
-                        • <strong>Days:</strong> ${this.courseKnowledge.days}<br><br>
-                        <em>For more detailed information, visit: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                    response = '📅 <strong>Programme Duration & Schedule:</strong><br>' +
+                        '• <strong>Duration:</strong> ' + this.courseKnowledge.duration + '<br>' +
+                        '• <strong>Sessions:</strong> ' + this.courseKnowledge.schedule + '<br>' +
+                        '• <strong>Days:</strong> ' + this.courseKnowledge.days + '<br><br>' +
+                        '<em>For more detailed information, visit: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em>';
                 }
                 
                 // Cost and funding
                 else if (lowerQuestion.includes('cost') || lowerQuestion.includes('price') || lowerQuestion.includes('pay') || lowerQuestion.includes('money') || lowerQuestion.includes('fund') || lowerQuestion.includes('free')) {
-                    response = `💰 <strong>Programme Funding:</strong><br>
-                        • <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>
-                        • <strong>Employed candidates:</strong> £297.98 employer contribution<br>
-                        • <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>
-                        • <strong>Funding Source:</strong> Cornwall Council partnership<br><br>
-                        <em>More funding details: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em>`;
+                    response = '💰 <strong>Programme Funding:</strong><br>' +
+                        '• <strong>Self-employed & unemployed:</strong> Fully funded (£0 cost)<br>' +
+                        '• <strong>Employed candidates:</strong> £297.98 employer contribution<br>' +
+                        '• <strong>Programme Type:</strong> Cornwall Skills Bootcamp<br>' +
+                        '• <strong>Funding Source:</strong> Cornwall Council partnership<br><br>' +
+                        '<em>More funding details: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em>';
                 }
                 
                 // Default comprehensive response for unmatched questions
                 else {
-                    response = `💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>
-                        🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>
-                        💰 <strong>Cost:</strong> Fully funded for most participants<br>
-                        📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>
-                        🌐 <strong>Where:</strong> 100% online delivery<br>
-                        🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>
-                        <strong>Popular Questions:</strong><br>
-                        • "How much does it cost?" • "What will I learn?"<br>
-                        • "When does it start?" • "Am I eligible?"<br>
-                        • "What support is provided?" • "How do I apply?"<br><br>
-                        <em>Complete information: <a href="${this.courseKnowledge.referenceSource}" target="_blank">${this.courseKnowledge.referenceSource}</a></em><br><br>
-                        Feel free to ask about any specific aspect!`;
+                    response = '💭 <strong>AI Business Productivity Bootcamp Overview:</strong><br><br>' +
+                        '🎯 <strong>What:</strong> 12-week online programme teaching practical AI skills<br>' +
+                        '💰 <strong>Cost:</strong> Fully funded for most participants<br>' +
+                        '📅 <strong>When:</strong> 21 July - 9 October, flexible timing<br>' +
+                        '🌐 <strong>Where:</strong> 100% online delivery<br>' +
+                        '🚀 <strong>Outcome:</strong> Career advancement and AI certification<br><br>' +
+                        '<strong>Popular Questions:</strong><br>' +
+                        '• "How much does it cost?" • "What will I learn?"<br>' +
+                        '• "When does it start?" • "Am I eligible?"<br>' +
+                        '• "What support is provided?" • "How do I apply?"<br><br>' +
+                        '<em>Complete information: <a href="' + this.courseKnowledge.referenceSource + '" target="_blank">' + this.courseKnowledge.referenceSource + '</a></em><br><br>' +
+                        'Feel free to ask about any specific aspect!';
                 }
                 
-                setTimeout(() => {
-                    this.showTyping();
-                    setTimeout(() => {
-                        this.hideTyping();
-                        this.addMessage('bot', `<div class="faq-response">${response}</div>`);
+                setTimeout(function() {
+                    self.showTyping();
+                    setTimeout(function() {
+                        self.hideTyping();
+                        self.addMessage('bot', '<div class="faq-response">' + response + '</div>');
                     }, 1000);
                 }, 500);
             }
 
             handleResponse(response) {
+                var self = this;
                 // Check if this is a course-related question even in screening mode
-                const lowerResponse = response.toLowerCase();
-                const courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
+                var lowerResponse = response.toLowerCase();
+                var courseKeywords = ['cost', 'price', 'learn', 'skill', 'duration', 'long', 'when', 'start', 'eligible', 'qualify', 'support', 'help', 'ai', 'chatgpt', 'copilot', 'tool', 'online', 'time', 'schedule', 'outcome', 'benefit', 'job', 'career', 'certificate', 'free', 'fund', 'contact', 'apply', 'requirement'];
                 
-                const isCourseQuestion = courseKeywords.some(keyword => lowerResponse.includes(keyword));
+                var isCourseQuestion = courseKeywords.some(function(keyword) { 
+                    return lowerResponse.includes(keyword); 
+                });
                 
                 // Critical screening steps that should NEVER be treated as course questions
-                const criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
+                var criticalSteps = ['location', 'ukResidency', 'funding', 'employment', 'employerFunding', 'schedule', 'interview'];
                 
                 if (this.chatMode) {
                     // In chat mode, handle as course question
@@ -1907,15 +1916,12 @@
                     this.addMessage('user', response);
                     this.addMessage('bot', '💡 <strong>Quick course info:</strong> Let me answer that, then we\'ll continue with your screening.');
                     
-                    setTimeout(() => {
-                        this.handleCourseQuestion(response);
+                    setTimeout(function() {
+                        self.handleCourseQuestion(response);
                         
                         // After answering, continue with screening flow
-                        setTimeout(() => {
-                            this.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
-                            
-                            // Don't process as a screening response, just continue
-                            return;
+                        setTimeout(function() {
+                            self.addMessage('bot', '📋 <strong>Continuing your screening...</strong> Let\'s get back to your assessment where we left off.');
                         }, 2000);
                     }, 1000);
                     return;
@@ -1923,13 +1929,13 @@
                 
                 // Normal screening flow
                 this.addMessage('user', response);
-                this.candidateData.responses.push({step: this.currentStep, response});
+                this.candidateData.responses.push({step: this.currentStep, response: response});
                 
-                setTimeout(() => {
-                    this.showTyping();
-                    setTimeout(() => {
-                        this.hideTyping();
-                        this.processResponse(response);
+                setTimeout(function() {
+                    self.showTyping();
+                    setTimeout(function() {
+                        self.hideTyping();
+                        self.processResponse(response);
                     }, 1000);
                 }, 500);
             }
@@ -2087,15 +2093,18 @@ Are you still interested in progressing with this opportunity?`);
             }
             
             async factCheckLocation(location) {
-                const searchQuery = `${location} Cornwall UK location county`;
-                await new Promise(resolve => setTimeout(resolve, 800));
-                return await this.simulateLocationAPI(location, searchQuery);
+                var searchQuery = location + ' Cornwall UK location county';
+                return new Promise(function(resolve) {
+                    setTimeout(function() {
+                        resolve(window.chatBot.simulateLocationAPI(location, searchQuery));
+                    }, 800);
+                });
             }
             
             async simulateLocationAPI(location, searchQuery) {
-                const cleanLocation = location.toLowerCase().trim();
+                var cleanLocation = location.toLowerCase().trim();
                 
-                const cornwallTowns = {
+                var cornwallTowns = {
                     'truro': { county: 'Cornwall', confidence: 0.99 },
                     'falmouth': { county: 'Cornwall', confidence: 0.99 },
                     'penzance': { county: 'Cornwall', confidence: 0.99 },
@@ -2156,7 +2165,7 @@ Are you still interested in progressing with this opportunity?`);
                 };
                 
                 if (cornwallTowns[cleanLocation]) {
-                    const result = cornwallTowns[cleanLocation];
+                    var result = cornwallTowns[cleanLocation];
                     return {
                         isInCornwall: result.county === 'Cornwall',
                         county: result.county,
@@ -2165,7 +2174,7 @@ Are you still interested in progressing with this opportunity?`);
                     };
                 }
                 
-                return await this.simulateWebSearch(location);
+                return this.simulateWebSearch(location);
             }
             
             async simulateWebSearch(location) {
@@ -3109,43 +3118,38 @@ function displayCandidateReport(data) {
                 console.error('❌ ChatBot initialization failed:', error);
                 
                 // Show error in UI
-                const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = `
-                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                    background: #e74c3c; color: white; padding: 20px; border-radius: 10px;
-                    z-index: 9999; max-width: 400px; text-align: center;
-                `;
-                errorDiv.innerHTML = `
-                    <h3>❌ Initialization Error</h3>
-                    <p>${error.message}</p>
-                    <button onclick="location.reload()" style="background: white; color: #e74c3c; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                        Reload Page
-                    </button>
-                `;
+                var errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);' +
+                    'background: #e74c3c; color: white; padding: 20px; border-radius: 10px;' +
+                    'z-index: 9999; max-width: 400px; text-align: center;';
+                errorDiv.innerHTML = '<h3>❌ Initialization Error</h3>' +
+                    '<p>' + error.message + '</p>' +
+                    '<button onclick="location.reload()" style="background: white; color: #e74c3c; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">' +
+                    'Reload Page</button>';
                 document.body.appendChild(errorDiv);
             }
             
             // Show startup notification
-            setTimeout(() => {
-                const startupInfo = document.createElement('div');
-                startupInfo.style.cssText = `
-                    position: fixed; bottom: 20px; left: 20px;
-                    background: #27ae60; color: white; padding: 10px 15px;
-                    border-radius: 10px; font-size: 12px; max-width: 220px;
-                    z-index: 1000; animation: slideUp 0.5s ease-out;
-                `;
-                startupInfo.innerHTML = `
-                    🎉 <strong>BIT Training System Ready!</strong><br>
-                    • AI Business Productivity Bootcamp<br>
-                    • Professional BIT Training interface<br>
-                    • Make.com webhook integration<br>
-                    • Emily (Irish English) voice enabled<br>
-                    • Location fact-checking ready<br>
-                    • BroadcastChannel communication active
-                `;
+            setTimeout(function() {
+                var startupInfo = document.createElement('div');
+                startupInfo.style.cssText = 'position: fixed; bottom: 20px; left: 20px;' +
+                    'background: #27ae60; color: white; padding: 10px 15px;' +
+                    'border-radius: 10px; font-size: 12px; max-width: 220px;' +
+                    'z-index: 1000; animation: slideUp 0.5s ease-out;';
+                startupInfo.innerHTML = '🎉 <strong>BIT Training System Ready!</strong><br>' +
+                    '• AI Business Productivity Bootcamp<br>' +
+                    '• Professional BIT Training interface<br>' +
+                    '• Make.com webhook integration<br>' +
+                    '• Emily (Irish English) voice enabled<br>' +
+                    '• Location fact-checking ready<br>' +
+                    '• BroadcastChannel communication active';
                 document.body.appendChild(startupInfo);
                 
-                setTimeout(() => startupInfo.remove(), 4000);
+                setTimeout(function() { 
+                    if (startupInfo.parentNode) {
+                        startupInfo.parentNode.removeChild(startupInfo); 
+                    }
+                }, 4000);
             }, 2000);
         });
         
