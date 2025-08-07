@@ -605,16 +605,14 @@
         }
 
         .upload-section-edit {
-            opacity: 0;
+            opacity: 0.5;
             pointer-events: none;
             transition: all 0.3s ease;
-            display: none; /* Completely hidden by default */
         }
 
         .editing-mode .upload-section-edit {
             opacity: 1;
             pointer-events: auto;
-            display: block; /* Show in edit mode */
         }
 
         .hidden-file-input {
@@ -1864,16 +1862,12 @@
             }
         }
 
-        // Image enlargement functionality - ENHANCED
+        // Image enlargement functionality
         function enlargeImage(img) {
             // Create overlay
             const overlay = document.createElement('div');
             overlay.className = 'image-overlay';
-            overlay.onclick = function(e) {
-                if (e.target === overlay) {
-                    closeImageOverlay();
-                }
-            };
+            overlay.onclick = closeImageOverlay;
             
             // Create enlarged image
             const enlargedImg = document.createElement('img');
@@ -1881,19 +1875,11 @@
             enlargedImg.alt = img.alt;
             enlargedImg.className = 'enlarged-image';
             
-            // Prevent image click from closing overlay
-            enlargedImg.onclick = function(e) {
-                e.stopPropagation();
-            };
-            
             // Create close button
             const closeBtn = document.createElement('div');
             closeBtn.className = 'close-overlay';
             closeBtn.innerHTML = '×';
-            closeBtn.onclick = function(e) {
-                e.stopPropagation();
-                closeImageOverlay();
-            };
+            closeBtn.onclick = closeImageOverlay;
             
             // Add elements to overlay
             overlay.appendChild(enlargedImg);
@@ -1901,9 +1887,6 @@
             
             // Add to body
             document.body.appendChild(overlay);
-            
-            // Prevent body scroll
-            document.body.style.overflow = 'hidden';
             
             // Animate in
             setTimeout(() => {
@@ -1918,10 +1901,6 @@
             const overlay = window.currentOverlay;
             if (overlay) {
                 overlay.classList.remove('show');
-                
-                // Restore body scroll
-                document.body.style.overflow = '';
-                
                 setTimeout(() => {
                     if (overlay.parentNode) {
                         overlay.parentNode.removeChild(overlay);
