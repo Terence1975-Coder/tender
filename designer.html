@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Interior Design Presentation</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -356,6 +360,122 @@
             display: none;
         }
 
+        /* Firebase Status Styles */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .firebase-connected {
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+        }
+
+        .firebase-disconnected {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+
+        .firebase-saving {
+            background: rgba(241, 196, 15, 0.9);
+            color: white;
+        }
+
+        .firebase-loading {
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+        }
+
+        .add-image-btn {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .editing-mode .add-image-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .add-image-btn:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+            transform: translateY(-1px);
+        }
+
+        .additional-image {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .additional-image img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .image-caption {
+            margin-top: 8px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 5px;
+            border: 1px dashed transparent;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .editing-mode .image-caption {
+            border-color: #D2691E;
+            background: rgba(210, 105, 30, 0.05);
+        }
+
+        .remove-image-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 5px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .editing-mode .remove-image-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .remove-image-btn:hover {
+            background: #c0392b;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
         .weathered-wood { background: linear-gradient(45deg, #E5E5E5, #D3D3D3, #C0C0C0); }
         .linen-gray { background: linear-gradient(45deg, #B8B8B8, #A8A8A8); }
         .charcoal { background: linear-gradient(45deg, #4A4A4A, #2F2F2F); }
@@ -546,9 +666,113 @@
             z-index: 1000;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+
+        .cloud-save-section {
+            display: none;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border: 2px solid #8B7355;
+            min-width: 250px;
+        }
+
+        .editing-mode .cloud-save-section {
+            display: block;
+        }
+
+        .save-cloud-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .save-cloud-btn:hover {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .save-cloud-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .load-cloud-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            margin: 8px 0;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .load-cloud-btn:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .document-id-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 8px 0;
+            font-family: inherit;
+        }
+
+        .save-status {
+            padding: 8px;
+            border-radius: 5px;
+            margin: 8px 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .save-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .save-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .save-status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Offline</div>
+
     <div class="container">
         <div class="header">
             <h1>LIVING & DINING ROOM TRANSFORMATION</h1>
@@ -592,6 +816,7 @@
 
         <div class="section">
             <h2 class="section-title">Design Vision</h2>
+            <button class="add-image-btn" onclick="addImageToSection(this)">📷 Add Image</button>
             <p style="font-size: 1.1rem; line-height: 1.8; color: #555;">
                 Transform your open-plan living and dining space into a sophisticated, contemporary haven that seamlessly blends natural textures with modern elegance. Our design approach focuses on creating a cohesive flow between spaces while maintaining distinct functional zones, using a carefully curated palette of weathered woods, soft linens, and warm terracotta accents.
             </p>
@@ -1016,6 +1241,29 @@
             <button id="edit-btn" class="edit-button">
                 <span id="edit-icon">✏️</span> <span id="edit-text">Edit Document</span>
             </button>
+        </div>
+
+        <!-- Cloud Save Section (only visible in edit mode) -->
+        <div class="cloud-save-section" id="cloud-save-section">
+            <h4 style="color: #8B7355; margin-bottom: 15px; text-align: center;">💾 Cloud Save</h4>
+            
+            <input type="text" id="document-id" class="document-id-input" 
+                   placeholder="Document ID (e.g., mack-jessica-design)" 
+                   value="mack-jessica-design">
+            
+            <button id="save-to-cloud" class="save-cloud-btn">
+                <span id="save-icon">☁️</span> Save to Cloud
+            </button>
+            
+            <button id="load-from-cloud" class="load-cloud-btn">
+                <span id="load-icon">📥</span> Load from Cloud
+            </button>
+            
+            <div id="save-status" class="save-status" style="display: none;"></div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; font-size: 0.8rem; color: #666;">
+                <strong>Firebase Status:</strong> Real-time cloud saving with your Firebase project. Document changes are automatically saved when connected.
+            </div>
         </div>
     </div>
 
