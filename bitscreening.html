@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -147,151 +146,6 @@
             from {
                 transform: translateX(-50%) translateY(-100%);
                 opacity: 0;
-            }
-
-                        // Make.com specific methods
-            sendToMakeWebhook() {
-                if (!this.candidateData.name || this.candidateData.name === 'Applicant') {
-                    this.addMessage('bot', '⚠️ No candidate data available to send. Please complete a screening assessment first.');
-                    return;
-                }
-
-                console.log('📊 Manual Make.com transmission requested');
-                const makeData = this.prepareMakeData();
-                
-                this.sendToMake(makeData)
-                    .then(result => {
-                        this.addMessage('bot', `
-                            🚀 <strong>Manual transmission to Make.com complete!</strong><br>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>✅ Data sent successfully</strong><br>
-                                • <strong>Candidate:</strong> ${makeData.full_name}<br>
-                                • <strong>Score:</strong> ${makeData.overall_score}/10<br>
-                                • <strong>Status:</strong> ${makeData.status}<br>
-                                • <strong>Webhook:</strong> hook.eu2.make.com<br>
-                                • <strong>Method:</strong> Manual trigger
-                            </div>
-                        `);
-                    })
-                    .catch(error => {
-                        this.addMessage('bot', `
-                            ❌ <strong>Make.com transmission failed</strong><br>
-                            <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>Error:</strong> ${error.message}<br>
-                                <strong>Candidate:</strong> ${makeData.full_name}<br>
-                                <strong>Please check your Make.com scenario is active</strong>
-                            </div>
-                        `);
-                    });
-            }
-
-            testMakeConnection() {
-                const testButton = document.getElementById('testMake');
-                if (testButton) {
-                    testButton.textContent = '🔄 Testing...';
-                    testButton.disabled = true;
-                }
-
-                const testData = {
-                    test: true,
-                    message: 'Make.com connection test',
-                    timestamp: new Date().toISOString(),
-                    source: 'AI Bootcamp Screening Chatbot',
-                    webhook_url: this.config.makeWebhookURL,
-                    test_candidate: {
-                        full_name: 'Test User',
-                        email: 'test@example.com',
-                        phone: '+44 7123 456789',
-                        overall_score: 8,
-                        status: 'TEST_DATA',
-                        interview_status: 'Test booking'
-                    }
-                };
-
-                this.sendToMake(testData)
-                    .then(result => {
-                        this.addMessage('bot', `
-                            🔧 <strong>Make.com connection test successful!</strong><br>
-                            <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>✅ Webhook responding correctly</strong><br>
-                                • <strong>URL:</strong> hook.eu2.make.com<br>
-                                • <strong>Status:</strong> Connected<br>
-                                • <strong>Response:</strong> ${JSON.stringify(result)}<br>
-                                • <strong>Test completed:</strong> ${new Date().toLocaleString()}
-                            </div>
-                            
-                            <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>💡 Your Make.com scenario should now show:</strong><br>
-                                • Test data received successfully<br>
-                                • Webhook trigger activated<br>
-                                • Any connected modules processing test data<br>
-                                • Check Make.com execution history for details
-                            </div>
-                        `);
-                    })
-                    .catch(error => {
-                        this.addMessage('bot', `
-                            🔧 <strong>Make.com connection test failed</strong><br>
-                            <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                                <strong>❌ Connection error:</strong> ${error.message}<br>
-                                • <strong>URL:</strong> ${this.config.makeWebhookURL}<br>
-                                • <strong>Check:</strong> Make.com scenario is active<br>
-                                • <strong>Check:</strong> Webhook URL is correct<br>
-                                • <strong>Check:</strong> No firewall blocking requests
-                            </div>
-                        `);
-                    })
-                    .finally(() => {
-                        if (testButton) {
-                            testButton.textContent = '🔧 Test Make.com';
-                            testButton.disabled = false;
-                        }
-                    });
-            }
-
-            showMakeIntegration() {
-                this.addMessage('bot', `
-                    📊 <strong>Make.com Integration Status</strong><br><br>
-                    
-                    <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Active Webhook Configuration</strong><br>
-                    • <strong>Webhook URL:</strong> https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc<br>
-                    • <strong>Method:</strong> POST<br>
-                    • <strong>Content-Type:</strong> application/json<br>
-                    • <strong>Status:</strong> Ready for transmission<br>
-                    • <strong>Region:</strong> EU (Europe)
-                    </div>
-                    
-                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>🔄 Data Flow Process</strong><br>
-                    1. Candidate completes screening assessment<br>
-                    2. Personal details collected (if interview booked)<br>
-                    3. Comprehensive data package prepared<br>
-                    4. Secure HTTPS transmission to Make.com<br>
-                    5. Your scenario processes and routes the data<br>
-                    6. Connected services receive structured data
-                    </div>
-                    
-                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>📋 Data Structure Sent to Make.com</strong><br>
-                    • <strong>Personal:</strong> full_name, first_name, surname, email, phone<br>
-                    • <strong>Assessment:</strong> overall_score, score_percentage, recommendation<br>
-                    • <strong>Status:</strong> interview_status, interview_booked, lead_quality<br>
-                    • <strong>Details:</strong> location, employment, funding status, availability<br>
-                    • <strong>Meta:</strong> timestamp, submission_id, source, session_id<br>
-                    • <strong>Responses:</strong> detailed_responses (JSON), all screening answers
-                    </div>
-                    
-                    <div style="background: #f0f8ff; padding: 12px; border-radius: 5px; border-left: 4px solid #6f42c1; margin: 10px 0;">
-                    <strong>🎯 Integration Benefits</strong><br>
-                    • Real-time candidate data delivery<br>
-                    • No manual data entry required<br>
-                    • Structured JSON format for easy processing<br>
-                    • Automatic backup to Firebase cloud<br>
-                    • Complete audit trail with timestamps<br>
-                    • Ready for Google Sheets, CRM, or database integration
-                    </div>
-                `);
             }
             to {
                 transform: translateX(-50%) translateY(0);
@@ -482,15 +336,16 @@
             position: fixed;
             right: 20px;
             top: 20px;
-            width: 300px;
+            width: 280px;
             background: white;
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            font-size: 14px;
-            max-height: 80vh;
+            font-size: 12px;
+            max-height: 70vh;
             overflow: hidden;
             transition: all 0.3s ease;
             border: 2px solid #2c5866;
+            z-index: 1000;
         }
 
         .assessment-header {
@@ -506,8 +361,8 @@
         }
 
         .assessment-content {
-            padding: 20px;
-            max-height: calc(80vh - 60px);
+            padding: 15px;
+            max-height: calc(70vh - 50px);
             overflow-y: auto;
             transition: all 0.3s ease;
         }
@@ -517,7 +372,7 @@
         }
 
         .assessment-panel.collapsed {
-            max-height: 60px;
+            max-height: 50px;
         }
 
         .collapse-indicator {
@@ -716,6 +571,26 @@
             background: linear-gradient(135deg, #1e3a4a 0%, #2c5866 100%);
         }
 
+        @media (max-width: 1200px) {
+            .assessment-panel {
+                position: relative;
+                width: 100%;
+                right: auto;
+                top: auto;
+                margin: 10px 0;
+                order: 2;
+                max-height: 50vh;
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .chat-section {
+                order: 1;
+            }
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -728,6 +603,7 @@
                 top: auto;
                 margin: 10px 0;
                 order: 2;
+                max-height: 40vh;
             }
             
             .assessment-panel.collapsed {
@@ -808,14 +684,26 @@
                         <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
                             🎯 Voice Info
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.sendToMakeWebhook()" style="background: #9b59b6;">
-                            🚀 Send to Make.com
+                        <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
+                            📡 Send to Dashboard
                         </button>
-                        <button class="audio-btn admin-hidden" id="testMake" onclick="window.chatBot.testMakeConnection()" style="background: #27ae60;">
-                            🔧 Test Make.com
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
+                            🖥️ View Dashboard
                         </button>
-                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showMakeIntegration()" style="background: #3498db;">
-                            📊 Make.com Info
+                        <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testEmailConnection()" style="background: #9b59b6;">
+                            📊 Test Dashboard
+                        </button>
+                        <button class="audio-btn admin-hidden" id="checkServer" onclick="window.chatBot.checkServerStatus()" style="background: #34495e;">
+                            ℹ️ Dashboard Info
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(true)" style="background: #e67e22;">
+                            🔒 Enable Stealth Popup
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(false)" style="background: #e74c3c;">
+                            🚫 Disable All Popups
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showTestbotCode()" style="background: #8e44ad;">
+                            📝 Show testbot.html Code
                         </button>
                         <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
@@ -860,15 +748,13 @@
                         </button>
                     </div>
                     
-                    <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
-                        <strong>🎉 Make.com Integration Active:</strong><br>
-                        • 🚀 Direct webhook transmission to Make.com<br>
-                        • ☁️ Firebase cloud storage backup<br>
-                        • 🔍 Internet location fact-checking<br>
-                        • 💬 Course Q&A with source references<br>
-                        • 🔊 Smart audio for assessment questions<br>
-                        • 📋 Live candidate tracking<br>
-                        • 📊 Complete assessment transmission
+                    <div style="background: #e8f6f3; padding: 6px; border-radius: 5px; margin-bottom: 10px; font-size: 9px;">
+                        <strong>🎉 Production Features:</strong><br>
+                        • 📊 n8n workflow integration<br>
+                        • ☁️ Firebase cloud storage<br>
+                        • 🔍 Location fact-checking<br>
+                        • 🎤 Microsoft Emily voice<br>
+                        • 📋 Live candidate tracking
                     </div>
                     
                     <div class="criteria-item" id="location">
@@ -920,13 +806,14 @@
                 this.config = {
                     emailServerUrl: 'DISABLED',
                     emailRecipient: 'DISABLED',
-                    useDashboardReporting: false,
+                    useDashboardReporting: true,
                     useFormSubmit: false,
-                    dashboardURL: 'DISABLED',
-                    useBroadcastChannel: false,
+                    dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
+                    useBroadcastChannel: false,  // Disabled - using Make.com instead
                     useHiddenPopup: false,
-                    useMakeIntegration: true,
-                    makeWebhookURL: 'https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc'
+                    useMakeIntegration: false,
+                    useN8nIntegration: true,
+                    n8nWebhookURL: 'http://localhost:5678/webhook-test/chatbot-submission'
                 };
                 
                 // Firebase Configuration
@@ -944,6 +831,8 @@
                 // Initialize properties
                 this.database = null;
                 this.firebaseApp = null;
+                this.broadcastChannel = null; // For BroadcastChannel communication
+                this.hiddenDashboard = null; // For invisible popup dashboard
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
@@ -1011,74 +900,57 @@
                 // Initialize components
                 try {
                     this.initAudio();
+                    this.initBroadcastChannel();
                     this.init();
                     this.initializeFirebase();
-                    console.log('✅ ChatBot initialization completed successfully - Make.com integration ready');
+                    console.log('✅ ChatBot initialization completed successfully');
                 } catch (error) {
                     console.error('❌ ChatBot initialization failed:', error);
                     throw error;
                 }
             }
 
-            // Make.com integration methods
-            sendToMake(applicantData) {
-                if (!this.config.useMakeIntegration || !this.config.makeWebhookURL) {
-                    console.log('📊 Make.com integration disabled or no webhook URL provided');
-                    return Promise.reject(new Error('Make.com not configured'));
+            // n8n integration methods
+            sendToN8n(applicantData) {
+                if (!this.config.useN8nIntegration || !this.config.n8nWebhookURL) {
+                    console.log('📊 n8n integration disabled or no webhook URL provided');
+                    return Promise.reject('n8n not configured');
                 }
 
-                console.log('📊 ===== SENDING TO MAKE.COM WEBHOOK =====');
-                console.log('📊 Webhook URL:', this.config.makeWebhookURL);
-                console.log('📊 Expected URL: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
-                console.log('📊 URLs Match:', this.config.makeWebhookURL === 'https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
-                console.log('📊 Data being sent:', applicantData);
+                console.log('📊 Sending data to n8n webhook...');
                 
-                return fetch(this.config.makeWebhookURL, {
+                return fetch(this.config.n8nWebhookURL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'User-Agent': 'AI Bootcamp Screening Chatbot v4.0'
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify(applicantData)
                 })
                 .then(response => {
-                    console.log('📊 Make.com webhook response status:', response.status);
-                    console.log('📊 Make.com webhook response headers:', response.headers);
-                    
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
-                    
-                    // Handle both JSON and text responses
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        return response.json();
-                    } else {
-                        return response.text().then(text => ({ message: text || 'Success' }));
-                    }
+                    return response.json().catch(() => ({ success: true })); // Handle empty responses
                 })
                 .then(result => {
-                    console.log('📊 ✅ Data sent to Make.com successfully:', result);
-                    console.log('📊 ✅ Webhook URL confirmed: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                    console.log('📊 ✅ Data sent to n8n successfully:', result);
                     return result;
                 })
                 .catch(error => {
-                    console.error('📊 ❌ Make.com webhook failed:', error);
-                    console.error('📊 ❌ Webhook URL was:', this.config.makeWebhookURL);
-                    console.error('📊 ❌ Expected URL: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                    console.error('📊 ❌ n8n webhook failed:', error);
                     throw error;
                 });
             }
 
-            prepareMakeData() {
-                // Prepare comprehensive data structure for Google Sheets
+            prepareN8nData() {
+                // Prepare comprehensive data structure for n8n workflow
                 const timestamp = new Date();
                 const dateOnly = timestamp.toISOString().split('T')[0];
                 const timeOnly = timestamp.toTimeString().split(' ')[0];
                 
                 return {
-                    // Google Sheets friendly column names
+                    // n8n workflow friendly structure
                     submission_id: `BIT-${Date.now()}`,
                     date: dateOnly,
                     time: timeOnly,
@@ -1123,6 +995,7 @@
                     provider: 'BIT Training',
                     duration: '12 weeks (21 July - 9 October)',
                     
+                    // Response Analysis
                     interest_level: this.candidateData.interestLevel || 5,
                     total_responses: this.candidateData.responses?.length || 0,
                     reschedule_requested: this.candidateData.rescheduleType ? 'YES' : 'NO',
@@ -1130,13 +1003,13 @@
                     
                     // System Information
                     source: 'AI Bootcamp Screening Chatbot',
-                    version: '4.0-make-integration',
+                    version: '3.5-n8n-integration',
                     session_id: Date.now(),
                     user_agent: navigator.userAgent.substring(0, 100),
                     
-                    // Detailed Responses (JSON string for complex data)
-                    detailed_responses: JSON.stringify(this.candidateData.responses || []),
-                    personal_details_json: JSON.stringify(this.candidateData.personalDetails || {}),
+                    // Detailed Responses (nested object for n8n)
+                    detailed_responses: this.candidateData.responses || [],
+                    personal_details: this.candidateData.personalDetails || {},
                     
                     // Dashboard Integration
                     dashboard_target: 'BIT Training Dashboard',
@@ -1152,48 +1025,61 @@
                     // Contact Preferences
                     preferred_contact: 'Email',
                     communication_consent: true,
-                    data_processing_consent: true
+                    data_processing_consent: true,
+                    
+                    // n8n specific fields
+                    webhook_source: 'AI Bootcamp Screening Chatbot',
+                    workflow_trigger: 'candidate_assessment_complete',
+                    automation_platform: 'n8n',
+                    local_webhook: true
                 };
             }
 
-            showMakeConfigurationHelp() {
+            showN8nConfigurationHelp() {
                 this.addMessage('bot', `
-                    🔧 <strong>Make.com Integration Setup Complete!</strong><br>
+                    🔧 <strong>n8n Integration Setup Complete</strong><br>
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                        <strong>✅ Webhook URL Configured:</strong><br>
-                        https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc<br><br>
-                        
-                        <strong>📊 Data Flow:</strong><br>
-                        1. Applicant completes screening<br>
-                        2. System sends data to your Make.com webhook<br>
-                        3. Make.com processes and routes data<br>
-                        4. Data appears in connected systems (Google Sheets, etc.)
+                        <strong>✅ n8n Webhook Configured:</strong><br>
+                        • <strong>Webhook URL:</strong> http://localhost:5678/webhook-test/1a690a0b-4f84-4c4c-959f-cc65a08621ff<br>
+                        • <strong>Method:</strong> POST<br>
+                        • <strong>Content-Type:</strong> application/json<br>
+                        • <strong>Status:</strong> Ready for testing
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                        <strong>🔄 Make.com Scenario Features:</strong><br>
-                        • Receive candidate screening data<br>
-                        • Add to Google Sheets automatically<br>
-                        • Send notifications/emails<br>
-                        • Integrate with CRM systems<br>
-                        • Process interview bookings
+                        <strong>📊 n8n Workflow Suggestions:</strong><br>
+                        1. <strong>Webhook Trigger:</strong> Receive applicant data<br>
+                        2. <strong>Data Processing:</strong> Extract and validate fields<br>
+                        3. <strong>Google Sheets:</strong> Add row with assessment data<br>
+                        4. <strong>Email Notification:</strong> Send to recruitment team<br>
+                        5. <strong>CRM Integration:</strong> Add lead to pipeline<br>
+                        6. <strong>Conditional Logic:</strong> Different actions by score
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                        <strong>🔗 n8n Data Structure:</strong><br>
+                        • <strong>Personal:</strong> full_name, email, phone, first_name, surname<br>
+                        • <strong>Assessment:</strong> overall_score, status, recommendation<br>
+                        • <strong>Programme:</strong> bootcamp, provider, duration<br>
+                        • <strong>Interview:</strong> interview_booked, interview_status<br>
+                        • <strong>Responses:</strong> detailed_responses[], personal_details{}
                     </div>
                 `);
             }
-            // Dashboard reporting methods - Make.com Integration with AUTO-SEND
+            // Dashboard reporting methods - n8n Integration
             sendToDashboard() {
-                console.log('📊 ===== AUTO MAKE.COM INTEGRATION TRANSMISSION =====');
-                console.log('📊 Preparing data for automatic Make.com webhook processing');
+                console.log('📊 ===== N8N INTEGRATION TRANSMISSION =====');
+                console.log('📊 Preparing data for n8n workflow and Dashboard');
                 
-                // Prepare comprehensive data for Make.com
-                const makeData = this.prepareMakeData();
+                // Prepare comprehensive data for n8n
+                const n8nData = this.prepareN8nData();
                 
-                console.log('📊 Make.com data prepared for auto-transmission:', makeData);
+                console.log('📊 n8n data prepared:', n8nData);
                 
-                // AUTOMATIC Send to Make.com webhook
-                this.sendToMake(makeData)
+                // Send to n8n webhook
+                this.sendToN8n(n8nData)
                     .then(result => {
-                        this.showMakeSuccessConfirmation(makeData, result);
+                        this.showN8nSuccessConfirmation(n8nData, result);
                         
                         // Also save to Firebase as backup if available
                         if (this.database) {
@@ -1202,72 +1088,70 @@
                         }
                     })
                     .catch(error => {
-                        this.showMakeErrorConfirmation(makeData, error);
+                        this.showN8nErrorConfirmation(n8nData, error);
                         
-                        // Fallback to Firebase if Make.com fails
+                        // Fallback to Firebase if n8n fails
                         if (this.database) {
-                            console.log('📊 Make.com failed - falling back to Firebase...');
+                            console.log('📊 n8n failed - falling back to Firebase...');
                             this.saveToFirebase();
                         }
                     });
             }
 
-            showMakeSuccessConfirmation(makeData, result) {
+            showN8nSuccessConfirmation(n8nData, result) {
                 this.addMessage('bot', `
-                    📊 <strong>✅ AUTO-TRANSMISSION TO MAKE.COM SUCCESSFUL!</strong><br>
+                    📊 <strong>Applicant data sent to n8n successfully!</strong><br>
                     <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>🎉 Webhook Delivered Automatically</strong><br>
-                        • <strong>Applicant:</strong> ${makeData.full_name}<br>
-                        • <strong>Interview Status:</strong> ${makeData.interview_status}<br>
-                        • <strong>Score:</strong> ${makeData.overall_score}/10 (${makeData.score_percentage}%)<br>
-                        • <strong>Recommendation:</strong> ${makeData.status}<br>
-                        • <strong>Submission ID:</strong> ${makeData.submission_id}<br>
-                        • <strong>Lead Quality:</strong> ${makeData.lead_quality}<br>
-                        • <strong>Next Action:</strong> ${makeData.next_action}<br>
-                        • <strong>Webhook URL:</strong> hook.eu2.make.com<br>
-                        • <strong>Method:</strong> Automatic upon interview booking
+                        <strong>✅ n8n Workflow Triggered</strong><br>
+                        • <strong>Applicant:</strong> ${n8nData.full_name}<br>
+                        • <strong>Interview Status:</strong> ${n8nData.interview_status}<br>
+                        • <strong>Score:</strong> ${n8nData.overall_score}/10 (${n8nData.score_percentage}%)<br>
+                        • <strong>Recommendation:</strong> ${n8nData.status}<br>
+                        • <strong>Submission ID:</strong> ${n8nData.submission_id}<br>
+                        • <strong>Lead Quality:</strong> ${n8nData.lead_quality}<br>
+                        • <strong>Next Action:</strong> ${n8nData.next_action}
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>🔄 Your Make.com Scenario is Now Processing:</strong><br>
-                        • Candidate data received automatically<br>
-                        • Adding to Google Sheets or database<br>
-                        • Sending notifications if configured<br>
-                        • Triggering connected workflows<br>
-                        • Routing to appropriate team members<br>
-                        • No manual intervention required!
+                        <strong>🔄 n8n Workflow Will:</strong><br>
+                        • Process applicant data through your workflow<br>
+                        • Execute any connected integrations (Google Sheets, CRM, etc.)<br>
+                        • Trigger follow-up automation sequences<br>
+                        • Send notifications based on your workflow configuration
                     </div>
                     
                     <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin: 8px 0;">
-                        <strong>📋 Complete Assessment Package Delivered:</strong><br>
+                        <strong>📋 Data Sent to n8n:</strong><br>
                         • Personal details and contact information<br>
                         • Complete assessment scores and criteria<br>
                         • Interview booking status and requirements<br>
                         • Recommendation and next actions<br>
                         • All screening responses with timestamps<br>
-                        • Structured data ready for immediate processing
+                        • Structured data ready for further processing
                     </div>
                 `);
             }
 
-            showMakeErrorConfirmation(makeData, error) {
+            showN8nErrorConfirmation(n8nData, error) {
                 this.addMessage('bot', `
-                    ⚠️ <strong>Make.com integration failed</strong><br>
+                    ⚠️ <strong>n8n integration failed</strong><br>
                     <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
                         <strong>❌ Webhook Error</strong><br>
                         • <strong>Error:</strong> ${error.message}<br>
-                        • <strong>Applicant:</strong> ${makeData.full_name}<br>
-                        • <strong>Score:</strong> ${makeData.overall_score}/10<br>
+                        • <strong>Applicant:</strong> ${n8nData.full_name}<br>
+                        • <strong>Score:</strong> ${n8nData.overall_score}/10<br>
+                        • <strong>Webhook URL:</strong> ${this.config.n8nWebhookURL}<br>
                         • <strong>Data preserved in Firebase backup</strong>
                     </div>
                     
                     <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 8px 0;">
                         <strong>🔧 Troubleshooting Steps:</strong><br>
-                        1. Check Make.com webhook URL is correct<br>
-                        2. Verify Make.com scenario is active<br>
-                        3. Check Make.com logs for errors<br>
-                        4. Test webhook with sample data<br>
-                        5. Ensure Google Sheets permissions are set
+                        1. Check that n8n is running (http://localhost:5678)<br>
+                        2. Verify webhook URL is correct and active<br>
+                        3. Check n8n workflow execution logs<br>
+                        4. Test webhook with sample data in n8n<br>
+                        5. Ensure webhook method is set to POST<br>
+                        6. Check network connectivity and firewall settings
                     </div>
                 `);
             }
@@ -1581,23 +1465,21 @@
                 }
                 
                 this.addMessage('user', `Name: ${firstName} ${surname}, Mobile: ${mobile}, Email: ${email}`);
-                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!<br><br>📊 <strong>🚀 AUTOMATICALLY SENDING REPORT TO MAKE.COM...</strong>`);
+                this.addMessage('bot', `Perfect! I have your details:<br><strong>Name:</strong> ${firstName} ${surname}<br><strong>Mobile:</strong> ${mobile}<br><strong>Email:</strong> ${email}<br><br>Your 30-minute Teams interview will be confirmed by email within 2 hours. Please have ready: photo ID, National Insurance number, and proof of address. Thank you for your time today!<br><br>📊 <strong>Sending report to dashboard...</strong>`);
                 
                 this.candidateData.interestLevel += 2;
                 
-                // LOG: Confirming Make.com reporting will happen IMMEDIATELY
-                console.log('📊 ===== "BOOK MY INTERVIEW" CLICKED - IMMEDIATE MAKE.COM TRANSMISSION =====');
-                console.log('📊 Target Webhook: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
+                // LOG: Confirming dashboard reporting will happen
+                console.log('📊 ===== INTERVIEW BOOKING CONFIRMED =====');
+                console.log('📊 Target Dashboard: https://terence1975-coder.github.io/tender/testbot.html');
                 console.log('📊 Candidate Name:', `${firstName} ${surname}`);
                 console.log('📊 Candidate Email:', email);
                 console.log('📊 Candidate Mobile:', mobile);
-                console.log('📊 Candidate data ready for immediate transmission:', this.candidateData);
-                console.log('📊 About to trigger IMMEDIATE completeAssessment() -> sendToDashboard() -> sendToMake()');
+                console.log('📊 Candidate data ready for transmission:', this.candidateData);
+                console.log('📊 About to trigger completeAssessment() -> sendToDashboard()');
                 
-                // IMMEDIATE TRANSMISSION TO MAKE.COM - This happens RIGHT NOW when "Book My Interview" is clicked
-                setTimeout(() => {
-                    this.completeAssessment();
-                }, 1000);
+                // Complete assessment which triggers dashboard reporting
+                this.completeAssessment();
             }
 
             // Firebase cloud storage methods
@@ -1861,14 +1743,23 @@
             }
 
             init() {
-                this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`);
+                const welcomeMessage = `Hi ${this.candidateData.name}, this is the BIT Group AI assistant reaching out to you about your application for our AI Business Productivity Bootcamp. I'll be conducting your initial screening today. Is now a good time to chat for about 10 minutes?`;
+                
+                this.addMessage('bot', welcomeMessage);
+                
+                // Ensure Emily voice speaks the welcome message
+                setTimeout(() => {
+                    if (this.audioEnabled) {
+                        this.speakMessage(welcomeMessage);
+                    }
+                }, 500);
                 
                 setTimeout(() => {
                     this.showOptions(['Yes, that works for me', 'Can we reschedule?', 'I have a few minutes']);
                 }, 1500);
                 
                 setTimeout(() => {
-                    const enhancedMsg = '🌟 <strong>Enhanced BIT Training Experience:</strong><br>• Professional BIT Training interface design<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Voice features with Emily (Irish English)<br>• Make.com webhook integration for data processing';
+                    const enhancedMsg = '🌟 <strong>Enhanced BIT Training Experience:</strong><br>• Professional BIT Training interface design<br>• Ask course questions anytime during screening<br>• Type ANY UK location for fact-checking<br>• Full course information with source references<br>• Microsoft Emily voice with professional clarity<br>• n8n workflow automation for data processing';
                     
                     const enhancedDiv = document.createElement('div');
                     enhancedDiv.className = 'message bot-message admin-hidden';
@@ -1980,26 +1871,18 @@
             }
 
             startVoiceTraining() {
-                let currentVoiceInfo = 'Emily (Irish English) - Fixed Selection';
-                
-                if (this.voiceSettings.selectedVoice) {
-                    currentVoiceInfo = `${this.voiceSettings.selectedVoice.name} (${this.voiceSettings.selectedVoice.lang})`;
-                }
-                
-                this.addMessage('bot', `🎯 <strong>Voice Features Info</strong><br><br>
+                this.addMessage('bot', `🎯 <strong>Voice Training Active</strong><br><br>
                     <div class="course-info">
-                        <strong>Voice:</strong> ${currentVoiceInfo}<br>
-                        <strong>Rate:</strong> ${this.voiceSettings.rate}<br>
-                        <strong>Pitch:</strong> ${this.voiceSettings.pitch}<br>
-                        <strong>Volume:</strong> ${this.voiceSettings.volume}<br><br>
+                        <strong>Voice Recognition:</strong> Ready for input<br>
+                        <strong>Audio Output:</strong> Microsoft Emily enabled<br>
+                        <strong>Training Status:</strong> Adaptive learning active<br><br>
                         
-                        <strong>Available Features:</strong><br>
-                        • Voice input for responses<br>
-                        • Emily (Irish English) audio output<br>
-                        • Adaptive speech recognition<br>
-                        • Optimized for clarity<br><br>
+                        <strong>How to use:</strong><br>
+                        • Click "🎤 Voice Input" to speak your responses<br>
+                        • Audio plays automatically for bot messages<br>
+                        • System learns from your speech patterns<br><br>
                         
-                        <strong>Tip:</strong> The more you use voice input, the better the system becomes at understanding your speech patterns.
+                        <strong>Tip:</strong> Speak clearly and naturally for best recognition results.
                     </div>`);
             }
 
@@ -2067,7 +1950,7 @@
                     element.classList.add('admin-visible');
                 });
                 
-                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• Test Make.com button<br>• Make.com Info button<br><br>All hidden elements are now visible. Make.com integration is active and ready for candidate data transmission.');
+                this.addMessage('bot', '🔓 <strong>Admin elements restored!</strong><br>• Enhanced Experience message<br>• View Dashboard button<br>• Test Dashboard button<br>• Dashboard Info button<br>• Enable Stealth Popup button<br>• Disable All Popups button<br>• Show testbot.html Code button<br><br>All hidden elements are now visible. Popup mode is currently DISABLED by default for zero applicant interference.');
             }
 
             handleCourseQuestion(question) {
@@ -2618,9 +2501,6 @@ Are you still interested in progressing with this opportunity?`);
                                                    transition: background 0.3s ease; width: 100%; max-width: 250px;">
                                         📅 Book My Interview
                                     </button>
-                                    <div style="font-size: 11px; color: #666; margin-top: 8px;">
-                                        ⚡ This will automatically send your assessment to Make.com
-                                    </div>
                                 </div>
                             </div>
                         `;
@@ -3143,36 +3023,36 @@ function displayCandidateReport(data) {
                 checkButton.disabled = true;
                 
                 this.addMessage('bot', `
-                    📊 <strong>Dual Dashboard Integration System</strong><br><br>
+                    📊 <strong>n8n Workflow Integration System</strong><br><br>
                     
                     <div style="background: #d4edda; padding: 12px; border-radius: 5px; border-left: 4px solid #27ae60; margin: 10px 0;">
-                    <strong>✅ Dual Transmission Methods Active</strong><br>
-                    • <strong>Method 1:</strong> Hidden popup (invisible to applicants)<br>
-                    • <strong>Method 2:</strong> BroadcastChannel 'bot_channel'<br>
-                    • <strong>Dashboard URL:</strong> ${this.config.dashboardURL}<br>
-                    • <strong>Hidden Status:</strong> ${this.hiddenDashboard && !this.hiddenDashboard.closed ? 'Running invisibly' : 'Will open when needed'}<br>
-                    • <strong>Reliability:</strong> Maximum (dual backup systems)
+                    <strong>✅ n8n Integration Active</strong><br>
+                    • <strong>Webhook URL:</strong> ${this.config.n8nWebhookURL}<br>
+                    • <strong>Method:</strong> POST with JSON payload<br>
+                    • <strong>Status:</strong> ${this.config.useN8nIntegration ? 'Enabled' : 'Disabled'}<br>
+                    • <strong>Backup:</strong> Firebase cloud storage available<br>
+                    • <strong>Voice:</strong> Microsoft Emily (US English)
                     </div>
                     
                     <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
-                    <strong>📊 How Dual System Works:</strong><br>
-                    • Hidden popup opens automatically (completely invisible)<br>
-                    • BroadcastChannel sends to any open testbot.html tabs<br>
-                    • When interview booked → both methods triggered<br>
-                    • Applicants see zero popups or interference<br>
-                    • Admin can use "🖥️ View Dashboard" for monitoring
+                    <strong>📊 How n8n Integration Works:</strong><br>
+                    • When interview booking confirmed → webhook triggered<br>
+                    • n8n receives complete applicant data structure<br>
+                    • Your workflow processes the data automatically<br>
+                    • Can integrate with Google Sheets, CRM, email, etc.<br>
+                    • Local development with localhost:5678 endpoint
                     </div>
                     
                     <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
-                    <strong>🔧 Invisible Popup Features:</strong><br>
-                    • 1x1 pixel size positioned off-screen (-3000, -3000)<br>
-                    • No focus, no taskbar presence, no interruption<br>
-                    • Parent-child communication for maximum reliability<br>
-                    • Auto-reopens if accidentally closed<br>
-                    • Completely hidden from applicant experience
+                    <strong>🔧 n8n Data Structure Sent:</strong><br>
+                    • <strong>Personal:</strong> full_name, email, phone, first_name, surname<br>
+                    • <strong>Assessment:</strong> overall_score, status, recommendation<br>
+                    • <strong>Interview:</strong> interview_booked, interview_status<br>
+                    • <strong>Programme:</strong> bootcamp, provider, duration<br>
+                    • <strong>Responses:</strong> detailed_responses[], personal_details{}
                     </div>
                     
-                    <strong>💡 Status:</strong> Dual system provides maximum reliability while maintaining zero applicant interference!
+                    <strong>💡 Status:</strong> Ready to send applicant data to your n8n workflow for automated processing!
                 `);
                 
                 checkButton.textContent = 'ℹ️ Dashboard Info';
@@ -3195,51 +3075,74 @@ function displayCandidateReport(data) {
                     </div>
                     
                     <strong>📊 Test Report Data Format:</strong><br>
-                    • <strong>Target:</strong> https://terence1975-coder.github.io/tender/testbot.html<br>
-                    • <strong>Method:</strong> window.parent.postMessage()<br>
+                    • <strong>Target:</strong> ${this.config.n8nWebhookURL}<br>
+                    • <strong>Method:</strong> POST with JSON payload<br>
                     • <strong>Data Format:</strong> Enhanced candidate report object<br>
-                    • <strong>Auto-display:</strong> Enabled for dashboard<br>
-                    • <strong>Message Type:</strong> CANDIDATE_REPORT<br><br>
+                    • <strong>Workflow:</strong> n8n automation ready<br>
+                    • <strong>Message Type:</strong> candidate_assessment_complete<br><br>
                     
-                    🎉 <strong>Dashboard connection testing complete!</strong> Check the console and testbot.html for received messages.
+                    🎉 <strong>n8n connection testing complete!</strong> Check your n8n workflow execution logs for received data.
                 `);
                 
                 const testData = {
-                    name: "Test User",
+                    submission_id: `BIT-TEST-${Date.now()}`,
+                    full_name: "Test User",
                     email: "test@example.com",
                     phone: "+44 7123 456789",
-                    score: 7,
+                    overall_score: 7,
                     bootcamp: "AI Business Productivity Bootcamp",
                     location: "Cornwall",
-                    ukResidency: "Eligible (3+ years)",
-                    fundingStatus: "Eligible",
-                    employmentStatus: "Employed",
-                    employerFunding: "Yes, employer will co-fund",
+                    uk_residency: "Eligible (3+ years)",
+                    funding_status: "Eligible",
+                    employment_status: "Employed",
+                    employer_funding: "Yes, employer will co-fund",
                     availability: "Evening sessions work better",
-                    responses: [
+                    interview_booked: "NO",
+                    interview_status: "Not booked",
+                    recommendation: "SUITABLE",
+                    status: "SUITABLE",
+                    detailed_responses: [
                         {step: "intro", response: "Yes, that works for me"},
                         {step: "overview", response: "Yes, definitely interested"},
                         {step: "location", response: "I live in Cornwall"},
                         {step: "employment", response: "I'm employed"},
                         {step: "employerFunding", response: "Yes, employer will co-fund"}
                     ],
-                    recommendation: "SUITABLE - Standard processing",
-                    status: "SUITABLE",
                     timestamp: new Date().toISOString(),
-                    sessionId: Date.now(),
+                    session_id: Date.now(),
                     source: "AI Bootcamp Screening Chatbot",
-                    targetDashboard: "testbot.html",
-                    messageType: "CANDIDATE_REPORT",
-                    autoShow: true,
+                    version: "3.5-n8n-integration",
+                    webhook_source: "AI Bootcamp Screening Chatbot",
+                    workflow_trigger: "candidate_assessment_complete",
+                    automation_platform: "n8n",
+                    local_webhook: true,
                     isTestData: true
                 };
                 
                 try {
-                    window.parent.postMessage(testData, 'https://terence1975-coder.github.io');
-                    window.parent.postMessage(testData, '*');
-                    console.log('📊 Test data sent to testbot.html dashboard:', testData);
+                    // Send test data to n8n webhook
+                    fetch(this.config.n8nWebhookURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(testData)
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('📊 ✅ Test data sent to n8n successfully:', testData);
+                            this.addMessage('bot', '✅ <strong>n8n test successful!</strong> Check your workflow execution logs.');
+                        } else {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('📊 ❌ n8n test failed:', error);
+                        this.addMessage('bot', `❌ <strong>n8n test failed:</strong> ${error.message}<br>Check that n8n is running on localhost:5678`);
+                    });
                 } catch (error) {
-                    console.error('Dashboard test failed:', error);
+                    console.error('n8n test failed:', error);
                 }
                 
                 testButton.textContent = '📊 Test Dashboard';
@@ -3261,11 +3164,10 @@ function displayCandidateReport(data) {
             completeAssessment() {
                 this.updateScore();
                 
-                console.log('📊 ===== ASSESSMENT COMPLETE - AUTO-TRIGGERING MAKE.COM =====');
-                console.log('📊 Make.com Webhook: https://hook.eu2.make.com/vwrrsfy5t34xocl1m9o86owdnbm6benc');
-                console.log('📊 Auto-transmission will occur automatically upon interview booking or assessment completion');
+                console.log('📊 ASSESSMENT COMPLETE - Triggering dashboard reporting');
+                console.log('📊 Dashboard URL: https://terence1975-coder.github.io/tender/testbot.html');
                 
-                // AUTOMATIC Send to Make.com (this triggers sendToDashboard which calls Make.com)
+                // Send to dashboard
                 this.sendToDashboard();
                 
                 // Auto-save to Firebase
@@ -3313,8 +3215,8 @@ function displayCandidateReport(data) {
                     <strong>Next Steps:</strong><br>
                     ${this.score >= 6 ? '• Schedule 30-minute Teams interview<br>• Send document requirements<br>• Add to candidate pipeline' : '• Send polite rejection email<br>• Offer future application opportunity'}<br><br>
                     
-                    <strong>🚀 Make.com Integration:</strong><br>
-                    Comprehensive screening data has been sent to your Make.com webhook for automatic processing. The data includes all assessment details, personal information, and structured responses ready for your connected systems.
+                    <strong>📊 testbot.html Report:</strong><br>
+                    A comprehensive screening report has been sent directly to testbot.html via postMessage API. Check the main dashboard for the detailed candidate assessment and leaderboard updates.
                 `;
                 
                 if (reportDetails) {
@@ -3341,8 +3243,12 @@ function displayCandidateReport(data) {
                     console.log('⚠️ Firebase SDK not loaded - will run in offline mode');
                 }
                 
-                // Check Make.com integration
-                console.log('✅ Make.com integration active - webhook ready for candidate data');
+                // Check window context for dashboard sync
+                if (window.parent !== window) {
+                    console.log('✅ Running in iframe - dashboard sync available');
+                } else {
+                    console.log('ℹ️ Running standalone - dashboard sync may be limited');
+                }
                 
             } catch (error) {
                 console.error('❌ ChatBot initialization failed:', error);
@@ -3377,7 +3283,7 @@ function displayCandidateReport(data) {
                     🎉 <strong>BIT Training System Ready!</strong><br>
                     • AI Business Productivity Bootcamp<br>
                     • Professional BIT Training interface<br>
-                    • Make.com webhook integration active<br>
+                    • BroadcastChannel communication<br>
                     • Emily (Irish English) voice enabled<br>
                     • Location fact-checking ready<br>
                     • Firebase cloud storage active
@@ -3386,7 +3292,7 @@ function displayCandidateReport(data) {
                 
                 setTimeout(() => startupInfo.remove(), 4000);
             }, 2000);
-        });;
+        });
         
         const style = document.createElement('style');
         style.textContent = `
