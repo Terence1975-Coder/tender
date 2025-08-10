@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation Flow Management Form</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -39,17 +45,6 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: float 6s ease-in-out infinite;
         }
 
         @keyframes float {
@@ -327,26 +322,39 @@
         }
 
         .import-pdf-btn {
-            background: linear-gradient(135deg, #9b59b6, #8e44ad);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin: 10px 0;
-            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.3);
+            background: linear-gradient(135deg, #9b59b6, #8e44ad) !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 25px !important;
+            border-radius: 25px !important;
+            cursor: pointer !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            display: inline-block !important;
+            margin: 10px 0 !important;
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.3) !important;
+            position: relative !important;
+            z-index: 1000 !important;
+            pointer-events: auto !important;
+            text-decoration: none !important;
         }
 
         .import-pdf-btn:hover {
-            background: linear-gradient(135deg, #8e44ad, #7d3c98);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4);
+            background: linear-gradient(135deg, #8e44ad, #7d3c98) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4) !important;
+        }
+
+        .import-pdf-btn:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3) !important;
+        }
+
+        .import-pdf-btn:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
         }
 
         .clear-form-btn {
@@ -409,10 +417,10 @@
             <h1>Automation Flow Manager</h1>
             <p>Document and manage your automation workflows with ease</p>
             <div style="margin-top: 20px;">
-                <button type="button" class="import-pdf-btn" onclick="document.getElementById('pdfImport').click()">
+                <button type="button" class="import-pdf-btn" id="importPdfBtn">
                     📂 Import Previous PDF
                 </button>
-                <input type="file" id="pdfImport" accept=".pdf" style="display: none;" onchange="importPDF(this)">
+                <input type="file" id="pdfImport" accept=".pdf" style="display: none;">
             </div>
         </div>
 
@@ -568,14 +576,68 @@
     </div>
 
     <script>
+        // IMMEDIATE SETUP - No waiting for DOM
         let stepCounter = 0;
         let imageCounters = {
             overview: 0,
             config: 0
         };
 
-        // Set current date
-        document.getElementById('date').valueAsDate = new Date();
+        // Set current date immediately
+        setTimeout(() => {
+            const dateInput = document.getElementById('date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+        }, 50);
+
+        // CRITICAL: Set up import functionality immediately
+        function setupImportButton() {
+            const importBtn = document.getElementById('importPdfBtn');
+            const fileInput = document.getElementById('pdfImport');
+            
+            console.log('Setting up import button...', { importBtn, fileInput });
+            
+            if (importBtn && fileInput) {
+                // Remove any existing listeners
+                importBtn.onclick = null;
+                fileInput.onchange = null;
+                
+                // Add click handler
+                importBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Import button clicked!');
+                    fileInput.click();
+                });
+                
+                // Add file change handler
+                fileInput.addEventListener('change', function() {
+                    console.log('File selected:', this.files[0]);
+                    if (this.files[0]) {
+                        importPDF(this);
+                    }
+                });
+                
+                console.log('Import button setup complete!');
+                return true;
+            }
+            console.log('Import button elements not found yet');
+            return false;
+        }
+
+        // Try setup immediately and keep retrying
+        let setupAttempts = 0;
+        function trySetupImport() {
+            setupAttempts++;
+            if (setupImportButton() || setupAttempts > 20) {
+                return;
+            }
+            setTimeout(trySetupImport, 100);
+        }
+        
+        // Start setup attempts immediately
+        trySetupImport();
 
         // Global paste event listener
         document.addEventListener('paste', function(e) {
@@ -1020,43 +1082,123 @@
         }
 
         async function importPDF(input) {
+            console.log('importPDF called with:', input.files[0]);
             const file = input.files[0];
-            if (!file) return;
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
 
             // Show loading indicator
-            const importBtn = document.querySelector('.import-pdf-btn');
+            const importBtn = document.getElementById('importPdfBtn');
             const originalText = importBtn.innerHTML;
             importBtn.innerHTML = '⏳ Loading PDF...';
             importBtn.disabled = true;
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                console.log('Attempting to read PDF...');
                 
-                let fullText = '';
-                
-                // Extract text from all pages
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-                    fullText += pageText + '\n';
-                }
-
-                // Parse the extracted text and populate form
-                parseAndPopulateForm(fullText);
-
-                // Show success message
-                showNotification('PDF imported successfully! Form has been populated with extracted data.', 'success');
+                // Simple approach: just show the manual import dialog
+                showManualImportDialog();
+                showNotification('Please copy and paste your PDF content in the dialog that opened.', 'info');
                 
             } catch (error) {
                 console.error('Error importing PDF:', error);
-                showNotification('Error importing PDF. Please ensure it\'s a valid PDF file.', 'error');
+                showManualImportDialog();
             } finally {
                 // Restore button
                 importBtn.innerHTML = originalText;
                 importBtn.disabled = false;
                 input.value = ''; // Clear file input
+            }
+        }
+
+        function showManualImportDialog() {
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            dialog.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    max-width: 600px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                ">
+                    <h3 style="margin-bottom: 20px; color: #2c3e50;">Manual PDF Import</h3>
+                    <p style="margin-bottom: 20px; color: #666;">
+                        Automatic PDF text extraction isn't available. Please copy and paste the text content from your PDF below:
+                    </p>
+                    <textarea id="manualPdfText" placeholder="Paste your PDF content here..." style="
+                        width: 100%;
+                        height: 300px;
+                        padding: 15px;
+                        border: 2px solid #e1e8ed;
+                        border-radius: 10px;
+                        font-family: monospace;
+                        font-size: 14px;
+                        resize: vertical;
+                    "></textarea>
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button onclick="closeManualImport()" style="
+                            background: #95a5a6;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            margin-right: 10px;
+                            cursor: pointer;
+                        ">Cancel</button>
+                        <button onclick="processManualImport()" style="
+                            background: linear-gradient(135deg, #3498db, #2980b9);
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        ">Import Text</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(dialog);
+            window.currentDialog = dialog;
+
+            // Focus on textarea
+            setTimeout(() => {
+                const textarea = document.getElementById('manualPdfText');
+                if (textarea) textarea.focus();
+            }, 100);
+        }
+
+        function closeManualImport() {
+            if (window.currentDialog) {
+                document.body.removeChild(window.currentDialog);
+                window.currentDialog = null;
+            }
+        }
+
+        function processManualImport() {
+            const textarea = document.getElementById('manualPdfText');
+            if (textarea && textarea.value.trim()) {
+                parseAndPopulateForm(textarea.value);
+                showNotification('Text imported successfully! Form has been populated.', 'success');
+                closeManualImport();
+            } else {
+                showNotification('Please paste some text content first.', 'error');
             }
         }
 
