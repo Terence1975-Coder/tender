@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation Flow Management Form</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -182,12 +183,77 @@
             60% { transform: translateY(-5px); }
         }
 
-        .screenshot-preview {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
+        .images-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-top: 15px;
+        }
+
+        .image-item {
+            position: relative;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .image-item:hover {
+            border-color: #3498db;
+            transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: auto;
+            max-height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-item:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .image-item .remove-btn:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+
+        .paste-indicator {
+            border: 3px dashed #27ae60 !important;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(46, 204, 113, 0.1)) !important;
+        }
+
+        .paste-indicator::before {
+            content: '📋 Ready to paste!' !important;
+            animation: pulse 1s infinite !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .step-container {
@@ -260,10 +326,50 @@
             box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
         }
 
-        .generate-pdf-btn:hover {
-            background: linear-gradient(135deg, #c0392b, #a93226);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.4);
+        .import-pdf-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.3);
+        }
+
+        .import-pdf-btn:hover {
+            background: linear-gradient(135deg, #8e44ad, #7d3c98);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4);
+        }
+
+        .clear-form-btn {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 10px 10px 0;
+            box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3);
+        }
+
+        .clear-form-btn:hover {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
         }
 
         .generate-pdf-btn::before {
@@ -302,6 +408,12 @@
         <div class="header">
             <h1>Automation Flow Manager</h1>
             <p>Document and manage your automation workflows with ease</p>
+            <div style="margin-top: 20px;">
+                <button type="button" class="import-pdf-btn" onclick="document.getElementById('pdfImport').click()">
+                    📂 Import Previous PDF
+                </button>
+                <input type="file" id="pdfImport" accept=".pdf" style="display: none;" onchange="importPDF(this)">
+            </div>
         </div>
 
         <div class="form-container">
@@ -388,21 +500,23 @@
                 <div class="section">
                     <h2 class="section-title">Screenshots & Documentation</h2>
                     <div class="screenshot-section">
-                        <label for="screenshot1">Flow Overview Screenshot</label>
-                        <div class="screenshot-upload" onclick="document.getElementById('screenshot1').click()">
-                            <input type="file" id="screenshot1" accept="image/*" style="display: none;" onchange="previewImage(this, 'preview1')">
-                            <p>Click to upload flow overview screenshot</p>
-                            <img id="preview1" class="screenshot-preview" style="display: none;">
+                        <label for="screenshot1">Flow Overview Screenshots</label>
+                        <div class="screenshot-upload" onclick="document.getElementById('screenshot1').click()" onpaste="handlePaste(event, 'overview')">
+                            <input type="file" id="screenshot1" accept="image/*" multiple style="display: none;" onchange="previewMultipleImages(this, 'overviewImages')">
+                            <p>Click to upload flow overview screenshots or paste from snipping tool (Ctrl+V)</p>
+                            <small style="color: #666; font-size: 0.9em;">Supports multiple images - hold Ctrl to select multiple files</small>
                         </div>
+                        <div id="overviewImages" class="images-container"></div>
                     </div>
                     
                     <div class="screenshot-section">
-                        <label for="screenshot2">Configuration Screenshot</label>
-                        <div class="screenshot-upload" onclick="document.getElementById('screenshot2').click()">
-                            <input type="file" id="screenshot2" accept="image/*" style="display: none;" onchange="previewImage(this, 'preview2')">
-                            <p>Click to upload configuration screenshot</p>
-                            <img id="preview2" class="screenshot-preview" style="display: none;">
+                        <label for="screenshot2">Configuration Screenshots</label>
+                        <div class="screenshot-upload" onclick="document.getElementById('screenshot2').click()" onpaste="handlePaste(event, 'config')">
+                            <input type="file" id="screenshot2" accept="image/*" multiple style="display: none;" onchange="previewMultipleImages(this, 'configImages')">
+                            <p>Click to upload configuration screenshots or paste from snipping tool (Ctrl+V)</p>
+                            <small style="color: #666; font-size: 0.9em;">Supports multiple images - hold Ctrl to select multiple files</small>
                         </div>
+                        <div id="configImages" class="images-container"></div>
                     </div>
                 </div>
 
@@ -447,19 +561,34 @@
                     </div>
                 </div>
 
-                <button type="button" class="generate-pdf-btn" onclick="generatePDF()">Generate PDF</button>
+                <button type="button" class="clear-form-btn" onclick="clearForm()">🗑️ Clear Form</button>
+                <button type="button" class="generate-pdf-btn" onclick="generatePDF()">Generate PDF with Images</button>
             </form>
         </div>
     </div>
 
     <script>
         let stepCounter = 0;
+        let imageCounters = {
+            overview: 0,
+            config: 0
+        };
 
         // Set current date
         document.getElementById('date').valueAsDate = new Date();
 
+        // Global paste event listener
+        document.addEventListener('paste', function(e) {
+            const activeElement = document.activeElement;
+            const uploadArea = activeElement.closest('.screenshot-upload');
+            if (uploadArea) {
+                handlePaste(e, uploadArea.getAttribute('data-target') || 'global');
+            }
+        });
+
         function addStep() {
             stepCounter++;
+            imageCounters[`step${stepCounter}`] = 0;
             const stepsContainer = document.getElementById('stepsContainer');
             
             const stepDiv = document.createElement('div');
@@ -491,16 +620,113 @@
                     <textarea placeholder="Describe what this step does"></textarea>
                 </div>
                 <div class="screenshot-section">
-                    <label>Step Screenshot</label>
-                    <div class="screenshot-upload" onclick="document.getElementById('stepScreenshot${stepCounter}').click()">
-                        <input type="file" id="stepScreenshot${stepCounter}" accept="image/*" style="display: none;" onchange="previewImage(this, 'stepPreview${stepCounter}')">
-                        <p>Click to upload step screenshot</p>
-                        <img id="stepPreview${stepCounter}" class="screenshot-preview" style="display: none;">
+                    <label>Step Screenshots</label>
+                    <div class="screenshot-upload" onclick="document.getElementById('stepScreenshot${stepCounter}').click()" onpaste="handlePaste(event, 'step${stepCounter}')" data-target="step${stepCounter}" tabindex="0">
+                        <input type="file" id="stepScreenshot${stepCounter}" accept="image/*" multiple style="display: none;" onchange="previewMultipleImages(this, 'stepImages${stepCounter}', 'step${stepCounter}')">
+                        <p>Click to upload screenshots or paste from snipping tool (Ctrl+V)</p>
+                        <small style="color: #666; font-size: 0.9em;">Supports multiple images - hold Ctrl to select multiple files</small>
                     </div>
+                    <div id="stepImages${stepCounter}" class="images-container"></div>
                 </div>
             `;
             
             stepsContainer.appendChild(stepDiv);
+        }
+
+        function handlePaste(event, target) {
+            event.preventDefault();
+            const items = event.clipboardData.items;
+            
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        addImageToContainer(e.target.result, target);
+                    };
+                    reader.readAsDataURL(blob);
+                    
+                    // Visual feedback
+                    const uploadArea = event.target.closest('.screenshot-upload');
+                    if (uploadArea) {
+                        uploadArea.classList.add('paste-indicator');
+                        setTimeout(() => {
+                            uploadArea.classList.remove('paste-indicator');
+                        }, 1000);
+                    }
+                    break;
+                }
+            }
+        }
+
+        function addImageToContainer(imageSrc, target) {
+            let containerId;
+            if (target === 'overview') {
+                containerId = 'overviewImages';
+            } else if (target === 'config') {
+                containerId = 'configImages';
+            } else if (target.startsWith('step')) {
+                containerId = `stepImages${target.replace('step', '')}`;
+            }
+
+            if (!containerId) return;
+
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            imageCounters[target] = (imageCounters[target] || 0) + 1;
+            const imageId = `${target}_img_${imageCounters[target]}`;
+
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'image-item';
+            imageDiv.innerHTML = `
+                <img id="${imageId}" src="${imageSrc}" alt="Screenshot">
+                <button class="remove-btn" onclick="removeImage('${imageId}')" title="Remove image">×</button>
+            `;
+
+            container.appendChild(imageDiv);
+
+            // Hide upload text when images are added
+            const uploadArea = container.previousElementSibling;
+            if (uploadArea && uploadArea.classList.contains('screenshot-upload')) {
+                const text = uploadArea.querySelector('p');
+                if (text && container.children.length === 1) {
+                    text.style.display = 'none';
+                }
+            }
+        }
+
+        function removeImage(imageId) {
+            const imageElement = document.getElementById(imageId);
+            if (imageElement) {
+                const container = imageElement.closest('.images-container');
+                imageElement.closest('.image-item').remove();
+                
+                // Show upload text if no images left
+                if (container.children.length === 0) {
+                    const uploadArea = container.previousElementSibling;
+                    if (uploadArea && uploadArea.classList.contains('screenshot-upload')) {
+                        const text = uploadArea.querySelector('p');
+                        if (text) text.style.display = 'block';
+                    }
+                }
+            }
+        }
+
+        function previewMultipleImages(input, containerId, target) {
+            const files = input.files;
+            const container = document.getElementById(containerId);
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    addImageToContainer(e.target.result, target);
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
         function previewImage(input, previewId) {
@@ -518,7 +744,7 @@
             }
         }
 
-        function generatePDF() {
+        async function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
@@ -540,6 +766,61 @@
                 notes: document.getElementById('notes').value,
                 knownIssues: document.getElementById('knownIssues').value,
                 futureEnhancements: document.getElementById('futureEnhancements').value
+            };
+
+            // Helper function to add images to PDF
+            const addImageToPDF = async (imgElement, title, doc, yPos) => {
+                if (imgElement && imgElement.src && imgElement.style.display !== 'none') {
+                    // Add title for the image
+                    doc.setFontSize(12);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(title, 20, yPos);
+                    yPos += 10;
+
+                    try {
+                        // Calculate image dimensions to fit within page
+                        const maxWidth = 170; // Max width for image
+                        const maxHeight = 100; // Max height for image
+                        
+                        // Create a temporary canvas to get image dimensions
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const tempImg = new Image();
+                        
+                        return new Promise((resolve) => {
+                            tempImg.onload = function() {
+                                let { width, height } = this;
+                                
+                                // Calculate scaling to fit within bounds
+                                const widthRatio = maxWidth / width;
+                                const heightRatio = maxHeight / height;
+                                const scale = Math.min(widthRatio, heightRatio, 1);
+                                
+                                const finalWidth = width * scale;
+                                const finalHeight = height * scale;
+                                
+                                // Check if image fits on current page
+                                if (yPos + finalHeight > 270) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                    doc.setFontSize(12);
+                                    doc.setFont("helvetica", "bold");
+                                    doc.text(title, 20, yPos);
+                                    yPos += 10;
+                                }
+                                
+                                // Add image to PDF
+                                doc.addImage(imgElement.src, 'JPEG', 20, yPos, finalWidth, finalHeight);
+                                resolve(yPos + finalHeight + 15);
+                            };
+                            tempImg.src = imgElement.src;
+                        });
+                    } catch (error) {
+                        console.warn('Could not add image to PDF:', error);
+                        return yPos + 5;
+                    }
+                }
+                return yPos;
             };
 
             // PDF Generation
@@ -612,6 +893,23 @@
                 yPosition = 20;
             }
 
+            // Add main screenshots first
+            const overviewImages = document.querySelectorAll('#overviewImages img');
+            for (let i = 0; i < overviewImages.length; i++) {
+                yPosition = await addImageToPDF(overviewImages[i], `Flow Overview Screenshot ${i + 1}`, doc, yPosition);
+            }
+
+            const configImages = document.querySelectorAll('#configImages img');
+            for (let i = 0; i < configImages.length; i++) {
+                yPosition = await addImageToPDF(configImages[i], `Configuration Screenshot ${i + 1}`, doc, yPosition);
+            }
+
+            // Check if we need a new page before workflow steps
+            if (yPosition > 240) {
+                doc.addPage();
+                yPosition = 20;
+            }
+
             // Workflow Steps
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
@@ -620,10 +918,17 @@
 
             // Get all steps
             const steps = document.querySelectorAll('.step-container');
-            steps.forEach((step, index) => {
+            for (let index = 0; index < steps.length; index++) {
+                const step = steps[index];
                 const stepName = step.querySelector('input[type="text"]').value;
                 const actionType = step.querySelector('select').value;
                 const stepDesc = step.querySelector('textarea').value;
+
+                // Check if we need a new page
+                if (yPosition > 240) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
 
                 doc.setFont("helvetica", "bold");
                 doc.text(`Step ${index + 1}: ${stepName}`, 20, yPosition);
@@ -638,11 +943,13 @@
                 }
                 yPosition += 5;
 
-                if (yPosition > 250) {
-                    doc.addPage();
-                    yPosition = 20;
+                // Add step screenshots if available
+                const stepImages = document.querySelectorAll(`#stepImages${index + 1} img`);
+                for (let imgIndex = 0; imgIndex < stepImages.length; imgIndex++) {
+                    const stepImg = stepImages[imgIndex];
+                    yPosition = await addImageToPDF(stepImg, `Step ${index + 1} Screenshot ${imgIndex + 1}`, doc, yPosition);
                 }
-            });
+            }
 
             // Testing & Validation
             doc.setFontSize(16);
@@ -712,8 +1019,219 @@
             doc.save(fileName);
         }
 
-        // Add initial step
-        addStep();
+        async function importPDF(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Show loading indicator
+            const importBtn = document.querySelector('.import-pdf-btn');
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '⏳ Loading PDF...';
+            importBtn.disabled = true;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                
+                let fullText = '';
+                
+                // Extract text from all pages
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += pageText + '\n';
+                }
+
+                // Parse the extracted text and populate form
+                parseAndPopulateForm(fullText);
+
+                // Show success message
+                showNotification('PDF imported successfully! Form has been populated with extracted data.', 'success');
+                
+            } catch (error) {
+                console.error('Error importing PDF:', error);
+                showNotification('Error importing PDF. Please ensure it\'s a valid PDF file.', 'error');
+            } finally {
+                // Restore button
+                importBtn.innerHTML = originalText;
+                importBtn.disabled = false;
+                input.value = ''; // Clear file input
+            }
+        }
+
+        function parseAndPopulateForm(text) {
+            // Clear existing form first
+            clearForm();
+
+            // Define parsing patterns
+            const patterns = {
+                flowName: /Flow Name:\s*([^\n]+)/i,
+                version: /Version:\s*([^\n]+)/i,
+                author: /Author:\s*([^\n]+)/i,
+                date: /Date:\s*([^\n]+)/i,
+                priority: /Priority:\s*([^\n]+)/i,
+                status: /Status:\s*([^\n]+)/i,
+                platform: /Platform:\s*([^\n]+)/i,
+                trigger: /Trigger:\s*([^\n]+)/i,
+                lastTested: /Last Tested:\s*([^\n]+)/i,
+                testResult: /Test Result:\s*([^\n]+)/i
+            };
+
+            // Extract and populate basic fields
+            Object.keys(patterns).forEach(field => {
+                const match = text.match(patterns[field]);
+                if (match && match[1]) {
+                    const element = document.getElementById(field);
+                    if (element) {
+                        element.value = match[1].trim();
+                    }
+                }
+            });
+
+            // Extract multi-line fields
+            const descriptionMatch = text.match(/Description:\s*([^]*?)(?=Technical Details|$)/i);
+            if (descriptionMatch) {
+                document.getElementById('description').value = descriptionMatch[1].trim();
+            }
+
+            const dependenciesMatch = text.match(/Dependencies:\s*([^]*?)(?=Workflow Steps|$)/i);
+            if (dependenciesMatch) {
+                document.getElementById('dependencies').value = dependenciesMatch[1].trim();
+            }
+
+            const testScenariosMatch = text.match(/Test Scenarios:\s*([^]*?)(?=Notes|$)/i);
+            if (testScenariosMatch) {
+                document.getElementById('testScenarios').value = testScenariosMatch[1].trim();
+            }
+
+            const notesMatch = text.match(/Notes:\s*([^]*?)(?=Known Issues|$)/i);
+            if (notesMatch) {
+                document.getElementById('notes').value = notesMatch[1].trim();
+            }
+
+            const knownIssuesMatch = text.match(/Known Issues:\s*([^]*?)(?=Future Enhancements|$)/i);
+            if (knownIssuesMatch) {
+                document.getElementById('knownIssues').value = knownIssuesMatch[1].trim();
+            }
+
+            const futureEnhancementsMatch = text.match(/Future Enhancements:\s*([^]*?)$/i);
+            if (futureEnhancementsMatch) {
+                document.getElementById('futureEnhancements').value = futureEnhancementsMatch[1].trim();
+            }
+
+            // Extract workflow steps
+            const stepsSection = text.match(/Workflow Steps\s*([^]*?)(?=Testing & Validation|$)/i);
+            if (stepsSection) {
+                const stepMatches = stepsSection[1].match(/Step \d+:\s*([^]*?)(?=Step \d+:|$)/gi);
+                if (stepMatches) {
+                    stepMatches.forEach((stepText, index) => {
+                        const stepNameMatch = stepText.match(/Step \d+:\s*([^\n]+)/i);
+                        const actionTypeMatch = stepText.match(/Action Type:\s*([^\n]+)/i);
+                        const stepDescMatch = stepText.match(/Action Type:[^\n]+\s*([^]*?)(?=Step \d+ Screenshot|$)/i);
+
+                        if (stepNameMatch) {
+                            addStep();
+                            const currentStep = document.querySelector(`.step-container:nth-last-child(2)`);
+                            if (currentStep) {
+                                const nameInput = currentStep.querySelector('input[type="text"]');
+                                const actionSelect = currentStep.querySelector('select');
+                                const descTextarea = currentStep.querySelector('textarea');
+
+                                if (nameInput) nameInput.value = stepNameMatch[1].trim();
+                                if (actionSelect && actionTypeMatch) {
+                                    const actionValue = actionTypeMatch[1].trim();
+                                    const option = Array.from(actionSelect.options).find(opt => 
+                                        opt.text.toLowerCase().includes(actionValue.toLowerCase())
+                                    );
+                                    if (option) actionSelect.value = option.value;
+                                }
+                                if (descTextarea && stepDescMatch) {
+                                    descTextarea.value = stepDescMatch[1].trim();
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function clearForm() {
+            // Clear all input fields
+            document.querySelectorAll('input[type="text"], input[type="date"], textarea, select').forEach(field => {
+                if (field.id !== 'date') { // Keep current date
+                    field.value = '';
+                }
+            });
+
+            // Clear all image containers
+            document.querySelectorAll('.images-container').forEach(container => {
+                container.innerHTML = '';
+            });
+
+            // Remove all steps except the first one
+            const stepsContainer = document.getElementById('stepsContainer');
+            stepsContainer.innerHTML = '';
+            stepCounter = 0;
+            imageCounters = { overview: 0, config: 0 };
+
+            // Show upload text again
+            document.querySelectorAll('.screenshot-upload p').forEach(p => {
+                p.style.display = 'block';
+            });
+
+            // Add one initial step
+            addStep();
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+                opacity: 0;
+                transform: translateX(100px);
+                transition: all 0.3s ease;
+                max-width: 300px;
+            `;
+
+            // Set background color based on type
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+            }
+
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
     </script>
 </body>
 </html>
