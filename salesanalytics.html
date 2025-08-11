@@ -587,8 +587,110 @@
       position: absolute;
       left: 0;
     }
+    .automation-section {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 30px;
+    }
     
-    @keyframes slideIn {
+    .automation-section h3 {
+      color: #10b981;
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .automation-section p {
+      color: #94a3b8;
+      margin-bottom: 25px;
+      font-size: 1rem;
+    }
+    
+    .automation-controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 30px;
+      align-items: end;
+    }
+    
+    .email-config {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .email-config label {
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    
+    .email-config input {
+      padding: 12px 15px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+    
+    .email-config input:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .zapier-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      height: fit-content;
+    }
+    
+    .zapier-btn:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    .zapier-btn:disabled {
+      background: #475569;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .automation-status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    
+    .automation-status.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+    
+    .automation-status.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
     }
@@ -737,6 +839,30 @@
             <h3>Recommended Actions</h3>
             <div id="recommendedActions"></div>
           </div>
+        </div>
+        
+        <div class="automation-section">
+          <h3>📧 Automated Executive Reporting</h3>
+          <p>Send this analysis automatically to your leadership team via email</p>
+          
+          <div class="automation-controls">
+            <div class="email-config">
+              <label for="zapierWebhook">Zapier Webhook URL:</label>
+              <input type="url" id="zapierWebhook" placeholder="https://hooks.zapier.com/hooks/catch/..." />
+              
+              <label for="recipientEmails">Director Email Addresses (comma-separated):</label>
+              <input type="text" id="recipientEmails" placeholder="director1@company.com, director2@company.com" />
+              
+              <label for="companyName">Company Name:</label>
+              <input type="text" id="companyName" placeholder="Your Company Name" />
+            </div>
+            
+            <button id="sendToZapier" class="zapier-btn">
+              📤 Send Executive Report via Zapier
+            </button>
+          </div>
+          
+          <div class="automation-status" id="automationStatus" style="display: none;"></div>
         </div>
       </div>
     </div>
@@ -979,6 +1105,7 @@ function generateDashboard(data, costFactor, leadTime, lookbackDays) {
   generateCharts(data);
   generateTables(data, totalSales);
   generateSummaryAndActions(data, totalSales, totalProfit, avgMargin);
+  setupZapierIntegration(data, totalSales, totalProfit, avgMargin);
 }
 
 function generateMetrics(totalSales, totalProfit, totalQuantity, avgOrderValue, avgMonthlySales, avgMargin) {
@@ -1622,6 +1749,178 @@ function generateSummaryAndActions(data, totalSales, totalProfit, avgMargin) {
       ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
     </ul>
   `;
+}
+
+function setupZapierIntegration(data, totalSales, totalProfit, avgMargin) {
+  document.getElementById('sendToZapier').addEventListener('click', async () => {
+    const webhookUrl = document.getElementById('zapierWebhook').value.trim();
+    const recipients = document.getElementById('recipientEmails').value.trim();
+    const companyName = document.getElementById('companyName').value.trim() || 'Your Company';
+    
+    if (!webhookUrl) {
+      showAutomationStatus('Please enter a Zapier webhook URL', 'error');
+      return;
+    }
+    
+    if (!recipients) {
+      showAutomationStatus('Please enter recipient email addresses', 'error');
+      return;
+    }
+    
+    const statusDiv = document.getElementById('automationStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'automation-status';
+    statusDiv.innerHTML = '📤 Sending executive report...';
+    
+    try {
+      await sendToZapier(webhookUrl, recipients, companyName, data, totalSales, totalProfit, avgMargin);
+    } catch (error) {
+      showAutomationStatus('Failed to send report: ' + error.message, 'error');
+    }
+  });
+}
+
+async function sendToZapier(webhookUrl, recipients, companyName, data, totalSales, totalProfit, avgMargin) {
+  // Calculate key metrics for email
+  const brandCount = new Set(data.map(r => r.Brand)).size;
+  const modelCount = new Set(data.map(r => `${r.Brand}-${r.Model}`)).size;
+  const dates = data.map(r => r['Sale Date']).filter(Boolean);
+  const minDate = new Date(Math.min.apply(null, dates));
+  const maxDate = new Date(Math.max.apply(null, dates));
+  
+  // Find top performing brand
+  const brandAgg = {};
+  data.forEach(r => {
+    brandAgg[r.Brand] = (brandAgg[r.Brand] || 0) + r['Total Sale ($)'];
+  });
+  const topBrand = Object.keys(brandAgg).reduce((a, b) => brandAgg[a] > brandAgg[b] ? a : b);
+  
+  // Gender analysis
+  const genderSplit = {};
+  data.forEach(r => {
+    genderSplit[r.Gender] = (genderSplit[r.Gender] || 0) + r['Total Sale ($)'];
+  });
+  const topGender = Object.keys(genderSplit).reduce((a, b) => genderSplit[a] > genderSplit[b] ? a : b);
+  const topGenderPercent = (genderSplit[topGender] / totalSales * 100).toFixed(1);
+  
+  // Create professional email body
+  const emailSubject = `📊 ${companyName} Sales Analytics Report - ${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()}`;
+  
+  const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .header { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 30px; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+        .metric { background: #f8fafc; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 4px; }
+        .metric-value { font-size: 1.8rem; font-weight: bold; color: #1e293b; }
+        .metric-label { color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        .section { margin: 30px 0; }
+        .section h3 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .highlight { background: #ecfdf5; border: 1px solid #10b981; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .warning { background: #fef2f2; border: 1px solid #ef4444; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin: 8px 0; padding-left: 20px; position: relative; }
+        li:before { content: '▶'; color: #10b981; position: absolute; left: 0; }
+        .footer { background: #f1f5f9; padding: 20px; text-align: center; border-radius: 6px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 ${companyName} Sales Analytics Report</h1>
+        <p>Executive Summary & Strategic Insights</p>
+        <p><strong>Period:</strong> ${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()}</p>
+    </div>
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Total Revenue</div>
+            <div class="metric-value">${formatMoney(totalSales)}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Total Profit</div>
+            <div class="metric-value">${formatMoney(totalProfit)}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Profit Margin</div>
+            <div class="metric-value">${avgMargin.toFixed(1)}%</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Product Lines</div>
+            <div class="metric-value">${brandCount}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>📈 Key Performance Insights</h3>
+        <ul>
+            <li><strong>Revenue Performance:</strong> Generated ${formatMoney(totalSales)} in total sales with ${avgMargin.toFixed(1)}% average margin</li>
+            <li><strong>Product Portfolio:</strong> ${brandCount} active brands with ${modelCount} unique models in catalog</li>
+            <li><strong>Top Performing Brand:</strong> ${topBrand} generating ${formatMoney(brandAgg[topBrand])} (${((brandAgg[topBrand]/totalSales)*100).toFixed(1)}% of total revenue)</li>
+            <li><strong>Market Segmentation:</strong> ${topGender} category represents ${topGenderPercent}% of total sales</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>🎯 Strategic Recommendations</h3>
+        ${avgMargin < 25 ? '<div class="warning"><strong>Action Required:</strong> Current margins below industry standard of 25-30% - review pricing strategy</div>' : '<div class="highlight"><strong>Strong Performance:</strong> Profit margins above industry average</div>'}
+        
+        <ul>
+            <li>Implement inventory reorder points based on calculated daily sales averages</li>
+            <li>Focus marketing efforts on opportunity products showing positive growth trends</li>
+            <li>Address declining products with promotional strategies or discontinuation review</li>
+            ${brandCount > 10 ? '<li>Consider brand portfolio optimization - focus resources on top-performing brands</li>' : ''}
+            ${topGenderPercent > 70 ? `<li>Diversify gender targeting - ${topGender} segment over-represented at ${topGenderPercent}%</li>` : ''}
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>📊 Full Interactive Dashboard Available</strong></p>
+        <p>Access the complete analysis with charts, trends, and detailed breakdowns</p>
+        <p><em>Generated automatically by ${companyName} Sales Analytics System</em></p>
+    </div>
+</body>
+</html>`;
+
+  // Prepare Zapier payload
+  const zapierPayload = {
+    subject: emailSubject,
+    recipients: recipients,
+    html_body: emailBody,
+    company_name: companyName,
+    report_period: `${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()}`,
+    total_sales: formatMoney(totalSales),
+    total_profit: formatMoney(totalProfit),
+    profit_margin: `${avgMargin.toFixed(1)}%`,
+    top_brand: topBrand,
+    brand_count: brandCount,
+    model_count: modelCount,
+    dashboard_timestamp: new Date().toISOString()
+  };
+
+  // Send to Zapier
+  const response = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(zapierPayload)
+  });
+
+  if (response.ok) {
+    showAutomationStatus('✅ Executive report sent successfully to directors!', 'success');
+  } else {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+}
+
+function showAutomationStatus(message, type) {
+  const statusDiv = document.getElementById('automationStatus');
+  statusDiv.style.display = 'block';
+  statusDiv.className = `automation-status ${type}`;
+  statusDiv.innerHTML = message;
 }
 
 // Initialize the application
