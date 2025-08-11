@@ -6,6 +6,14 @@
     <title>Diamond Equine Grooming Invoice System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Ensure standalone functionality -->
+    <script>
+        // Remove any parent window dependencies
+        if (window.parent !== window) {
+            window.location.replace(window.location.href);
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -17,11 +25,22 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Ensure full standalone display */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
         
         .app-container {
             display: flex;
-            height: 100vh;
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
         }
         
         .sidebar {
@@ -69,6 +88,7 @@
             overflow-y: auto;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
+            min-height: 100vh;
         }
         
         .page {
@@ -802,8 +822,28 @@
 
     <script>
         // Global variables
-        let invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+        let invoices = [];
         let currentEditingId = null;
+        
+        // Initialize localStorage safely
+        function initializeStorage() {
+            try {
+                const stored = localStorage.getItem('invoices');
+                invoices = stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                console.warn('localStorage not available, using memory storage');
+                invoices = [];
+            }
+        }
+        
+        // Save to storage safely
+        function saveToStorage() {
+            try {
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+            } catch (error) {
+                console.warn('Could not save to localStorage');
+            }
+        }
         
         // Sample client data
         const clients = {
@@ -815,6 +855,9 @@
         
         // Initialize the application
         function init() {
+            // Initialize storage first
+            initializeStorage();
+            
             const today = new Date();
             const dueDate = new Date();
             dueDate.setDate(today.getDate() + 30);
@@ -834,6 +877,15 @@
             updatePreview();
             updateDashboard();
             updateHistory();
+            
+            // Ensure we're in standalone mode
+            if (window.self !== window.top) {
+                try {
+                    window.top.location = window.location;
+                } catch (e) {
+                    window.location.reload();
+                }
+            }
         }
         
         // Navigation
@@ -1099,8 +1151,8 @@
                 invoices.push(invoiceData);
             }
             
-            // Save to localStorage
-            localStorage.setItem('invoices', JSON.stringify(invoices));
+            // Save to storage
+            saveToStorage();
             
             // Generate PDF using html2canvas and jsPDF
             const { jsPDF } = window.jspdf;
@@ -1300,7 +1352,7 @@
         function deleteInvoice(id) {
             if (confirm('Are you sure you want to delete this invoice?')) {
                 invoices = invoices.filter(inv => inv.id !== id);
-                localStorage.setItem('invoices', JSON.stringify(invoices));
+                saveToStorage();
                 updateHistory();
                 updateDashboard();
             }
