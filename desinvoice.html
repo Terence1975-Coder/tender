@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Equine Grooming Invoice Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+        
+        .form-section {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .preview-section {
+            flex: 1;
+            padding: 30px;
+            background: white;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+        
+        .client-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .client-section h3 {
+            margin-top: 0;
+            color: #44a08d;
+        }
+        
+        .line-items {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .line-items h3 {
+            margin-top: 0;
+            color: #44a08d;
+        }
+        
+        .line-item {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .line-item input {
+            margin: 0;
+        }
+        
+        .remove-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .remove-btn:hover {
+            background: #c0392b;
+        }
+        
+        .add-btn {
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .add-btn:hover {
+            background: #44a08d;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .invoice-preview {
+            border: 1px solid #ddd;
+            padding: 30px;
+            background: white;
+            font-size: 12px;
+            line-height: 1.4;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #4ecdc4;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            border-radius: 50%;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .invoice-title {
+            text-align: right;
+            flex: 1;
+        }
+        
+        .invoice-title h1 {
+            margin: 0;
+            font-size: 36px;
+            color: #44a08d;
+            font-weight: 300;
+        }
+        
+        .invoice-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .bill-to h4,
+        .invoice-info h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #44a08d;
+            font-weight: 600;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .invoice-table th {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .invoice-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .invoice-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .total-section {
+            text-align: right;
+            margin-top: 20px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+        
+        .total-label {
+            width: 120px;
+            font-weight: 600;
+            padding: 8px;
+        }
+        
+        .total-amount {
+            width: 100px;
+            text-align: right;
+            padding: 8px;
+        }
+        
+        .net-total {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .payment-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4ecdc4;
+        }
+        
+        .payment-info h4 {
+            margin: 0 0 15px 0;
+            color: #44a08d;
+        }
+        
+        .bank-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .bank-detail {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .bank-detail strong {
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .form-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .line-item {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diamond Equine Grooming Invoice Generator</h1>
+        </div>
+        
+        <div class="main-content">
+            <div class="form-section">
+                <div class="client-section">
+                    <h3>Client Selection</h3>
+                    <div class="form-group">
+                        <label for="clientSelect">Select Existing Client:</label>
+                        <select id="clientSelect" onchange="loadClient()">
+                            <option value="">-- Select Client --</option>
+                            <option value="judith">Judith Sanders</option>
+                            <option value="custom">Add New Client</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientName">Client Name:</label>
+                        <input type="text" id="clientName" placeholder="Enter client name" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientAddress">Client Address:</label>
+                        <textarea id="clientAddress" rows="3" placeholder="Enter client address" onchange="updatePreview()"></textarea>
+                    </div>
+                </div>
+                
+                <div class="client-section">
+                    <h3>Invoice Details</h3>
+                    <div class="form-group">
+                        <label for="invoiceNumber">Invoice Number:</label>
+                        <input type="text" id="invoiceNumber" value="579" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="invoiceDate">Invoice Date:</label>
+                        <input type="date" id="invoiceDate" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dueDate">Due Date:</label>
+                        <input type="date" id="dueDate" onchange="updatePreview()">
+                    </div>
+                </div>
+                
+                <div class="line-items">
+                    <h3>Services</h3>
+                    <button class="add-btn" onclick="addLineItem()">+ Add Service</button>
+                    <div id="lineItems">
+                        <!-- Line items will be added here -->
+                    </div>
+                </div>
+                
+                <div class="client-section">
+                    <h3>Payment Details</h3>
+                    <div class="form-group">
+                        <label for="bankName">Bank Name:</label>
+                        <input type="text" id="bankName" value="Nationwide" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="accountName">Account Name:</label>
+                        <input type="text" id="accountName" value="Mrs Debbie H Herbert" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sortCode">Sort Code:</label>
+                        <input type="text" id="sortCode" value="07-01-16" onchange="updatePreview()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="accountNumber">Account Number:</label>
+                        <input type="text" id="accountNumber" value="32288417" onchange="updatePreview()">
+                    </div>
+                </div>
+                
+                <button class="generate-btn" onclick="generatePDF()">Generate PDF Invoice</button>
+            </div>
+            
+            <div class="preview-section">
+                <h3 style="margin-top: 0; color: #44a08d;">Live Preview</h3>
+                <div class="invoice-preview" id="invoicePreview">
+                    <!-- Invoice preview will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample client data
+        const clients = {
+            judith: {
+                name: "Judith Sanders",
+                address: ""
+            }
+        };
+        
+        let lineItemCounter = 0;
+        let lineItems = [];
+        
+        // Initialize the form
+        function init() {
+            const today = new Date();
+            const dueDate = new Date();
+            dueDate.setDate(today.getDate() + 30);
+            
+            document.getElementById('invoiceDate').value = today.toISOString().split('T')[0];
+            document.getElementById('dueDate').value = dueDate.toISOString().split('T')[0];
+            
+            // Add initial line items
+            addLineItem('Grooming Services', 16.00, 15.00);
+            addLineItem('Grooming Weekend Services', 0.00, 17.00);
+            
+            updatePreview();
+        }
+        
+        function loadClient() {
+            const select = document.getElementById('clientSelect');
+            const client = clients[select.value];
+            
+            if (client) {
+                document.getElementById('clientName').value = client.name;
+                document.getElementById('clientAddress').value = client.address;
+            } else if (select.value === 'custom') {
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientAddress').value = '';
+            }
+            
+            updatePreview();
+        }
+        
+        function addLineItem(description = '', quantity = 0, unitPrice = 0) {
+            const container = document.getElementById('lineItems');
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'line-item';
+            itemDiv.innerHTML = `
+                <input type="text" placeholder="Description" value="${description}" onchange="updatePreview()">
+                <input type="number" placeholder="Qty" value="${quantity}" step="0.01" onchange="updatePreview()">
+                <input type="number" placeholder="Unit Price (£)" value="${unitPrice}" step="0.01" onchange="updatePreview()">
+                <input type="number" placeholder="Total (£)" readonly>
+                <button class="remove-btn" onclick="removeLineItem(this)">Remove</button>
+            `;
+            
+            container.appendChild(itemDiv);
+            updateLineItemTotal(itemDiv);
+            updatePreview();
+        }
+        
+        function removeLineItem(button) {
+            button.parentElement.remove();
+            updatePreview();
+        }
+        
+        function updateLineItemTotal(lineItem) {
+            const inputs = lineItem.querySelectorAll('input');
+            const qty = parseFloat(inputs[1].value) || 0;
+            const price = parseFloat(inputs[2].value) || 0;
+            const total = qty * price;
+            inputs[3].value = total.toFixed(2);
+        }
+        
+        function calculateTotals() {
+            const lineItems = document.querySelectorAll('.line-item');
+            let netTotal = 0;
+            
+            lineItems.forEach(item => {
+                updateLineItemTotal(item);
+                const total = parseFloat(item.querySelectorAll('input')[3].value) || 0;
+                netTotal += total;
+            });
+            
+            return { netTotal };
+        }
+        
+        function updatePreview() {
+            const preview = document.getElementById('invoicePreview');
+            const totals = calculateTotals();
+            
+            // Get form values
+            const clientName = document.getElementById('clientName').value || 'Client Name';
+            const clientAddress = document.getElementById('clientAddress').value || 'Client Address';
+            const invoiceNumber = document.getElementById('invoiceNumber').value || '579';
+            const invoiceDate = document.getElementById('invoiceDate').value || '';
+            const dueDate = document.getElementById('dueDate').value || '';
+            const bankName = document.getElementById('bankName').value || 'Nationwide';
+            const accountName = document.getElementById('accountName').value || 'Mrs Debbie H Herbert';
+            const sortCode = document.getElementById('sortCode').value || '07-01-16';
+            const accountNumber = document.getElementById('accountNumber').value || '32288417';
+            
+            // Format dates
+            const formattedInvoiceDate = invoiceDate ? new Date(invoiceDate).toLocaleDateString('en-GB') : '';
+            const formattedDueDate = dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : '';
+            
+            // Generate line items HTML
+            let lineItemsHTML = '';
+            const lineItems = document.querySelectorAll('.line-item');
+            lineItems.forEach(item => {
+                const inputs = item.querySelectorAll('input');
+                const description = inputs[0].value || '';
+                const qty = inputs[1].value || '0.00';
+                const price = inputs[2].value || '0.00';
+                const total = inputs[3].value || '0.00';
+                
+                if (description) {
+                    lineItemsHTML += `
+                        <tr>
+                            <td>${description}</td>
+                            <td>${qty}</td>
+                            <td>£${parseFloat(price).toFixed(2)}</td>
+                            <td>£${parseFloat(total).toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            preview.innerHTML = `
+                <div class="invoice-header">
+                    <div class="company-info">
+                        <div class="company-logo">🐴</div>
+                        <strong>Debra Herbert t/a Diamond<br>Equine Grooming</strong><br><br>
+                        31 Teaseltun<br>
+                        Elvetham Heath<br>
+                        Fleet<br>
+                        Hampshire<br>
+                        GU51 5BY
+                    </div>
+                    <div class="invoice-title">
+                        <h1>Invoice</h1>
+                    </div>
+                </div>
+                
+                <div class="invoice-details">
+                    <div class="bill-to">
+                        <h4>To:</h4>
+                        <strong>${clientName}</strong><br>
+                        ${clientAddress.replace(/\n/g, '<br>')}
+                    </div>
+                    <div class="invoice-info">
+                        <h4>Invoice Details</h4>
+                        <strong>Date:</strong> ${formattedInvoiceDate}<br>
+                        <strong>Invoice No:</strong> ${invoiceNumber}<br>
+                        <strong>Due Date:</strong> ${formattedDueDate}
+                    </div>
+                </div>
+                
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lineItemsHTML}
+                    </tbody>
+                </table>
+                
+                <div class="total-section">
+                    <div class="total-row net-total">
+                        <div class="total-label">Net Total</div>
+                        <div class="total-amount">£${totals.netTotal.toFixed(2)}</div>
+                    </div>
+                </div>
+                
+                <div class="payment-info">
+                    <h4>Payment is due within 30 Days</h4>
+                    <div class="bank-details">
+                        <div class="bank-detail">
+                            <strong>Bank Name:</strong>
+                            <span>${bankName}</span>
+                        </div>
+                        <div class="bank-detail">
+                            <strong>Account Name:</strong>
+                            <span>${accountName}</span>
+                        </div>
+                        <div class="bank-detail">
+                            <strong>Sort Code:</strong>
+                            <span>${sortCode}</span>
+                        </div>
+                        <div class="bank-detail">
+                            <strong>Account No:</strong>
+                            <span>${accountNumber}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Get form values
+            const clientName = document.getElementById('clientName').value || 'Client Name';
+            const clientAddress = document.getElementById('clientAddress').value || 'Client Address';
+            const invoiceNumber = document.getElementById('invoiceNumber').value || '579';
+            const invoiceDate = document.getElementById('invoiceDate').value || '';
+            const bankName = document.getElementById('bankName').value || 'Nationwide';
+            const accountName = document.getElementById('accountName').value || 'Mrs Debbie H Herbert';
+            const sortCode = document.getElementById('sortCode').value || '07-01-16';
+            const accountNumber = document.getElementById('accountNumber').value || '32288417';
+            
+            const totals = calculateTotals();
+            const formattedDate = invoiceDate ? new Date(invoiceDate).toLocaleDateString('en-GB') : '';
+            
+            // Set fonts and colors
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            doc.setTextColor(68, 160, 141);
+            doc.text('Invoice', 150, 30);
+            
+            // Company info
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Debra Herbert t/a Diamond', 20, 50);
+            doc.text('Equine Grooming', 20, 57);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.text('31 Teaseltun', 20, 70);
+            doc.text('Elvetham Heath', 20, 77);
+            doc.text('Fleet', 20, 84);
+            doc.text('Hampshire', 20, 91);
+            doc.text('GU51 5BY', 20, 98);
+            
+            // Invoice details
+            doc.setFont('helvetica', 'bold');
+            doc.text('Date:', 150, 50);
+            doc.text('Invoice No:', 150, 57);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.text(formattedDate, 175, 50);
+            doc.text(invoiceNumber, 175, 57);
+            
+            // Client info
+            doc.setFont('helvetica', 'bold');
+            doc.text('To:', 20, 120);
+            doc.setFont('helvetica', 'normal');
+            doc.text(clientName, 20, 130);
+            
+            const addressLines = clientAddress.split('\n');
+            addressLines.forEach((line, index) => {
+                doc.text(line, 20, 137 + (index * 7));
+            });
+            
+            // Table header
+            let yPos = 160;
+            doc.setFillColor(78, 205, 196);
+            doc.rect(20, yPos - 5, 170, 10, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Description', 25, yPos);
+            doc.text('Qty', 110, yPos);
+            doc.text('Unit Price', 130, yPos);
+            doc.text('Line Total', 160, yPos);
+            
+            // Table rows
+            yPos += 15;
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+            
+            const lineItems = document.querySelectorAll('.line-item');
+            lineItems.forEach(item => {
+                const inputs = item.querySelectorAll('input');
+                const description = inputs[0].value || '';
+                const qty = inputs[1].value || '0.00';
+                const price = inputs[2].value || '0.00';
+                const total = inputs[3].value || '0.00';
+                
+                if (description) {
+                    doc.text(description, 25, yPos);
+                    doc.text(qty, 110, yPos);
+                    doc.text('£' + parseFloat(price).toFixed(2), 130, yPos);
+                    doc.text('£' + parseFloat(total).toFixed(2), 160, yPos);
+                    yPos += 10;
+                }
+            });
+            
+            // Total
+            yPos += 10;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Net Total:', 130, yPos);
+            doc.text('£' + totals.netTotal.toFixed(2), 160, yPos);
+            
+            // Payment info
+            yPos += 20;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Payment is due within 30 Days', 20, yPos);
+            
+            yPos += 15;
+            doc.setFont('helvetica', 'normal');
+            doc.text('Bank Name: ' + bankName, 20, yPos);
+            doc.text('Account Name: ' + accountName, 20, yPos + 7);
+            doc.text('Sort Code: ' + sortCode, 20, yPos + 14);
+            doc.text('Account No: ' + accountNumber, 20, yPos + 21);
+            
+            // Save the PDF
+            doc.save(`Invoice_${invoiceNumber}_${clientName.replace(/\s+/g, '_')}.pdf`);
+        }
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>
