@@ -1,0 +1,1643 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Professional Sales Analytics Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SheetJS for reading Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Plotly for interactive charts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.24.2/plotly.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      color: #e2e8f0;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px 0;
+      border-bottom: 2px solid #334155;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 12px;
+    }
+    
+    h1 { 
+      color: #ffffff;
+      font-size: 3rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 1.2rem;
+      font-weight: 300;
+    }
+    
+    .upload-section {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 2px solid #475569;
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    
+    .upload-area {
+      border: 3px dashed #64748b;
+      border-radius: 16px;
+      padding: 60px 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.6);
+      margin-bottom: 30px;
+      position: relative;
+    }
+    
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    }
+    
+    .upload-area.has-file {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    
+    #fileInput {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+    }
+    
+    .upload-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      color: #64748b;
+    }
+    
+    .upload-text {
+      font-size: 1.4rem;
+      color: #f1f5f9;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    
+    .upload-subtext {
+      color: #94a3b8;
+      font-size: 1rem;
+    }
+    
+    .file-info {
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+      text-align: center;
+    }
+    
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .control-group {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #475569;
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      transition: transform 0.2s ease;
+    }
+    
+    .control-group:hover {
+      transform: translateY(-2px);
+    }
+    
+    .control-group label {
+      display: block;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .control-group input {
+      width: 100%;
+      padding: 15px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 1.1rem;
+      text-align: center;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .control-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+    
+    .process-btn {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+      border: none;
+      padding: 20px 50px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .process-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #047857, #059669);
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
+    }
+    
+    .process-btn:disabled {
+      background: #475569;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .expected-columns {
+      background: rgba(15, 23, 42, 0.8);
+      border-left: 5px solid #3b82f6;
+      padding: 25px;
+      border-radius: 12px;
+      font-size: 1rem;
+      color: #94a3b8;
+    }
+    
+    .expected-columns strong {
+      color: #f1f5f9;
+      display: block;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .card { 
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 2px solid #475569;
+      padding: 35px;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      border-color: #64748b;
+    }
+    
+    .card.full-width { 
+      grid-column: 1 / -1;
+    }
+    
+    .card h3 {
+      color: #ffffff;
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #475569;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 25px;
+    }
+    
+    .metric-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 2px solid #334155;
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    }
+    
+    .metric-card:hover {
+      transform: scale(1.05);
+      border-color: #3b82f6;
+    }
+    
+    .metric-label {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    
+    .metric-value {
+      color: #ffffff;
+      font-size: 2.2rem;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 8px;
+    }
+    
+    .metric-change {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .metric-change.positive { 
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .metric-change.negative { 
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    
+    table { 
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #334155, #475569);
+      color: #ffffff;
+      padding: 18px 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      border-bottom: 3px solid #64748b;
+    }
+    
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #334155;
+      color: #e2e8f0;
+    }
+    
+    tr:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+    
+    .positive-row {
+      background: rgba(16, 185, 129, 0.05);
+      border-left: 4px solid #10b981;
+    }
+    
+    .negative-row {
+      background: rgba(239, 68, 68, 0.05);
+      border-left: 4px solid #ef4444;
+    }
+    
+    .flag-losing { 
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 25px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    .flag-opportunity { 
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 25px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .flag-stable { 
+      background: linear-gradient(135deg, #64748b, #475569);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 25px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .chart-container {
+      height: 450px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 2px solid #334155;
+      padding: 10px;
+    }
+    
+    .scrollable {
+      height: 500px;
+      border-radius: 12px;
+      position: relative;
+    }
+    
+    .table-container {
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .table-header {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #334155, #475569);
+      border-bottom: 3px solid #64748b;
+      overflow: hidden;
+    }
+    
+    .table-body {
+      flex: 1;
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.5);
+    }
+    
+    .table-header table,
+    .table-body table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      table-layout: fixed;
+    }
+    
+    .table-header th {
+      background: transparent;
+      color: #ffffff;
+      padding: 18px 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      border: none;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .table-body td {
+      padding: 15px;
+      border-bottom: 1px solid #334155;
+      color: #e2e8f0;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .table-body tr:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+    
+    /* Specific column widths for alignment */
+    .brand-col { width: 15%; }
+    .model-col { width: 15%; }
+    .revenue-col { width: 12%; }
+    .profit-col { width: 12%; }
+    .margin-col { width: 10%; }
+    .units-col { width: 10%; }
+    .price-col { width: 12%; }
+    .profit-unit-col { width: 14%; }
+    
+    .product-col { width: 25%; }
+    .current-col { width: 13%; }
+    .previous-col { width: 13%; }
+    .change-col { width: 10%; }
+    .status-col { width: 18%; }
+    .priority-col { width: 21%; }
+    
+    .segment-col { width: 18%; }
+    .share-col { width: 12%; }
+    
+    .daily-col { width: 15%; }
+    .reorder-col { width: 12%; }
+    .target-col { width: 12%; }
+    .safety-col { width: 12%; }
+    .velocity-col { width: 12%; }
+    
+    .scrollable::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .scrollable::-webkit-scrollbar-track {
+      background: #1e293b;
+      border-radius: 5px;
+    }
+    
+    .scrollable::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 5px;
+    }
+    
+    .scrollable::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    
+    .success-message {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      animation: slideIn 0.6s ease;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    }
+    
+    .summary-section {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 3px solid #475569;
+      border-radius: 16px;
+      padding: 40px;
+      margin-top: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    
+    .summary-section h2 {
+      color: #ffffff;
+      font-size: 2rem;
+      margin-bottom: 30px;
+      text-align: center;
+      border-bottom: 3px solid #475569;
+      padding-bottom: 20px;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+    
+    .summary-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #334155;
+      border-radius: 12px;
+      padding: 30px;
+    }
+    
+    .summary-card h3 {
+      color: #3b82f6;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 10px;
+    }
+    
+    .summary-card ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .summary-card li {
+      color: #e2e8f0;
+      margin-bottom: 12px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .summary-card li::before {
+      content: '▶';
+      color: #10b981;
+      position: absolute;
+      left: 0;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @media (max-width: 1200px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Professional Sales Analytics Dashboard</h1>
+      <p class="subtitle">Advanced Financial Performance Analysis & Strategic Insights</p>
+    </div>
+
+    <div class="upload-section">
+      <div class="upload-area" id="uploadArea">
+        <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        <div class="upload-icon">📊</div>
+        <div class="upload-text">Drop your Excel file here or click to browse</div>
+        <div class="upload-subtext">Supports .xlsx and .xls formats • Professional analysis ready</div>
+      </div>
+      
+      <div class="file-info" id="fileInfo">
+        <strong>✅ File Ready:</strong> <span id="fileName"></span>
+      </div>
+      
+      <div class="controls-grid">
+        <div class="control-group">
+          <label>Cost Factor</label>
+          <input id="costFactor" type="number" step="0.01" value="0.60" min="0" max="1">
+        </div>
+        
+        <div class="control-group">
+          <label>Lead Time (Days)</label>
+          <input id="leadTime" type="number" value="14" min="1" max="365">
+        </div>
+        
+        <div class="control-group">
+          <label>Lookback Period</label>
+          <input id="lookbackDays" type="number" value="90" min="1" max="365">
+        </div>
+        
+        <div class="control-group">
+          <button id="processBtn" class="process-btn" disabled>
+            Select File to Analyze
+          </button>
+        </div>
+      </div>
+      
+      <div class="expected-columns">
+        <strong>📋 Required Data Structure:</strong>
+        Sale Date • Brand • Model • Gender • Quantity Sold • Unit Price ($) • Total Sale ($)
+        <br><small>Advanced column mapping handles variations automatically. Missing cost data uses configured factor.</small>
+      </div>
+    </div>
+
+    <div id="main" style="display:none;">
+      <div class="success-message" id="successMessage"></div>
+      
+      <!-- Key Metrics Section -->
+      <div class="dashboard-grid">
+        <div class="card full-width">
+          <h3>📈 Executive Summary Metrics</h3>
+          <div id="metricsGrid" class="metrics-grid"></div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>📅 Monthly Sales Performance</h3>
+          <div id="monthlyChart" class="chart-container"></div>
+        </div>
+
+        <div class="card">
+          <h3>🎯 Rolling 3-Month Trend Analysis</h3>
+          <div id="rollingChart" class="chart-container"></div>
+        </div>
+      </div>
+
+      <!-- Performance Analysis -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>🏆 Brand Performance Ranking</h3>
+          <div id="brandTable" class="scrollable"></div>
+        </div>
+
+        <div class="card">
+          <h3>👕 Gender Market Analysis</h3>
+          <div id="genderTable" class="scrollable"></div>
+        </div>
+      </div>
+
+      <!-- Detailed Analytics -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>⚡ Performance Alerts</h3>
+          <div id="flagsTable" class="scrollable"></div>
+        </div>
+
+        <div class="card">
+          <h3>📦 Smart Inventory Management</h3>
+          <div id="replenishTable" class="scrollable"></div>
+        </div>
+      </div>
+
+      <!-- Product Performance -->
+      <div class="dashboard-grid">
+        <div class="card full-width">
+          <h3>👟 Detailed Product Performance</h3>
+          <div id="productTable" class="scrollable"></div>
+        </div>
+      </div>
+
+      <!-- Summary and Actions -->
+      <div class="summary-section">
+        <h2>📋 Executive Summary & Strategic Recommendations</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <h3>Key Findings</h3>
+            <div id="keyFindings"></div>
+          </div>
+          <div class="summary-card">
+            <h3>Recommended Actions</h3>
+            <div id="recommendedActions"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Global variables
+let uploadedFile = null;
+let processedData = null;
+
+// Utility functions
+function formatMoney(v) { 
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.abs(v) || 0);
+}
+
+function formatNumber(v) {
+  return new Intl.NumberFormat('en-US').format(Math.round(Math.abs(v) || 0));
+}
+
+function formatPercent(v) {
+  return (v || 0).toFixed(1) + '%';
+}
+
+function parseDateExcel(v) { 
+  if (v instanceof Date) return v;
+  let d = new Date(v);
+  if (!isNaN(d) && d.getFullYear() > 1900) return d;
+  return null;
+}
+
+// File upload handling
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const processBtn = document.getElementById('processBtn');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+
+// Drag and drop functionality
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+  uploadArea.classList.add('dragover');
+}
+
+function unhighlight(e) {
+  uploadArea.classList.remove('dragover');
+}
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  if (files.length > 0) {
+    const file = files[0];
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      handleFileSelect(file);
+    } else {
+      alert('Please select an Excel file (.xlsx or .xls)');
+    }
+  }
+}
+
+// File input change
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    handleFileSelect(file);
+  }
+});
+
+function handleFileSelect(file) {
+  uploadedFile = file;
+  fileName.textContent = file.name;
+  fileInfo.style.display = 'block';
+  uploadArea.classList.add('has-file');
+  
+  uploadArea.querySelector('.upload-text').textContent = '✅ File Ready for Analysis';
+  uploadArea.querySelector('.upload-subtext').textContent = 'Click "Analyze Data" to generate comprehensive insights';
+  
+  processBtn.disabled = false;
+  processBtn.textContent = 'Analyze Data';
+}
+
+// Process button click handler
+processBtn.addEventListener('click', async () => {
+  if (!uploadedFile) {
+    alert('Please select an Excel file first');
+    return;
+  }
+  
+  processBtn.textContent = 'Processing...';
+  processBtn.disabled = true;
+  
+  try {
+    await processFile();
+  } catch (error) {
+    console.error('Error processing file:', error);
+    alert('Error processing file: ' + error.message + '\n\nPlease check your file format and try again.');
+  } finally {
+    processBtn.textContent = 'Analyze Data';
+    processBtn.disabled = false;
+  }
+});
+
+async function processFile() {
+  const costFactor = parseFloat(document.getElementById('costFactor').value) || 0.6;
+  const leadTime = parseInt(document.getElementById('leadTime').value) || 14;
+  const lookbackDays = parseInt(document.getElementById('lookbackDays').value) || 90;
+
+  // Read Excel file
+  const data = await uploadedFile.arrayBuffer();
+  const wb = XLSX.read(data, {type: 'array'});
+  
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  let rows = XLSX.utils.sheet_to_json(sheet, {defval: null, raw: false});
+
+  if (rows.length === 0) {
+    throw new Error('Excel sheet appears to be empty');
+  }
+  
+  // Normalize column names
+  rows = rows.map(r => {
+    const norm = {};
+    for (const k of Object.keys(r)) {
+      norm[k.trim()] = r[k];
+    }
+    return norm;
+  });
+
+  // Enhanced column mapping
+  const colMap = {};
+  const firstRowKeys = Object.keys(rows[0]);
+  const mapCandidates = {
+    'Sale Date': ['Sale Date', 'Date', 'SaleDate', 'Date of Sale', 'Transaction Date', 'Order Date', 'Purchase Date'],
+    'Brand': ['Brand', 'Make', 'Manufacturer', 'Company', 'Brand Name'],
+    'Model': ['Model', 'Product', 'Product Name', 'Model Name', 'Item', 'SKU', 'Style'],
+    'Gender': ['Gender', 'Sex', 'Category', 'Type', 'Target', 'For'],
+    'Quantity Sold': ['Quantity Sold', 'Qty', 'Quantity', 'Units', 'Amount', 'Count', 'Pieces'],
+    'Unit Price ($)': ['Unit Price ($)', 'Unit Price', 'Price', 'UnitPrice', 'Cost', 'Amount', 'Rate'],
+    'Total Sale ($)': ['Total Sale ($)', 'Total Sale', 'Total', 'Sales', 'Revenue', 'Total Amount', 'Total Revenue']
+  };
+  
+  for (const target of Object.keys(mapCandidates)) {
+    const candidates = mapCandidates[target];
+    for (const c of candidates) {
+      if (firstRowKeys.includes(c)) { 
+        colMap[target] = c; 
+        break; 
+      }
+    }
+    if (!colMap[target]) { 
+      const found = firstRowKeys.find(x => x.toLowerCase() === target.toLowerCase());
+      if (found) colMap[target] = found;
+    }
+  }
+
+  // Transform and validate data
+  const normalized = rows.map(r => {
+    const out = {};
+    out['Sale Date'] = parseDateExcel(r[colMap['Sale Date']] || r['Sale Date']);
+    out['Brand'] = (r[colMap['Brand']] || r['Brand'] || 'Unknown').toString().trim();
+    out['Model'] = (r[colMap['Model']] || r['Model'] || 'Unknown').toString().trim();
+    out['Gender'] = (r[colMap['Gender']] || r['Gender'] || 'Unknown').toString().trim();
+    out['Quantity Sold'] = Math.abs(Number(r[colMap['Quantity Sold']] || r['Quantity Sold'] || 0));
+    out['Unit Price ($)'] = Math.abs(Number(r[colMap['Unit Price ($)']] || r['Unit Price ($)'] || 0));
+    out['Total Sale ($)'] = Math.abs(Number(r[colMap['Total Sale ($)']] || r['Total Sale ($)'] || (out['Quantity Sold'] * out['Unit Price ($)'])));
+    return out;
+  }).filter(r => r['Sale Date'] && r['Total Sale ($)'] > 0 && r['Quantity Sold'] > 0);
+
+  if (normalized.length === 0) {
+    throw new Error('No valid data rows found. Please check your file format and ensure it contains sales data.');
+  }
+
+  // Add calculated fields
+  normalized.forEach(r => {
+    r['Cost Price ($)'] = r['Unit Price ($)'] * costFactor;
+    r['Profit ($)'] = (r['Unit Price ($)'] - r['Cost Price ($)']) * r['Quantity Sold'];
+    r['Profit Margin (%)'] = ((r['Unit Price ($)'] - r['Cost Price ($)']) / r['Unit Price ($)']) * 100;
+    r['YearMonth'] = new Date(r['Sale Date'].getFullYear(), r['Sale Date'].getMonth(), 1);
+  });
+
+  processedData = normalized;
+  generateDashboard(normalized, costFactor, leadTime, lookbackDays);
+}
+
+function generateDashboard(data, costFactor, leadTime, lookbackDays) {
+  // Calculate summary metrics
+  const totalSales = data.reduce((s, r) => s + r['Total Sale ($)'], 0);
+  const totalProfit = data.reduce((s, r) => s + r['Profit ($)'], 0);
+  const totalQuantity = data.reduce((s, r) => s + r['Quantity Sold'], 0);
+  const avgOrderValue = totalSales / data.length;
+  const avgMargin = (totalProfit / totalSales) * 100;
+  
+  const dates = data.map(r => r['Sale Date']).filter(Boolean);
+  const minDate = new Date(Math.min.apply(null, dates));
+  const maxDate = new Date(Math.max.apply(null, dates));
+  
+  // Calculate monthly averages
+  const monthlyMap = {};
+  data.forEach(r => {
+    const key = r.YearMonth.toISOString();
+    monthlyMap[key] = (monthlyMap[key] || 0) + r['Total Sale ($)'];
+  });
+  const monthCount = Object.keys(monthlyMap).length;
+  const avgMonthlySales = totalSales / Math.max(1, monthCount);
+  
+  // Show success message
+  document.getElementById('successMessage').innerHTML = `
+    ✅ Successfully analyzed ${data.length.toLocaleString()} sales transactions • Period: ${minDate.toLocaleDateString()} to ${maxDate.toLocaleDateString()} • Ready for insights
+  `;
+  
+  // Show main dashboard
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('main').scrollIntoView({ behavior: 'smooth' });
+
+  // Generate all sections
+  generateMetrics(totalSales, totalProfit, totalQuantity, avgOrderValue, avgMonthlySales, avgMargin);
+  generateCharts(data);
+  generateTables(data, totalSales);
+  generateSummaryAndActions(data, totalSales, totalProfit, avgMargin);
+}
+
+function generateMetrics(totalSales, totalProfit, totalQuantity, avgOrderValue, avgMonthlySales, avgMargin) {
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-value">${formatMoney(totalSales)}</div>
+      <div class="metric-change positive">Primary KPI</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Profit</div>
+      <div class="metric-value">${formatMoney(totalProfit)}</div>
+      <div class="metric-change ${avgMargin > 25 ? 'positive' : 'negative'}">Margin: ${formatPercent(avgMargin)}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Monthly Average</div>
+      <div class="metric-value">${formatMoney(avgMonthlySales)}</div>
+      <div class="metric-change positive">Revenue Run Rate</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Units Sold</div>
+      <div class="metric-value">${formatNumber(totalQuantity)}</div>
+      <div class="metric-change positive">Total Volume</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg Order Value</div>
+      <div class="metric-value">${formatMoney(avgOrderValue)}</div>
+      <div class="metric-change positive">Per Transaction</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Product Lines</div>
+      <div class="metric-value">${new Set(processedData.map(r => r.Brand)).size}</div>
+      <div class="metric-change positive">Active Brands</div>
+    </div>
+  `;
+}
+
+function generateCharts(data) {
+  // Monthly sales chart
+  const monthlyMap = {};
+  data.forEach(r => {
+    const key = r.YearMonth.toISOString();
+    monthlyMap[key] = (monthlyMap[key] || 0) + r['Total Sale ($)'];
+  });
+  
+  const monthsSorted = Object.keys(monthlyMap).sort();
+  const monthlyVals = monthsSorted.map(k => monthlyMap[k]);
+
+  Plotly.newPlot('monthlyChart', [{
+    x: monthsSorted.map(x => new Date(x)),
+    y: monthlyVals,
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: 'Monthly Sales',
+    line: { color: '#10b981', width: 4 },
+    marker: { color: '#10b981', size: 10 },
+    fill: 'tonexty',
+    fillcolor: 'rgba(16, 185, 129, 0.15)'
+  }], {
+    margin: { t: 20, r: 20, b: 60, l: 80 },
+    plot_bgcolor: 'rgba(15, 23, 42, 0.5)',
+    paper_bgcolor: 'transparent',
+    font: { family: 'Segoe UI', color: '#e2e8f0', size: 12 },
+    xaxis: { 
+      gridcolor: '#334155',
+      color: '#94a3b8',
+      showgrid: true
+    },
+    yaxis: { 
+      gridcolor: '#334155',
+      tickformat: '$,.0f',
+      color: '#94a3b8',
+      showgrid: true
+    }
+  });
+
+  // Rolling 3-month analysis
+  generateRollingChart(data, monthsSorted);
+}
+
+function generateRollingChart(data, allMonths) {
+  // Build product aggregations
+  const productAgg = {};
+  data.forEach(r => {
+    const key = `${r.Brand} - ${r.Model}`;
+    const mm = r.YearMonth.toISOString();
+    
+    productAgg[key] = productAgg[key] || {brand: r.Brand, model: r.Model, monthly: {}};
+    productAgg[key].monthly[mm] = (productAgg[key].monthly[mm] || 0) + r['Total Sale ($)'];
+  });
+
+  // Calculate rolling 3-month for each product
+  const matrix = {};
+  Object.keys(productAgg).forEach(productKey => {
+    const item = productAgg[productKey];
+    const series = allMonths.map(m => item.monthly[m] || 0);
+    const rolling = series.map((v, i, arr) => {
+      const start = Math.max(0, i - 2);
+      let sum = 0;
+      for (let k = start; k <= i; k++) sum += arr[k];
+      return sum;
+    });
+    matrix[productKey] = {series, rolling};
+  });
+
+  // Get top 10 performers by latest rolling value
+  const rollingLatest = Object.keys(matrix)
+    .map(k => ({
+      k, 
+      v: matrix[k].rolling[matrix[k].rolling.length - 1] || 0,
+      trend: calculateTrend(matrix[k].rolling)
+    }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 10);
+  
+  const colors = [
+    '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', 
+    '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+  ];
+  
+  const traces = rollingLatest.map((row, i) => {
+    const k = row.k;
+    const color = row.trend > 0 ? colors[i % 5] : colors[i % 5] + '80';
+    return {
+      x: allMonths.map(m => new Date(m)),
+      y: matrix[k].rolling,
+      mode: 'lines+markers',
+      name: k + (row.trend > 0 ? ' ▲' : row.trend < 0 ? ' ▼' : ' ■'),
+      line: { color: color, width: 3 },
+      marker: { color: color, size: 8 }
+    };
+  });
+  
+  Plotly.newPlot('rollingChart', traces, {
+    margin: { t: 20, r: 20, b: 100, l: 80 },
+    plot_bgcolor: 'rgba(15, 23, 42, 0.5)',
+    paper_bgcolor: 'transparent',
+    font: { family: 'Segoe UI', color: '#e2e8f0', size: 11 },
+    xaxis: { 
+      gridcolor: '#334155',
+      color: '#94a3b8'
+    },
+    yaxis: { 
+      gridcolor: '#334155',
+      tickformat: '$,.0f',
+      color: '#94a3b8'
+    },
+    legend: { 
+      x: 0, 
+      y: -0.3, 
+      orientation: 'h',
+      bgcolor: 'rgba(0,0,0,0)',
+      font: { color: '#e2e8f0', size: 10 }
+    }
+  });
+}
+
+function calculateTrend(rollingArray) {
+  if (rollingArray.length < 2) return 0;
+  const last = rollingArray[rollingArray.length - 1];
+  const prev = rollingArray[rollingArray.length - 2];
+  return prev === 0 ? 0 : ((last - prev) / prev) * 100;
+}
+
+function generateTables(data, totalSales) {
+  // Brand performance table
+  generateBrandTable(data);
+  
+  // Gender analysis
+  generateGenderTable(data, totalSales);
+  
+  // Performance flags
+  generatePerformanceFlags(data);
+  
+  // Inventory management
+  generateInventoryTable(data);
+  
+  // Detailed product performance
+  generateProductTable(data);
+}
+
+function generateBrandTable(data) {
+  const brandAgg = {};
+  data.forEach(r => {
+    const brand = r.Brand;
+    brandAgg[brand] = brandAgg[brand] || {
+      sales: 0, profit: 0, qty: 0, transactions: 0,
+      models: new Set(), avgPrice: 0, totalPrice: 0
+    };
+    brandAgg[brand].sales += r['Total Sale ($)'];
+    brandAgg[brand].profit += r['Profit ($)'];
+    brandAgg[brand].qty += r['Quantity Sold'];
+    brandAgg[brand].transactions += 1;
+    brandAgg[brand].models.add(r.Model);
+    brandAgg[brand].totalPrice += r['Unit Price ($)'];
+  });
+
+  const brandRows = Object.keys(brandAgg)
+    .map(b => {
+      const agg = brandAgg[b];
+      return {
+        brand: b,
+        sales: agg.sales,
+        profit: agg.profit,
+        qty: agg.qty,
+        margin: (agg.profit / agg.sales) * 100,
+        avgPrice: agg.totalPrice / agg.transactions,
+        modelCount: agg.models.size,
+        profitPerUnit: agg.profit / agg.qty
+      };
+    })
+    .sort((a, b) => b.sales - a.sales);
+
+  // Separate positive and negative performers
+  const positivePerformers = brandRows.filter(r => r.margin > 25);
+  const negativePerformers = brandRows.filter(r => r.margin <= 25);
+  const sortedBrands = [...positivePerformers, ...negativePerformers];
+
+  document.getElementById('brandTable').innerHTML = `
+    <div class="table-container">
+      <div class="table-header">
+        <table>
+          <thead>
+            <tr>
+              <th class="brand-col">Brand</th>
+              <th class="revenue-col">Revenue</th>
+              <th class="profit-col">Profit</th>
+              <th class="margin-col">Margin %</th>
+              <th class="units-col">Units</th>
+              <th class="units-col">Models</th>
+              <th class="price-col">Avg Price</th>
+              <th class="profit-unit-col">Profit/Unit</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="table-body">
+        <table>
+          <tbody>
+            ${sortedBrands.map(r => {
+              const rowClass = r.margin > 25 ? 'positive-row' : 'negative-row';
+              return `
+                <tr class="${rowClass}">
+                  <td class="brand-col"><strong>${r.brand}</strong></td>
+                  <td class="revenue-col">${formatMoney(r.sales)}</td>
+                  <td class="profit-col">${formatMoney(r.profit)}</td>
+                  <td class="margin-col"><strong>${formatPercent(r.margin)}</strong></td>
+                  <td class="units-col">${formatNumber(r.qty)}</td>
+                  <td class="units-col">${r.modelCount}</td>
+                  <td class="price-col">${formatMoney(r.avgPrice)}</td>
+                  <td class="profit-unit-col">${formatMoney(r.profitPerUnit)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function generateGenderTable(data, totalSales) {
+  const genderAgg = {};
+  data.forEach(r => {
+    const g = r.Gender || 'Unknown';
+    genderAgg[g] = genderAgg[g] || {
+      sales: 0, qty: 0, profit: 0, transactions: 0,
+      avgPrice: 0, totalPrice: 0
+    };
+    genderAgg[g].sales += r['Total Sale ($)'];
+    genderAgg[g].qty += r['Quantity Sold'];
+    genderAgg[g].profit += r['Profit ($)'];
+    genderAgg[g].transactions += 1;
+    genderAgg[g].totalPrice += r['Unit Price ($)'];
+  });
+  
+  const genderRows = Object.keys(genderAgg)
+    .map(g => {
+      const agg = genderAgg[g];
+      return {
+        gender: g,
+        sales: agg.sales,
+        qty: agg.qty,
+        profit: agg.profit,
+        marketShare: (agg.sales / totalSales) * 100,
+        avgPrice: agg.totalPrice / agg.transactions,
+        margin: (agg.profit / agg.sales) * 100
+      };
+    })
+    .sort((a, b) => b.sales - a.sales);
+  
+  document.getElementById('genderTable').innerHTML = `
+    <div class="table-container">
+      <div class="table-header">
+        <table>
+          <thead>
+            <tr>
+              <th class="segment-col">Market Segment</th>
+              <th class="revenue-col">Revenue</th>
+              <th class="share-col">Market Share</th>
+              <th class="units-col">Units</th>
+              <th class="price-col">Avg Price</th>
+              <th class="profit-col">Profit</th>
+              <th class="margin-col">Margin %</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="table-body">
+        <table>
+          <tbody>
+            ${genderRows.map(r => `
+              <tr>
+                <td class="segment-col"><strong>${r.gender}</strong></td>
+                <td class="revenue-col">${formatMoney(r.sales)}</td>
+                <td class="share-col"><strong>${formatPercent(r.marketShare)}</strong></td>
+                <td class="units-col">${formatNumber(r.qty)}</td>
+                <td class="price-col">${formatMoney(r.avgPrice)}</td>
+                <td class="profit-col">${formatMoney(r.profit)}</td>
+                <td class="margin-col">${formatPercent(r.margin)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function generatePerformanceFlags(data) {
+  // Build product monthly data
+  const productMonthly = {};
+  data.forEach(r => {
+    const key = `${r.Brand} - ${r.Model}`;
+    const month = r.YearMonth.toISOString();
+    
+    productMonthly[key] = productMonthly[key] || {};
+    productMonthly[key][month] = (productMonthly[key][month] || 0) + r['Total Sale ($)'];
+  });
+
+  // Calculate trends
+  const trendAnalysis = Object.keys(productMonthly).map(productKey => {
+    const months = Object.keys(productMonthly[productKey]).sort();
+    if (months.length < 2) return null;
+    
+    const latest = productMonthly[productKey][months[months.length - 1]] || 0;
+    const previous = productMonthly[productKey][months[months.length - 2]] || 0;
+    const pct = previous === 0 ? (latest === 0 ? 0 : 100) : ((latest - previous) / previous) * 100;
+    
+    let flag = 'Stable';
+    if (pct < -15) flag = 'Losing traction';
+    if (pct > 15) flag = 'Opportunity';
+    
+    return {
+      product: productKey,
+      latest,
+      previous,
+      change: pct,
+      flag,
+      avgSales: (latest + previous) / 2
+    };
+  }).filter(Boolean).sort((a, b) => b.change - a.change);
+
+  // Separate positive and negative trends
+  const opportunities = trendAnalysis.filter(t => t.flag === 'Opportunity');
+  const declining = trendAnalysis.filter(t => t.flag === 'Losing traction');
+  const stable = trendAnalysis.filter(t => t.flag === 'Stable');
+  
+  const sortedTrends = [...opportunities, ...stable, ...declining];
+
+  document.getElementById('flagsTable').innerHTML = `
+    <div class="table-container">
+      <div class="table-header">
+        <table>
+          <thead>
+            <tr>
+              <th class="product-col">Product</th>
+              <th class="current-col">Current Month</th>
+              <th class="previous-col">Previous Month</th>
+              <th class="change-col">% Change</th>
+              <th class="status-col">Performance Status</th>
+              <th class="priority-col">Action Priority</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="table-body">
+        <table>
+          <tbody>
+            ${sortedTrends.slice(0, 25).map(r => {
+              const cls = r.flag === 'Losing traction' ? 'flag-losing' : 
+                        (r.flag === 'Opportunity' ? 'flag-opportunity' : 'flag-stable');
+              const rowClass = r.change > 0 ? 'positive-row' : r.change < -10 ? 'negative-row' : '';
+              const priority = r.flag === 'Losing traction' ? 'HIGH' : 
+                              r.flag === 'Opportunity' ? 'MEDIUM' : 'LOW';
+              return `
+                <tr class="${rowClass}">
+                  <td class="product-col"><strong>${r.product}</strong></td>
+                  <td class="current-col">${formatMoney(r.latest)}</td>
+                  <td class="previous-col">${formatMoney(r.previous)}</td>
+                  <td class="change-col"><strong>${r.change > 0 ? '+' : ''}${r.change.toFixed(1)}%</strong></td>
+                  <td class="status-col"><span class="${cls}">${r.flag}</span></td>
+                  <td class="priority-col"><strong>${priority}</strong></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function generateInventoryTable(data) {
+  const lookbackDays = parseInt(document.getElementById('lookbackDays').value) || 90;
+  const leadTime = parseInt(document.getElementById('leadTime').value) || 14;
+  
+  const dates = data.map(r => r['Sale Date']).filter(Boolean);
+  const maxDate = new Date(Math.max.apply(null, dates));
+  const windowStart = new Date(maxDate.getTime() - (lookbackDays * 24 * 3600 * 1000));
+  
+  const recentData = data.filter(r => r['Sale Date'] >= windowStart);
+  
+  const productAgg = {};
+  recentData.forEach(r => {
+    const key = `${r.Brand} - ${r.Model}`;
+    productAgg[key] = productAgg[key] || {
+      brand: r.Brand,
+      model: r.Model,
+      qty: 0,
+      sales: 0,
+      avgPrice: 0,
+      totalPrice: 0,
+      transactions: 0
+    };
+    productAgg[key].qty += r['Quantity Sold'];
+    productAgg[key].sales += r['Total Sale ($)'];
+    productAgg[key].totalPrice += r['Unit Price ($)'];
+    productAgg[key].transactions += 1;
+  });
+  
+  const inventoryRecommendations = Object.keys(productAgg)
+    .map(key => {
+      const item = productAgg[key];
+      const dailyAvg = item.qty / lookbackDays;
+      const reorderPoint = Math.ceil(dailyAvg * leadTime * 1.2); // 20% safety buffer
+      const targetStock = Math.ceil(dailyAvg * (leadTime + 30)); // Lead time + 30 days
+      const safetyStock = Math.ceil(dailyAvg * 7); // 1 week safety
+      
+      let velocity = 'Low';
+      if (dailyAvg > 2) velocity = 'High';
+      else if (dailyAvg > 0.5) velocity = 'Medium';
+      
+      return {
+        product: key,
+        brand: item.brand,
+        model: item.model,
+        dailyAvg,
+        reorderPoint,
+        targetStock,
+        safetyStock,
+        velocity,
+        recentSales: item.sales,
+        avgPrice: item.totalPrice / item.transactions
+      };
+    })
+    .sort((a, b) => b.dailyAvg - a.dailyAvg);
+
+  document.getElementById('replenishTable').innerHTML = `
+    <div class="table-container">
+      <div class="table-header">
+        <table>
+          <thead>
+            <tr>
+              <th class="product-col">Product</th>
+              <th class="daily-col">Daily Avg Sales</th>
+              <th class="reorder-col">Reorder Point</th>
+              <th class="target-col">Target Stock</th>
+              <th class="safety-col">Safety Stock</th>
+              <th class="velocity-col">Velocity</th>
+              <th class="price-col">Avg Price</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="table-body">
+        <table>
+          <tbody>
+            ${inventoryRecommendations.slice(0, 30).map(r => {
+              const velocityClass = r.velocity === 'High' ? 'flag-opportunity' : 
+                                   r.velocity === 'Medium' ? 'flag-stable' : 'flag-losing';
+              return `
+                <tr>
+                  <td class="product-col"><strong>${r.product}</strong></td>
+                  <td class="daily-col">${r.dailyAvg.toFixed(1)}</td>
+                  <td class="reorder-col"><strong>${r.reorderPoint}</strong></td>
+                  <td class="target-col">${r.targetStock}</td>
+                  <td class="safety-col">${r.safetyStock}</td>
+                  <td class="velocity-col"><span class="${velocityClass}">${r.velocity}</span></td>
+                  <td class="price-col">${formatMoney(r.avgPrice)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function generateProductTable(data) {
+  const productAgg = {};
+  data.forEach(r => {
+    const key = `${r.Brand} - ${r.Model}`;
+    productAgg[key] = productAgg[key] || {
+      brand: r.Brand,
+      model: r.Model,
+      sales: 0,
+      profit: 0,
+      qty: 0,
+      transactions: 0,
+      totalPrice: 0
+    };
+    productAgg[key].sales += r['Total Sale ($)'];
+    productAgg[key].profit += r['Profit ($)'];
+    productAgg[key].qty += r['Quantity Sold'];
+    productAgg[key].transactions += 1;
+    productAgg[key].totalPrice += r['Unit Price ($)'];
+  });
+
+  const productRows = Object.keys(productAgg)
+    .map(key => {
+      const agg = productAgg[key];
+      return {
+        product: key,
+        brand: agg.brand,
+        model: agg.model,
+        sales: agg.sales,
+        profit: agg.profit,
+        qty: agg.qty,
+        margin: (agg.profit / agg.sales) * 100,
+        avgPrice: agg.totalPrice / agg.transactions,
+        profitPerUnit: agg.profit / agg.qty
+      };
+    })
+    .sort((a, b) => b.sales - a.sales);
+
+  document.getElementById('productTable').innerHTML = `
+    <div class="table-container">
+      <div class="table-header">
+        <table>
+          <thead>
+            <tr>
+              <th class="brand-col">Brand</th>
+              <th class="model-col">Model</th>
+              <th class="revenue-col">Revenue</th>
+              <th class="profit-col">Profit</th>
+              <th class="margin-col">Margin %</th>
+              <th class="units-col">Units</th>
+              <th class="price-col">Avg Price</th>
+              <th class="profit-unit-col">Profit/Unit</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="table-body">
+        <table>
+          <tbody>
+            ${productRows.map(r => {
+              const rowClass = r.margin > 25 ? 'positive-row' : 'negative-row';
+              return `
+                <tr class="${rowClass}">
+                  <td class="brand-col"><strong>${r.brand}</strong></td>
+                  <td class="model-col">${r.model}</td>
+                  <td class="revenue-col">${formatMoney(r.sales)}</td>
+                  <td class="profit-col">${formatMoney(r.profit)}</td>
+                  <td class="margin-col"><strong>${formatPercent(r.margin)}</strong></td>
+                  <td class="units-col">${formatNumber(r.qty)}</td>
+                  <td class="price-col">${formatMoney(r.avgPrice)}</td>
+                  <td class="profit-unit-col">${formatMoney(r.profitPerUnit)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function generateSummaryAndActions(data, totalSales, totalProfit, avgMargin) {
+  // Calculate key insights
+  const brandCount = new Set(data.map(r => r.Brand)).size;
+  const modelCount = new Set(data.map(r => `${r.Brand}-${r.Model}`)).size;
+  
+  // Top performing brand
+  const brandAgg = {};
+  data.forEach(r => {
+    brandAgg[r.Brand] = (brandAgg[r.Brand] || 0) + r['Total Sale ($)'];
+  });
+  const topBrand = Object.keys(brandAgg).reduce((a, b) => brandAgg[a] > brandAgg[b] ? a : b);
+  
+  // Gender split
+  const genderSplit = {};
+  data.forEach(r => {
+    genderSplit[r.Gender] = (genderSplit[r.Gender] || 0) + r['Total Sale ($)'];
+  });
+  const topGender = Object.keys(genderSplit).reduce((a, b) => genderSplit[a] > genderSplit[b] ? a : b);
+  const topGenderPercent = (genderSplit[topGender] / totalSales * 100).toFixed(1);
+
+  document.getElementById('keyFindings').innerHTML = `
+    <ul>
+      <li><strong>Revenue Performance:</strong> Total sales of ${formatMoney(totalSales)} with ${formatPercent(avgMargin)} average margin</li>
+      <li><strong>Product Portfolio:</strong> ${brandCount} brands with ${modelCount} unique models in catalog</li>
+      <li><strong>Top Brand:</strong> ${topBrand} generating ${formatMoney(brandAgg[topBrand])} (${((brandAgg[topBrand]/totalSales)*100).toFixed(1)}% of total)</li>
+      <li><strong>Market Segment:</strong> ${topGender} category represents ${topGenderPercent}% of total sales</li>
+      <li><strong>Profitability:</strong> Total profit of ${formatMoney(totalProfit)} indicates ${avgMargin > 30 ? 'strong' : avgMargin > 20 ? 'moderate' : 'weak'} pricing strategy</li>
+    </ul>
+  `;
+
+  const recommendations = [];
+  
+  if (avgMargin < 25) {
+    recommendations.push("Review pricing strategy - current margins below industry standard of 25-30%");
+  }
+  
+  if (brandCount > 10) {
+    recommendations.push("Consider brand portfolio optimization - focus on top-performing brands");
+  }
+  
+  recommendations.push("Implement inventory reorder points based on calculated daily averages");
+  recommendations.push("Focus marketing efforts on opportunity products showing positive trends");
+  recommendations.push("Address declining products with promotional strategies or discontinuation");
+  
+  if (topGenderPercent > 70) {
+    recommendations.push(`Diversify gender targeting - ${topGender} segment is over-represented at ${topGenderPercent}%`);
+  }
+
+  document.getElementById('recommendedActions').innerHTML = `
+    <ul>
+      ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+    </ul>
+  `;
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+  // Add tooltips
+  document.getElementById('costFactor').title = 'Cost as percentage of unit price (0.6 = 60% cost, 40% gross margin)';
+  document.getElementById('leadTime').title = 'Days between order and delivery for inventory planning';
+  document.getElementById('lookbackDays').title = 'Historical period for calculating sales velocity and trends';
+  
+  // Prevent form submission on enter
+  document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+</body>
+</html>
