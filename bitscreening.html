@@ -1,9 +1,8 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bootcamp Screening Chatbot - n8n Integration</title>
+    <title>AI Bootcamp Screening Chatbot - N8N Enhanced</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -17,83 +16,44 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #2c5866;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 0;
+            padding: 10px;
             margin: 0;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             width: 100%;
-            height: 100vh;
+            height: 90vh;
             background: white;
-            border-radius: 0;
-            box-shadow: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
         .header {
-            background: #2c5866;
+            background: #2c3e50;
             color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 15px 20px;
+            text-align: center;
             flex-shrink: 0;
-            border-bottom: none;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .bit-logo {
-            font-size: 28px;
-            font-weight: bold;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .bit-training {
-            color: #7dd321;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            margin-top: -2px;
-        }
-
-        .header-right {
-            color: #ff6b9d;
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header-right::before {
-            content: "📞";
-            font-size: 18px;
         }
 
         .header h1 {
-            font-size: 24px;
-            margin: 0 0 0 30px;
-            color: white;
-            font-weight: 300;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 12px;
         }
 
         .main-content {
@@ -112,52 +72,39 @@
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 30px;
+            padding: 15px;
             background: #f8f9fa;
             min-height: 0;
         }
 
         .message {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
             word-wrap: break-word;
         }
 
         .bot-message {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: 16px;
-            padding: 20px 24px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
             margin-right: auto;
-            margin-bottom: 20px;
-            color: #495057;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            font-size: 16px;
-            line-height: 1.5;
-            max-width: 70%;
         }
 
         .user-message {
-            background: #2c5866;
-            color: white;
-            border-radius: 16px;
-            padding: 20px 24px;
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
             margin-left: auto;
-            margin-bottom: 20px;
             text-align: right;
-            box-shadow: 0 2px 8px rgba(44, 88, 102, 0.2);
-            font-size: 16px;
-            line-height: 1.5;
-            max-width: 70%;
         }
 
         .typing-indicator {
-            background: #e0e6ea;
+            background: #e0e0e0;
             border-radius: 18px;
             padding: 12px 18px;
             margin-bottom: 15px;
             max-width: 80%;
             animation: pulse 1.5s infinite;
-            color: #2c5866;
         }
 
         @keyframes pulse {
@@ -165,9 +112,31 @@
             50% { opacity: 0.6; }
         }
 
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
         .input-section {
-            padding: 25px 30px;
-            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
             background: white;
         }
 
@@ -179,159 +148,163 @@
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 15px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         .btn-primary {
-            background: #2c5866;
+            background: #3498db;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #1e3a4a;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 12px rgba(44, 88, 102, 0.3);
+            background: #2980b9;
+            transform: translateY(-2px);
         }
 
         .btn-secondary {
-            background: #7dd321;
+            background: #95a5a6;
             color: white;
-            border: 2px solid transparent;
         }
 
         .btn-secondary:hover {
-            background: #6bb81c;
+            background: #7f8c8d;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(125, 211, 33, 0.3);
         }
 
         .text-input {
             width: 100%;
-            padding: 16px 20px;
-            border: 2px solid #e9ecef;
-            border-radius: 50px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
             font-size: 16px;
             outline: none;
             transition: border-color 0.3s ease;
-            background: #f8f9fa;
-            font-family: inherit;
+            margin-top: 10px;
         }
 
         .text-input:focus {
-            border-color: #2c5866;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(44, 88, 102, 0.1);
+            border-color: #3498db;
         }
 
         .send-btn {
-            padding: 16px 24px;
-            background: #7dd321;
+            padding: 12px 20px;
+            background: #3498db;
             color: white;
             border: none;
-            border-radius: 50px;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 16px;
-            margin-left: 15px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            min-width: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: background 0.3s ease;
         }
 
         .send-btn:hover {
-            background: #6bb81c;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 12px rgba(125, 211, 33, 0.3);
+            background: #2980b9;
         }
 
         .input-row {
             display: flex;
             align-items: center;
-            margin-top: 15px;
+            margin-top: 10px;
         }
 
         .chat-mode-toggle {
-            background: transparent;
-            color: #6c757d;
-            border: 1px solid #e9ecef;
-            padding: 12px 20px;
-            border-radius: 8px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            margin-bottom: 15px;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            transition: background 0.3s ease;
         }
 
         .chat-mode-toggle:hover {
-            background: #f8f9fa;
-            border-color: #2c5866;
-            color: #2c5866;
+            background: #8e44ad;
         }
 
         .audio-controls {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
             align-items: center;
             flex-wrap: wrap;
         }
 
         .audio-btn {
-            background: #6c757d;
+            background: #e67e22;
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 15px;
             cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s ease;
-            font-weight: 500;
+            font-size: 12px;
+            transition: background 0.3s ease;
         }
 
         .audio-btn:hover {
-            background: #5a6268;
-            transform: translateY(-1px);
+            background: #d35400;
         }
 
         .audio-btn.active {
-            background: linear-gradient(135deg, #7dd321 0%, #6bb81c 100%);
+            background: #27ae60;
+        }
+
+        .voice-selector {
+            display: none;
+        }
+
+        .voice-indicator {
+            display: none;
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            animation: pulse 1s infinite;
+        }
+
+        .course-info {
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .faq-response {
+            background: #e8f6f3;
+            border-left: 4px solid #1abc9c;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
         }
 
         .assessment-panel {
             position: fixed;
-            right: 30px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 320px;
+            right: 20px;
+            top: 20px;
+            width: 300px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             font-size: 14px;
             max-height: 80vh;
             overflow: hidden;
             transition: all 0.3s ease;
-            border: 1px solid #e9ecef;
-            z-index: 1000;
         }
 
         .assessment-header {
-            padding: 20px 24px;
-            background: #2c5866;
+            padding: 15px 20px;
+            background: #2c3e50;
             color: white;
-            border-radius: 12px 12px 0 0;
+            border-radius: 10px 10px 0 0;
             cursor: pointer;
             user-select: none;
             display: flex;
@@ -339,18 +312,9 @@
             align-items: center;
         }
 
-        .assessment-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
         .assessment-content {
-            padding: 20px 24px;
-            max-height: calc(80vh - 70px);
+            padding: 20px;
+            max-height: calc(80vh - 60px);
             overflow-y: auto;
             transition: all 0.3s ease;
         }
@@ -360,58 +324,100 @@
         }
 
         .assessment-panel.collapsed {
-            max-height: 50px;
+            max-height: 60px;
         }
 
         .collapse-indicator {
             font-size: 18px;
             transition: transform 0.3s ease;
-            color: #7dd321;
         }
 
         .assessment-panel.collapsed .collapse-indicator {
             transform: rotate(180deg);
         }
 
+        .personal-details-form {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .form-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #e0e0e0;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
         .criteria-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            border-radius: 8px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
             background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            font-size: 14px;
         }
 
         .criteria-pass {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
-            font-weight: 600;
         }
 
         .criteria-fail {
-            background: linear-gradient(135deg, #ffe8e8 0%, #fff0f0 100%);
-            color: #c62828;
-            border: 1px solid #c62828;
+            background: #f8d7da;
+            color: #721c24;
         }
 
         .score-bar {
             width: 100%;
             height: 20px;
-            background: #e0e6ea;
+            background: #e0e0e0;
             border-radius: 10px;
             overflow: hidden;
             margin: 10px 0;
-            border: 1px solid #2c5866;
         }
 
         .score-fill {
             height: 100%;
-            background: linear-gradient(90deg, #c62828 0%, #ff9800 50%, #7dd321 100%);
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
             transition: width 0.5s ease;
+        }
+
+        .final-report {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .recommendation {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .highly-suitable {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .suitable {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .not-suitable {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .hidden {
@@ -426,62 +432,179 @@
             display: inline-block !important;
         }
 
-        @media (max-width: 1200px) {
+        .fact-check-indicator {
+            background: #3498db;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        /* Firebase Status Styles */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .firebase-connected {
+            background: #27ae60;
+            box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .firebase-disconnected {
+            background: #e74c3c;
+            box-shadow: 0 2px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        .firebase-saving {
+            background: #f39c12;
+            box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        .firebase-loading {
+            background: #3498db;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .cloud-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .cloud-btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s ease;
+        }
+
+        .cloud-btn:hover {
+            background: #2c3e50;
+        }
+
+        .cloud-btn.save {
+            background: #27ae60;
+        }
+
+        .cloud-btn.save:hover {
+            background: #229954;
+        }
+
+        .cloud-btn.load {
+            background: #3498db;
+        }
+
+        .cloud-btn.load:hover {
+            background: #2980b9;
+        }
+
+        /* N8N Status Indicator */
+        .n8n-status {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            color: white;
+            font-size: 0.8em;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .n8n-connected {
+            background: #8e44ad;
+            box-shadow: 0 2px 8px rgba(142, 68, 173, 0.3);
+        }
+
+        .n8n-disconnected {
+            background: #e74c3c;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .n8n-sending {
+            background: #f39c12;
+            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+            animation: pulse 1.5s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
             .assessment-panel {
                 position: relative;
                 width: 100%;
                 right: auto;
                 top: auto;
-                transform: none;
                 margin: 10px 0;
                 order: 2;
-                max-height: 50vh;
             }
             
-            .main-content {
-                flex-direction: column;
+            .assessment-panel.collapsed {
+                margin: 5px 0;
             }
             
             .chat-section {
                 order: 1;
             }
-        }
-
-        @media (max-width: 768px) {
+            
             .container {
-                margin: 0;
-                height: 100vh;
+                margin: 5px;
+                height: 95vh;
             }
             
-            .header {
+            .audio-controls {
                 flex-direction: column;
                 gap: 5px;
-                text-align: center;
-                padding: 15px;
             }
 
-            .header h1 {
-                margin: 0;
-                font-size: 18px;
+            .form-container {
+                max-height: 50vh;
+                margin: 10px 0;
+            }
+
+            .personal-details-form {
+                max-height: 45vh;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebase-status" class="firebase-status firebase-disconnected">
+        🔴 Firebase Disconnected
+    </div>
+    
+    <!-- N8N Status Indicator -->
+    <div id="n8n-status" class="n8n-status n8n-disconnected">
+        🔗 N8N Disconnected
+    </div>
+    
     <div class="container">
         <div class="header">
-            <div class="header-left">
-                <div class="bit-logo">
-                    BIT
-                    <div class="bit-training">TRAINING</div>
-                </div>
-                <div>
-                    <h1>🤖 AI Bootcamp Screening Assistant</h1>
-                </div>
-            </div>
-            <div class="header-right">
-                +44 (0)1752 724 000
-            </div>
+            <h1>🤖 AI Bootcamp Screening Assistant</h1>
+            <p>Welcome to your AI Business Productivity Bootcamp application - Enhanced with N8N Integration</p>
         </div>
         
         <div class="main-content">
@@ -493,17 +616,39 @@
                 <div class="input-section">
                     <div class="audio-controls">
                         <button class="audio-btn" id="audioToggle" onclick="window.chatBot.toggleAudio()">
-                            🔊 Audio: ON
+                            🔊 Emily Voice: ON
                         </button>
                         <button class="audio-btn" id="voiceInput" onclick="window.chatBot.startVoiceInput()">
                             🎤 Voice Input
                         </button>
-                        <button class="audio-btn" onclick="window.chatBot.sendToN8n()" style="background: #28a745;">
-                            📊 Send to n8n
+                        <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">
+                            🎯 Voice Info
                         </button>
-                        <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testN8nConnection()" style="background: #17a2b8;">
-                            🔗 Test n8n
+                        <button class="audio-btn" onclick="window.chatBot.sendCandidateViaBroadcast()" style="background: #9b59b6;">
+                            📡 Send to Dashboard
                         </button>
+                        <button class="audio-btn" onclick="window.chatBot.sendToN8N()" style="background: #8e44ad;">
+                            🔗 Send to N8N
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.openVisibleDashboard()" style="background: #27ae60;">
+                            🖥️ View Dashboard
+                        </button>
+                        <button class="audio-btn admin-hidden" id="testEmail" onclick="window.chatBot.testN8NConnection()" style="background: #9b59b6;">
+                            🧪 Test N8N
+                        </button>
+                        <button class="audio-btn admin-hidden" id="checkServer" onclick="window.chatBot.checkN8NStatus()" style="background: #34495e;">
+                            ℹ️ N8N Info
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(true)" style="background: #e67e22;">
+                            🔒 Enable Stealth Popup
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.enableStealthMode(false)" style="background: #e74c3c;">
+                            🚫 Disable All Popups
+                        </button>
+                        <button class="audio-btn admin-hidden" onclick="window.chatBot.showTestbotCode()" style="background: #8e44ad;">
+                            📝 Show testbot.html Code
+                        </button>
+                        <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
                         <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">
                             ⏹️ Stop Audio
                         </button>
@@ -513,17 +658,15 @@
                         <!-- Dynamic buttons will be added here -->
                     </div>
                     
-                    <div class="chat-mode-toggle" id="chatToggle" onclick="window.chatBot.toggleChatMode()">
-                        💬 Ask a Question
-                    </div>
+                    <button class="chat-mode-toggle" id="chatToggle" onclick="window.chatBot.toggleChatMode()">
+                        💬 Ask a question about the course
+                    </button>
                     
                     <div class="input-row" id="textInputRow">
                         <input type="text" class="text-input" id="textInput" 
-                               placeholder="Or type your response here..."
+                               placeholder="Ask me anything about the AI Business Productivity Bootcamp or respond to screening questions..."
                                onkeypress="if(event.key==='Enter') window.chatBot.handleTextInput()">
-                        <button class="send-btn" onclick="window.chatBot.handleTextInput()">
-                            ➤
-                        </button>
+                        <button class="send-btn" onclick="window.chatBot.handleTextInput()">Send</button>
                     </div>
                 </div>
             </div>
@@ -535,6 +678,34 @@
                 </div>
                 
                 <div class="assessment-content">
+                    <!-- Cloud Controls -->
+                    <div class="cloud-controls">
+                        <button class="cloud-btn save" onclick="window.chatBot.saveToFirebase()" title="Save current session to cloud">
+                            ☁️ Save
+                        </button>
+                        <button class="cloud-btn load" onclick="window.chatBot.loadCandidates()" title="View saved candidates">
+                            📥 Load
+                        </button>
+                        <button class="cloud-btn" onclick="window.chatBot.showFirebaseStats()" title="View cloud statistics">
+                            📊 Stats
+                        </button>
+                        <button class="cloud-btn" onclick="window.chatBot.sendToN8N()" title="Send to N8N workflow" style="background: #8e44ad;">
+                            🔗 N8N
+                        </button>
+                    </div>
+                    
+                    <div style="background: #e8f6f3; padding: 8px; border-radius: 5px; margin-bottom: 12px; font-size: 11px;">
+                        <strong>🎉 Enhanced Features:</strong><br>
+                        • 🔗 N8N workflow integration active<br>
+                        • 📊 Real-time candidate data export<br>
+                        • ☁️ Firebase cloud storage active<br>
+                        • 🔍 Internet location fact-checking<br>
+                        • 💬 Course Q&A with source references<br>
+                        • 🔊 Smart audio for assessment questions<br>
+                        • 📋 Live candidate tracking<br>
+                        • 📊 Complete assessment history
+                    </div>
+                    
                     <div class="criteria-item" id="location">
                         <span>📍 Location:</span>
                         <span>Pending</span>
@@ -552,17 +723,23 @@
                     
                     <div class="criteria-item" id="english">
                         <span>🗣️ English Level:</span>
-                        <span>Pass</span>
+                        <span>Pending</span>
                     </div>
                     
                     <div style="margin-top: 15px;">
                         <strong>Overall Score:</strong>
                         <div class="score-bar">
-                            <div class="score-fill" id="scoreFill" style="width: 40%"></div>
+                            <div class="score-fill" id="scoreFill" style="width: 0%"></div>
                         </div>
                         <div style="text-align: center; margin-top: 5px;">
-                            <span id="scoreText">4/10</span>
+                            <span id="scoreText">0/10</span>
                         </div>
+                    </div>
+                    
+                    <div id="finalReport" class="final-report hidden">
+                        <h4>📋 Final Assessment</h4>
+                        <div id="recommendation" class="recommendation"></div>
+                        <div id="reportDetails"></div>
                     </div>
                 </div>
             </div>
@@ -572,24 +749,473 @@
     <script>
         class ChatBot {
             constructor() {
-                console.log('🚀 Starting ChatBot initialization...');
+                console.log('🚀 Starting ChatBot initialization with N8N integration...');
                 
-                // Configuration
+                // Configuration - Enhanced with N8N integration
                 this.config = {
                     emailServerUrl: 'DISABLED',
                     emailRecipient: 'DISABLED',
                     useDashboardReporting: true,
                     useFormSubmit: false,
                     dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html',
-                    useBroadcastChannel: false,
-                    useHiddenPopup: false,
-                    useN8nIntegration: true,
-                    n8nWebhookURL: 'http://localhost:5678/webhook-test/candidate-screening'
+                    useBroadcastChannel: true,
+                    useHiddenPopup: true,
+                    useLocalStorage: true,
+                    useIframeMethod: true,
+                    priorityMethod: 'BroadcastChannel',
+                    // N8N Configuration
+                    n8nWebhookURL: 'http://localhost:5678/webhook-test/candidate-screening',
+                    useN8NIntegration: true,
+                    n8nTimeout: 10000, // 10 seconds timeout
+                    n8nRetryAttempts: 3
+                };
+                
+                // Firebase Configuration
+                this.firebaseConfig = {
+                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                    authDomain: "prospecting-f2f42.firebaseapp.com",
+                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                    projectId: "prospecting-f2f42",
+                    storageBucket: "prospecting-f2f42.firebasestorage.app",
+                    messagingSenderId: "292034226428",
+                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                    measurementId: "G-WWB0JTX2L2"
                 };
                 
                 // Initialize properties
+                this.database = null;
+                this.firebaseApp = null;
+                this.broadcastChannel = null;
+                this.hiddenDashboard = null;
                 this.currentStep = 'intro';
                 this.chatMode = false;
                 this.audioEnabled = true;
                 this.currentSpeech = null;
-                this.recognition
+                this.recognition = null;
+                this.n8nConnected = false; // N8N connection status
+                this.candidateData = {
+                    name: 'Applicant',
+                    location: null,
+                    ukResidency: null,
+                    fundingStatus: null,
+                    englishLevel: null,
+                    employmentStatus: null,
+                    availability: null,
+                    interestLevel: 5,
+                    responses: []
+                };
+                this.score = 0;
+                
+                // DOM elements
+                this.chatContainer = document.getElementById('chatContainer');
+                this.responseButtons = document.getElementById('responseButtons');
+                this.textInput = document.getElementById('textInput');
+                this.textInputRow = document.getElementById('textInputRow');
+                
+                // Voice settings - Emily (Irish female) for consistent professional experience
+                this.voiceSettings = {
+                    rate: 0.9,
+                    pitch: 1.0,
+                    volume: 0.8,
+                    selectedVoice: null,
+                    preferredVoice: 'Emily (Irish English)',
+                    voiceGender: 'female',
+                    voiceAccent: 'Irish'
+                };
+                
+                // Course knowledge base
+                this.courseKnowledge = {
+                    referenceSource: "https://thinkbittraining.co.uk",
+                    duration: "12 weeks (21 July - 9 October)",
+                    schedule: "3 x 2-hour sessions per week (6 hours total), either 4-6pm or 7-9pm",
+                    days: "Usually Monday, Tuesday, Wednesday or Thursday",
+                    cost: "Fully funded for self-employed and unemployed. £297.98 employer contribution for employed candidates",
+                    location: "Online training delivered by BIT Group",
+                    skills: [
+                        "Using ChatGPT & Microsoft Copilot for business",
+                        "Automating admin tasks and reports", 
+                        "AI-assisted research and communication",
+                        "Creating AI adoption roadmaps",
+                        "GDPR-compliant AI usage",
+                        "Workflow optimization"
+                    ],
+                    eligibility: [
+                        "Live in Cornwall or work for Cornwall-based company",
+                        "3+ years UK residency",
+                        "Not on other government-funded programmes",
+                        "Adequate English proficiency"
+                    ],
+                    outcomes: [
+                        "CV and interview preparation",
+                        "Job matching support",
+                        "Real-world AI experience",
+                        "Professional certification",
+                        "Career advancement opportunities"
+                    ],
+                    support: "Full support from BIT Group throughout the programme"
+                };
+                
+                // Initialize components
+                try {
+                    this.initAudio();
+                    this.initBroadcastChannel();
+                    this.initN8N(); // Initialize N8N integration
+                    this.init();
+                    this.initializeFirebase();
+                    console.log('✅ ChatBot initialization completed successfully with N8N integration');
+                } catch (error) {
+                    console.error('❌ ChatBot initialization failed:', error);
+                    throw error;
+                }
+            }
+
+            // N8N Integration Methods
+            initN8N() {
+                console.log('🔗 Initializing N8N integration...');
+                this.testN8NConnection();
+            }
+
+            updateN8NStatus(status) {
+                const statusElement = document.getElementById('n8n-status');
+                if (!statusElement) return;
+                
+                if (status === 'connected') {
+                    statusElement.className = 'n8n-status n8n-connected';
+                    statusElement.innerHTML = '🟢 N8N Connected';
+                    this.n8nConnected = true;
+                } else if (status === 'sending') {
+                    statusElement.className = 'n8n-status n8n-sending';
+                    statusElement.innerHTML = '🟡 Sending to N8N...';
+                } else {
+                    statusElement.className = 'n8n-status n8n-disconnected';
+                    statusElement.innerHTML = '🔴 N8N Offline';
+                    this.n8nConnected = false;
+                }
+            }
+
+            async testN8NConnection() {
+                console.log('🔗 Testing N8N webhook connection...');
+                
+                const testData = {
+                    messageType: 'TEST_CONNECTION',
+                    timestamp: new Date().toISOString(),
+                    source: 'AI Bootcamp Screening Chatbot',
+                    test: true,
+                    message: 'Testing N8N webhook connectivity from screening bot'
+                };
+
+                try {
+                    const response = await fetch(this.config.n8nWebhookURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(testData),
+                        signal: AbortSignal.timeout(this.config.n8nTimeout)
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ N8N webhook test successful');
+                        this.updateN8NStatus('connected');
+                        return true;
+                    } else {
+                        console.log('❌ N8N webhook test failed:', response.status, response.statusText);
+                        this.updateN8NStatus('disconnected');
+                        return false;
+                    }
+                } catch (error) {
+                    console.log('❌ N8N webhook connection error:', error.message);
+                    this.updateN8NStatus('disconnected');
+                    return false;
+                }
+            }
+
+            async sendToN8N(candidateData = null, retryCount = 0) {
+                if (!this.config.useN8NIntegration) {
+                    console.log('🔗 N8N integration disabled');
+                    return false;
+                }
+
+                // Use provided data or current candidate data
+                const dataToSend = candidateData || this.buildN8NCandidateReport();
+                
+                console.log('🔗 Sending candidate data to N8N webhook:', dataToSend);
+                this.updateN8NStatus('sending');
+
+                try {
+                    const response = await fetch(this.config.n8nWebhookURL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(dataToSend),
+                        signal: AbortSignal.timeout(this.config.n8nTimeout)
+                    });
+
+                    if (response.ok) {
+                        console.log('✅ N8N webhook data sent successfully');
+                        this.updateN8NStatus('connected');
+                        
+                        // Show success message to admin
+                        if (!candidateData) { // Only show UI message if called manually
+                            this.addMessage('bot', `
+                                🔗 <strong>N8N Export Successful!</strong><br>
+                                <div style="background: #d4edda; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                    ✅ <strong>Candidate data exported to N8N workflow</strong><br>
+                                    • <strong>Candidate:</strong> ${dataToSend.candidate.name}<br>
+                                    • <strong>Score:</strong> ${dataToSend.assessment.overallScore}<br>
+                                    • <strong>Status:</strong> ${dataToSend.assessment.recommendation}<br>
+                                    • <strong>Webhook:</strong> ${this.config.n8nWebhookURL}<br>
+                                    • <strong>Response:</strong> ${response.status} ${response.statusText}
+                                </div>
+                            `);
+                        }
+                        
+                        return true;
+                    } else {
+                        console.log('❌ N8N webhook failed:', response.status, response.statusText);
+                        this.updateN8NStatus('disconnected');
+                        
+                        // Retry logic
+                        if (retryCount < this.config.n8nRetryAttempts) {
+                            console.log(`🔄 Retrying N8N send (attempt ${retryCount + 1}/${this.config.n8nRetryAttempts})`);
+                            await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1))); // Exponential backoff
+                            return await this.sendToN8N(dataToSend, retryCount + 1);
+                        }
+                        
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('❌ N8N webhook error:', error);
+                    this.updateN8NStatus('disconnected');
+                    
+                    // Retry logic for network errors
+                    if (retryCount < this.config.n8nRetryAttempts && (error.name === 'TypeError' || error.name === 'AbortError')) {
+                        console.log(`🔄 Retrying N8N send due to network error (attempt ${retryCount + 1}/${this.config.n8nRetryAttempts})`);
+                        await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)));
+                        return await this.sendToN8N(dataToSend, retryCount + 1);
+                    }
+                    
+                    if (!candidateData) { // Only show UI message if called manually
+                        this.addMessage('bot', `
+                            ❌ <strong>N8N Export Failed</strong><br>
+                            <div style="background: #f8d7da; padding: 10px; border-radius: 5px; margin: 8px 0;">
+                                <strong>Error:</strong> ${error.message}<br>
+                                <strong>Webhook:</strong> ${this.config.n8nWebhookURL}<br>
+                                <strong>Retries:</strong> ${retryCount}/${this.config.n8nRetryAttempts}<br>
+                                Please check N8N server status and webhook configuration.
+                            </div>
+                        `);
+                    }
+                    
+                    return false;
+                }
+            }
+
+            buildN8NCandidateReport() {
+                return {
+                    messageType: 'CANDIDATE_SCREENING_COMPLETE',
+                    timestamp: new Date().toISOString(),
+                    sessionId: Date.now(),
+                    source: 'AI Bootcamp Screening Chatbot',
+                    version: '4.0-n8n-enhanced',
+                    
+                    // Candidate Information
+                    candidate: {
+                        name: this.candidateData.name || 'Unknown Applicant',
+                        firstName: this.candidateData.personalDetails?.firstName || '',
+                        surname: this.candidateData.personalDetails?.surname || '',
+                        email: this.candidateData.personalDetails?.email || 'No email provided',
+                        phone: this.candidateData.personalDetails?.mobile || 'No phone provided',
+                        personalDetailsCollected: this.candidateData.personalDetails ? true : false
+                    },
+                    
+                    // Programme Details
+                    programme: {
+                        name: 'AI Business Productivity Bootcamp',
+                        provider: 'BIT Group',
+                        type: 'Cornwall Skills Bootcamp',
+                        duration: '12 weeks',
+                        startDate: '21 July 2024',
+                        endDate: '9 October 2024',
+                        mode: 'Online',
+                        website: this.courseKnowledge.referenceSource
+                    },
+                    
+                    // Assessment Results
+                    assessment: {
+                        overallScore: this.score,
+                        maxScore: 10,
+                        scorePercentage: (this.score / 10 * 100),
+                        recommendation: this.score >= 8 ? 'HIGHLY SUITABLE - Schedule interview immediately' : 
+                                      this.score >= 6 ? 'SUITABLE - Standard processing' : 
+                                      'NOT SUITABLE - Does not meet criteria',
+                        status: this.score >= 8 ? 'HIGHLY_SUITABLE' : 
+                               this.score >= 6 ? 'SUITABLE' : 'NOT_SUITABLE',
+                        interestLevel: this.candidateData.interestLevel || 5,
+                        completedAt: new Date().toISOString()
+                    },
+                    
+                    // Detailed Screening Responses
+                    screening: {
+                        location: {
+                            response: this.candidateData.responses.find(r => r.step === 'location')?.response || 'N/A',
+                            assessment: this.candidateData.location || 'Not assessed',
+                            eligible: this.candidateData.location === 'Cornwall',
+                            factChecked: true
+                        },
+                        ukResidency: {
+                            response: this.candidateData.responses.find(r => r.step === 'ukResidency')?.response || 'N/A',
+                            assessment: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
+                            eligible: this.candidateData.ukResidency === true
+                        },
+                        funding: {
+                            response: this.candidateData.responses.find(r => r.step === 'funding')?.response || 'N/A',
+                            assessment: this.candidateData.fundingStatus || 'Not assessed',
+                            eligible: this.candidateData.fundingStatus === 'Eligible'
+                        },
+                        employment: {
+                            response: this.candidateData.responses.find(r => r.step === 'employment')?.response || 'N/A',
+                            status: this.candidateData.employmentStatus || 'Not assessed'
+                        },
+                        employerFunding: {
+                            response: this.candidateData.responses.find(r => r.step === 'employerFunding')?.response || 'N/A',
+                            willFund: this.candidateData.employerFunding || 'Not applicable'
+                        },
+                        availability: {
+                            response: this.candidateData.responses.find(r => r.step === 'schedule')?.response || 'N/A',
+                            preference: this.candidateData.availability || 'Not assessed'
+                        },
+                        interview: {
+                            response: this.candidateData.responses.find(r => r.step === 'interview')?.response || 'N/A',
+                            booked: this.candidateData.personalDetails ? true : false,
+                            status: this.candidateData.personalDetails ? 'BOOKED - Interview confirmed' : 'Not booked'
+                        }
+                    },
+                    
+                    // Complete Response History
+                    responseHistory: this.candidateData.responses.map((r, index) => ({
+                        stepNumber: index + 1,
+                        step: r.step,
+                        question: this.getQuestionForStep(r.step),
+                        response: r.response,
+                        timestamp: new Date().toISOString()
+                    })),
+                    
+                    // Additional Flags
+                    flags: {
+                        rescheduleRequested: this.candidateData.rescheduleType ? true : false,
+                        rescheduleType: this.candidateData.rescheduleType || null,
+                        devonWaitingList: this.candidateData.devonWaitingList || false,
+                        chatModeUsed: this.chatMode,
+                        voiceInputUsed: false // Could be enhanced to track this
+                    },
+                    
+                    // Next Actions
+                    nextActions: this.generateNextActions(),
+                    
+                    // System Metadata
+                    system: {
+                        userAgent: navigator.userAgent,
+                        screenResolution: `${screen.width}x${screen.height}`,
+                        timestamp: new Date().toISOString(),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        language: navigator.language
+                    }
+                };
+            }
+
+            getQuestionForStep(step) {
+                const questions = {
+                    'intro': 'Is now a good time to chat for about 10 minutes?',
+                    'overview': 'Are you still interested in progressing with this opportunity?',
+                    'location': 'Do you live in Cornwall, or do you work for a company based in Cornwall?',
+                    'ukResidency': 'Have you been living in the UK for at least the past 3 years?',
+                    'funding': 'Are you currently on any of the following: a spouse visa, international student visa, apprenticeship, or any other government-funded learning programme?',
+                    'employment': 'Can I confirm your current employment status?',
+                    'employerFunding': 'Would your employer be willing to co-fund your place?',
+                    'schedule': 'Would afternoon sessions (4-6pm) or evening sessions (7-9pm) work better for you?',
+                    'interview': 'Would you like me to book you in for a 30-minute online Teams interview?',
+                    'collectDetails': 'Please provide your personal details for interview booking',
+                    'reschedule': 'When would be a better time for you?'
+                };
+                return questions[step] || 'Unknown question';
+            }
+
+            generateNextActions() {
+                const actions = [];
+                
+                if (this.score >= 8) {
+                    actions.push('Schedule interview immediately (high priority)');
+                    actions.push('Send document requirements list');
+                    actions.push('Add to priority candidate pipeline');
+                } else if (this.score >= 6) {
+                    actions.push('Schedule interview (standard priority)');
+                    actions.push('Send programme information pack');
+                    actions.push('Add to candidate pipeline');
+                } else {
+                    actions.push('Send polite rejection email');
+                    actions.push('Add to future opportunities database');
+                }
+                
+                if (this.candidateData.personalDetails) {
+                    actions.push('Send Teams meeting invitation');
+                    actions.push('Send confirmation email with next steps');
+                }
+                
+                if (this.candidateData.devonWaitingList) {
+                    actions.push('Add to Devon waiting list');
+                    actions.push('Monitor tender outcome (due 22 July)');
+                }
+                
+                return actions;
+            }
+
+            async checkN8NStatus() {
+                const checkButton = document.getElementById('checkServer');
+                if (checkButton) {
+                    checkButton.textContent = '🔄 Checking...';
+                    checkButton.disabled = true;
+                }
+                
+                const isConnected = await this.testN8NConnection();
+                
+                this.addMessage('bot', `
+                    🔗 <strong>N8N Integration Status</strong><br><br>
+                    
+                    <div style="background: ${isConnected ? '#d4edda' : '#f8d7da'}; padding: 12px; border-radius: 5px; border-left: 4px solid ${isConnected ? '#27ae60' : '#e74c3c'}; margin: 10px 0;">
+                    <strong>${isConnected ? '✅ N8N Connected' : '❌ N8N Disconnected'}</strong><br>
+                    • <strong>Webhook URL:</strong> ${this.config.n8nWebhookURL}<br>
+                    • <strong>Integration:</strong> ${this.config.useN8NIntegration ? 'Enabled' : 'Disabled'}<br>
+                    • <strong>Timeout:</strong> ${this.config.n8nTimeout / 1000} seconds<br>
+                    • <strong>Retry Attempts:</strong> ${this.config.n8nRetryAttempts}<br>
+                    • <strong>Last Test:</strong> ${new Date().toLocaleTimeString()}
+                    </div>
+                    
+                    <div style="background: #e8f4f8; padding: 12px; border-radius: 5px; border-left: 4px solid #3498db; margin: 10px 0;">
+                    <strong>🔧 N8N Workflow Features:</strong><br>
+                    • Complete candidate screening data export<br>
+                    • Real-time assessment results<br>
+                    • Detailed response history<br>
+                    • Personal details (when collected)<br>
+                    • Automatic retry on connection failure<br>
+                    • JSON format for easy processing
+                    </div>
+                    
+                    <div style="background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #f39c12; margin: 10px 0;">
+                    <strong>💡 N8N Setup Instructions:</strong><br>
+                    1. Ensure N8N is running on localhost:5678<br>
+                    2. Create webhook node with path: /webhook-test/candidate-screening<br>
+                    3. Configure webhook to accept POST requests<br>
+                    4. Test connection using "🧪 Test N8N" button<br>
+                    5. Data will be sent automatically when assessments complete
+                    </div>
+                `);
+                
+                if (checkButton) {
+                    checkButton.textContent = 'ℹ️ N8N Info';
+                    checkButton.disabled = false;
+                }
+                
+                return isConnected;
+            }
