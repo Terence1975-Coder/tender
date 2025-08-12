@@ -1,389 +1,715 @@
-<!DOCTYPE html>
+<!-- FILE: index.html
+     ThinkBIT Training - AI Bootcamp Screening Chatbot
+     - n8n webhook integration (POST to http://localhost:5678/webhook-test/candidate-screening)
+     - Irish "Emily" speechSynthesis voice forced when available
+     - No Firebase (removed per request)
+     - Styled to match ThinkBIT website colors/feel
+-->
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Bootcamp Screening Chatbot - n8n + Irish Emily Voice</title>
-    <!-- Firebase (kept as original) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        /* (styles unchanged from original file for brevity) */
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;background:linear-gradient(135deg,#1e3a4a 0%,#2c5866 100%);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:10px;margin:0}
-        .container{max-width:1200px;width:100%;height:90vh;background:white;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden;display:flex;flex-direction:column}
-        .header{background:linear-gradient(135deg,#1e3a4a 0%,#2c5866 100%);color:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:3px solid #7dd321}
-        .chat-container{flex:1;overflow-y:auto;padding:15px;background:#f8fafb;min-height:0}
-        .message{margin-bottom:15px;padding:12px 18px;border-radius:18px;max-width:80%;word-wrap:break-word}
-        .bot-message{background:linear-gradient(135deg,#e8f4f8 0%,#f0f8ff 100%);border:1px solid #2c5866;border-left:4px solid #2c5866;margin-right:auto;color:#1e3a4a}
-        .user-message{background:linear-gradient(135deg,#f0fff0 0%,#e8f8e8 100%);border:1px solid #7dd321;border-left:4px solid #7dd321;margin-left:auto;text-align:right;color:#2c5866}
-        .input-section{padding:20px;border-top:2px solid #2c5866;background:white}
-        .audio-controls{display:flex;gap:10px;margin-bottom:15px;align-items:center;flex-wrap:wrap}
-        .audio-btn{background:linear-gradient(135deg,#2c5866 0%,#1e3a4a 100%);color:white;border:none;padding:8px 12px;border-radius:15px;cursor:pointer;font-size:12px;font-weight:600}
-        .audio-btn.active{background:linear-gradient(135deg,#7dd321 0%,#6bb81c 100%)}
-        .text-input{width:100%;padding:12px;border:2px solid #2c5866;border-radius:25px;font-size:16px}
-        .send-btn{padding:12px 20px;background:linear-gradient(135deg,#7dd321 0%,#6bb81c 100%);color:white;border:none;border-radius:25px;cursor:pointer;font-weight:600;margin-left:10px}
-        .voice-indicator{display:none}
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ThinkBIT Training — AI Bootcamp Screening</title>
+<style>
+  /* ---------- Branding & Layout (ThinkBIT-like) ---------- */
+  :root {
+    --brand-deep: #0f2d40;    /* deep navy */
+    --brand-accent: #8dc63f;  /* lime/green */
+    --muted: #f5f8fa;
+    --card: #ffffff;
+    --text: #0f2d40;
+    --soft-border: rgba(15,45,64,0.06);
+    --radius: 12px;
+  }
+
+  html,body { height:100%; }
+  body {
+    margin:0;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg,var(--muted),#ffffff);
+    color: var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:20px;
+  }
+
+  .app {
+    width:100%;
+    max-width:1100px;
+    border-radius: var(--radius);
+    overflow:hidden;
+    box-shadow: 0 12px 40px rgba(10,20,30,0.08);
+    background: linear-gradient(180deg, white, #fcfdff);
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap: 0;
+  }
+
+  /* header across full width */
+  .header {
+    grid-column: 1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:18px 22px;
+    background: linear-gradient(90deg,var(--brand-deep), #123247);
+    color: #fff;
+  }
+  .brand {
+    display:flex;
+    gap:14px;
+    align-items:center;
+  }
+  .brand-logo {
+    width:52px;
+    height:52px;
+    border-radius:10px;
+    background: linear-gradient(180deg,var(--brand-accent), #7bb12f);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#062230;
+    font-weight:800;
+    font-size:18px;
+    letter-spacing:1px;
+  }
+  .brand h1 {
+    font-size:18px;
+    margin:0;
+    line-height:1;
+  }
+  .brand h2 {
+    margin:0;
+    font-weight:600;
+    font-size:12px;
+    opacity:0.95;
+    color: #eaf8d6;
+  }
+  .header .contact {
+    font-size:13px;
+    opacity:0.95;
+  }
+
+  /* Left (chat) */
+  .chat-pane {
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    min-height:520px;
+    gap:12px;
+    border-right:1px solid var(--soft-border);
+  }
+  .chat-scroll {
+    flex:1;
+    overflow:auto;
+    padding-right:8px;
+  }
+  .message {
+    max-width:78%;
+    padding:12px 14px;
+    border-radius:12px;
+    margin-bottom:10px;
+    line-height:1.38;
+  }
+  .bot {
+    background: linear-gradient(180deg,#eef8ed,#e6f4e8);
+    border-left:4px solid var(--brand-accent);
+    color:var(--text);
+    align-self:flex-start;
+    box-shadow: 0 2px 8px rgba(12,20,30,0.03);
+  }
+  .user {
+    background: linear-gradient(180deg,#e9f2fb,#e0eefe);
+    border-left:4px solid var(--brand-deep);
+    align-self:flex-end;
+    color:var(--text);
+    text-align:right;
+  }
+
+  .typing {
+    display:inline-block;
+    padding:10px 14px;
+    border-radius:20px;
+    background:#f0f3f4;
+    font-size:13px;
+    color:#36454f;
+  }
+
+  /* Input area */
+  .controls {
+    padding-top:8px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  .controls .input {
+    flex:1;
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .controls input[type="text"]{
+    width:100%;
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid var(--soft-border);
+    font-size:14px;
+  }
+  .controls .btn {
+    background: var(--brand-accent);
+    color:#062230;
+    border:none;
+    padding:10px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .controls .btn.gray {
+    background:#f0f5f6;
+    color:var(--text);
+    border:1px solid var(--soft-border);
+  }
+
+  /* Right (panel) */
+  .panel {
+    padding:18px;
+    background:#fbfcfd;
+    min-height:520px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .panel h3 {
+    margin:0 0 6px 0;
+  }
+
+  .card {
+    background:white;
+    border-radius:10px;
+    padding:12px;
+    border:1px solid var(--soft-border);
+    box-shadow: 0 2px 12px rgba(12,20,30,0.02);
+  }
+
+  .criteria { display:flex; flex-direction:column; gap:8px; font-size:13px; }
+  .criteria .row { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; }
+  .pass { background:#eaf8e8; color:#16522a; border:1px solid #c2e8c9; }
+  .fail { background:#fff2f2; color:#7a1b1b; border:1px solid #f3c6c6; }
+  .wait { background:#fff9e6; color:#7a5a1a; border:1px solid #fae7b9; }
+
+  .score {
+    height:14px; background:#f1f4f5; border-radius:999px; overflow:hidden; margin-top:8px; border:1px solid var(--soft-border);
+  }
+  .score > i { display:block; height:100%; background: linear-gradient(90deg,#ff7a5a,#ffcc00,#8dc63f); width:0%; transition:width .6s ease; }
+
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .small { font-size:13px; padding:8px 10px; border-radius:8px; }
+
+  /* responsive */
+  @media (max-width:980px){
+    .app { grid-template-columns: 1fr; padding-bottom:10px; }
+    .panel { order:2; }
+  }
+</style>
 </head>
 <body>
-    <div id="firebase-status" class="firebase-status firebase-disconnected">🔴 Firebase Disconnected</div>
-
-    <div class="container">
-        <div class="header">
-            <div style="display:flex;align-items:center;gap:15px">
-                <div style="font-size:24px;font-weight:bold;color:white;text-transform:uppercase;letter-spacing:2px">BIT<div style="color:#7dd321;font-size:14px;font-weight:600">TRAINING</div></div>
-                <h1 style="font-size:18px;margin:0;color:white">🤖 AI Bootcamp Screening Assistant</h1>
-            </div>
-            <div style="color:#7dd321;font-size:14px;font-weight:600">+44 (0)1752 724 000</div>
+  <div class="app" id="appRoot">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-logo">BIT</div>
+        <div>
+          <h1>Think<span style="color:var(--brand-accent)">BIT</span> Training</h1>
+          <h2>AI Business Productivity Bootcamp — Screening Assistant</h2>
         </div>
-
-        <div style="display:flex;flex:1;overflow:hidden">
-            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
-                <div id="chatContainer" class="chat-container"></div>
-
-                <div class="input-section">
-                    <div class="audio-controls">
-                        <button class="audio-btn" id="audioToggle" onclick="window.chatBot.toggleAudio()">🔊 Audio: ON</button>
-                        <button class="audio-btn" id="voiceInput" onclick="window.chatBot.startVoiceInput()">🎤 Voice Input</button>
-                        <button class="audio-btn" id="voiceTraining" onclick="window.chatBot.startVoiceTraining()">🎯 Voice Info</button>
-                        <div class="voice-indicator" id="voiceIndicator">🎤 Listening...</div>
-                        <button class="audio-btn" id="stopAudio" onclick="window.chatBot.stopAudio()">⏹️ Stop Audio</button>
-                    </div>
-
-                    <div id="responseButtons" class="response-buttons"></div>
-
-                    <div style="display:flex;align-items:center;margin-top:10px">
-                        <input id="textInput" class="text-input" placeholder="Ask me anything about the AI Business Productivity Bootcamp or respond to screening questions..." onkeypress="if(event.key==='Enter') window.chatBot.handleTextInput()">
-                        <button class="send-btn" onclick="window.chatBot.handleTextInput()">Send</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="assessmentPanel" class="assessment-panel" style="position:fixed;right:20px;top:20px;width:300px;background:white;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.2);font-size:14px;max-height:80vh;overflow:hidden;border:2px solid #2c5866">
-                <div style="padding:15px 20px;background:linear-gradient(135deg,#2c5866 0%,#1e3a4a 100%);color:white;border-radius:8px 8px 0 0;cursor:pointer">📊 Live Assessment <span style="float:right">▼</span></div>
-                <div style="padding:20px;max-height:calc(80vh - 60px);overflow-y:auto">
-                    <div style="background:#e8f6f3;padding:8px;border-radius:5px;margin-bottom:12px;font-size:11px">
-                        <strong>🎉 Production Features:</strong><br>• 📊 Direct dashboard integration<br>• ☁️ Firebase cloud storage active<br>• 🔊 Irish Emily voice (forced if available)
-                    </div>
-                    <div id="finalReport" class="final-report hidden" style="background:#f8fafb;border:2px solid #2c5866;border-radius:10px;padding:20px;margin-top:20px"></div>
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="contact">Need help? <strong style="color:var(--brand-accent)">+44 (0)1752 724 000</strong></div>
     </div>
 
-    <script>
-        // =====================
-        // ChatBot - Updated
-        // - Forces Irish "Emily" voice when available
-        // - Tweaks prosody for more natural flow
-        // - Adds n8n webhook integration using the provided URL
-        // =====================
+    <!-- Chat pane -->
+    <main class="chat-pane" aria-live="polite">
+      <div id="chatScroll" class="chat-scroll" role="log" aria-atomic="false"></div>
 
-        class ChatBot {
-            constructor() {
-                // CONFIG
-                this.config = {
-                    useN8nIntegration: true,
-                    n8nWebhookURL: 'http://localhost:5678/webhook-test/candidate-screening', // user-provided
-                    useMakeIntegration: false,
-                    dashboardURL: 'https://terence1975-coder.github.io/tender/testbot.html'
-                };
+      <section class="controls card" aria-label="Input controls">
+        <div style="display:flex; gap:10px; align-items:center; width:100%;">
+          <div class="input" style="flex:1">
+            <input id="userText" type="text" placeholder="Type your response or question..." />
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="sendBtn" class="btn">Send</button>
+            <button id="voiceBtn" class="btn gray">🎤 Voice</button>
+            <button id="audioToggleBtn" class="btn gray">🔊 Voice: ON</button>
+          </div>
+        </div>
 
-                // Firebase config (kept)
-                this.firebaseConfig = {
-                    apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-                    authDomain: "prospecting-f2f42.firebaseapp.com",
-                    databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
-                    projectId: "prospecting-f2f42",
-                    storageBucket: "prospecting-f2f42.firebasestorage.app",
-                    messagingSenderId: "292034226428",
-                    appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-                    measurementId: "G-WWB0JTX2L2"
-                };
+        <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+          <div id="voiceInfo" style="font-size:13px; color:#355056; opacity:0.9;">Voice: <strong id="voiceName">Detecting...</strong></div>
+          <div style="flex:1"></div>
+          <div id="statusMsg" style="font-size:13px;color:#778899">Ready</div>
+        </div>
+      </section>
+    </main>
 
-                // State
-                this.candidateData = { name: 'Applicant', responses: [], interestLevel: 5 };
-                this.score = 0;
-                this.chatContainer = document.getElementById('chatContainer');
-                this.responseButtons = document.getElementById('responseButtons');
-                this.textInput = document.getElementById('textInput');
+    <!-- Right panel -->
+    <aside class="panel">
+      <div>
+        <h3>Live assessment</h3>
+        <div class="card">
+          <div class="criteria">
+            <div class="row pass"><div>📍 Location</div><div id="c-location">Pending</div></div>
+            <div class="row pass"><div>🇬🇧 Residency</div><div id="c-residency">Pending</div></div>
+            <div class="row pass"><div>💰 Funding</div><div id="c-funding">Pending</div></div>
+            <div class="row pass"><div>🗣️ English level</div><div id="c-english">Pending</div></div>
+          </div>
 
-                // Voice settings - tuned for natural flow
-                this.voiceSettings = {
-                    rate: 0.95,   // slightly slower for clarity
-                    pitch: 1.05,  // slight rise for naturalness
-                    volume: 1.0,  // full volume for clarity
-                    selectedVoice: null
-                };
+          <div style="margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>Overall score</strong>
+              <div id="scoreText">0 / 10</div>
+            </div>
+            <div class="score"><i id="scoreFill" style="width:0%"></i></div>
+          </div>
+        </div>
+      </div>
 
-                // Speech & recognition placeholders
-                this.speechSynthesis = null;
-                this.recognition = null;
-                this.currentSpeech = null;
+      <div>
+        <h3>Actions</h3>
+        <div class="card actions">
+          <button id="sendToN8nBtn" class="small" style="background:var(--brand-deep); color:#fff;">Send report to n8n</button>
+          <button id="copyJsonBtn" class="small">Copy payload JSON</button>
+          <button id="resetBtn" class="small">Reset session</button>
+        </div>
+      </div>
 
-                // init
-                this.initAudio();
-                this.initializeFirebase();
-                this.init();
-            }
+      <div>
+        <h3>Final report</h3>
+        <div id="finalCard" class="card" style="min-height:120px; font-size:14px;">
+          <div id="finalText">No report yet.</div>
+        </div>
+      </div>
 
-            // ------------------- AUDIO: force Irish Emily when available
-            initAudio() {
-                if (!('speechSynthesis' in window)) {
-                    console.warn('SpeechSynthesis not available');
-                    return;
-                }
+    </aside>
+  </div>
 
-                this.speechSynthesis = window.speechSynthesis;
+<script>
+/* ===========================
+   Screening Chatbot (single-file)
+   - No external dependencies
+   - n8n integration built-in
+   - Irish Emily voice prioritized
+   =========================== */
 
-                const findAndForceEmily = () => {
-                    const voices = this.speechSynthesis.getVoices();
+// ---------- CONFIG ----------
+const CONFIG = {
+  n8nWebhookURL: 'http://localhost:5678/webhook-test/candidate-screening',
+  // Optional header token for simple verification in n8n. Set to null to omit.
+  webhookToken: null, // e.g. 'secret-abc-123'
+  // Voice tuning
+  voiceRate: 0.95,
+  voicePitch: 1.02,
+  voiceVolume: 1.0,
+  // When true, send automatically at completion, otherwise user may click 'Send report to n8n'
+  autoSendOnComplete: true,
+  // Minimum responses before completing (for demo)
+  minResponsesToComplete: 4
+};
 
-                    // Candidate matching steps: prefer Emily en-IE, fallback to any en-IE, then Emily any locale, then en-GB, then first English.
-                    let emily = voices.find(v => /Emily/i.test(v.name) && /en-?IE/i.test(v.lang));
-                    if (!emily) emily = voices.find(v => /en-?IE/i.test(v.lang));
-                    if (!emily) emily = voices.find(v => /Emily/i.test(v.name));
-                    if (!emily) emily = voices.find(v => /^en/i.test(v.lang));
+// ---------- STATE ----------
+const STATE = {
+  candidate: {
+    name: null,
+    personalDetails: null,
+    location: null,
+    ukResidency: null,
+    fundingStatus: null,
+    englishLevel: null,
+    responses: []
+  },
+  score: 0,
+  useAudio: true,
+  speechVoice: null,
+  voiceReady: false
+};
 
-                    if (emily) {
-                        this.voiceSettings.selectedVoice = emily;
-                        console.log('🎤 Selected voice:', emily.name, emily.lang);
-                    } else {
-                        console.log('🎤 No matching Emily/en-IE voice found - using default');
-                    }
-                };
+// ---------- UI ELEMENTS ----------
+const chatScroll = document.getElementById('chatScroll');
+const userText = document.getElementById('userText');
+const sendBtn = document.getElementById('sendBtn');
+const voiceBtn = document.getElementById('voiceBtn');
+const audioToggleBtn = document.getElementById('audioToggleBtn');
+const voiceNameEl = document.getElementById('voiceName');
+const statusMsg = document.getElementById('statusMsg');
 
-                // populate voices - browsers may load them asynchronously
-                if (this.speechSynthesis.getVoices().length === 0) {
-                    this.speechSynthesis.addEventListener('voiceschanged', findAndForceEmily);
-                } else {
-                    findAndForceEmily();
-                }
+const cLocation = document.getElementById('c-location');
+const cResidency = document.getElementById('c-residency');
+const cFunding = document.getElementById('c-funding');
+const cEnglish = document.getElementById('c-english');
+const scoreText = document.getElementById('scoreText');
+const scoreFill = document.getElementById('scoreFill');
 
-                // Minimal speech recognition support (kept simple)
-                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    this.recognition = new SpeechRecognition();
-                    this.recognition.continuous = false;
-                    this.recognition.interimResults = false;
-                    this.recognition.lang = 'en-GB';
-                    this.recognition.onresult = (e) => this.handleVoiceInput(e.results[0][0].transcript);
-                    this.recognition.onerror = (e) => { document.getElementById('voiceIndicator').style.display = 'none'; console.error(e); };
-                    this.recognition.onend = () => { document.getElementById('voiceIndicator').style.display = 'none'; };
-                }
-            }
+const sendToN8nBtn = document.getElementById('sendToN8nBtn');
+const copyJsonBtn = document.getElementById('copyJsonBtn');
+const resetBtn = document.getElementById('resetBtn');
+const finalText = document.getElementById('finalText');
 
-            // Speak with a short, natural pause to reduce robotic overlap
-            speakMessage(message) {
-                if (!this.speechSynthesis) return;
+// ---------- Helpers: UI ----------
+function appendBot(html) {
+  const d = document.createElement('div');
+  d.className = 'message bot';
+  // allow basic markup
+  d.innerHTML = html;
+  chatScroll.appendChild(d);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+  speakIfAllowed(stripHtml(html));
+}
+function appendUser(text) {
+  const d = document.createElement('div');
+  d.className = 'message user';
+  d.textContent = text;
+  chatScroll.appendChild(d);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+}
+function stripHtml(s){ return s.replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(); }
 
-                // cancel any queued speech to avoid overlaps
-                try { this.speechSynthesis.cancel(); } catch(e){}
+// ---------- Voice: detection & forcing Emily (en-IE) ----------
+function findPreferredVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices() || [];
 
-                const clean = message.replace(/<[^>]*>/g, '').replace(/[\u{1F300}-\u{1F6FF}]/gu, '').replace(/\s+/g,' ').trim();
-                if (!clean) return;
+  // prefer voices that are en-IE and contain Emily
+  let v = voices.find(x => /Emily/i.test(x.name) && /en-?IE/i.test(x.lang));
+  if (!v) v = voices.find(x => /en-?IE/i.test(x.lang) && /female/i.test(x.name || ''));
+  if (!v) v = voices.find(x => /Emily/i.test(x.name));
+  // fallback to any english female or english voice
+  if (!v) v = voices.find(x => /^en/i.test(x.lang) && /female/i.test(x.name || ''));
+  if (!v) v = voices.find(x => /^en/i.test(x.lang));
+  return v || null;
+}
 
-                const utter = new SpeechSynthesisUtterance(clean);
-                utter.rate = this.voiceSettings.rate;
-                utter.pitch = this.voiceSettings.pitch;
-                utter.volume = this.voiceSettings.volume;
-                if (this.voiceSettings.selectedVoice) utter.voice = this.voiceSettings.selectedVoice;
+function initVoice() {
+  if (!('speechSynthesis' in window)) {
+    voiceNameEl.textContent = 'Not supported';
+    STATE.voiceReady = false;
+    return;
+  }
 
-                // attach simple events for debugging
-                utter.onstart = () => { /*console.log('Speech started')*/ };
-                utter.onend = () => { /*console.log('Speech ended')*/ };
+  const setup = () => {
+    const v = findPreferredVoice();
+    if (v) {
+      STATE.speechVoice = v;
+      STATE.voiceReady = true;
+      voiceNameEl.textContent = `${v.name} (${v.lang})`;
+    } else {
+      voiceNameEl.textContent = 'Default browser voice';
+      STATE.voiceReady = true;
+    }
+  };
 
-                // delay slightly to create a more human cadence
-                setTimeout(() => this.speechSynthesis.speak(utter), 180);
-            }
+  // populate voices may be async
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', setup);
+  } else {
+    setup();
+  }
+}
 
-            stopAudio() { if (this.speechSynthesis) try { this.speechSynthesis.cancel(); } catch(e){} }
-            toggleAudio() { const btn = document.getElementById('audioToggle'); btn.textContent = btn.textContent.includes('ON') ? '🔇 Audio: OFF' : '🔊 Audio: ON'; }
+function speakIfAllowed(text) {
+  if (!STATE.useAudio) return;
+  if (!('speechSynthesis' in window)) return;
 
-            startVoiceInput() {
-                if (!this.recognition) { this.addMessage('bot','Sorry, voice input is not supported in your browser.'); return; }
-                document.getElementById('voiceIndicator').style.display = 'inline-block';
-                this.recognition.start();
-            }
+  // Short guard to avoid speaking too-short or system messages
+  if (!text || typeof text !== 'string' || text.length < 2) return;
 
-            startVoiceTraining() {
-                const v = this.voiceSettings.selectedVoice ? `${this.voiceSettings.selectedVoice.name} (${this.voiceSettings.selectedVoice.lang})` : 'Default voice';
-                this.addMessage('bot', `🎯 Voice: ${v}<br>Rate: ${this.voiceSettings.rate}, Pitch: ${this.voiceSettings.pitch}, Volume: ${this.voiceSettings.volume}`);
-            }
+  try {
+    window.speechSynthesis.cancel();
+  } catch(e){}
 
-            // ------------------- n8n integration
-            // Prepare payload (re-using previous prepareMakeData logic, renamed)
-            prepareN8nData() {
-                const timestamp = new Date();
-                const dateOnly = timestamp.toISOString().split('T')[0];
-                const timeOnly = timestamp.toTimeString().split(' ')[0];
+  const ut = new SpeechSynthesisUtterance(text);
+  ut.rate = CONFIG.voiceRate;
+  ut.pitch = CONFIG.voicePitch;
+  ut.volume = CONFIG.voiceVolume;
+  if (STATE.speechVoice) ut.voice = STATE.speechVoice;
 
-                return {
-                    submission_id: `BIT-${Date.now()}`,
-                    date: dateOnly,
-                    time: timeOnly,
-                    timestamp: timestamp.toISOString(),
-                    full_name: this.candidateData.name || 'Not provided',
-                    email: this.candidateData.personalDetails?.email || 'Not provided',
-                    phone: this.candidateData.personalDetails?.mobile || 'Not provided',
-                    overall_score: this.score,
-                    max_score: 10,
-                    score_percentage: Math.round((this.score / 10) * 100),
-                    location: this.candidateData.location || 'Not assessed',
-                    uk_residency: this.candidateData.ukResidency ? 'Eligible (3+ years)' : 'Not eligible',
-                    funding_status: this.candidateData.fundingStatus || 'Not assessed',
-                    availability: this.candidateData.availability || 'Not assessed',
-                    recommendation: this.score >= 8 ? 'HIGHLY SUITABLE' : this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE',
-                    bootcamp: 'AI Business Productivity Bootcamp',
-                    program: 'Cornwall Skills Bootcamp',
-                    detailed_responses: JSON.stringify(this.candidateData.responses || []),
-                    personal_details_json: JSON.stringify(this.candidateData.personalDetails || {}),
-                    source: 'AI Bootcamp Screening Chatbot',
-                    session_id: Date.now()
-                };
-            }
+  // tiny random pauses and slight variation to sound less robotic
+  const jitter = (Math.random()*20 - 10)/1000; // -0.01 to +0.01
+  setTimeout(() => {
+    try { window.speechSynthesis.speak(ut); } catch(e){}
+  }, 140 + (jitter*1000));
+}
 
-            sendToN8n(payload) {
-                if (!this.config.useN8nIntegration || !this.config.n8nWebhookURL) {
-                    console.warn('n8n integration disabled or webhook URL missing');
-                    return Promise.reject(new Error('n8n not configured'));
-                }
+// ---------- Voice input (SpeechRecognition) ----------
+let recognition = null;
+function initRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    voiceBtn.style.display = 'none';
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'en-GB';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onresult = (ev) => {
+    const text = (ev.results[0][0].transcript || '').trim();
+    if (text) {
+      userText.value = text;
+      sendUserMessage();
+    }
+  };
+  recognition.onerror = (ev) => {
+    console.warn('Speech recognition error', ev);
+    statusMsg.textContent = 'Voice input error';
+    setTimeout(()=>statusMsg.textContent='Ready',2000);
+  };
+  recognition.onend = () => {
+    voiceBtn.classList.remove('active');
+    voiceBtn.textContent = '🎤 Voice';
+  };
+}
 
-                // Ensure URL is absolute & likely valid (basic safety check)
-                try {
-                    new URL(this.config.n8nWebhookURL);
-                } catch (e) {
-                    console.error('Invalid n8n webhook URL:', this.config.n8nWebhookURL);
-                    return Promise.reject(new Error('Invalid n8n webhook URL'));
-                }
+// ---------- Core flow: simple screening -----
+function sendUserMessage() {
+  const text = userText.value.trim();
+  if (!text) return;
+  appendUser(text);
+  recordResponse(text);
+  userText.value = '';
+}
+sendBtn.addEventListener('click', sendUserMessage);
+userText.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendUserMessage(); });
 
-                return fetch(this.config.n8nWebhookURL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                })
-                .then(async res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-                    // try to parse json, but allow empty
-                    try { return await res.json(); } catch(e){ return {}; }
-                })
-                .then(result => {
-                    console.log('n8n webhook success', result);
-                    this.addMessage('bot', `📤 <strong>Report sent to n8n</strong> — Submission ID: ${payload.submission_id}`);
-                    return result;
-                })
-                .catch(err => {
-                    console.error('n8n webhook failed', err);
-                    this.addMessage('bot', `⚠️ Failed to send report to n8n: ${err.message}`);
-                    throw err;
-                });
-            }
+voiceBtn.addEventListener('click', () => {
+  if (!recognition) { statusMsg.textContent = 'Voice not supported'; setTimeout(()=>statusMsg.textContent='Ready',1500); return; }
+  try {
+    recognition.start();
+    voiceBtn.classList.add('active');
+    voiceBtn.textContent = '🎤 Listening...';
+  } catch(e) {
+    console.warn('recognition start error', e);
+  }
+});
 
-            // ------------------- overriding/ensuring completeAssessment exists
-            // This implementation will run the final report generation, call n8n and also save to Firebase
-            completeAssessment() {
-                // Create final report HTML
-                const recommendation = this.score >= 8 ? 'HIGHLY SUITABLE' : this.score >= 6 ? 'SUITABLE' : 'NOT SUITABLE';
-                const reportEl = document.getElementById('finalReport');
-                const details = `
-                    <h4>📋 Final Assessment</h4>
-                    <div><strong>Candidate:</strong> ${this.candidateData.name || 'Applicant'}</div>
-                    <div><strong>Score:</strong> ${this.score}/10 (${Math.round((this.score/10)*100)}%)</div>
-                    <div><strong>Recommendation:</strong> ${recommendation}</div>
-                    <div style="margin-top:10px"><strong>Responses:</strong><pre style="white-space:pre-wrap">${JSON.stringify(this.candidateData.responses||[],null,2)}</pre></div>
-                `;
-                reportEl.innerHTML = details;
-                reportEl.classList.remove('hidden');
+audioToggleBtn.addEventListener('click', () => {
+  STATE.useAudio = !STATE.useAudio;
+  audioToggleBtn.textContent = STATE.useAudio ? '🔊 Voice: ON' : '🔇 Voice: OFF';
+});
 
-                // Prepare payload
-                const payload = this.prepareN8nData();
+// ---------- Scoring & state ----------
+function recordResponse(text) {
+  const now = new Date().toISOString();
+  STATE.candidate.responses.push({ text, timestamp: now });
 
-                // Send to n8n and then save to firebase as backup
-                this.sendToN8n(payload)
-                    .then(() => {
-                        // also save to firebase if available
-                        try { this.saveToFirebase(); } catch (e) { console.warn('Firebase save failed', e); }
-                    })
-                    .catch(err => {
-                        // on failure still attempt firebase save
-                        try { this.saveToFirebase(); } catch (e) { console.warn('Firebase save failed', e); }
-                    });
-            }
+  // very simple scoring heuristic (replace with your rules)
+  if (/yes|definitely|sure|ok|great|works|ready/i.test(text)) {
+    STATE.score += 3;
+  } else if (/maybe|not sure|later/i.test(text)) {
+    STATE.score += 1;
+  } else {
+    STATE.score += 2;
+  }
 
-            // ------------------- Firebase helpers (kept minimal)
-            initializeFirebase() {
-                try {
-                    if (typeof firebase === 'undefined') { this.updateFirebaseStatus('disconnected'); return; }
-                    if (firebase.apps.length === 0) firebase.initializeApp(this.firebaseConfig);
-                    this.database = firebase.database();
-                    this.updateFirebaseStatus('connected');
-                } catch (e) {
-                    console.error('Firebase init error', e);
-                    this.updateFirebaseStatus('disconnected');
-                }
-            }
+  updateScoreUI();
 
-            updateFirebaseStatus(status) {
-                const s = document.getElementById('firebase-status');
-                if (!s) return;
-                if (status === 'connected') { s.className = 'firebase-status firebase-connected'; s.textContent = '🟢 Firebase Connected'; }
-                else if (status === 'saving') { s.className = 'firebase-status firebase-saving'; s.textContent = '🟡 Saving to Cloud...'; }
-                else { s.className = 'firebase-status firebase-disconnected'; s.textContent = '🔴 Firebase Offline'; }
-            }
+  // sample quick checks to update criteria fields based on keywords
+  if (/cornwall|penzance|truro|st austell|newquay/i.test(text)) {
+    STATE.candidate.location = 'Cornwall';
+    cLocation.textContent = 'Pass (Cornwall)';
+    cLocation.className = '';
+  } else if (/devon|exeter|plymouth/i.test(text)) {
+    STATE.candidate.location = 'Devon';
+    cLocation.textContent = 'Waiting list (Devon)';
+    cLocation.className = '';
+  }
 
-            saveToFirebase() {
-                if (!this.database) { console.warn('No firebase database'); return; }
-                const id = `candidate-${Date.now()}`;
-                const payload = { id, candidate: this.candidateData, score: this.score, timestamp: new Date().toISOString() };
-                this.updateFirebaseStatus('saving');
-                this.database.ref(`bootcampCandidates/${id}`).set(payload).then(()=>{ this.updateFirebaseStatus('connected'); this.addMessage('bot','✅ Saved backup to Firebase'); }).catch(e=>{this.updateFirebaseStatus('disconnected');console.error(e)});
-            }
+  if (/3 years|3yrs|3\+ years|three years|3\+ yrs/i.test(text)) {
+    STATE.candidate.ukResidency = true;
+    cResidency.textContent = 'Pass (3+ years)';
+  }
 
-            // ------------------- UI helpers & flow
-            init() {
-                this.addMessage('bot', `Hi ${this.candidateData.name}, this is the BIT Group AI assistant. I'll be conducting your screening.`);
-                setTimeout(()=>this.showOptions(['Yes, that works for me','Can we reschedule?','I have a few minutes']),1400);
-            }
+  if (/unemployed|self-?employed|fully funded|funded|£0/i.test(text)) {
+    STATE.candidate.fundingStatus = 'Funded';
+    cFunding.textContent = 'Pass (funded)';
+  }
 
-            addMessage(sender, message) {
-                const d = document.createElement('div'); d.className = `message ${sender}-message`; d.innerHTML = message; this.chatContainer.appendChild(d);
-                // limit messages
-                const msgs = this.chatContainer.querySelectorAll('.message'); if (msgs.length>40) msgs[0].remove();
-                this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-                if (sender==='bot') this.speakMessage(message);
-            }
+  if (/english (level|proficient)|fluent|native|good english/i.test(text)) {
+    STATE.candidate.englishLevel = 'Good';
+    cEnglish.textContent = 'Pass';
+  }
 
-            showOptions(options) {
-                this.responseButtons.innerHTML = '';
-                options.forEach(opt=>{
-                    const b = document.createElement('button'); b.className='btn btn-primary'; b.textContent=opt; b.onclick=()=>this.handleResponse(opt); this.responseButtons.appendChild(b);
-                });
-            }
+  // complete when we've collected enough responses
+  if (STATE.candidate.responses.length >= CONFIG.minResponsesToComplete) {
+    // small delay for UX
+    setTimeout(() => {
+      completeAssessment();
+    }, 650);
+  } else {
+    // continue prompt
+    setTimeout(()=> appendBot(randomFollowUp()), 450);
+  }
+}
 
-            handleResponse(text) {
-                this.addMessage('user', text);
-                // simplistic scoring example - implement your real rules here
-                this.candidateData.responses.push({ question: 'screening', answer: text, timestamp: new Date().toISOString() });
-                if (/yes|works|good|ok/i.test(text)) this.score += 3;
-                else if (/resched|schedule|later/i.test(text)) this.score += 1;
-                else this.score += 2;
+function updateScoreUI(){
+  const capped = Math.min(10, STATE.score);
+  scoreText.textContent = `${capped} / 10`;
+  const pct = Math.min(100, Math.round((capped/10)*100));
+  scoreFill.style.width = pct + '%';
+}
 
-                // move through steps - for demo we complete after 3 responses
-                if (this.candidateData.responses.length >= 3) {
-                    this.completeAssessment();
-                } else {
-                    this.showOptions(['Continue','Not right now']);
-                }
-            }
+// friendly follow-ups
+function randomFollowUp(){
+  const prompts = [
+    "Can you confirm your full name and best email address for contact?",
+    "Do you have any employer support or will you need funding?",
+    "What days/times suit you for sessions — evenings or daytime?",
+    "Are you available for a 30-minute Teams interview if invited?"
+  ];
+  return prompts[Math.floor(Math.random()*prompts.length)];
+}
 
-            handleTextInput() { const q = (this.textInput.value||'').trim(); if (!q) return; this.textInput.value=''; this.addMessage('user', q); this.handleResponse(q); }
-            handleVoiceInput(transcript) { this.addMessage('user', `🎤 "${transcript}"`); this.handleResponse(transcript); }
-        }
+// ---------- Finalize & prepare payload ----------
+function assemblePayload() {
+  const timestamp = new Date().toISOString();
+  const payload = {
+    submission_id: `TBT-${Date.now()}`,
+    timestamp,
+    candidate: STATE.candidate,
+    score: Math.min(10, STATE.score),
+    score_percentage: Math.round((Math.min(10, STATE.score)/10)*100),
+    recommendation: STATE.score >= 8 ? 'HIGHLY SUITABLE' : (STATE.score >=6 ? 'SUITABLE' : 'NOT SUITABLE'),
+    source: 'ThinkBIT Screening Chatbot',
+    version: '1.0-n8n-voice'
+  };
+  return payload;
+}
 
-        // Instantiate
-        window.chatBot = new ChatBot();
+// ---------- send to n8n ----------
+async function sendToN8n(payload, opts = {}) {
+  const url = CONFIG.n8nWebhookURL;
+  if (!url) throw new Error('n8n webhook URL not set');
 
-    </script>
+  const headers = { 'Content-Type': 'application/json' };
+  if (CONFIG.webhookToken) headers['X-Hook-Token'] = CONFIG.webhookToken;
+
+  try {
+    const res = await fetch(url, {
+      method:'POST',
+      headers,
+      body: JSON.stringify(payload),
+      // keep CORS default behaviour: n8n/local must accept CORS if you post from browser
+      credentials: opts.credentials || 'omit'
+    });
+
+    // allow 2xx & 204
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>res.statusText);
+      throw new Error(`HTTP ${res.status} - ${txt}`);
+    }
+
+    // attempt parse, but accept empty responses
+    let json = null;
+    try { json = await res.json(); } catch(e){ json = null; }
+    return json;
+  } catch (err) {
+    throw err;
+  }
+}
+
+// ---------- completeAssessment ----------
+let _completed = false;
+function completeAssessment() {
+  if (_completed) return;
+  _completed = true;
+
+  const payload = assemblePayload();
+  const rec = payload.recommendation;
+
+  appendBot(`<strong>Assessment complete</strong><br/>Recommendation: <strong style="color:${rec==='HIGHLY SUITABLE'?'green':rec==='SUITABLE'?'#e69900':'#c0392b'}">${rec}</strong>`);
+  finalText.innerHTML = `
+    <div><strong>Candidate:</strong> ${payload.candidate.personalDetails?.name || 'Not provided'}</div>
+    <div><strong>Score:</strong> ${payload.score} (${payload.score_percentage}%)</div>
+    <div style="margin-top:8px;"><strong>Submission ID:</strong> ${payload.submission_id}</div>
+  `;
+
+  // Auto-send if configured
+  if (CONFIG.autoSendOnComplete) {
+    appendBot('📤 Sending report to automation...');
+    sendToN8n(payload)
+      .then(r => {
+        appendBot('✅ Report delivered to automation.');
+        statusMsg.textContent = 'Report sent';
+      })
+      .catch(err => {
+        appendBot(`<span style="color:#d9534f">⚠️ Failed to send to automation:</span> ${err.message}`);
+        statusMsg.textContent = 'Send failed';
+      });
+  } else {
+    statusMsg.textContent = 'Assessment complete — ready to send';
+  }
+}
+
+// ---------- UI buttons ----------
+sendToN8nBtn.addEventListener('click', async () => {
+  try {
+    const payload = assemblePayload();
+    appendBot('📤 Sending report to automation (manually)...');
+    await sendToN8n(payload);
+    appendBot('✅ Report delivered to automation.');
+    statusMsg.textContent = 'Report sent';
+  } catch (err) {
+    appendBot(`<span style="color:#d9534f">⚠️ Failed to send to automation:</span> ${err.message}`);
+    statusMsg.textContent = 'Send failed';
+  }
+});
+
+copyJsonBtn.addEventListener('click', () => {
+  const payload = assemblePayload();
+  try {
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    appendBot('📋 Payload JSON copied to clipboard.');
+  } catch (e) {
+    appendBot('⚠️ Cannot copy to clipboard in this environment. Open console to view payload.');
+    console.log(payload);
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Reset session and clear responses?')) return;
+  STATE.candidate = { name:null, personalDetails:null, location:null, ukResidency:null, fundingStatus:null, englishLevel:null, responses:[] };
+  STATE.score = 0;
+  _completed = false;
+  chatScroll.innerHTML = '';
+  finalText.innerHTML = 'No report yet.';
+  cLocation.textContent = 'Pending';
+  cResidency.textContent = 'Pending';
+  cFunding.textContent = 'Pending';
+  cEnglish.textContent = 'Pending';
+  scoreText.textContent = '0 / 10';
+  scoreFill.style.width = '0%';
+  appendBot('👋 Session reset. Say hi to start a new screening.');
+});
+
+// ---------- startup messages & initialization ----------
+function greet() {
+  appendBot(`<strong>Welcome to ThinkBIT Training</strong><br>Hi — I'm the AI screening assistant. I will run a quick eligibility check and record your responses. This will take around 5–10 minutes. Are you ready to begin?`);
+}
+
+(function boot() {
+  initVoice();
+  initRecognition();
+  greet();
+  // show detected voice after a short delay if async
+  setTimeout(()=>{
+    if (STATE.voiceReady) {
+      voiceNameEl.textContent = STATE.speechVoice ? `${STATE.speechVoice.name} (${STATE.speechVoice.lang})` : voiceNameEl.textContent;
+    }
+  },600);
+})();
+
+</script>
 </body>
 </html>
+
