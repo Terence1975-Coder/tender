@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Bootcamp Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -706,40 +706,78 @@
     </div>
 
     <script>
-        // Firebase Configuration (Replace with your config)
+        // Firebase Configuration Object
         const firebaseConfig = {
-            // Add your Firebase config here
-            apiKey: "your-api-key",
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "your-app-id"
+            apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+            authDomain: "prospecting-f2f42.firebaseapp.com",
+            databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "prospecting-f2f42",
+            storageBucket: "prospecting-f2f42.firebasestorage.app",
+            messagingSenderId: "292034226428",
+            appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+            measurementId: "G-WWB0JTX2L2"
         };
 
         // Initialize Firebase
-        let db;
+        let database;
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            console.log('Firebase initialized successfully');
+            // Initialize Firebase (if not already initialized)
+            if (firebase.apps.length === 0) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            // Get database reference
+            database = firebase.database();
+            console.log('Firebase Realtime Database initialized successfully');
         } catch (error) {
             console.log('Firebase initialization error:', error);
             // Use localStorage as fallback
-            db = null;
+            database = null;
         }
 
         // Global variables
         let candidates = [];
         let editingCandidate = null;
         let webhookConnected = false;
+        let firebaseListener = null;
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             initializeDashboard();
             setupWebhookListener();
+            setupFirebaseListener();
             generateWeeklyActivity();
         });
+
+        async function initializeDashboard() {
+            showLoading(true);
+            await loadCandidates();
+            updateStats();
+            updateCharts();
+            showLoading(false);
+        }
+
+        function setupFirebaseListener() {
+            if (database) {
+                // Listen for real-time changes in Firebase
+                firebaseListener = database.ref('candidates').on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        candidates = Object.keys(data).map(key => ({
+                            id: key,
+                            ...data[key]
+                        })).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                    } else {
+                        candidates = [];
+                    }
+                    renderCandidatesList();
+                    updateStats();
+                    updateCharts();
+                    generateWeeklyActivity();
+                });
+                
+                console.log('Firebase real-time listener setup complete');
+            }
+        }
 
         async function initializeDashboard() {
             showLoading(true);
@@ -758,15 +796,20 @@
 
         async function loadCandidates() {
             try {
-                if (db) {
-                    // Load from Firebase
-                    const snapshot = await db.collection('candidates').orderBy('date', 'desc').get();
-                    candidates = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
+                if (database) {
+                    // Load from Firebase Realtime Database
+                    const snapshot = await database.ref('candidates').once('value');
+                    const data = snapshot.val();
+                    if (data) {
+                        candidates = Object.keys(data).map(key => ({
+                            id: key,
+                            ...data[key]
+                        })).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                    } else {
+                        candidates = [];
+                    }
                 } else {
-                    // Load from localStorage
+                    // Load from localStorage as fallback
                     const stored = localStorage.getItem('candidates');
                     candidates = stored ? JSON.parse(stored) : [];
                 }
@@ -774,6 +817,7 @@
                 renderCandidatesList();
             } catch (error) {
                 console.error('Error loading candidates:', error);
+                // Fallback to localStorage
                 candidates = JSON.parse(localStorage.getItem('candidates') || '[]');
                 renderCandidatesList();
             }
@@ -781,37 +825,51 @@
 
         async function saveCandidate(candidate) {
             try {
-                if (db) {
-                    // Save to Firebase
-                    if (candidate.id) {
-                        await db.collection('candidates').doc(candidate.id).update(candidate);
-                    } else {
-                        const docRef = await db.collection('candidates').add({
-                            ...candidate,
-                            date: candidate.date || new Date().toISOString().split('T')[0],
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        candidate.id = docRef.id;
+                if (database) {
+                    // Save to Firebase Realtime Database
+                    let candidateId = candidate.id;
+                    
+                    if (!candidateId) {
+                        // Generate new ID if not provided
+                        candidateId = database.ref('candidates').push().key;
                     }
+                    
+                    const candidateData = {
+                        ...candidate,
+                        id: candidateId,
+                        date: candidate.date || new Date().toISOString().split('T')[0],
+                        timestamp: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    // Remove the id from the data object since it's used as the key
+                    const { id, ...dataToSave } = candidateData;
+                    
+                    await database.ref(`candidates/${candidateId}`).set(dataToSave);
+                    
+                    console.log('Candidate saved to Firebase:', candidateId);
                 } else {
-                    // Save to localStorage
+                    // Save to localStorage as fallback
                     if (!candidate.id) {
                         candidate.id = Date.now().toString();
                         candidate.date = candidate.date || new Date().toISOString().split('T')[0];
+                        candidate.timestamp = new Date().toISOString();
                     }
                     
                     const index = candidates.findIndex(c => c.id === candidate.id);
                     if (index >= 0) {
-                        candidates[index] = candidate;
+                        candidates[index] = { ...candidate, lastUpdated: new Date().toISOString() };
                     } else {
-                        candidates.unshift(candidate);
+                        candidates.unshift({ ...candidate, timestamp: new Date().toISOString() });
                     }
                     localStorage.setItem('candidates', JSON.stringify(candidates));
+                    
+                    // Manually update UI when using localStorage
+                    renderCandidatesList();
+                    updateStats();
+                    updateCharts();
+                    generateWeeklyActivity();
                 }
-                
-                await loadCandidates();
-                updateStats();
-                updateCharts();
             } catch (error) {
                 console.error('Error saving candidate:', error);
                 alert('Error saving candidate. Please try again.');
@@ -880,4 +938,351 @@
         function updateCharts() {
             const total = candidates.length || 1; // Avoid division by zero
             const passed = candidates.filter(c => c.status === 'passed').length;
-            const failed = candidates.filter(c => c.status === 'faile
+            const failed = candidates.filter(c => c.status === 'failed').length;
+            const waitlist = candidates.filter(c => c.status === 'waitlist').length;
+            const processed = candidates.filter(c => c.status === 'processed').length;
+
+            // Update percentage bars
+            const passedPercent = Math.round((passed / total) * 100);
+            const failedPercent = Math.round((failed / total) * 100);
+            const waitlistPercent = Math.round((waitlist / total) * 100);
+            const processedPercent = Math.round((processed / total) * 100);
+
+            document.getElementById('passedPercent').textContent = passedPercent + '%';
+            document.getElementById('failedPercent').textContent = failedPercent + '%';
+            document.getElementById('waitlistPercent').textContent = waitlistPercent + '%';
+            document.getElementById('processedPercent').textContent = processedPercent + '%';
+
+            document.getElementById('passedBar').style.width = passedPercent + '%';
+            document.getElementById('failedBar').style.width = failedPercent + '%';
+            document.getElementById('waitlistBar').style.width = waitlistPercent + '%';
+            document.getElementById('processedBar').style.width = processedPercent + '%';
+        }
+
+        function generateWeeklyActivity() {
+            const container = document.getElementById('weeklyActivity');
+            if (!container) return;
+
+            // Generate random activity data for the week
+            const activityData = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - (6 - i));
+                const dateStr = date.toISOString().split('T')[0];
+                const count = candidates.filter(c => c.date === dateStr).length;
+                activityData.push(count);
+            }
+
+            const maxActivity = Math.max(...activityData, 1);
+            
+            container.innerHTML = activityData.map(count => {
+                const height = Math.max((count / maxActivity) * 160, 4);
+                return `<div class="activity-bar" style="height: ${height}px;" title="${count} candidates"></div>`;
+            }).join('');
+        }
+
+        function setupWebhookListener() {
+            // Simulate webhook connection status
+            setTimeout(() => {
+                webhookConnected = true;
+                updateWebhookStatus();
+            }, 2000);
+
+            // Create webhook endpoint simulation
+            createWebhookEndpoint();
+        }
+
+        function updateWebhookStatus() {
+            const statusEl = document.getElementById('webhookStatus');
+            if (webhookConnected) {
+                statusEl.textContent = 'Webhook: Connected';
+                statusEl.className = 'webhook-status connected';
+            } else {
+                statusEl.textContent = 'Webhook: Disconnected';
+                statusEl.className = 'webhook-status disconnected';
+            }
+        }
+
+        async function handleWebhookData(candidateData) {
+            try {
+                // Map webhook data to our candidate format
+                const candidate = {
+                    name: candidateData.Name || candidateData.name,
+                    email: candidateData.Email || candidateData.email,
+                    phone: candidateData.Phone || candidateData.phone,
+                    date: candidateData.Date || candidateData.date || new Date().toISOString().split('T')[0],
+                    status: candidateData.Status || candidateData.status || 'pending',
+                    score: candidateData.Score || candidateData.score || 0,
+                    bootcamp: candidateData.Bootcamp || candidateData.bootcamp,
+                    location: candidateData.Location || candidateData.location,
+                    experience: candidateData.Experience || candidateData.experience,
+                    motivation: candidateData.Motivation || candidateData.motivation,
+                    source: 'webhook',
+                    receivedAt: new Date().toISOString()
+                };
+
+                await saveCandidate(candidate);
+                
+                // Show notification
+                showNotification(`New candidate added: ${candidate.name}`);
+                
+                console.log('Webhook data processed:', candidate);
+            } catch (error) {
+                console.error('Error processing webhook data:', error);
+                showNotification('Error processing webhook data', 'error');
+            }
+        }
+
+        // Webhook endpoint simulation (for testing)
+        function createWebhookEndpoint() {
+            // This would typically be handled by your backend
+            // For testing purposes, we'll simulate webhook reception
+            window.receiveWebhookData = function(data) {
+                console.log('Webhook data received:', data);
+                handleWebhookData(data);
+            };
+            
+            // Also listen for postMessage events (useful for testing)
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'webhook-candidate') {
+                    handleWebhookData(event.data.candidate);
+                }
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${type === 'success' ? '#4caf50' : '#f44336'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function openCandidateModal(candidateId = null) {
+            editingCandidate = candidateId;
+            const modal = document.getElementById('candidateModal');
+            const form = document.getElementById('candidateForm');
+            const title = document.getElementById('modalTitle');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (candidateId) {
+                const candidate = candidates.find(c => c.id === candidateId);
+                if (candidate) {
+                    title.textContent = 'Edit Candidate';
+                    submitBtn.textContent = 'Update Candidate';
+                    populateForm(candidate);
+                }
+            } else {
+                title.textContent = 'Add New Candidate';
+                submitBtn.textContent = 'Add Candidate';
+                form.reset();
+                document.getElementById('candidateDate').value = new Date().toISOString().split('T')[0];
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeCandidateModal() {
+            document.getElementById('candidateModal').style.display = 'none';
+            editingCandidate = null;
+        }
+
+        function populateForm(candidate) {
+            document.getElementById('candidateName').value = candidate.name || '';
+            document.getElementById('candidateEmail').value = candidate.email || '';
+            document.getElementById('candidatePhone').value = candidate.phone || '';
+            document.getElementById('candidateDate').value = candidate.date || '';
+            document.getElementById('candidateStatus').value = candidate.status || 'pending';
+            document.getElementById('candidateScore').value = candidate.score || '';
+            document.getElementById('candidateBootcamp').value = candidate.bootcamp || '';
+            document.getElementById('candidateLocation').value = candidate.location || '';
+            document.getElementById('candidateExperience').value = candidate.experience || '';
+            document.getElementById('candidateMotivation').value = candidate.motivation || '';
+        }
+
+        function editCandidate(candidateId) {
+            openCandidateModal(candidateId);
+        }
+
+        async function refreshData() {
+            showLoading(true);
+            if (!database) {
+                // Only manually load if not using Firebase (which has real-time updates)
+                await loadCandidates();
+                updateStats();
+                updateCharts();
+                generateWeeklyActivity();
+            }
+            showLoading(false);
+            showNotification('Data refreshed successfully');
+        }
+
+        // Form submission handler
+        document.getElementById('candidateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('candidateName').value,
+                email: document.getElementById('candidateEmail').value,
+                phone: document.getElementById('candidatePhone').value,
+                date: document.getElementById('candidateDate').value,
+                status: document.getElementById('candidateStatus').value,
+                score: parseInt(document.getElementById('candidateScore').value) || 0,
+                bootcamp: document.getElementById('candidateBootcamp').value,
+                location: document.getElementById('candidateLocation').value,
+                experience: document.getElementById('candidateExperience').value,
+                motivation: document.getElementById('candidateMotivation').value
+            };
+
+            if (editingCandidate) {
+                formData.id = editingCandidate;
+            }
+
+            await saveCandidate(formData);
+            closeCandidateModal();
+            showNotification(editingCandidate ? 'Candidate updated successfully' : 'Candidate added successfully');
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('candidateModal');
+            if (event.target === modal) {
+                closeCandidateModal();
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCandidateModal();
+            }
+            if (e.key === 'n' && e.ctrlKey) {
+                e.preventDefault();
+                openCandidateModal();
+            }
+            if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                refreshData();
+            }
+        });
+
+        // Webhook simulation for testing
+        function simulateWebhookData() {
+            const testCandidate = {
+                Name: "Test Candidate " + Math.floor(Math.random() * 1000),
+                Email: "test" + Math.floor(Math.random() * 1000) + "@example.com",
+                Phone: "+1234567890",
+                Date: new Date().toISOString().split('T')[0],
+                Status: ["pending", "passed", "failed", "waitlist"][Math.floor(Math.random() * 4)],
+                Score: Math.floor(Math.random() * 100),
+                Bootcamp: ["AI Fundamentals", "Machine Learning", "Deep Learning", "Data Science"][Math.floor(Math.random() * 4)],
+                Location: ["Remote", "New York", "San Francisco", "London", "Berlin"][Math.floor(Math.random() * 5)],
+                Experience: ["Beginner", "Intermediate", "Advanced"][Math.floor(Math.random() * 3)],
+                Motivation: "I want to learn AI to advance my career and work on cutting-edge technology projects."
+            };
+
+            console.log('Simulating webhook with data:', testCandidate);
+            handleWebhookData(testCandidate);
+        }
+
+        // Add test button for webhook simulation (remove in production)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const testBtn = document.createElement('button');
+            testBtn.textContent = 'Test Webhook';
+            testBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #ff9800;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                z-index: 1000;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            testBtn.onclick = simulateWebhookData;
+            document.body.appendChild(testBtn);
+        }
+
+        // Cleanup Firebase listener when page unloads
+        window.addEventListener('beforeunload', () => {
+            if (firebaseListener && database) {
+                database.ref('candidates').off('value', firebaseListener);
+            }
+        });
+
+        // CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize with some sample data if no candidates exist
+        if (candidates.length === 0 && !localStorage.getItem('candidates')) {
+            const sampleCandidates = [
+                {
+                    id: '1',
+                    name: 'Sarah Johnson',
+                    email: 'sarah.johnson@example.com',
+                    phone: '+1234567890',
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'passed',
+                    score: 85,
+                    bootcamp: 'AI Fundamentals',
+                    location: 'New York',
+                    experience: 'Intermediate',
+                    motivation: 'I want to transition into AI development'
+                },
+                {
+                    id: '2',
+                    name: 'Michael Chen',
+                    email: 'michael.chen@example.com',
+                    phone: '+1234567891',
+                    date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+                    status: 'waitlist',
+                    score: 75,
+                    bootcamp: 'Machine Learning',
+                    location: 'San Francisco',
+                    experience: 'Beginner',
+                    motivation: 'Looking to enhance my data science skills'
+                }
+            ];
+
+            candidates = sampleCandidates;
+            localStorage.setItem('candidates', JSON.stringify(candidates));
+            renderCandidatesList();
+            updateStats();
+            updateCharts();
+            generateWeeklyActivity();
+        }
+    </script>
+</body>
+</html>
