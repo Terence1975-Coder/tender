@@ -1354,25 +1354,43 @@
             }
         }
         
-        // Initialize the chatbot when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Firebase
-            const firebaseConfig = {
-                apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-                authDomain: "prospecting-f2f42.firebaseapp.com",
-                databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
-                projectId: "prospecting-f2f42",
-                storageBucket: "prospecting-f2f42.firebasestorage.app",
-                messagingSenderId: "292034226428",
-                appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-                measurementId: "G-WWB0JTX2L2"
-            };
+        // Initialize Firebase and chatbot when everything is loaded
+        function initializeApp() {
+            // Check if Firebase is available
+            if (typeof firebase !== 'undefined') {
+                try {
+                    // Initialize Firebase
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                        authDomain: "prospecting-f2f42.firebaseapp.com",
+                        databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                        projectId: "prospecting-f2f42",
+                        storageBucket: "prospecting-f2f42.firebasestorage.app",
+                        messagingSenderId: "292034226428",
+                        appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                        measurementId: "G-WWB0JTX2L2"
+                    };
 
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
+                    firebase.initializeApp(firebaseConfig);
+                    console.log('Firebase initialized successfully');
+                } catch (error) {
+                    console.log('Firebase initialization error:', error);
+                }
+            } else {
+                console.log('Firebase not available, continuing without it');
+            }
             
+            // Initialize chatbot regardless of Firebase status
             new BITChatbot();
-        });
+        }
+
+        // Wait for page load and Firebase scripts
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            // DOM already loaded, wait a bit for Firebase scripts
+            setTimeout(initializeApp, 100);
+        }
     </script>
 </body>
 </html>
