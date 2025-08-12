@@ -571,39 +571,7 @@
             <h1>🤖 AI Bootcamp Screening Assistant</h1>
             <p>Welcome to your AI Business Productivity Bootcamp application</p>
         </div>
-        sendToN8NWebhook() {
-    const webhookUrl = 'http://localhost:5678/webhook/candidate-screening';
-
-    // Prepare data payload
-    const payload = {
-        ...this.candidateData,
-        score: this.score,
-        recommendation: this.score >= 8 
-            ? 'HIGHLY SUITABLE' 
-            : this.score >= 6 
-                ? 'SUITABLE' 
-                : 'NOT SUITABLE',
-        timestamp: new Date().toISOString()
-    };
-
-    console.log('🌐 Sending candidate data to N8N webhook:', payload);
-
-    fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();
-    })
-    .then(result => {
-        console.log('✅ Successfully sent to N8N:', result);
-        this.addMessage('bot', '📤 Candidate data sent to N8N successfully.');
-    })
-    .catch(error => {
+            .catch(error => {
         console.error('❌ Failed to send to N8N:', error);
         this.addMessage('bot', '⚠️ Failed to send data to N8N webhook.');
     });
@@ -1338,6 +1306,43 @@
               this.sendToN8NWebhook();
             }
 
+                // Send candidate data to N8N webhook
+    sendToN8NWebhook() {
+        const webhookUrl = 'http://localhost:5678/webhook/candidate-screening';
+
+        const payload = {
+            ...this.candidateData,
+            score: this.score,
+            recommendation: this.score >= 8 
+                ? 'HIGHLY SUITABLE' 
+                : this.score >= 6 
+                    ? 'SUITABLE' 
+                    : 'NOT SUITABLE',
+            timestamp: new Date().toISOString()
+        };
+
+        console.log('🌐 Sending candidate data to N8N webhook:', payload);
+
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.text();
+        })
+        .then(result => {
+            console.log('✅ Successfully sent to N8N:', result);
+            this.addMessage('bot', '📤 Candidate data sent to N8N successfully.');
+        })
+        .catch(error => {
+            console.error('❌ Failed to send to N8N:', error);
+            this.addMessage('bot', '⚠️ Failed to send data to N8N webhook.');
+        });
+    }
 
             // Firebase cloud storage methods
             saveToFirebase() {
