@@ -1302,9 +1302,14 @@
                 console.log('📊 About to trigger completeAssessment() -> sendToDashboard()');
                 
                 // Complete assessment which triggers dashboard reporting
-                this.completeAssessment();
-              this.sendToN8NWebhook();
-            }
+               // Complete assessment which triggers dashboard reporting
+this.completeAssessment();
+
+// Send to N8N webhook
+this.sendToN8NWebhook();
+
+// Firebase cloud storage methods
+saveToFirebase()
 
                 // Send candidate data to N8N webhook
     sendToN8NWebhook() {
