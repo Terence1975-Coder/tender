@@ -6,6 +6,10 @@
     <title>BIT Training Chatbot - Screen for Bootcamps</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/web-speech-api/1.0.0/webspeechapi.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,6 +31,45 @@
             padding: 1rem;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+
+        .status-dot.syncing {
+            background: #ffc107;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .logo {
@@ -504,6 +547,10 @@
 </head>
 <body>
     <div class="header">
+        <div class="status-indicator">
+            <div class="status-dot disconnected" id="statusDot"></div>
+            <span id="statusText">Connecting...</span>
+        </div>
         <div class="logo">🎓 BIT Training</div>
         <div class="subtitle">Government-Funded Skills Bootcamps</div>
     </div>
@@ -1309,6 +1356,21 @@
         
         // Initialize the chatbot when the page loads
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+                authDomain: "prospecting-f2f42.firebaseapp.com",
+                databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app/",
+                projectId: "prospecting-f2f42",
+                storageBucket: "prospecting-f2f42.firebasestorage.app",
+                messagingSenderId: "292034226428",
+                appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+                measurementId: "G-WWB0JTX2L2"
+            };
+
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            
             new BITChatbot();
         });
     </script>
