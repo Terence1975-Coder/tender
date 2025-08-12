@@ -575,6 +575,9 @@
                 this.currentUtterance = null;
                 this.speechSkipped = false;
                 
+                // Session tracking
+                this.sessionStartTime = Date.now();
+                
                 // Ensure voices are loaded
                 if (this.speechSynthesis.getVoices().length === 0) {
                     this.speechSynthesis.addEventListener('voiceschanged', () => {
@@ -587,40 +590,48 @@
                         id: 'age_19_plus',
                         text: "First things first - are you aged 19 or over? This is just for eligibility purposes, no bother!",
                         type: 'boolean',
-                        options: ['Yes, I am', 'No, I\'m not']
+                        options: ['Yes, I am', 'No, I\'m not'],
+                        scoring: { 'Yes, I am': 1, 'No, I\'m not': 0 }
                     },
                     {
                         id: 'resides_in_devon_cornwall',
-                        text: "Grand! And do you live in Devon or Cornwall? Our funding covers these areas specifically.",
-                        type: 'boolean',
-                        options: ['Yes, I do', 'No, I don\'t']
+                        text: "And do you live in Devon, Cornwall, or somewhere else? Our funding covers these specific areas.",
+                        type: 'choice',
+                        options: ['Devon', 'Cornwall', 'Neither'],
+                        scoring: { 'Devon': 1, 'Cornwall': 1, 'Neither': 0 }
                     },
                     {
                         id: 'employment_status',
                         text: "What's your current employment situation? Don't worry, there's no wrong answer here!",
                         type: 'choice',
-                        options: ['Currently employed', 'Unemployed', 'Self-employed', 'Student', 'Other']
+                        options: ['Currently employed', 'Unemployed', 'Self-employed', 'Student', 'Other'],
+                        scoring: { 'Currently employed': 1, 'Unemployed': 1, 'Self-employed': 1, 'Student': 0.5, 'Other': 0.5 }
                     },
                     {
                         id: 'bootcamp_interest',
                         text: "What area interests you most? We've got some fantastic options!",
                         type: 'choice',
-                        options: ['Project Management (PRINCE2®)', 'AI & Data Skills', 'Microsoft Cloud (MS-900, AZ-900)', 'ITIL®4 Service Management', 'Not sure yet']
+                        options: ['Project Management (PRINCE2®)', 'AI & Data Skills', 'Microsoft Cloud (MS-900, AZ-900)', 'ITIL®4 Service Management', 'Not sure yet'],
+                        scoring: { 'Project Management (PRINCE2®)': 1, 'AI & Data Skills': 1, 'Microsoft Cloud (MS-900, AZ-900)': 1, 'ITIL®4 Service Management': 1, 'Not sure yet': 0.5 }
                     },
                     {
                         id: 'prior_experience',
                         text: "Have you worked in project management, IT, or related fields before? Just helps me understand your background!",
                         type: 'choice',
-                        options: ['Yes, plenty of experience', 'Some experience', 'A little bit', 'No experience at all', 'Prefer not to say']
+                        options: ['Yes, plenty of experience', 'Some experience', 'A little bit', 'No experience at all', 'Prefer not to say'],
+                        scoring: { 'Yes, plenty of experience': 1, 'Some experience': 1, 'A little bit': 0.8, 'No experience at all': 0.6, 'Prefer not to say': 0.5 }
                     },
                     {
                         id: 'motivation',
                         text: "Last one, I promise! What's driving you to consider this bootcamp? Feel free to tell me in your own words.",
-                        type: 'text'
+                        type: 'text',
+                        scoring: null // Text responses don't contribute to pass/fail score
                     }
                 ];
                 
                 this.currentQuestionIndex = 0;
+                this.assessmentScore = 0;
+                this.maxPossibleScore = 5; // 5 scored questions
                 
                 this.knowledgeBase = {
                     'schedule': 'Our bootcamps run part-time over 8-12 weeks, typically evenings and weekends to fit around your current commitments.',
@@ -1008,16 +1019,40 @@
                 const question = this.questions[this.currentQuestionIndex];
                 this.showTypingIndicator();
                 
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                await this.addMessage('emily', question.text);
+                // Add message to chat immediately
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message emily`;
                 
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar';
+                avatar.innerHTML = '<i class="fas fa-user-tie"></i>';
+                
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = question.text;
+                
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(bubble);
+                
+                // Wait briefly then show message and options together
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                this.hideTypingIndicator();
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+                
+                // Start speaking in parallel
+                if (!this.speechSkipped) {
+                    this.speakText(question.text);
+                }
+                
+                // Show options immediately after message appears
                 if (question.type === 'text') {
                     this.enableTextInput();
                 } else {
-                    const options = question.options.map((option, index) => ({
+                    const options = question.options.map((option) => ({
                         text: option,
                         action: 'answer',
-                        value: question.type === 'boolean' ? (index === 0) : option
+                        value: option
                     }));
                     this.showOptions(options);
                 }
@@ -1026,6 +1061,12 @@
             async recordAnswer(value) {
                 const question = this.questions[this.currentQuestionIndex];
                 this.userData.responses[question.id] = value;
+                
+                // Calculate score for this answer
+                if (question.scoring && question.scoring[value] !== undefined) {
+                    this.assessmentScore += question.scoring[value];
+                }
+                
                 this.currentQuestionIndex++;
                 
                 // Show encouraging response with variety but more natural
@@ -1034,7 +1075,7 @@
                     "Lovely, that's noted! I'm getting a clearer sense of what might work best for you.",
                     "Brilliant, thanks a million! This information will help me understand your needs better.",
                     "Sure thing, got that down! Your background is becoming much clearer now.",
-                    "Perfect! That's exactly the kind of information I need to help match you with the right program."
+                    "Thank you."
                 ];
                 
                 this.showTypingIndicator();
@@ -1045,17 +1086,45 @@
             }
             
             async finishScreening() {
+                // Calculate final assessment
+                const scorePercentage = (this.assessmentScore / this.maxPossibleScore) * 100;
+                const passThreshold = 60; // 60% pass rate
+                const assessmentResult = scorePercentage >= passThreshold ? 'PASS' : 'FAIL';
+                
+                // Store assessment results
+                this.userData.assessment = {
+                    score: this.assessmentScore,
+                    maxScore: this.maxPossibleScore,
+                    percentage: Math.round(scorePercentage),
+                    result: assessmentResult
+                };
+                
                 this.showTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                await this.addMessage('emily', "That's all sorted! Thanks so much for taking the time to chat with me and sharing your background. Based on everything you've told me, I genuinely think our bootcamp could be absolutely perfect for helping you achieve your goals and advance your career. The combination of your situation and what we offer seems like it could be a brilliant match!");
+                
+                if (assessmentResult === 'PASS') {
+                    await this.addMessage('emily', "That's all sorted! Thanks so much for taking the time to chat with me and sharing your background. Based on everything you've told me, I genuinely think our bootcamp could be absolutely perfect for helping you achieve your goals and advance your career. The combination of your situation and what we offer seems like it could be a brilliant match!");
+                } else {
+                    await this.addMessage('emily', "That's all sorted! Thanks so much for taking the time to chat with me and sharing your background. While our current bootcamp programs might not be the perfect fit right now based on the eligibility requirements, I'd still encourage you to stay in touch as we're always developing new programs and opportunities.");
+                }
                 
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                await this.addMessage('emily', "Would you like to go ahead and get the ball rolling? I'll just need a few contact details and then someone from our lovely team will be in touch soon to discuss the next steps and answer any specific questions you might have about the program.");
                 
-                this.showOptions([
-                    { text: "Yes, let's do it!", action: 'proceed', value: 'yes' },
-                    { text: "Not right now, thanks", action: 'proceed', value: 'no' }
-                ]);
+                if (assessmentResult === 'PASS') {
+                    await this.addMessage('emily', "Would you like to go ahead and get the ball rolling? I'll just need a few contact details and then someone from our lovely team will be in touch soon to discuss the next steps and answer any specific questions you might have about the program.");
+                    
+                    this.showOptions([
+                        { text: "Yes, let's do it!", action: 'proceed', value: 'yes' },
+                        { text: "Not right now, thanks", action: 'proceed', value: 'no' }
+                    ]);
+                } else {
+                    await this.addMessage('emily', "Would you like us to keep your details on file for future opportunities, or would you prefer to explore other options that might be available? Either way, feel free to reach out to us at bootcamp@thinkbitgroup.co.uk if your situation changes.");
+                    
+                    this.showOptions([
+                        { text: "Keep my details on file", action: 'proceed', value: 'yes' },
+                        { text: "No thanks, I'll explore other options", action: 'proceed', value: 'no' }
+                    ]);
+                }
             }
             
             async showContactForm() {
@@ -1109,23 +1178,46 @@
             }
             
             async sendToWebhook() {
+                // Prepare comprehensive data payload
+                const payload = {
+                    candidate: this.userData.candidate,
+                    responses: this.userData.responses,
+                    assessment: this.userData.assessment,
+                    timestamp: new Date().toISOString(),
+                    source: "chatbot-screening-v1",
+                    sessionData: {
+                        userAgent: navigator.userAgent,
+                        screenResolution: `${screen.width}x${screen.height}`,
+                        chatDuration: Date.now() - this.sessionStartTime
+                    }
+                };
+                
+                console.log('Sending payload to webhook:', JSON.stringify(payload, null, 2));
+                
                 try {
                     const response = await fetch('http://localhost:5678/webhook-test/candidate-screening', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
-                        body: JSON.stringify(this.userData)
+                        body: JSON.stringify(payload)
                     });
                     
+                    console.log('Webhook response status:', response.status);
+                    
                     if (response.ok) {
+                        const responseData = await response.text();
+                        console.log('Webhook response:', responseData);
                         this.showSuccessMessage();
                     } else {
-                        throw new Error('Network response was not ok');
+                        console.error('Webhook error response:', response.status, response.statusText);
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                 } catch (error) {
                     console.error('Error sending to webhook:', error);
-                    // Show success anyway for demo purposes
+                    // Show success anyway for demo purposes, but log the error
+                    console.log('Falling back to success message despite webhook error');
                     this.showSuccessMessage();
                 }
             }
