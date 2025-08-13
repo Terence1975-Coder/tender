@@ -216,6 +216,15 @@
             align-items: center;
             padding: 15px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .candidate-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding-left: 10px;
+            padding-right: 10px;
         }
 
         .candidate-item:last-child {
@@ -261,13 +270,19 @@
             font-size: 12px;
             font-weight: 500;
             margin-left: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .status-badge.passed { background: #4caf50; }
-        .status-badge.failed { background: #f44336; }
-        .status-badge.waitlist { background: #ff9800; }
-        .status-badge.processed { background: #2196f3; }
-        .status-badge.pending { background: #9e9e9e; }
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .status-badge.passed { background: #4caf50; color: white; }
+        .status-badge.failed { background: #f44336; color: white; }
+        .status-badge.waitlist { background: #ff9800; color: white; }
+        .status-badge.processed { background: #2196f3; color: white; }
+        .status-badge.pending { background: #9e9e9e; color: white; }
 
         .charts-section {
             display: flex;
@@ -747,6 +762,14 @@
     </div>
 
     <script>
+        // Global variables - Declare first to avoid initialization errors
+        let candidates = [];
+        let editingCandidate = null;
+        let webhookConnected = false;
+        let firebaseConnected = false;
+        let firebaseListener = null;
+        let database = null;
+
         // Firebase Configuration Object
         const firebaseConfig = {
             apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
@@ -759,49 +782,86 @@
             measurementId: "G-WWB0JTX2L2"
         };
 
-        // Initialize Firebase
-        let database;
-        try {
-            // Initialize Firebase (if not already initialized)
-            if (firebase.apps.length === 0) {
-                firebase.initializeApp(firebaseConfig);
+        // Firebase Status Update Function - Define before initialization
+        function updateFirebaseStatus() {
+            const statusEl = document.getElementById('firebaseStatus');
+            if (!statusEl) return; // Element might not exist yet
+            
+            const dot = statusEl.querySelector('.status-dot');
+            
+            if (firebaseConnected) {
+                statusEl.innerHTML = `
+                    <div class="status-dot static"></div>
+                    Firebase: Connected
+                `;
+                statusEl.className = 'status-badge connected';
+            } else if (database) {
+                statusEl.innerHTML = `
+                    <div class="status-dot"></div>
+                    Firebase: Connecting...
+                `;
+                statusEl.className = 'status-badge connecting';
+            } else {
+                statusEl.innerHTML = `
+                    <div class="status-dot static"></div>
+                    Firebase: Error
+                `;
+                statusEl.className = 'status-badge disconnected';
             }
-            // Get database reference
-            database = firebase.database();
-            
-            // Test Firebase connection
-            database.ref('.info/connected').on('value', function(snapshot) {
-                firebaseConnected = snapshot.val() === true;
-                updateFirebaseStatus();
-                
-                if (firebaseConnected) {
-                    console.log('Firebase Realtime Database connected successfully');
-                } else {
-                    console.log('Firebase Realtime Database disconnected');
-                }
-            });
-            
-        } catch (error) {
-            console.log('Firebase initialization error:', error);
-            // Use localStorage as fallback
-            database = null;
-            firebaseConnected = false;
-            updateFirebaseStatus();
         }
 
-        // Global variables
-        let candidates = [];
-        let editingCandidate = null;
-        let webhookConnected = false;
-        let firebaseConnected = false;
-        let firebaseListener = null;
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                // Initialize Firebase (if not already initialized)
+                if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
+                // Get database reference
+                if (typeof firebase !== 'undefined') {
+                    database = firebase.database();
+                    
+                    // Test Firebase connection
+                    database.ref('.info/connected').on('value', function(snapshot) {
+                        firebaseConnected = snapshot.val() === true;
+                        updateFirebaseStatus();
+                        
+                        if (firebaseConnected) {
+                            console.log('Firebase Realtime Database connected successfully');
+                        } else {
+                            console.log('Firebase Realtime Database disconnected');
+                        }
+                    });
+                    
+                    console.log('Firebase initialization successful');
+                } else {
+                    throw new Error('Firebase library not loaded');
+                }
+                
+            } catch (error) {
+                console.log('Firebase initialization error:', error);
+                // Use localStorage as fallback
+                database = null;
+                firebaseConnected = false;
+                updateFirebaseStatus();
+            }
+        }
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize status indicators
-            updateFirebaseStatus();
-            updateWebhookStatus();
+            console.log('DOM loaded, initializing dashboard...');
             
+            // Initialize Firebase first
+            initializeFirebase();
+            
+            // Initialize status indicators after a brief delay to ensure DOM is ready
+            setTimeout(() => {
+                updateFirebaseStatus();
+                updateWebhookStatus();
+            }, 100);
+            
+            // Initialize dashboard components
             initializeDashboard();
             setupWebhookListener();
             setupFirebaseListener();
@@ -821,23 +881,35 @@
                 try {
                     // Listen for real-time changes in Firebase
                     firebaseListener = database.ref('candidates').on('value', (snapshot) => {
-                        const data = snapshot.val();
-                        if (data) {
-                            candidates = Object.keys(data).map(key => ({
-                                id: key,
-                                ...data[key]
-                            })).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-                        } else {
-                            candidates = [];
+                        try {
+                            const data = snapshot.val();
+                            if (data) {
+                                candidates = Object.keys(data).map(key => ({
+                                    id: key,
+                                    ...data[key]
+                                })).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                            } else {
+                                candidates = [];
+                            }
+                            renderCandidatesList();
+                            updateStats();
+                            updateCharts();
+                            generateWeeklyActivity();
+                        } catch (error) {
+                            console.error('Error processing Firebase data:', error);
                         }
-                        renderCandidatesList();
-                        updateStats();
-                        updateCharts();
-                        generateWeeklyActivity();
                     }, (error) => {
                         console.error('Firebase listener error:', error);
                         firebaseConnected = false;
                         updateFirebaseStatus();
+                        
+                        // Fallback to localStorage if Firebase fails
+                        const stored = localStorage.getItem('candidates');
+                        candidates = stored ? JSON.parse(stored) : [];
+                        renderCandidatesList();
+                        updateStats();
+                        updateCharts();
+                        generateWeeklyActivity();
                     });
                     
                     console.log('Firebase real-time listener setup complete');
@@ -846,6 +918,15 @@
                     firebaseConnected = false;
                     updateFirebaseStatus();
                 }
+            } else {
+                // Load from localStorage if Firebase is not available
+                console.log('Firebase not available, using localStorage');
+                const stored = localStorage.getItem('candidates');
+                candidates = stored ? JSON.parse(stored) : [];
+                renderCandidatesList();
+                updateStats();
+                updateCharts();
+                generateWeeklyActivity();
             }
         }
 
@@ -979,17 +1060,31 @@
                 const statusClass = (candidate.status || 'pending').toLowerCase();
                 
                 return `
-                    <div class="candidate-item" onclick="editCandidate('${candidate.id}')">
+                    <div class="candidate-item" onclick="editCandidate('${candidate.id}')" data-candidate-id="${candidate.id}">
                         <div class="candidate-avatar">${initials}</div>
                         <div class="candidate-info">
                             <div class="candidate-name">${candidate.name || 'Unknown'}</div>
                             <div class="candidate-email">${candidate.email || 'No email'}</div>
                         </div>
                         <div class="candidate-score">${candidate.score || 0}%</div>
-                        <div class="status-badge ${statusClass}">${formatStatus(candidate.status)}</div>
+                        <div class="status-badge ${statusClass}" onclick="event.stopPropagation(); quickStatusChange('${candidate.id}', '${statusClass}')">${formatStatus(candidate.status)}</div>
                     </div>
                 `;
             }).join('');
+        }
+
+        function quickStatusChange(candidateId, currentStatus) {
+            const statuses = ['pending', 'passed', 'failed', 'waitlist', 'processed'];
+            const currentIndex = statuses.indexOf(currentStatus);
+            const nextIndex = (currentIndex + 1) % statuses.length;
+            const newStatus = statuses[nextIndex];
+            
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (candidate) {
+                candidate.status = newStatus;
+                saveCandidate(candidate);
+                showNotification(`Status updated to ${formatStatus(newStatus)}`);
+            }
         }
 
         function formatStatus(status) {
@@ -1075,33 +1170,10 @@
             createWebhookEndpoint();
         }
 
-        function updateFirebaseStatus() {
-            const statusEl = document.getElementById('firebaseStatus');
-            const dot = statusEl.querySelector('.status-dot');
-            
-            if (firebaseConnected) {
-                statusEl.innerHTML = `
-                    <div class="status-dot static"></div>
-                    Firebase: Connected
-                `;
-                statusEl.className = 'status-badge connected';
-            } else if (database) {
-                statusEl.innerHTML = `
-                    <div class="status-dot"></div>
-                    Firebase: Connecting...
-                `;
-                statusEl.className = 'status-badge connecting';
-            } else {
-                statusEl.innerHTML = `
-                    <div class="status-dot static"></div>
-                    Firebase: Error
-                `;
-                statusEl.className = 'status-badge disconnected';
-            }
-        }
-
         function updateWebhookStatus() {
             const statusEl = document.getElementById('webhookStatus');
+            if (!statusEl) return; // Element might not exist yet
+            
             if (webhookConnected) {
                 statusEl.innerHTML = `
                     <div class="status-dot static"></div>
@@ -1198,7 +1270,7 @@
             if (candidateId) {
                 const candidate = candidates.find(c => c.id === candidateId);
                 if (candidate) {
-                    title.textContent = 'Edit Candidate';
+                    title.textContent = 'Edit Candidate Details';
                     submitBtn.textContent = 'Update Candidate';
                     populateForm(candidate);
                 }
@@ -1210,27 +1282,24 @@
             }
 
             modal.style.display = 'block';
+            
+            // Focus on first input
+            setTimeout(() => {
+                document.getElementById('candidateName').focus();
+            }, 100);
         }
 
         function closeCandidateModal() {
-            document.getElementById('candidateModal').style.display = 'none';
+            const modal = document.getElementById('candidateModal');
+            modal.style.display = 'none';
             editingCandidate = null;
-        }
-
-        function populateForm(candidate) {
-            document.getElementById('candidateName').value = candidate.name || '';
-            document.getElementById('candidateEmail').value = candidate.email || '';
-            document.getElementById('candidatePhone').value = candidate.phone || '';
-            document.getElementById('candidateDate').value = candidate.date || '';
-            document.getElementById('candidateStatus').value = candidate.status || 'pending';
-            document.getElementById('candidateScore').value = candidate.score || '';
-            document.getElementById('candidateBootcamp').value = candidate.bootcamp || '';
-            document.getElementById('candidateLocation').value = candidate.location || '';
-            document.getElementById('candidateExperience').value = candidate.experience || '';
-            document.getElementById('candidateMotivation').value = candidate.motivation || '';
+            
+            // Clear form
+            document.getElementById('candidateForm').reset();
         }
 
         function editCandidate(candidateId) {
+            console.log('Editing candidate:', candidateId);
             openCandidateModal(candidateId);
         }
 
@@ -1251,26 +1320,51 @@
         document.getElementById('candidateForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const formData = {
-                name: document.getElementById('candidateName').value,
-                email: document.getElementById('candidateEmail').value,
-                phone: document.getElementById('candidatePhone').value,
-                date: document.getElementById('candidateDate').value,
-                status: document.getElementById('candidateStatus').value,
-                score: parseInt(document.getElementById('candidateScore').value) || 0,
-                bootcamp: document.getElementById('candidateBootcamp').value,
-                location: document.getElementById('candidateLocation').value,
-                experience: document.getElementById('candidateExperience').value,
-                motivation: document.getElementById('candidateMotivation').value
-            };
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            
+            // Show loading state
+            submitBtn.textContent = 'Saving...';
+            submitBtn.disabled = true;
+            
+            try {
+                const formData = {
+                    name: document.getElementById('candidateName').value.trim(),
+                    email: document.getElementById('candidateEmail').value.trim(),
+                    phone: document.getElementById('candidatePhone').value.trim(),
+                    date: document.getElementById('candidateDate').value,
+                    status: document.getElementById('candidateStatus').value,
+                    score: parseInt(document.getElementById('candidateScore').value) || 0,
+                    bootcamp: document.getElementById('candidateBootcamp').value,
+                    location: document.getElementById('candidateLocation').value.trim(),
+                    experience: document.getElementById('candidateExperience').value,
+                    motivation: document.getElementById('candidateMotivation').value.trim()
+                };
 
-            if (editingCandidate) {
-                formData.id = editingCandidate;
+                // Validate required fields
+                if (!formData.name || !formData.email) {
+                    alert('Name and Email are required fields');
+                    return;
+                }
+
+                if (editingCandidate) {
+                    formData.id = editingCandidate;
+                }
+
+                console.log('Saving candidate data:', formData);
+                await saveCandidate(formData);
+                
+                closeCandidateModal();
+                showNotification(editingCandidate ? 'Candidate updated successfully' : 'Candidate added successfully');
+                
+            } catch (error) {
+                console.error('Form submission error:', error);
+                alert('Error saving candidate. Please try again.');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
-
-            await saveCandidate(formData);
-            closeCandidateModal();
-            showNotification(editingCandidate ? 'Candidate updated successfully' : 'Candidate added successfully');
         });
 
         // Close modal when clicking outside
@@ -1339,9 +1433,24 @@
 
         // Cleanup Firebase listener when page unloads
         window.addEventListener('beforeunload', () => {
-            if (firebaseListener && database) {
-                database.ref('candidates').off('value', firebaseListener);
-                database.ref('.info/connected').off();
+            try {
+                if (firebaseListener && database) {
+                    database.ref('candidates').off('value', firebaseListener);
+                    database.ref('.info/connected').off();
+                }
+            } catch (error) {
+                console.error('Error during cleanup:', error);
+            }
+        });
+
+        // Error handling for unhandled errors
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            // Don't show error to user unless it's critical
+            if (event.error.message.includes('Firebase')) {
+                console.log('Firebase error detected, switching to localStorage mode');
+                firebaseConnected = false;
+                updateFirebaseStatus();
             }
         });
 
