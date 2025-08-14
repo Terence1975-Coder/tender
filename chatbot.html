@@ -498,38 +498,25 @@
             }
             
             sendTestData() {
-                const testData = {
+                const testCandidate = {
                     Name: "Test User",
-                    Email: "test@example.com", 
+                    Email: "test@example.com",
                     Phone: "+123456789",
-                    Date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+                    Date: new Date().toISOString().split('T')[0],
                     Status: "pending",
-                    Score: 85,
+                    Score: Math.floor(Math.random() * 100),
                     Bootcamp: "AI Fundamentals",
                     Location: "Remote",
                     Experience: "Intermediate",
                     Motivation: "Testing chatbot to n8n workflow"
                 };
-                
-                fetch('http://localhost:5678/webhook/tender/chatbot', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(testData)
+                fetch("https://your-n8n-webhook-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(testCandidate)
                 })
-                .then(response => {
-                    console.log('Test data sent to n8n', response.status);
-                    return response.text();
-                })
-                .then(data => {
-                    console.log('n8n response:', data);
-                })
-                .catch(error => {
-                    console.error('Error sending test data:', error);
-                    console.log('Test data sent to n8n (fallback due to network error)');
-                });
+                .then(res => console.log("Test data sent to n8n", res))
+                .catch(err => console.error("Error sending test data", err));
             }
             
             scrollToBottom() {
@@ -860,13 +847,15 @@
                 this.voiceButton.addEventListener('click', () => this.toggleVoiceRecognition());
                 this.stopSpeechBtn.addEventListener('click', () => this.stopSpeech());
                 this.skipSpeechBtn.addEventListener('click', () => this.skipSpeech());
-                this.testButton.addEventListener('click', () => this.sendTestData());
                 this.chatInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.handleSend();
                 });
                 
                 // Set up smart scrolling
                 this.setupSmartScrolling();
+                
+                // Initialize test button
+                this.testButton.addEventListener("click", () => this.sendTestData());
                 
                 // Start the conversation
                 setTimeout(() => this.showWelcomeMessage(), 800);
