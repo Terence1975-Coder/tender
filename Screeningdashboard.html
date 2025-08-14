@@ -284,6 +284,105 @@
         .status-badge.processed { background: #2196f3; color: white; }
         .status-badge.pending { background: #9e9e9e; color: white; }
 
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .detail-item {
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .copyable {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            display: inline-block;
+        }
+
+        .copyable:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .copyable:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-option {
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .status-option:hover {
+            transform: scale(1.05);
+        }
+
+        .status-option.selected {
+            border-color: white;
+        }
+
+        .candidate-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .action-btn.edit {
+            background: #2196f3;
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
         .charts-section {
             display: flex;
             flex-direction: column;
@@ -676,6 +775,30 @@
         </div>
     </div>
 
+    <!-- Candidate Detail View Modal -->
+    <div id="candidateDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 id="detailModalTitle">Candidate Details</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="editCandidateFromDetail()" style="padding: 8px 16px;">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn" onclick="deleteCandidateFromDetail()" style="background: #f44336; color: white; padding: 8px 16px;">
+                        🗑️ Delete
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeCandidateDetailModal()" style="padding: 8px 16px;">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            
+            <div id="candidateDetailContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <!-- Candidate Modal -->
     <div id="candidateModal" class="modal">
         <div class="modal-content">
@@ -852,6 +975,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing dashboard...');
             
+            // Make navigation items functional
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach((item, index) => {
+                if (index === 0) return; // Skip the active overview item
+                
+                item.addEventListener('click', function() {
+                    // Remove active class from all items
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Show appropriate notification based on nav item
+                    const itemText = this.textContent.trim();
+                    if (itemText.includes('Candidates')) {
+                        showNotification('Candidates view is already active');
+                    } else if (itemText.includes('Assessments')) {
+                        showNotification('Assessment management coming soon!');
+                    } else if (itemText.includes('Integration')) {
+                        showNotification('Integration settings coming soon!');
+                    }
+                });
+            });
+            
             // Initialize Firebase first
             initializeFirebase();
             
@@ -867,14 +1013,6 @@
             setupFirebaseListener();
             generateWeeklyActivity();
         });
-
-        async function initializeDashboard() {
-            showLoading(true);
-            await loadCandidates();
-            updateStats();
-            updateCharts();
-            showLoading(false);
-        }
 
         function setupFirebaseListener() {
             if (database) {
@@ -1060,7 +1198,7 @@
                 const statusClass = (candidate.status || 'pending').toLowerCase();
                 
                 return `
-                    <div class="candidate-item" onclick="editCandidate('${candidate.id}')" data-candidate-id="${candidate.id}">
+                    <div class="candidate-item" onclick="viewCandidateDetail('${candidate.id}')" data-candidate-id="${candidate.id}">
                         <div class="candidate-avatar">${initials}</div>
                         <div class="candidate-info">
                             <div class="candidate-name">${candidate.name || 'Unknown'}</div>
@@ -1068,6 +1206,10 @@
                         </div>
                         <div class="candidate-score">${candidate.score || 0}%</div>
                         <div class="status-badge ${statusClass}" onclick="event.stopPropagation(); quickStatusChange('${candidate.id}', '${statusClass}')">${formatStatus(candidate.status)}</div>
+                        <div class="candidate-actions">
+                            <button class="action-btn edit" onclick="event.stopPropagation(); editCandidate('${candidate.id}')" title="Edit">✏️</button>
+                            <button class="action-btn delete" onclick="event.stopPropagation(); deleteCandidate('${candidate.id}')" title="Delete">🗑️</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1303,6 +1445,239 @@
             openCandidateModal(candidateId);
         }
 
+        function viewCandidateDetail(candidateId) {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (!candidate) return;
+
+            const modal = document.getElementById('candidateDetailModal');
+            const title = document.getElementById('detailModalTitle');
+            const content = document.getElementById('candidateDetailContent');
+            
+            title.textContent = `${candidate.name || 'Unknown Candidate'}`;
+            
+            content.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-section">
+                        <h4 style="margin-bottom: 20px; color: #00bcd4;">Personal Information</h4>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Full Name</div>
+                            <div class="detail-value copyable" onclick="copyToClipboard('${candidate.name || ''}', 'Name')" title="Click to copy">
+                                ${candidate.name || 'Not provided'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Email Address</div>
+                            <div class="detail-value copyable" onclick="copyToClipboard('${candidate.email || ''}', 'Email')" title="Click to copy">
+                                ${candidate.email || 'Not provided'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Phone Number</div>
+                            <div class="detail-value">
+                                ${candidate.phone || 'Not provided'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Location</div>
+                            <div class="detail-value">
+                                ${candidate.location || 'Not provided'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Application Date</div>
+                            <div class="detail-value">
+                                ${candidate.date ? new Date(candidate.date).toLocaleDateString() : 'Not provided'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4 style="margin-bottom: 20px; color: #00bcd4;">Assessment Information</h4>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Current Status</div>
+                            <div class="detail-value">
+                                <div class="status-selector">
+                                    ${['pending', 'passed', 'failed', 'waitlist', 'processed'].map(status => `
+                                        <div class="status-option status-badge ${status} ${(candidate.status || 'pending') === status ? 'selected' : ''}" 
+                                             onclick="updateCandidateStatus('${candidateId}', '${status}')">
+                                            ${formatStatus(status)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Assessment Score</div>
+                            <div class="detail-value">
+                                ${candidate.score || 0}% ${candidate.score >= 80 ? '🎉' : candidate.score >= 60 ? '👍' : '📈'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Selected Bootcamp</div>
+                            <div class="detail-value">
+                                ${candidate.bootcamp || 'Not selected'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Experience Level</div>
+                            <div class="detail-value">
+                                ${candidate.experience || 'Not specified'}
+                            </div>
+                        </div>
+                        
+                        <div class="detail-item">
+                            <div class="detail-label">Data Source</div>
+                            <div class="detail-value">
+                                ${candidate.source === 'webhook' ? '🔗 N8N Webhook' : '✋ Manual Entry'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${candidate.motivation ? `
+                    <div class="detail-section">
+                        <h4 style="margin-bottom: 15px; color: #00bcd4;">Motivation</h4>
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 6px; border-left: 4px solid #00bcd4;">
+                            "${candidate.motivation}"
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.6);">
+                    <div>
+                        <strong>Created:</strong> ${candidate.timestamp ? new Date(candidate.timestamp).toLocaleString() : 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Last Updated:</strong> ${candidate.lastUpdated ? new Date(candidate.lastUpdated).toLocaleString() : 'Never'}
+                    </div>
+                    <div>
+                        <strong>ID:</strong> ${candidateId}
+                    </div>
+                </div>
+            `;
+            
+            // Store current candidate ID for actions
+            modal.setAttribute('data-candidate-id', candidateId);
+            modal.style.display = 'block';
+        }
+
+        function closeCandidateDetailModal() {
+            const modal = document.getElementById('candidateDetailModal');
+            modal.style.display = 'none';
+            modal.removeAttribute('data-candidate-id');
+        }
+
+        function editCandidateFromDetail() {
+            const modal = document.getElementById('candidateDetailModal');
+            const candidateId = modal.getAttribute('data-candidate-id');
+            if (candidateId) {
+                closeCandidateDetailModal();
+                editCandidate(candidateId);
+            }
+        }
+
+        function deleteCandidateFromDetail() {
+            const modal = document.getElementById('candidateDetailModal');
+            const candidateId = modal.getAttribute('data-candidate-id');
+            if (candidateId) {
+                closeCandidateDetailModal();
+                deleteCandidate(candidateId);
+            }
+        }
+
+        function updateCandidateStatus(candidateId, newStatus) {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (candidate) {
+                candidate.status = newStatus;
+                saveCandidate(candidate);
+                showNotification(`Status updated to ${formatStatus(newStatus)}`);
+                
+                // Refresh the detail view
+                setTimeout(() => viewCandidateDetail(candidateId), 100);
+            }
+        }
+
+        async function deleteCandidate(candidateId) {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (!candidate) return;
+
+            const confirmDelete = confirm(`Are you sure you want to delete ${candidate.name || 'this candidate'}?\n\nThis action cannot be undone.`);
+            if (!confirmDelete) return;
+
+            try {
+                if (database) {
+                    // Delete from Firebase
+                    await database.ref(`candidates/${candidateId}`).remove();
+                    console.log('Candidate deleted from Firebase:', candidateId);
+                } else {
+                    // Delete from localStorage
+                    candidates = candidates.filter(c => c.id !== candidateId);
+                    localStorage.setItem('candidates', JSON.stringify(candidates));
+                    
+                    // Manually update UI when using localStorage
+                    renderCandidatesList();
+                    updateStats();
+                    updateCharts();
+                    generateWeeklyActivity();
+                }
+
+                showNotification(`${candidate.name || 'Candidate'} has been deleted`);
+            } catch (error) {
+                console.error('Error deleting candidate:', error);
+                alert('Error deleting candidate. Please try again.');
+            }
+        }
+
+        function copyToClipboard(text, label) {
+            if (!text) {
+                showNotification(`No ${label.toLowerCase()} to copy`, 'error');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(`${label} copied to clipboard!`);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                
+                // Fallback method
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showNotification(`${label} copied to clipboard!`);
+                } catch (fallbackErr) {
+                    showNotification('Failed to copy to clipboard', 'error');
+                }
+                
+                document.body.removeChild(textArea);
+            });
+        }
+
+        function populateForm(candidate) {
+            document.getElementById('candidateName').value = candidate.name || '';
+            document.getElementById('candidateEmail').value = candidate.email || '';
+            document.getElementById('candidatePhone').value = candidate.phone || '';
+            document.getElementById('candidateDate').value = candidate.date || '';
+            document.getElementById('candidateStatus').value = candidate.status || 'pending';
+            document.getElementById('candidateScore').value = candidate.score || '';
+            document.getElementById('candidateBootcamp').value = candidate.bootcamp || '';
+            document.getElementById('candidateLocation').value = candidate.location || '';
+            document.getElementById('candidateExperience').value = candidate.experience || '';
+            document.getElementById('candidateMotivation').value = candidate.motivation || '';
+        }
+
         async function refreshData() {
             showLoading(true);
             if (!database) {
@@ -1369,9 +1744,14 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('candidateModal');
-            if (event.target === modal) {
+            const candidateModal = document.getElementById('candidateModal');
+            const detailModal = document.getElementById('candidateDetailModal');
+            
+            if (event.target === candidateModal) {
                 closeCandidateModal();
+            }
+            if (event.target === detailModal) {
+                closeCandidateDetailModal();
             }
         }
 
@@ -1379,6 +1759,7 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeCandidateModal();
+                closeCandidateDetailModal();
             }
             if (e.key === 'n' && e.ctrlKey) {
                 e.preventDefault();
