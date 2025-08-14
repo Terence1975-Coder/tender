@@ -386,10 +386,154 @@
             margin-bottom: 1rem;
         }
 
+        /* Contact footer */
+        .contact-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 51, 102, 0.9);
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .contact-footer a {
+            color: #FFCC00;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .contact-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Test button */
+        .test-button {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+            z-index: 200;
+        }
+
+        .test-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+        }
+
+        .test-button:active {
+            transform: translateY(0);
+        }
+
+        /* Adjust chat container for footer */
+        .chat-container {
+            padding-bottom: 50px; /* Space for footer */
+        }
+
         @media (max-width: 768px) {
             .chat-container {
                 padding: 0.5rem;
+                padding-bottom: 60px; /* Extra space for footer on mobile */
                 height: calc(100vh - 100px);
+            }
+            
+            .contact-footer {
+                font-size: 0.75rem;
+                padding: 0.4rem;
+            }
+            
+            .test-button {
+                bottom: 80px;
+                right: 15px;
+                padding: 0.6rem 1.2rem;
+                font-size: 0.8rem;
+            }
+            
+            setupSmartScrolling() {
+                // Track user scrolling behavior
+                this.chatMessages.addEventListener('scroll', () => {
+                    const container = this.chatMessages;
+                    const scrollTop = container.scrollTop;
+                    const scrollHeight = container.scrollHeight;
+                    const clientHeight = container.clientHeight;
+                    
+                    // Check if user is near the bottom
+                    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+                    this.isUserScrolling = distanceFromBottom > this.scrollThreshold;
+                    
+                    this.lastScrollTop = scrollTop;
+                });
+            }
+            
+            smartScrollToBottom() {
+                // Only auto-scroll if user hasn't manually scrolled up
+                if (!this.isUserScrolling) {
+                    setTimeout(() => {
+                        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                    }, 100);
+                }
+            }
+            
+            forceScrollToBottom() {
+                // Force scroll (for initial messages, etc.)
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                    this.isUserScrolling = false; // Reset user scrolling flag
+                }, 100);
+            }
+            
+            sendTestData() {
+                const testData = {
+                    Name: "Test User",
+                    Email: "test@example.com", 
+                    Phone: "+123456789",
+                    Date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+                    Status: "pending",
+                    Score: 85,
+                    Bootcamp: "AI Fundamentals",
+                    Location: "Remote",
+                    Experience: "Intermediate",
+                    Motivation: "Testing chatbot to n8n workflow"
+                };
+                
+                fetch('http://localhost:5678/webhook/tender/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                })
+                .then(response => {
+                    console.log('Test data sent to n8n', response.status);
+                    return response.text();
+                })
+                .then(data => {
+                    console.log('n8n response:', data);
+                })
+                .catch(error => {
+                    console.error('Error sending test data:', error);
+                    console.log('Test data sent to n8n (fallback due to network error)');
+                });
+            }
+            
+            scrollToBottom() {
+                this.smartScrollToBottom();
             }
             
             .voice-controls {
@@ -468,7 +612,20 @@
         @media (max-width: 480px) {
             .chat-container {
                 padding: 0.25rem;
+                padding-bottom: 65px; /* Extra space for footer on small mobile */
                 height: calc(100vh - 90px);
+            }
+            
+            .contact-footer {
+                font-size: 0.7rem;
+                padding: 0.3rem;
+            }
+            
+            .test-button {
+                bottom: 85px;
+                right: 10px;
+                padding: 0.5rem 1rem;
+                font-size: 0.75rem;
             }
             
             .voice-controls {
@@ -581,6 +738,14 @@
         </div>
     </div>
 
+    <!-- Contact Footer -->
+    <div class="contact-footer">
+        For queries, contact us at <a href="mailto:bootcamp@thinkbitgroup.co.uk">bootcamp@thinkbitgroup.co.uk</a>
+    </div>
+
+    <!-- Test Button -->
+    <button class="test-button" id="testButton">Send Test Data</button>
+
     <script>
         class BITChatbot {
             constructor() {
@@ -592,6 +757,12 @@
                 this.skipSpeechBtn = document.getElementById('skipSpeechBtn');
                 this.inputArea = document.getElementById('inputArea');
                 this.typingIndicator = document.getElementById('typingIndicator');
+                this.testButton = document.getElementById('testButton');
+                
+                // Smart scrolling variables
+                this.isUserScrolling = false;
+                this.scrollThreshold = 50; // pixels from bottom to consider "at bottom"
+                this.lastScrollTop = 0;
                 
                 this.currentStep = 'welcome';
                 this.userData = {
@@ -689,9 +860,13 @@
                 this.voiceButton.addEventListener('click', () => this.toggleVoiceRecognition());
                 this.stopSpeechBtn.addEventListener('click', () => this.stopSpeech());
                 this.skipSpeechBtn.addEventListener('click', () => this.skipSpeech());
+                this.testButton.addEventListener('click', () => this.sendTestData());
                 this.chatInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') this.handleSend();
                 });
+                
+                // Set up smart scrolling
+                this.setupSmartScrolling();
                 
                 // Start the conversation
                 setTimeout(() => this.showWelcomeMessage(), 800);
@@ -950,7 +1125,7 @@
             
             showTypingIndicator() {
                 this.typingIndicator.style.display = 'flex';
-                this.scrollToBottom();
+                this.forceScrollToBottom();
             }
             
             hideTypingIndicator() {
@@ -1174,7 +1349,7 @@
                 `;
                 
                 this.chatMessages.innerHTML += formHTML;
-                this.scrollToBottom();
+                this.forceScrollToBottom();
                 
                 document.getElementById('submitDetails').addEventListener('click', () => {
                     this.submitContactDetails();
@@ -1258,7 +1433,7 @@
                 `;
                 
                 this.chatMessages.innerHTML += successHTML;
-                this.scrollToBottom();
+                this.forceScrollToBottom();
                 
                 // Speak the success message
                 this.speakText(`You're all set, ${this.userData.candidate.name}! Thanks a million for taking the time to chat with me today! Someone from our brilliant team will be in touch within the next day or two to discuss your application.`);
@@ -1325,12 +1500,6 @@
                     { text: "I have more questions", action: 'questions' },
                     { text: "Let's start the screening", action: 'screening' }
                 ]);
-            }
-            
-            scrollToBottom() {
-                setTimeout(() => {
-                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-                }, 100);
             }
         }
         
