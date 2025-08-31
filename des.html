@@ -1,0 +1,1340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Diamond Equine – Invoices</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            turquoise: {
+              50:  '#f0fdfa',
+              100: '#ccfbf1',
+              200: '#99f6e4',
+              300: '#5eead4',
+              400: '#2dd4bf',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a'
+            },
+          },
+          fontFamily: {
+            display: ['ui-serif','Georgia','Cambria','Times New Roman','Times', 'serif']
+          },
+          backgroundImage: {
+            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+            'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- pdf.js (for PDF text extraction) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+    }
+  </script>
+
+  <!-- Tesseract.js (for image OCR) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- jsPDF (for creating invoice PDFs) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- Papa Parse (CSV export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- Firebase (client SDKs, compat for simplicity in a single-file app) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+
+  <!-- Tailwind utilities with @apply support -->
+  <style type="text/tailwindcss">
+    @layer components {
+      .card { @apply bg-white rounded-3xl shadow-lg shadow-turquoise-500/10 p-6 border border-turquoise-100/50 backdrop-blur-sm; }
+      .card-hover { @apply hover:shadow-xl hover:shadow-turquoise-500/20 transition-all duration-300 hover:-translate-y-1; }
+      .btn { @apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 font-medium transition-all duration-200 transform hover:scale-105 shadow-md; }
+      .btn-primary { @apply bg-gradient-to-r from-turquoise-500 to-turquoise-600 text-white hover:from-turquoise-600 hover:to-turquoise-700 shadow-turquoise-500/30; }
+      .btn-outline { @apply border-2 border-turquoise-200 text-turquoise-700 hover:bg-turquoise-50 hover:border-turquoise-300; }
+      .btn-ghost { @apply text-turquoise-600 hover:bg-turquoise-50 border-0 shadow-none; }
+      .input { @apply w-full rounded-2xl border-2 border-turquoise-100 px-4 py-3 focus:border-turquoise-400 focus:ring-4 focus:ring-turquoise-100 transition-all duration-200; }
+      .label { @apply block text-sm font-semibold text-slate-700 mb-2; }
+      .pill { @apply inline-flex items-center rounded-full bg-turquoise-100 px-4 py-2 text-sm font-medium text-turquoise-700 shadow-sm; }
+      .tab { @apply cursor-pointer rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-turquoise-50; }
+      .tab-active { @apply bg-gradient-to-r from-turquoise-500 to-turquoise-600 text-white shadow-lg shadow-turquoise-500/30; }
+      .kicker { @apply text-turquoise-600 font-bold uppercase tracking-wider text-xs mb-2; }
+      .stat-card { @apply bg-gradient-to-br from-white to-turquoise-50 border-2 border-turquoise-100 rounded-3xl p-6 shadow-lg; }
+      .gradient-bg { background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); }
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-slate-900">
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-turquoise-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="flex items-center justify-between py-4">
+        <div class="flex items-center gap-4">
+          <div class="text-3xl">🎠</div>
+          <div>
+            <div class="font-display text-2xl font-bold bg-gradient-to-r from-turquoise-600 to-turquoise-700 bg-clip-text text-transparent">
+              Diamond Equine
+            </div>
+            <div class="text-sm text-turquoise-600 font-medium -mt-1">Invoice & Tax Dashboard</div>
+          </div>
+        </div>
+        <nav class="hidden sm:flex gap-2" id="tabs">
+          <button class="tab tab-active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="new-invoice">New Invoice</button>
+          <button class="tab" data-tab="upload">Upload & OCR</button>
+          <button class="tab" data-tab="invoices">Invoices</button>
+          <button class="tab" data-tab="expenses">Expenses & Travel</button>
+          <button class="tab" data-tab="settings">Settings</button>
+        </nav>
+        <div class="sm:hidden">
+          <select id="tabSelect" class="input">
+            <option value="dashboard">Dashboard</option>
+            <option value="new-invoice">New Invoice</option>
+            <option value="upload">Upload & OCR</option>
+            <option value="invoices">Invoices</option>
+            <option value="expenses">Expenses & Travel</option>
+            <option value="settings">Settings</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <!-- Dashboard -->
+    <section id="dashboard" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="kicker">Financial Overview</div>
+          <h1 class="text-3xl sm:text-4xl font-display font-bold text-slate-800">Tax Year Summary</h1>
+          <p class="text-slate-600 mt-2">Track your business performance and tax obligations</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="yearSelect" class="input w-44"></select>
+          <button id="exportCSV" class="btn btn-outline">📊 Export CSV</button>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="stat-card">
+          <div class="kicker">Total Invoiced</div>
+          <div id="sumInvoiced" class="text-3xl font-bold text-slate-800">£0.00</div>
+          <div class="text-sm text-turquoise-600 mt-1">↗ Revenue generated</div>
+        </div>
+        <div class="stat-card">
+          <div class="kicker">Amount Paid</div>
+          <div id="sumPaid" class="text-3xl font-bold text-emerald-600">£0.00</div>
+          <div class="text-sm text-emerald-600 mt-1">✓ Collected</div>
+        </div>
+        <div class="stat-card">
+          <div class="kicker">Business Expenses</div>
+          <div id="sumExpenses" class="text-3xl font-bold text-amber-600">£0.00</div>
+          <div class="text-sm text-amber-600 mt-1">📝 Deductible</div>
+        </div>
+        <div class="stat-card">
+          <div class="kicker">Travel Costs</div>
+          <div id="sumTravel" class="text-3xl font-bold text-purple-600">£0.00</div>
+          <div class="text-sm text-purple-600 mt-1">🚗 Mileage</div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="card lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <div class="kicker">Net Profit</div>
+            <div id="sumNet" class="text-2xl font-bold text-slate-800">£0.00</div>
+          </div>
+          <div class="bg-turquoise-50 rounded-2xl p-4">
+            <div class="text-sm text-turquoise-700">
+              💡 <strong>UK Tax Year:</strong> 6 April – 5 April<br/>
+              Formula: <em>Income - Expenses - Travel = Net Profit</em>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="kicker mb-4">Quick Actions</div>
+          <div class="space-y-3">
+            <button onclick="UI.go('upload')" class="btn btn-primary w-full">📷 Process Photo/PDF</button>
+            <button onclick="UI.go('new-invoice')" class="btn btn-outline w-full">📄 Create Invoice</button>
+            <button onclick="UI.go('expenses')" class="btn btn-outline w-full">💰 Add Expense</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <div class="kicker">Data Management</div>
+          <div class="flex flex-wrap gap-3">
+            <button id="loadSamples" class="btn btn-ghost">📋 Load Sample Data</button>
+            <button id="backupData" class="btn btn-ghost">💾 Backup</button>
+            <label class="btn btn-ghost cursor-pointer">
+              📁 Restore <input id="restoreData" type="file" accept="application/json" class="hidden" />
+            </label>
+            <button id="openFirebaseSettings" class="btn btn-ghost">☁️ Firebase Settings</button>
+            <button id="syncUp" class="btn btn-outline">⬆️ Sync Up</button>
+            <button id="pullDown" class="btn btn-outline">⬇️ Pull Down</button>
+          </div>
+        </div>
+        <div id="cloudStatus" class="text-sm text-slate-600"></div>
+      </div>
+    </section>
+
+    <!-- New Invoice -->
+    <section id="new-invoice" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="kicker">Invoice Creation</div>
+          <h2 class="text-3xl font-display font-bold text-slate-800">New / Edit Invoice</h2>
+        </div>
+        <div class="flex gap-3">
+          <button id="saveInvoice" class="btn btn-primary">💾 Save Invoice</button>
+          <button id="pdfInvoice" class="btn btn-outline">📄 Download PDF</button>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+        <div class="card lg:col-span-2 space-y-6">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label">Invoice Number</label>
+              <input id="invNumber" class="input" placeholder="e.g., 590" />
+            </div>
+            <div>
+              <label class="label">Invoice Date</label>
+              <input id="invDate" type="date" class="input" />
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label">Client Name</label>
+              <input id="clientName" class="input" placeholder="Client name" />
+            </div>
+            <div>
+              <label class="label">Client Address</label>
+              <textarea id="clientAddress" rows="3" class="input" placeholder="Full address"></textarea>
+            </div>
+          </div>
+
+          <div class="border-t border-turquoise-100 pt-6">
+            <div class="flex items-center justify-between mb-4">
+              <div class="kicker">Invoice Items</div>
+              <div class="flex gap-2">
+                <button id="addWkday" class="btn btn-outline text-sm">+ Weekday @ £<span id="rateWeekdayLbl">15</span></button>
+                <button id="addWkend" class="btn btn-outline text-sm">+ Weekend @ £<span id="rateWeekendLbl">17</span></button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto bg-turquoise-50 rounded-2xl p-4">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-turquoise-700 font-semibold">
+                    <th class="py-3">Description</th>
+                    <th class="py-3 w-20">Qty</th>
+                    <th class="py-3 w-24">Unit £</th>
+                    <th class="py-3 w-28">Total £</th>
+                    <th class="py-3 w-12"></th>
+                  </tr>
+                </thead>
+                <tbody id="itemsBody"></tbody>
+                <tfoot>
+                  <tr class="border-t-2 border-turquoise-200">
+                    <td colspan="3" class="text-right font-bold py-4 text-slate-800">Net Total</td>
+                    <td class="py-4 font-bold text-xl text-turquoise-600" id="invTotal">£0.00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="card">
+            <div class="kicker">Payment Status</div>
+            <label class="inline-flex items-center gap-3 p-3 bg-turquoise-50 rounded-2xl cursor-pointer hover:bg-turquoise-100 transition-colors">
+              <input id="paidToggle" type="checkbox" class="h-5 w-5 text-turquoise-500 rounded" />
+              <span class="font-medium">Mark as paid</span>
+            </label>
+          </div>
+
+          <div class="card">
+            <div class="kicker">Bank Details</div>
+            <div class="space-y-3">
+              <input id="bankName" class="input" placeholder="Bank Name" />
+              <input id="bankAccountName" class="input" placeholder="Account Name" />
+              <div class="grid grid-cols-2 gap-3">
+                <input id="sortCode" class="input" placeholder="Sort Code" />
+                <input id="accountNo" class="input" placeholder="Account No" />
+              </div>
+            </div>
+            <div class="text-xs text-slate-500 mt-3 p-3 bg-slate-50 rounded-xl">
+              💡 These details appear on invoice footers. Update defaults in Settings.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload & OCR -->
+    <section id="upload" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="kicker">Document Processing</div>
+          <h2 class="text-3xl font-display font-bold text-slate-800">Upload & Extract Data</h2>
+          <p class="text-slate-600 mt-2">Use AI to extract invoice data from photos and PDFs</p>
+        </div>
+        <div class="flex gap-3">
+          <button id="parseToInvoice" class="btn btn-primary">🔄 Fill Invoice Form</button>
+        </div>
+      </div>
+
+      <div class="card space-y-6">
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <label class="label">📁 Select File</label>
+            <input id="uploadInput" type="file" accept="application/pdf,image/*" capture="environment" class="input" />
+            <div class="text-sm text-turquoise-600 mt-2 p-3 bg-turquoise-50 rounded-xl">
+              📸 <strong>Tip:</strong> Point camera at printed invoices or handwritten notes for automatic text extraction
+            </div>
+          </div>
+          <div>
+            <label class="label">🎯 Processing Mode</label>
+            <select id="ocrMode" class="input">
+              <option value="invoice">Standard Invoice</option>
+              <option value="diary">Diary Format (e.g., "R - 2@£17, 20@£15...")</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div>
+            <label class="label">📝 Extracted Text</label>
+            <textarea id="ocrText" rows="12" class="input font-mono text-sm"></textarea>
+          </div>
+          <div>
+            <label class="label">🔍 Parsed Data Preview</label>
+            <pre id="parsePreview" class="bg-slate-900 text-green-400 rounded-2xl p-4 text-xs overflow-auto h-[300px] font-mono"></pre>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-4 border-t border-turquoise-100">
+          <button id="runOCR" class="btn btn-outline">🔍 Extract Text</button>
+          <button id="runParse" class="btn btn-outline">🧠 Parse Data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Invoices -->
+    <section id="invoices" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="kicker">Invoice Management</div>
+          <h2 class="text-3xl font-display font-bold text-slate-800">All Invoices</h2>
+        </div>
+        <div class="flex gap-3">
+          <input id="searchInv" class="input w-48" placeholder="🔍 Search..." />
+          <select id="statusInv" class="input w-36">
+            <option value="all">All Status</option>
+            <option value="paid">Paid Only</option>
+            <option value="unpaid">Unpaid Only</option>
+          </select>
+        </div>
+      </div>
+      <div id="invList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- Expenses & Travel -->
+    <section id="expenses" class="hidden space-y-6">
+      <div class="kicker">Financial Tracking</div>
+      <h2 class="text-3xl font-display font-bold text-slate-800 mb-6">Expenses & Travel</h2>
+
+      <div class="grid lg:grid-cols-4 gap-6">
+        <div class="card">
+          <div class="kicker">💰 Add Expense</div>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <input id="expDate" type="date" class="input" />
+              <select id="expCat" class="input">
+                <option>Supplies</option>
+                <option>Fuel</option>
+                <option>Equipment</option>
+                <option>Insurance</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <input id="expAmt" class="input" placeholder="Amount (£)" />
+            <input id="expNote" class="input" placeholder="Description" />
+            <button id="addExp" class="btn btn-primary w-full">💰 Add Expense</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="kicker">🚗 Travel/Mileage</div>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <input id="travDate" type="date" class="input" />
+              <input id="travMiles" class="input" placeholder="Miles" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <input id="travRate" class="input" placeholder="Rate per mile" />
+              <input id="travNote" class="input" placeholder="Journey details" />
+            </div>
+            <button id="addTrav" class="btn btn-primary w-full">🚗 Add Travel</button>
+          </div>
+        </div>
+
+        <div class="card lg:col-span-2">
+          <div class="kicker">📊 Summary</div>
+          <div class="grid grid-cols-2 gap-6">
+            <div class="bg-amber-50 rounded-2xl p-4 text-center">
+              <div class="text-sm font-semibold text-amber-700 mb-1">Total Expenses</div>
+              <div id="expTotal" class="text-2xl font-bold text-amber-600">£0.00</div>
+            </div>
+            <div class="bg-purple-50 rounded-2xl p-4 text-center">
+              <div class="text-sm font-semibold text-purple-700 mb-1">Travel Costs</div>
+              <div id="travTotal" class="text-2xl font-bold text-purple-600">£0.00</div>
+            </div>
+          </div>
+          <div class="text-sm text-turquoise-600 mt-4 p-3 bg-turquoise-50 rounded-xl">
+            📈 These amounts are automatically included in your tax year calculations on the Dashboard
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="kicker mb-4">📋 Recent Entries</div>
+        <div id="expList" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings" class="hidden space-y-6">
+      <div class="kicker">Configuration</div>
+      <h2 class="text-3xl font-display font-bold text-slate-800 mb-6">Business Settings</h2>
+
+      <div class="card space-y-6">
+        <div class="border-b border-turquoise-100 pb-6">
+          <h3 class="font-semibold text-lg text-slate-800 mb-4">🏢 Business Information</h3>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="label">Business Name</label>
+              <input id="bizName" class="input" placeholder="Your business name" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label">Tagline (Optional)</label>
+              <input id="bizTag" class="input" placeholder="Professional tagline" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label">Business Address</label>
+              <textarea id="bizAddress" class="input" rows="3" placeholder="Full business address"></textarea>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label">Email Address</label>
+              <input id="bizEmail" class="input" placeholder="business@example.com" />
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-turquoise-100 pb-6">
+          <h3 class="font-semibold text-lg text-slate-800 mb-4">💷 Rates & Charges</h3>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label class="label">Weekday Rate (£)</label>
+              <input id="rateWeekday" class="input" placeholder="15" />
+            </div>
+            <div>
+              <label class="label">Weekend/Holiday Rate (£)</label>
+              <input id="rateWeekend" class="input" placeholder="17" />
+            </div>
+            <div>
+              <label class="label">Mileage Rate (£)</label>
+              <input id="travelDefault" class="input" placeholder="0.45" />
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-turquoise-100 pb-6">
+          <h3 class="font-semibold text-lg text-slate-800 mb-4">🏦 Banking Details</h3>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label">Bank Name</label>
+              <input id="bankDefaultName" class="input" placeholder="Your Bank" />
+            </div>
+            <div>
+              <label class="label">Account Name</label>
+              <input id="bankDefaultAcctName" class="input" placeholder="Account holder name" />
+            </div>
+            <div>
+              <label class="label">Sort Code</label>
+              <input id="bankDefaultSort" class="input" placeholder="00-00-00" />
+            </div>
+            <div>
+              <label class="label">Account Number</label>
+              <input id="bankDefaultAcct" class="input" placeholder="12345678" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pb-6">
+          <h3 class="font-semibold text-lg text-slate-800 mb-4">🔢 Invoice Settings</h3>
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label class="label">Invoice Prefix (Optional)</label>
+              <input id="invPrefix" class="input" placeholder="INV-" />
+            </div>
+            <div>
+              <label class="label">Next Invoice Number</label>
+              <input id="invNext" class="input" placeholder="590" />
+            </div>
+            <div class="flex items-end">
+              <button id="saveSettings" class="btn btn-primary w-full">💾 Save All Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Firebase UI -->
+      <div class="card space-y-4">
+        <h3 class="font-semibold text-lg text-slate-800">☁️ Firebase (Web App) Settings</h3>
+        <p class="text-sm text-slate-600">
+          Paste your <strong>Firebase Web App</strong> config JSON (from Project settings → General → Your apps → Web app).<br/>
+          <em>Do not use Admin private keys in the browser.</em>
+        </p>
+        <textarea id="firebaseConfigJson" class="input font-mono text-sm" rows="6" placeholder='{
+  "apiKey":"...",
+  "authDomain":"...",
+  "projectId":"...",
+  "storageBucket":"...",
+  "messagingSenderId":"...",
+  "appId":"..."
+}'></textarea>
+        <div class="flex flex-wrap gap-3">
+          <button id="connectFirebase" class="btn btn-primary">Connect Firebase</button>
+          <label class="inline-flex items-center gap-2">
+            <input id="autoSync" type="checkbox" class="h-4 w-4"> <span class="text-sm">Enable Auto-Sync</span>
+          </label>
+        </div>
+        <div id="firebaseConnStatus" class="text-sm text-slate-600"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- App Script -->
+  <script type="module">
+    /***********************
+     * Utilities
+     ***********************/
+    const £ = (n) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(Number(n || 0));
+    const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    function ukTaxYearLabel(d) {
+      try {
+        const dt = (typeof d === 'string') ? new Date(d) : (d || new Date());
+        const y = dt.getFullYear();
+        const taxYearStart = new Date(y, 3, 6);
+        const from = dt >= taxYearStart ? y : y - 1;
+        const toShort = String((from + 1) % 100).padStart(2,'0');
+        return `${from}/${toShort}`;
+      } catch (e) {
+        console.error('Error in ukTaxYearLabel:', e);
+        return '2025/26';
+      }
+    }
+    function taxYearRange(label) {
+      try {
+        const [fromStr] = label.split('/');
+        const from = Number(fromStr);
+        const start = new Date(from, 3, 6);
+        const end = new Date(from + 1, 3, 6);
+        return [start.toISOString().slice(0,10), end.toISOString().slice(0,10)];
+      } catch (e) {
+        console.error('Error in taxYearRange:', e);
+        return ['2025-04-06', '2026-04-06'];
+      }
+    }
+
+    /***********************
+     * Store (localStorage)
+     ***********************/
+    const Store = {
+      key: 'diamond-equine-db',
+      load() {
+        try {
+          const raw = localStorage.getItem(this.key);
+          if (!raw) return this.seed();
+          const d = JSON.parse(raw);
+          d.invoices ??= [];
+          d.expenses ??= [];
+          d.travel ??= [];
+          d.settings ??= this.defaultSettings();
+          return d;
+        } catch (e) {
+          console.error('Error loading data:', e);
+          return this.seed();
+        }
+      },
+      save(db) {
+        try {
+          localStorage.setItem(this.key, JSON.stringify(db));
+          if (Cloud.auto && Cloud.connected) {
+            Cloud.queueSave(); // debounce push
+          }
+        } catch (e) {
+          console.error('Error saving data:', e);
+          alert('Error saving data to local storage');
+        }
+      },
+      defaultSettings() {
+        return {
+          bizName: 'Debra Herbert t/a Diamond Equine Grooming',
+          bizTag: 'Professional Equine Grooming',
+          bizAddress: '31 Teaseltun, Elvetham Heath, Fleet, Hampshire, GU51 5BY',
+          bizEmail: '',
+          rateWeekday: 15,
+          rateWeekend: 17,
+          travelDefault: 0.45,
+          bankName: 'Nationwide',
+          bankAccountName: 'Mrs Debbie H Herbert',
+          bankSort: '07-01-16',
+          bankAccount: '32288417',
+          invPrefix: '',
+          invNext: 590,
+          firebaseConfigJson: '',
+          autoSync: false
+        };
+      },
+      seed() { return { invoices: [], expenses: [], travel: [], settings: this.defaultSettings() }; },
+      backup() {
+        try {
+          const blob = new Blob([localStorage.getItem(this.key) || '{}'], {type:'application/json'});
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `diamond-equine-backup-${new Date().toISOString().slice(0,10)}.json`;
+          a.click();
+        } catch (e) {
+          console.error('Error creating backup:', e);
+          alert('Error creating backup file');
+        }
+      },
+      async restore(file) {
+        try {
+          const text = await file.text();
+          localStorage.setItem(this.key, text);
+          location.reload();
+        } catch (e) {
+          console.error('Error restoring backup:', e);
+          alert('Error restoring backup file');
+        }
+      }
+    };
+    let DB = Store.load();
+
+    /***********************
+     * Cloud (Firebase Web)
+     ***********************/
+    const Cloud = {
+      connected: false,
+      auto: !!DB.settings.autoSync,
+      app: null, db: null, t: null,
+      connectFromSettings() {
+        try {
+          const raw = (DB.settings.firebaseConfigJson || '').trim();
+          if (!raw) throw new Error('No Firebase config found in Settings.');
+          const cfg = JSON.parse(raw);
+          if (!window.firebase) throw new Error('Firebase SDK not loaded.');
+          this.app = firebase.apps?.length ? firebase.app() : firebase.initializeApp(cfg);
+          this.db = firebase.firestore();
+          this.connected = true;
+          this.updateStatus('Connected to Firebase project: ' + (cfg.projectId || ''));
+        } catch (e) {
+          this.connected = false;
+          this.updateStatus('Firebase not connected: ' + e.message, true);
+        }
+      },
+      updateStatus(msg, isError=false) {
+        const el = document.getElementById('cloudStatus');
+        const s = document.getElementById('firebaseConnStatus');
+        [el, s].forEach(x => { if (x) { x.textContent = msg; x.className = 'text-sm ' + (isError?'text-red-600':'text-emerald-600'); }});
+      },
+      async pushAll() {
+        if (!this.connected) { this.updateStatus('Connect Firebase in Settings first.', true); return; }
+        try {
+          const batchSize = 400; // simple chunk to avoid giant bursts
+          const sets = [];
+          DB.invoices.forEach(i => sets.push(['invoices', i.id, i]));
+          DB.expenses.forEach(e => sets.push(['expenses', e.id, e]));
+          DB.travel.forEach(t => sets.push(['travel', t.id, t]));
+          for (let i = 0; i < sets.length; i += batchSize) {
+            const chunk = sets.slice(i, i + batchSize);
+            const batch = this.db.batch();
+            chunk.forEach(([col, id, data]) => batch.set(this.db.collection(col).doc(id || uid()), data, { merge: true }));
+            await batch.commit();
+          }
+          this.updateStatus('Sync Up complete.');
+        } catch (e) {
+          console.error(e);
+          this.updateStatus('Sync Up failed: ' + e.message, true);
+        }
+      },
+      async pullAll() {
+        if (!this.connected) { this.updateStatus('Connect Firebase in Settings first.', true); return; }
+        try {
+          const colToArr = async (col) => (await this.db.collection(col).get()).docs.map(d => d.data());
+          const invoices = await colToArr('invoices');
+          const expenses = await colToArr('expenses');
+          const travel = await colToArr('travel');
+          DB.invoices = invoices;
+          DB.expenses = expenses;
+          DB.travel = travel;
+          Store.save(DB);
+          UI.refreshYears(); UI.invoicesList(); UI.dashboard(); refreshExpensesUI();
+          this.updateStatus('Pull Down complete.');
+        } catch (e) {
+          console.error(e);
+          this.updateStatus('Pull Down failed: ' + e.message, true);
+        }
+      },
+      queueSave() {
+        clearTimeout(this.t);
+        this.t = setTimeout(()=>this.pushAll(), 800);
+      }
+    };
+    // Connect immediately if config present & autosync enabled
+    if (DB.settings.firebaseConfigJson) {
+      Cloud.connectFromSettings();
+    }
+
+    /***********************
+     * OCR + PDF parsing
+     ***********************/
+    const OCR = {
+      async extractFromPDF(file) {
+        try {
+          const buf = await file.arrayBuffer();
+          const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+          let text = '';
+          for (let p = 1; p <= doc.numPages; p++) {
+            const page = await doc.getPage(p);
+            const content = await page.getTextContent();
+            text += content.items.map(i => i.str).join(' ') + '\n';
+          }
+          return text;
+        } catch (e) {
+          console.error('PDF extraction error:', e);
+          throw new Error('Failed to extract text from PDF');
+        }
+      },
+      async extractFromImage(file) {
+        try {
+          const { data: { text } } = await Tesseract.recognize(file, 'eng');
+          return text;
+        } catch (e) {
+          console.error('OCR extraction error:', e);
+          throw new Error('Failed to extract text from image');
+        }
+      }
+    };
+
+    /***********************
+     * Invoice Text Parser
+     ***********************/
+    const Parser = {
+      parseInvoiceText(raw) {
+        try {
+          const text = raw.replace(/\s+/g, ' ').trim();
+          let number = (text.match(/Invoice\s*No:\s*(\d+)/i) || [])[1] || '';
+          let dateStr = (text.match(/Date:\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{4})/i) || [])[1] || '';
+          let date = '';
+          if (dateStr) {
+            const [d, mon, y] = dateStr.split('-');
+            const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+            const m = months[mon.slice(0,3)];
+            if (m!==undefined) date = new Date(Number(y), m, Number(d)).toISOString().slice(0,10);
+          }
+          let clientName = (text.match(/To:\s*([^]+?)\s+(Qty|Description|Net|Address)/i) || [])[1];
+          if (!clientName) clientName = (text.match(/To:\s*([A-Za-z0-9 &.,'-]+)/i) || [])[1] || '';
+          const itemRegex = /(\d+(?:\.\d+)?)\s+(\d+(?:\.\d{2})?)\s*£?\s*([\d,]+(?:\.\d{2})?)/gi;
+          const items = []; let m;
+          while ((m = itemRegex.exec(text))) {
+            const qty = parseFloat(m[1]);
+            const unit = parseFloat(m[2]);
+            const line = parseFloat(String(m[3]).replace(/,/g,''));
+            if (qty > 0 && unit > 0) items.push({ id: uid(), description: 'Grooming Services', qty, unit, line });
+          }
+          items.forEach(it => { it.line = it.line || (it.qty * it.unit); });
+          let net = (text.match(/Net\s*Total\s*£?\s*([\d,]+(?:\.\d{2})?)/i) || [])[1];
+          const netTotal = net ? parseFloat(net.replace(/,/g,'')) : items.reduce((s,i)=>s+i.line,0);
+          return { number, date, clientName, items, totals: { net: netTotal } };
+        } catch (e) {
+          console.error('Invoice parsing error:', e);
+          return { items: [], totals: { net: 0 } };
+        }
+      },
+      parseDiaryText(raw) {
+        try {
+          const text = raw.replace(/\r/g,'').trim();
+          const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
+          const items = [];
+          const pattern = /(\d+(?:\.\d+)?)\s*@\s*£?\s*(\d+(?:\.\d{2})?)/ig;
+          for (const line of lines) {
+            let m;
+            while ((m = pattern.exec(line))) {
+              const qty = parseFloat(m[1]), unit = parseFloat(m[2]);
+              items.push({ id: uid(), description: 'Grooming (diary)', qty, unit, line: qty*unit });
+            }
+          }
+          return { items, totals: { net: items.reduce((s,i)=>s+i.line,0) } };
+        } catch (e) {
+          console.error('Diary parsing error:', e);
+          return { items: [], totals: { net: 0 } };
+        }
+      }
+    };
+
+    /***********************
+     * UI helpers
+     ***********************/
+    const UI = {
+      currentTab: 'dashboard',
+      go(tab) {
+        try {
+          for (const sec of document.querySelectorAll('main > section')) sec.classList.add('hidden');
+          const targetSection = document.getElementById(tab);
+          if (targetSection) targetSection.classList.remove('hidden');
+          for (const b of document.querySelectorAll('#tabs .tab')) b.classList.remove('tab-active');
+          const btn = [...document.querySelectorAll('#tabs .tab')].find(b=>b.dataset.tab===tab);
+          if (btn) btn.classList.add('tab-active');
+          const tabSelect = document.getElementById('tabSelect');
+          if (tabSelect) tabSelect.value = tab;
+          this.currentTab = tab;
+        } catch (e) {
+          console.error('Error switching tabs:', e);
+        }
+      },
+      refreshYears() {
+        try {
+          const years = new Set(DB.invoices.map(i=>ukTaxYearLabel(i.date || todayISO())));
+          years.add(ukTaxYearLabel(new Date()));
+          const sel = document.getElementById('yearSelect');
+          if (sel) {
+            sel.innerHTML = [...years].sort().map(y=>`<option>${y}</option>`).join('');
+            sel.value = ukTaxYearLabel(new Date());
+          }
+        } catch (e) {
+          console.error('Error refreshing years:', e);
+        }
+      },
+      dashboard() {
+        try {
+          const yearSelect = document.getElementById('yearSelect');
+          const y = yearSelect ? yearSelect.value : ukTaxYearLabel(new Date());
+          const [start, end] = taxYearRange(y);
+          const inYear = (d) => d >= start && d < end;
+
+          const invs = DB.invoices.filter(i=>inYear(i.date || todayISO()));
+          const expenses = DB.expenses.filter(e=>inYear(e.date));
+          const travel = DB.travel.filter(t=>inYear(t.date));
+
+          const sumInvoiced = invs.reduce((s,i)=>s+(i.items||[]).reduce((a,b)=>a+(Number(b.qty||0)*Number(b.unit||0)),0),0);
+          const sumPaid = invs.filter(i=>i.paid).reduce((s,i)=>s+(i.items||[]).reduce((a,b)=>a+(Number(b.qty||0)*Number(b.unit||0)),0),0);
+          const sumExpenses = expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+          const sumTravel = travel.reduce((s,t)=>s+(Number(t.miles||0)*Number(t.rate||0)),0);
+          const net = sumInvoiced - sumExpenses - sumTravel;
+
+          const updateElement = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = £(value); };
+          updateElement('sumInvoiced', sumInvoiced);
+          updateElement('sumPaid', sumPaid);
+          updateElement('sumExpenses', sumExpenses);
+          updateElement('sumTravel', sumTravel);
+          updateElement('sumNet', net);
+        } catch (e) {
+          console.error('Error updating dashboard:', e);
+        }
+      },
+      invoicesList() {
+        try {
+          const q = (document.getElementById('searchInv')?.value || '').toLowerCase();
+          const status = document.getElementById('statusInv')?.value || 'all';
+          const container = document.getElementById('invList');
+          if (!container) return;
+
+          const filtered = DB.invoices.filter(i=>{
+            const hay = [i.number, i.client?.name, i.client?.address].join(' ').toLowerCase();
+            const matchQ = !q || hay.includes(q);
+            const matchS = status==='all' || (status==='paid' ? i.paid : !i.paid);
+            return matchQ && matchS;
+          }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+          container.innerHTML = filtered.map(i => {
+            const total = (i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
+            return `
+              <div class="card card-hover">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="font-bold text-lg">Invoice ${i.number || ''}</div>
+                  <span class="pill ${i.paid?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${i.paid?'PAID':'UNPAID'}</span>
+                </div>
+                <div class="text-slate-600 mb-2">${i.client?.name || 'No client'}</div>
+                <div class="text-sm text-slate-500 mb-2">${i.date || ''}</div>
+                <div class="text-2xl font-bold text-turquoise-600 mb-4">${£(total)}</div>
+                <div class="flex flex-wrap gap-2">
+                  <button class="btn btn-outline text-xs" data-act="edit" data-id="${i.id}">✏️ Edit</button>
+                  <button class="btn btn-outline text-xs" data-act="pdf" data-id="${i.id}">📄 PDF</button>
+                  <button class="btn btn-outline text-xs" data-act="toggle" data-id="${i.id}">${i.paid?'Mark Unpaid':'Mark Paid'}</button>
+                  <button class="btn btn-outline text-xs text-red-600" data-act="del" data-id="${i.id}">🗑️ Delete</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          container.querySelectorAll('button').forEach(b=>{
+            b.addEventListener('click', ()=>{
+              try {
+                const id = b.dataset.id;
+                const act = b.dataset.act;
+                const inv = DB.invoices.find(x=>x.id===id);
+                if (!inv) return;
+                if (act==='edit') { Forms.loadInvoice(inv); UI.go('new-invoice'); }
+                else if (act==='pdf') { PDFMaker.download(inv); }
+                else if (act==='toggle') { inv.paid = !inv.paid; Store.save(DB); UI.invoicesList(); UI.dashboard(); }
+                else if (act==='del') {
+                  if (confirm('Delete this invoice? This action cannot be undone.')) {
+                    DB.invoices = DB.invoices.filter(x=>x.id!==id);
+                    Store.save(DB); UI.invoicesList(); UI.dashboard();
+                  }
+                }
+              } catch (e) {
+                console.error('Error handling invoice action:', e);
+                alert('An error occurred. Please try again.');
+              }
+            });
+          });
+        } catch (e) {
+          console.error('Error updating invoices list:', e);
+        }
+      }
+    };
+
+    /***********************
+     * Invoice form handlers
+     ***********************/
+    const Forms = {
+      clearInvoice() {
+        try {
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+          set('invNumber', DB.settings.invNext || '');
+          set('invDate', todayISO());
+          set('clientName', ''); set('clientAddress','');
+          const itemsBody = document.getElementById('itemsBody'); if (itemsBody) itemsBody.innerHTML = '';
+          const invTotal = document.getElementById('invTotal'); if (invTotal) invTotal.textContent = '£0.00';
+          const paidToggle = document.getElementById('paidToggle'); if (paidToggle) paidToggle.checked = false;
+          set('bankName', DB.settings.bankName || '');
+          set('bankAccountName', DB.settings.bankAccountName || '');
+          set('sortCode', DB.settings.bankSort || '');
+          set('accountNo', DB.settings.bankAccount || '');
+        } catch (e) { console.error('Error clearing invoice form:', e); }
+      },
+      addItem(desc='Grooming Services', qty=1, unit=DB.settings.rateWeekday||15) {
+        try {
+          const id = uid();
+          const tr = document.createElement('tr');
+          tr.dataset.id = id;
+          tr.innerHTML = `
+            <td class="py-2"><input class="input text-sm" value="${desc}"></td>
+            <td class="py-2"><input class="input text-sm" type="number" step="0.01" value="${qty}"></td>
+            <td class="py-2"><input class="input text-sm" type="number" step="0.01" value="${unit}"></td>
+            <td class="py-2"><div class="px-2 font-semibold text-turquoise-600" data-role="line">£0.00</div></td>
+            <td class="py-2"><button class="btn btn-outline text-xs text-red-600" data-role="del">✕</button></td>
+          `;
+          const itemsBody = document.getElementById('itemsBody'); if (itemsBody) itemsBody.appendChild(tr);
+          tr.querySelector('[data-role="del"]').addEventListener('click', ()=>{ tr.remove(); Forms.calcTotal(); });
+          tr.querySelectorAll('input').forEach(el=>el.addEventListener('input', Forms.calcTotal));
+          Forms.calcTotal();
+        } catch (e) { console.error('Error adding invoice item:', e); }
+      },
+      calcTotal() {
+        try {
+          let total = 0;
+          document.querySelectorAll('#itemsBody tr').forEach(tr=>{
+            const inputs = tr.querySelectorAll('input');
+            if (inputs.length >= 3) {
+              const qty = parseFloat(inputs[1].value || '0');
+              const unit = parseFloat(inputs[2].value || '0');
+              const line = qty * unit;
+              const lineEl = tr.querySelector('[data-role="line"]');
+              if (lineEl) lineEl.textContent = £(line);
+              total += line;
+            }
+          });
+          const invTotal = document.getElementById('invTotal');
+          if (invTotal) invTotal.textContent = £(total);
+        } catch (e) { console.error('Error calculating total:', e); }
+      },
+      readInvoice() {
+        try {
+          const items = [];
+          document.querySelectorAll('#itemsBody tr').forEach(tr=>{
+            const inputs = tr.querySelectorAll('input');
+            if (inputs.length >= 3) {
+              items.push({
+                id: tr.dataset.id || uid(),
+                description: inputs[0].value || 'Grooming Services',
+                qty: Number(inputs[1].value || 0),
+                unit: Number(inputs[2].value || 0)
+              });
+            }
+          });
+          const val = (id) => document.getElementById(id)?.value?.trim() || '';
+          const checked = (id) => !!document.getElementById(id)?.checked;
+
+          return {
+            id: uid(),
+            number: val('invNumber'),
+            date: val('invDate') || todayISO(),
+            client: { name: val('clientName'), address: val('clientAddress') },
+            items,
+            paid: checked('paidToggle'),
+            bank: {
+              name: val('bankName'),
+              accountName: val('bankAccountName'),
+              sort: val('sortCode'),
+              account: val('accountNo')
+            }
+          };
+        } catch (e) { console.error('Error reading invoice form:', e); return null; }
+      },
+      loadInvoice(inv) {
+        try {
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+          set('invNumber', inv.number || '');
+          set('invDate', inv.date || todayISO());
+          set('clientName', inv.client?.name || '');
+          set('clientAddress', inv.client?.address || '');
+          const itemsBody = document.getElementById('itemsBody'); if (itemsBody) itemsBody.innerHTML = '';
+          (inv.items || []).forEach(it=>Forms.addItem(it.description, it.qty, it.unit));
+          const paidToggle = document.getElementById('paidToggle'); if (paidToggle) paidToggle.checked = !!inv.paid;
+          set('bankName', inv.bank?.name || DB.settings.bankName || '');
+          set('bankAccountName', inv.bank?.accountName || DB.settings.bankAccountName || '');
+          set('sortCode', inv.bank?.sort || DB.settings.bankSort || '');
+          set('accountNo', inv.bank?.account || DB.settings.bankAccount || '');
+          Forms.calcTotal();
+          Forms._editingId = inv.id;
+        } catch (e) { console.error('Error loading invoice:', e); }
+      },
+      commitInvoice() {
+        try {
+          const draft = Forms.readInvoice();
+          if (!draft) { alert('Error reading invoice data.'); return; }
+          if (Forms._editingId) draft.id = Forms._editingId;
+          const idx = DB.invoices.findIndex(i=>i.id===draft.id);
+          if (idx>=0) DB.invoices[idx] = draft; else DB.invoices.push(draft);
+          const n = parseInt(draft.number,10);
+          if (!isNaN(n) && n >= (DB.settings.invNext||0)) DB.settings.invNext = n+1;
+          Store.save(DB);
+          Forms._editingId = null;
+          alert('Invoice saved successfully!');
+          UI.invoicesList(); UI.dashboard();
+        } catch (e) { console.error('Error saving invoice:', e); alert('Error saving invoice.'); }
+      }
+    };
+
+    /***********************
+     * PDF Maker
+     ***********************/
+    const PDFMaker = {
+      download(inv) {
+        try {
+          const jsPDF = window.jspdf?.jsPDF;
+          if (!jsPDF) { alert('PDF library not loaded yet. Please try again.'); return; }
+          const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+          const margin = 48; let y = margin;
+          const total = (inv.items||[]).reduce((s,i)=>s+(Number(i.qty||0)*Number(i.unit||0)),0);
+
+          doc.setFont('Times','bold'); doc.setFontSize(24);
+          doc.setTextColor(45, 212, 191);
+          doc.text('🎠  Diamond Equine', margin, y); y += 30;
+
+          doc.setFont('Times','normal'); doc.setFontSize(12);
+          doc.setTextColor(15,118,110);
+          if (DB.settings.bizTag) { doc.text(DB.settings.bizTag, margin, y); y += 20; }
+
+          y = margin; doc.setTextColor(51); doc.setFontSize(11);
+          const metaX = 360;
+          doc.text(`Invoice #: ${inv.number||''}`, metaX, y); y += 14;
+          doc.text(`Date: ${inv.date||''}`, metaX, y); y += 18;
+
+          y = margin + 60;
+          doc.setFont('Times','bold'); doc.text('From:', margin, y);
+          doc.setFont('Times','normal'); doc.text(DB.settings.bizName || 'Diamond Equine', margin+50, y);
+          y += 16;
+          doc.text(DB.settings.bizAddress || '', margin+50, y, { maxWidth: 250 });
+          y += 50;
+
+          doc.setFont('Times','bold'); doc.text('Bill To:', margin, y);
+          doc.setFont('Times','normal'); doc.text(inv.client?.name || '', margin+50, y);
+          y += 16;
+          doc.text(inv.client?.address || '', margin+50, y, { maxWidth: 250 });
+          y += 30;
+
+          doc.setFont('Times','bold');
+          doc.text('Description', margin, y);
+          doc.text('Qty', 360, y);
+          doc.text('Unit £', 420, y);
+          doc.text('Line £', 500, y);
+          y += 10; doc.setDrawColor(45,212,191); doc.line(margin, y, 560, y); y += 16;
+
+          doc.setFont('Times','normal');
+          (inv.items||[]).forEach(it=>{
+            doc.text(String(it.description||''), margin, y, { maxWidth: 300 });
+            doc.text(String(it.qty||0), 360, y);
+            doc.text(String(Number(it.unit||0).toFixed(2)), 420, y);
+            doc.text(String((Number(it.qty||0)*Number(it.unit||0)).toFixed(2)), 500, y, {align:'right'});
+            y += 18;
+          });
+
+          y += 8; doc.setDrawColor(45,212,191); doc.line(380, y, 560, y); y += 20;
+          doc.setFont('Times','bold'); doc.setTextColor(45,212,191);
+          doc.text('Net Total', 420, y);
+          doc.text(`£${total.toFixed(2)}`, 500, y, {align:'right'});
+
+          y += 40; doc.setFont('Times','normal'); doc.setTextColor(51);
+          doc.text('Payment is due within 30 days.', margin, y); y += 16;
+          doc.text(`Bank: ${inv.bank?.name || DB.settings.bankName || ''}`, margin, y); y += 16;
+          doc.text(`Account Name: ${inv.bank?.accountName || DB.settings.bankAccountName || ''}`, margin, y); y += 16;
+          doc.text(`Sort Code: ${inv.bank?.sort || DB.settings.bankSort || ''}`, margin, y); y += 16;
+          doc.text(`Account No: ${inv.bank?.account || DB.settings.bankAccount || ''}`, margin, y);
+
+          doc.save(`invoice-${inv.number||inv.id}.pdf`);
+        } catch (e) { console.error('Error generating PDF:', e); alert('Error generating PDF.'); }
+      }
+    };
+
+    /***********************
+     * Expenses/Travel UI
+     ***********************/
+    function refreshExpensesUI() {
+      try {
+        const list = document.getElementById('expList'); if (!list) return;
+        list.innerHTML = '';
+        const entries = [
+          ...DB.expenses.map(e=>({type:'Expense', ...e})),
+          ...DB.travel.map(t=>({type:'Travel', amount: Number(t.miles)*Number(t.rate), ...t}))
+        ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+        entries.forEach(en=>{
+          const amt = en.type==='Expense' ? en.amount : (Number(en.miles)*Number(en.rate));
+          const div = document.createElement('div');
+          div.className = 'flex items-start justify-between p-4 bg-turquoise-50 rounded-2xl border border-turquoise-100';
+          div.innerHTML = `
+            <div>
+              <div class="font-semibold text-slate-800">${en.type} – ${en.date}</div>
+              <div class="text-sm text-turquoise-600 mt-1">${en.note || en.category || ''} ${en.type==='Travel'?`(${en.miles} miles @ £${en.rate}/mile)`:''}</div>
+            </div>
+            <div class="font-bold text-lg text-slate-800">${£(amt)}</div>
+          `;
+          list.appendChild(div);
+        });
+
+        const totalExp = DB.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+        const totalTrav = DB.travel.reduce((s,t)=>s+(Number(t.miles||0)*Number(t.rate||0)),0);
+        document.getElementById('expTotal')?.textContent = £(totalExp);
+        document.getElementById('travTotal')?.textContent = £(totalTrav);
+      } catch (e) { console.error('Error refreshing expenses UI:', e); }
+    }
+
+    /***********************
+     * Event wiring
+     ***********************/
+    try {
+      // Tabs
+      document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click', ()=>UI.go(b.dataset.tab)));
+      document.getElementById('tabSelect')?.addEventListener('change', e=>UI.go(e.target.value));
+
+      // Settings load/save
+      function loadSettings() {
+        try {
+          const s = DB.settings;
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+          set('bizName', s.bizName); set('bizTag', s.bizTag); set('bizAddress', s.bizAddress);
+          set('bizEmail', s.bizEmail); set('rateWeekday', s.rateWeekday||15); set('rateWeekend', s.rateWeekend||17);
+          set('travelDefault', s.travelDefault||0.45); set('bankDefaultName', s.bankName);
+          set('bankDefaultAcctName', s.bankAccountName); set('bankDefaultSort', s.bankSort);
+          set('bankDefaultAcct', s.bankAccount); set('invPrefix', s.invPrefix); set('invNext', s.invNext);
+          set('firebaseConfigJson', s.firebaseConfigJson || '');
+          const rateWkdayLbl = document.getElementById('rateWeekdayLbl');
+          const rateWkendLbl = document.getElementById('rateWeekendLbl');
+          if (rateWkdayLbl) rateWkdayLbl.textContent = s.rateWeekday||15;
+          if (rateWkendLbl) rateWkendLbl.textContent = s.rateWeekend||17;
+          const autoSync = document.getElementById('autoSync'); if (autoSync) autoSync.checked = !!s.autoSync;
+        } catch (e) { console.error('Error loading settings:', e); }
+      }
+      document.getElementById('saveSettings')?.addEventListener('click', ()=>{
+        try {
+          const s = DB.settings;
+          const val = (id) => document.getElementById(id)?.value || '';
+          s.bizName = val('bizName'); s.bizTag = val('bizTag'); s.bizAddress = val('bizAddress'); s.bizEmail = val('bizEmail');
+          s.rateWeekday = Number(val('rateWeekday') || 0);
+          s.rateWeekend = Number(val('rateWeekend') || 0);
+          s.travelDefault = Number(val('travelDefault') || 0);
+          s.bankName = val('bankDefaultName'); s.bankAccountName = val('bankDefaultAcctName');
+          s.bankSort = val('bankDefaultSort'); s.bankAccount = val('bankDefaultAcct');
+          s.invPrefix = val('invPrefix'); s.invNext = Number(val('invNext') || s.invNext);
+          s.firebaseConfigJson = val('firebaseConfigJson');
+          s.autoSync = !!document.getElementById('autoSync')?.checked;
+          Cloud.auto = s.autoSync;
+          Store.save(DB); loadSettings();
+          alert('Settings saved successfully!');
+        } catch (e) { console.error('Error saving settings:', e); alert('Error saving settings.'); }
+      });
+
+      // Firebase controls
+      document.getElementById('connectFirebase')?.addEventListener('click', ()=>{
+        DB.settings.firebaseConfigJson = document.getElementById('firebaseConfigJson')?.value || '';
+        Store.save(DB);
+        Cloud.connectFromSettings();
+      });
+      document.getElementById('openFirebaseSettings')?.addEventListener('click', ()=>UI.go('settings'));
+
+      // Dashboard init + actions
+      UI.refreshYears(); UI.dashboard();
+      document.getElementById('yearSelect')?.addEventListener('change', UI.dashboard);
+      document.getElementById('backupData')?.addEventListener('click', ()=>Store.backup());
+      document.getElementById('restoreData')?.addEventListener('change', e=>e.target.files[0] && Store.restore(e.target.files[0]));
+      document.getElementById('exportCSV')?.addEventListener('click', ()=>{
+        try {
+          const rows = [['Type','Date','Ref','Name','Amount','Notes']];
+          DB.invoices.forEach(i=>{
+            const amt = (i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
+            rows.push(['Invoice', i.date, i.number, i.client?.name || '', amt, '']);
+          });
+          DB.expenses.forEach(e=>rows.push(['Expense', e.date, '', '', e.amount, e.category + (e.note?` – ${e.note}`:'')]));
+          DB.travel.forEach(t=>rows.push(['Travel', t.date, '', '', (Number(t.miles)*Number(t.rate)), `${t.miles} miles @ £${t.rate}/mile${t.note?` – ${t.note}`:''}`]));
+          const csv = Papa.unparse(rows);
+          const blob = new Blob([csv], {type:'text/csv'});
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diamond-equine-summary.csv'; a.click();
+        } catch (e) { console.error('Error exporting CSV:', e); alert('Error exporting data.'); }
+      });
+      document.getElementById('syncUp')?.addEventListener('click', ()=>Cloud.pushAll());
+      document.getElementById('pullDown')?.addEventListener('click', ()=>Cloud.pullAll());
+
+      // Samples
+      document.getElementById('loadSamples')?.addEventListener('click', ()=>{
+        try {
+          if (DB.invoices.some(i=>['587','588','589'].includes(String(i.number)))) { alert('Sample data already loaded.'); return; }
+          const common = {
+            bank: { name: 'Nationwide', accountName: 'Mrs Debbie H Herbert', sort: '07-01-16', account: '32288417' },
+            date: '2025-08-31'
+          };
+          DB.invoices.push(
+            { id: uid(), number:'589', client:{name:'Claire', address:''}, items:[{id:uid(),description:'Grooming Services - Darcy',qty:1,unit:15}], paid:false, ...common },
+            { id: uid(), number:'587', client:{name:'Judith Sanders', address:''}, items:[{id:uid(),description:'Grooming Services',qty:11,unit:15}], paid:false, ...common },
+            { id: uid(), number:'588', client:{name:'Mr RK & Mrs RP Rietdyk t/a Moor Place Farm', address:''},
+              items:[
+                {id:uid(),description:'Grooming Services',qty:20,unit:15},
+                {id:uid(),description:'Grooming Weekend',qty:1,unit:17},
+                {id:uid(),description:'Grooming Bank Holiday Weekend',qty:1,unit:17},
+              ], paid:false, ...common }
+          );
+          Store.save(DB); UI.refreshYears(); UI.invoicesList(); UI.dashboard();
+          alert('Sample data loaded successfully!');
+        } catch (e) { console.error('Error loading samples:', e); alert('Error loading sample data.'); }
+      });
+
+      // New Invoice
+      document.getElementById('addWkday')?.addEventListener('click', ()=>Forms.addItem('Grooming Services', 1, Number(DB.settings.rateWeekday||15)));
+      document.getElementById('addWkend')?.addEventListener('click', ()=>Forms.addItem('Grooming Weekend/Bank Holiday', 1, Number(DB.settings.rateWeekend||17)));
+      document.getElementById('saveInvoice')?.addEventListener('click', Forms.commitInvoice);
+      document.getElementById('pdfInvoice')?.addEventListener('click', ()=>{ const inv = Forms.readInvoice(); if (inv) PDFMaker.download(inv); });
+
+      // Defaults
+      Forms.clearInvoice();
+
+      // Invoices filters
+      document.getElementById('searchInv')?.addEventListener('input', UI.invoicesList);
+      document.getElementById('statusInv')?.addEventListener('change', UI.invoicesList);
+      UI.invoicesList();
+
+      // Expenses & Travel
+      document.getElementById('addExp')?.addEventListener('click', ()=>{
+        try {
+          const val = (id) => document.getElementById(id)?.value || '';
+          const e = { id: uid(), date: val('expDate') || todayISO(), category: val('expCat') || 'Other', amount: Number(val('expAmt') || 0), note: val('expNote') };
+          DB.expenses.push(e); Store.save(DB); refreshExpensesUI(); UI.dashboard();
+          const expAmtEl = document.getElementById('expAmt'); const expNoteEl = document.getElementById('expNote'); if (expAmtEl) expAmtEl.value = ''; if (expNoteEl) expNoteEl.value = '';
+        } catch (e) { console.error('Error adding expense:', e); alert('Error adding expense.'); }
+      });
+      document.getElementById('addTrav')?.addEventListener('click', ()=>{
+        try {
+          const val = (id) => document.getElementById(id)?.value || '';
+          const t = { id: uid(), date: val('travDate') || todayISO(), miles: Number(val('travMiles') || 0), rate: Number(val('travRate') || DB.settings.travelDefault || 0.45), note: val('travNote') };
+          DB.travel.push(t); Store.save(DB); refreshExpensesUI(); UI.dashboard();
+          const travMilesEl = document.getElementById('travMiles'); const travNoteEl = document.getElementById('travNote'); if (travMilesEl) travMilesEl.value = ''; if (travNoteEl) travNoteEl.value = '';
+        } catch (e) { console.error('Error adding travel:', e); alert('Error adding travel entry.'); }
+      });
+      const travRateEl = document.getElementById('travRate'); if (travRateEl) travRateEl.value = DB.settings.travelDefault || 0.45;
+      refreshExpensesUI();
+
+      // Upload & OCR
+      let lastParsed = null;
+      document.getElementById('runOCR')?.addEventListener('click', async ()=>{
+        try {
+          const f = document.getElementById('uploadInput')?.files?.[0];
+          const ocrText = document.getElementById('ocrText');
+          if (!f || !ocrText) { alert('Please choose a PDF or image first.'); return; }
+          ocrText.value = 'Processing… (this may take a moment)';
+          let text = '';
+          if (f.type === 'application/pdf') text = await OCR.extractFromPDF(f); else text = await OCR.extractFromImage(f);
+          ocrText.value = text;
+          document.getElementById('runParse')?.click();
+        } catch (e) { console.error('OCR error:', e); alert('Error processing file: ' + e.message); document.getElementById('ocrText')?.value = ''; }
+      });
+      document.getElementById('runParse')?.addEventListener('click', ()=>{
+        try {
+          const mode = document.getElementById('ocrMode')?.value;
+          const text = document.getElementById('ocrText')?.value || '';
+          const parsed = (mode==='diary') ? Parser.parseDiaryText(text) : Parser.parseInvoiceText(text);
+          lastParsed = parsed;
+          const pre = document.getElementById('parsePreview'); if (pre) pre.textContent = JSON.stringify(parsed, null, 2);
+        } catch (e) { console.error('Parse error:', e); alert('Error parsing text.'); }
+      });
+      document.getElementById('parseToInvoice')?.addEventListener('click', ()=>{
+        try {
+          if (!lastParsed) { alert('Please run Parse first.'); return; }
+          Forms.clearInvoice();
+          if (lastParsed.number) document.getElementById('invNumber').value = lastParsed.number;
+          if (lastParsed.date) document.getElementById('invDate').value = lastParsed.date;
+          if (lastParsed.clientName) document.getElementById('clientName').value = lastParsed.clientName;
+          (lastParsed.items || []).forEach(it=>Forms.addItem(it.description || 'Grooming Services', it.qty || 1, it.unit || (DB.settings.rateWeekday||15)));
+          UI.go('new-invoice');
+        } catch (e) { console.error('Error filling invoice form:', e); alert('Error filling invoice form.'); }
+      });
+
+      // Settings tab init
+      document.querySelector('[data-tab="settings"]')?.addEventListener('click', loadSettings);
+      loadSettings();
+
+      // Show cloud connection status if already connected
+      if (Cloud.connected) Cloud.updateStatus('Connected to Firebase.');
+    } catch (e) {
+      console.error('Error initializing app:', e);
+      alert('Application initialization error. Please refresh the page.');
+    }
+  </script>
+</body>
+</html>
