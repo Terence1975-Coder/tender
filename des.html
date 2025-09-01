@@ -164,9 +164,10 @@
         <div class="card">
           <div class="kicker mb-4">Quick Actions</div>
           <div class="space-y-3">
-            <button onclick="UI.go('upload')" class="btn btn-primary w-full">📷 Process Photo/PDF</button>
-            <button onclick="UI.go('new-invoice')" class="btn btn-outline w-full">📄 Create Invoice</button>
-            <button onclick="UI.go('expenses')" class="btn btn-outline w-full">💰 Add Expense</button>
+            <!-- removed inline onclicks; use IDs -->
+            <button id="qaUpload" class="btn btn-primary w-full">📷 Process Photo/PDF</button>
+            <button id="qaNewInv" class="btn btn-outline w-full">📄 Create Invoice</button>
+            <button id="qaExpenses" class="btn btn-outline w-full">💰 Add Expense</button>
           </div>
         </div>
       </div>
@@ -706,6 +707,8 @@
         });
       }
     };
+    // expose UI for debugging (optional)
+    window.UI = UI;
 
     /***********************
      * Invoice form handlers
@@ -859,6 +862,11 @@
     document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click', ()=>UI.go(b.dataset.tab)));
     document.getElementById('tabSelect')?.addEventListener('change', e=>UI.go(e.target.value));
 
+    // Quick Actions (replaces inline onclick)
+    document.getElementById('qaUpload')?.addEventListener('click', ()=>UI.go('upload'));
+    document.getElementById('qaNewInv')?.addEventListener('click', ()=>UI.go('new-invoice'));
+    document.getElementById('qaExpenses')?.addEventListener('click', ()=>UI.go('expenses'));
+
     // Settings load/save
     function loadSettings(){
       const s=DB.settings, set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v??'';};
@@ -897,12 +905,24 @@
     document.getElementById('backupData')?.addEventListener('click', ()=>Store.backup());
     document.getElementById('restoreData')?.addEventListener('change', e=>e.target.files[0] && Store.restore(e.target.files[0]));
     document.getElementById('exportCSV')?.addEventListener('click', ()=>{
-      const rows=[['Type','Date','Ref','Name','Amount','Notes']];
-      DB.invoices.forEach(i=>{ const amt=(i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
-        rows.push(['Invoice',i.date,i.number,i.client?.name||'',amt,'']); });
-      DB.expenses.forEach(e=>rows.push(['Expense',e.date,'','',e.amount,e.category+(e.note?` – ${e.note}`:'')]));
-      DB.travel.forEach(t=>rows.push(['Travel',t.date,'','',(Number(t.miles)*Number(t.rate)),`${t.miles} miles @ £${t.rate}/mile${t.note?` – ${t.note}`:''}`]));
-      const csv=Papa.unparse(rows); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='diamond-equine-summary.csv'; a.click();
+      try{
+        const rows=[['Type','Date','Ref','Name','Amount','Notes']];
+        DB.invoices.forEach(i=>{
+          const amt=(i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
+          rows.push(['Invoice', i.date, i.number, i.client?.name || '', amt, '']);
+        });
+        DB.expenses.forEach(e=>{
+          const notes=(e.category||'') + (e.note ? ' – ' + e.note : '');
+          rows.push(['Expense', e.date, '', '', e.amount, notes]);
+        });
+        DB.travel.forEach(t=>{
+          const detail = `${t.miles} miles @ £${t.rate}/mile` + (t.note ? ' – ' + t.note : '');
+          rows.push(['Travel', t.date, '', '', (Number(t.miles)*Number(t.rate)), detail]);
+        });
+        const csv=Papa.unparse(rows);
+        const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob); a.download='diamond-equine-summary.csv'; a.click();
+      }catch(e){ console.error('CSV export failed', e); alert('Error exporting data.'); }
     });
 
     // Samples
