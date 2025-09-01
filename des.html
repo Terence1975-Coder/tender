@@ -5,7 +5,7 @@
   <title>Diamond Equine – Invoices</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind (dev CDN). For production, compile Tailwind. -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -18,59 +18,53 @@
             },
           },
           fontFamily:{ display:['ui-serif','Georgia','Cambria','Times New Roman','Times','serif'] },
-          backgroundImage:{
-            'gradient-radial':'radial-gradient(var(--tw-gradient-stops))',
-            'gradient-conic':'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-          }
         }
       }
     }
   </script>
 
-  <!-- pdf.js (UMD build to avoid MIME problems) -->
+  <!-- pdf.js (UMD build to avoid MIME issues) -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.10.111/build/pdf.min.js"></script>
   <script>
-    if (window['pdfjsLib']) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.10.111/build/pdf.worker.min.js";
-      window.__PDFJS_READY__ = true;
-    } else {
-      window.__PDFJS_READY__ = false;
-      console.warn('pdf.js did not load; PDF OCR will be disabled.');
-    }
+    (function () {
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.10.111/build/pdf.worker.min.js";
+        window.__PDF_READY__ = true;
+      } else {
+        window.__PDF_READY__ = false;
+        console.warn("pdf.js failed to load; PDF OCR disabled.");
+      }
+    }());
   </script>
 
-  <!-- Tesseract.js (for image OCR) -->
+  <!-- Tesseract (image OCR) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  <!-- jsPDF (for creating invoice PDFs) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- jsPDF (PDF export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 
-  <!-- Papa Parse (CSV export) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- PapaParse (CSV) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
 
-  <!-- Firebase (client SDKs) -->
+  <!-- Firebase (web client SDK) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
-  <!-- Tailwind component utilities -->
-  <style type="text/tailwindcss">
-    @layer components {
-      .card {@apply bg-white rounded-3xl shadow-lg shadow-turquoise-500/10 p-6 border border-turquoise-100/50 backdrop-blur-sm;}
-      .card-hover {@apply hover:shadow-xl hover:shadow-turquoise-500/20 transition-all duration-300 hover:-translate-y-1;}
-      .btn {@apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 font-medium transition-all duration-200 transform hover:scale-105 shadow-md;}
-      .btn-primary {@apply bg-gradient-to-r from-turquoise-500 to-turquoise-600 text-white hover:from-turquoise-600 hover:to-turquoise-700 shadow-turquoise-500/30;}
-      .btn-outline {@apply border-2 border-turquoise-200 text-turquoise-700 hover:bg-turquoise-50 hover:border-turquoise-300;}
-      .btn-ghost {@apply text-turquoise-600 hover:bg-turquoise-50 border-0 shadow-none;}
-      .input {@apply w-full rounded-2xl border-2 border-turquoise-100 px-4 py-3 focus:border-turquoise-400 focus:ring-4 focus:ring-turquoise-100 transition-all duration-200;}
-      .label {@apply block text-sm font-semibold text-slate-700 mb-2;}
-      .pill {@apply inline-flex items-center rounded-full bg-turquoise-100 px-4 py-2 text-sm font-medium text-turquoise-700 shadow-sm;}
-      .tab {@apply cursor-pointer rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-turquoise-50;}
-      .tab-active {@apply bg-gradient-to-r from-turquoise-500 to-turquoise-600 text-white shadow-lg shadow-turquoise-500/30;}
-      .kicker {@apply text-turquoise-600 font-bold uppercase tracking-wider text-xs mb-2;}
-      .stat-card {@apply bg-gradient-to-br from-white to-turquoise-50 border-2 border-turquoise-100 rounded-3xl p-6 shadow-lg;}
-      .gradient-bg { background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); }
-    }
+  <!-- Minimal component styles (Tailwind @apply in dev) -->
+  <style>
+    .card{background:#fff;border-radius:1.5rem;box-shadow:0 10px 25px rgba(45,212,191,.08);padding:1.5rem;border:1px solid rgba(13,148,136,.12)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:1rem;padding:.75rem 1rem;font-weight:600;box-shadow:0 6px 16px rgba(45,212,191,.12);transition:transform .2s}
+    .btn:hover{transform:scale(1.03)}
+    .btn-primary{background:linear-gradient(90deg,#14b8a6,#0d9488);color:#fff}
+    .btn-outline{border:2px solid #a7f3d0;color:#0f766e;background:#ecfeff}
+    .btn-ghost{color:#0d9488}
+    .input{width:100%;border:2px solid #ccfbf1;border-radius:1rem;padding:.75rem 1rem}
+    .label{display:block;font-size:.875rem;font-weight:700;color:#0f172a;margin-bottom:.25rem}
+    .pill{display:inline-flex;align-items:center;border-radius:9999px;background:#ccfbf1;color:#0f766e;padding:.25rem .75rem;font-weight:600}
+    .tab{cursor:pointer;border-radius:1rem;padding:.6rem 1rem;font-weight:600}
+    .tab-active{background:linear-gradient(90deg,#14b8a6,#0d9488);color:#fff;box-shadow:0 10px 18px rgba(20,184,166,.28)}
+    .gradient-bg{background:linear-gradient(135deg,#f0fdfa 0%,#ccfbf1 100%)}
   </style>
 </head>
 <body class="gradient-bg min-h-screen text-slate-900">
@@ -81,10 +75,8 @@
         <div class="flex items-center gap-4">
           <div class="text-3xl">🎠</div>
           <div>
-            <div class="font-display text-2xl font-bold bg-gradient-to-r from-turquoise-600 to-turquoise-700 bg-clip-text text-transparent">
-              Diamond Equine
-            </div>
-            <div class="text-sm text-turquoise-600 font-medium -mt-1">Invoice & Tax Dashboard</div>
+            <div class="font-display text-2xl font-bold text-turquoise-700">Diamond Equine</div>
+            <div class="text-sm text-turquoise-600 -mt-1">Invoice & Tax Dashboard</div>
           </div>
         </div>
         <nav class="hidden sm:flex gap-2" id="tabs">
@@ -95,7 +87,7 @@
           <button class="tab" data-tab="expenses">Expenses & Travel</button>
           <button class="tab" data-tab="settings">Settings</button>
         </nav>
-        <div class="sm:hidden">
+        <div class="sm:hidden w-48">
           <select id="tabSelect" class="input">
             <option value="dashboard">Dashboard</option>
             <option value="new-invoice">New Invoice</option>
@@ -110,94 +102,67 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-    <!-- Dashboard -->
+    <!-- DASHBOARD -->
     <section id="dashboard" class="space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <div class="kicker">Financial Overview</div>
+          <div class="text-turquoise-600 font-bold uppercase tracking-wide text-xs mb-1">Financial Overview</div>
           <h1 class="text-3xl sm:text-4xl font-display font-bold text-slate-800">Tax Year Summary</h1>
-          <p class="text-slate-600 mt-2">Track your business performance and tax obligations</p>
+          <p class="text-slate-600 mt-1">6 April – 5 April (UK)</p>
         </div>
-        <div class="flex items-center gap-3">
-          <select id="yearSelect" class="input w-44"></select>
+        <div class="flex items-center gap-2">
+          <select id="yearSelect" class="input w-40"></select>
           <button id="exportCSV" class="btn btn-outline">📊 Export CSV</button>
         </div>
       </div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="stat-card">
-          <div class="kicker">Total Invoiced</div>
-          <div id="sumInvoiced" class="text-3xl font-bold text-slate-800">£0.00</div>
-          <div class="text-sm text-turquoise-600 mt-1">↗ Revenue generated</div>
-        </div>
-        <div class="stat-card">
-          <div class="kicker">Amount Paid</div>
-          <div id="sumPaid" class="text-3xl font-bold text-emerald-600">£0.00</div>
-          <div class="text-sm text-emerald-600 mt-1">✓ Collected</div>
-        </div>
-        <div class="stat-card">
-          <div class="kicker">Business Expenses</div>
-          <div id="sumExpenses" class="text-3xl font-bold text-amber-600">£0.00</div>
-          <div class="text-sm text-amber-600 mt-1">📝 Deductible</div>
-        </div>
-        <div class="stat-card">
-          <div class="kicker">Travel Costs</div>
-          <div id="sumTravel" class="text-3xl font-bold text-purple-600">£0.00</div>
-          <div class="text-sm text-purple-600 mt-1">🚗 Mileage</div>
-        </div>
+        <div class="card"><div class="text-turquoise-600 text-xs font-bold uppercase mb-1">Total Invoiced</div><div id="sumInvoiced" class="text-3xl font-bold">£0.00</div></div>
+        <div class="card"><div class="text-emerald-600 text-xs font-bold uppercase mb-1">Amount Paid</div><div id="sumPaid" class="text-3xl font-bold text-emerald-600">£0.00</div></div>
+        <div class="card"><div class="text-amber-600 text-xs font-bold uppercase mb-1">Business Expenses</div><div id="sumExpenses" class="text-3xl font-bold text-amber-600">£0.00</div></div>
+        <div class="card"><div class="text-purple-600 text-xs font-bold uppercase mb-1">Travel Costs</div><div id="sumTravel" class="text-3xl font-bold text-purple-600">£0.00</div></div>
       </div>
 
       <div class="grid lg:grid-cols-3 gap-6">
         <div class="card lg:col-span-2">
-          <div class="flex items-center justify-between mb-4">
-            <div class="kicker">Net Profit</div>
-            <div id="sumNet" class="text-2xl font-bold text-slate-800">£0.00</div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-turquoise-600 text-xs font-bold uppercase">Net Profit</div>
+            <div id="sumNet" class="text-2xl font-bold">£0.00</div>
           </div>
-          <div class="bg-turquoise-50 rounded-2xl p-4">
-            <div class="text-sm text-turquoise-700">
-              💡 <strong>UK Tax Year:</strong> 6 April – 5 April<br/>
-              Formula: <em>Income - Expenses - Travel = Net Profit</em>
-            </div>
-          </div>
+          <div class="rounded-xl p-3 bg-turquoise-50 text-sm text-turquoise-700">Income - Expenses - Travel = Net Profit</div>
         </div>
-
-        <div class="card">
-          <div class="kicker mb-4">Quick Actions</div>
-          <div class="space-y-3">
-            <!-- removed inline onclicks; use IDs -->
-            <button id="qaUpload" class="btn btn-primary w-full">📷 Process Photo/PDF</button>
-            <button id="qaNewInv" class="btn btn-outline w-full">📄 Create Invoice</button>
-            <button id="qaExpenses" class="btn btn-outline w-full">💰 Add Expense</button>
-          </div>
+        <div class="card space-y-2">
+          <div class="text-turquoise-600 text-xs font-bold uppercase">Quick Actions</div>
+          <button id="qaUpload" class="btn btn-primary w-full">📷 Process Photo/PDF</button>
+          <button id="qaNewInv" class="btn btn-outline w-full">📄 Create Invoice</button>
+          <button id="qaExpenses" class="btn btn-outline w-full">💰 Add Expense</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="flex items-center justify-between mb-4">
-          <div class="kicker">Data Management</div>
-          <div class="flex flex-wrap gap-3">
+        <div class="flex items-center justify-between">
+          <div class="text-turquoise-600 text-xs font-bold uppercase">Data</div>
+          <div class="flex flex-wrap gap-2">
             <button id="loadSamples" class="btn btn-ghost">📋 Load Sample Data</button>
             <button id="backupData" class="btn btn-ghost">💾 Backup</button>
-            <label class="btn btn-ghost cursor-pointer">
-              📁 Restore <input id="restoreData" type="file" accept="application/json" class="hidden" />
-            </label>
+            <label class="btn btn-ghost cursor-pointer">📁 Restore<input id="restoreData" type="file" accept="application/json" class="hidden"></label>
             <button id="openFirebaseSettings" class="btn btn-ghost">☁️ Firebase Settings</button>
             <button id="syncUp" class="btn btn-outline">⬆️ Sync Up</button>
             <button id="pullDown" class="btn btn-outline">⬇️ Pull Down</button>
           </div>
         </div>
-        <div id="cloudStatus" class="text-sm text-slate-600"></div>
+        <div id="cloudStatus" class="text-sm text-slate-600 mt-2"></div>
       </div>
     </section>
 
-    <!-- New Invoice -->
+    <!-- NEW INVOICE -->
     <section id="new-invoice" class="hidden space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <div class="kicker">Invoice Creation</div>
+          <div class="text-turquoise-600 text-xs font-bold uppercase">Invoice Creation</div>
           <h2 class="text-3xl font-display font-bold text-slate-800">New / Edit Invoice</h2>
         </div>
-        <div class="flex gap-3">
+        <div class="flex gap-2">
           <button id="saveInvoice" class="btn btn-primary">💾 Save Invoice</button>
           <button id="pdfInvoice" class="btn btn-outline">📄 Download PDF</button>
         </div>
@@ -206,52 +171,36 @@
       <div class="grid lg:grid-cols-3 gap-6">
         <div class="card lg:col-span-2 space-y-6">
           <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="label">Invoice Number</label>
-              <input id="invNumber" class="input" placeholder="e.g., 590" />
-            </div>
-            <div>
-              <label class="label">Invoice Date</label>
-              <input id="invDate" type="date" class="input" />
-            </div>
+            <div><label class="label">Invoice Number</label><input id="invNumber" class="input" placeholder="e.g., 590"></div>
+            <div><label class="label">Invoice Date</label><input id="invDate" type="date" class="input"></div>
           </div>
 
           <div class="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label class="label">Client Name</label>
-              <input id="clientName" class="input" placeholder="Client name" />
-            </div>
-            <div>
-              <label class="label">Client Address</label>
-              <textarea id="clientAddress" rows="3" class="input" placeholder="Full address"></textarea>
-            </div>
+            <div><label class="label">Client Name</label><input id="clientName" class="input" placeholder="Client name"></div>
+            <div><label class="label">Client Address</label><textarea id="clientAddress" rows="3" class="input" placeholder="Full address"></textarea></div>
           </div>
 
           <div class="border-t border-turquoise-100 pt-6">
             <div class="flex items-center justify-between mb-4">
-              <div class="kicker">Invoice Items</div>
+              <div class="text-turquoise-600 text-xs font-bold uppercase">Invoice Items</div>
               <div class="flex gap-2">
                 <button id="addWkday" class="btn btn-outline text-sm">+ Weekday @ £<span id="rateWeekdayLbl">15</span></button>
                 <button id="addWkend" class="btn btn-outline text-sm">+ Weekend @ £<span id="rateWeekendLbl">17</span></button>
               </div>
             </div>
-
             <div class="overflow-x-auto bg-turquoise-50 rounded-2xl p-4">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="text-left text-turquoise-700 font-semibold">
-                    <th class="py-3">Description</th>
-                    <th class="py-3 w-20">Qty</th>
-                    <th class="py-3 w-24">Unit £</th>
-                    <th class="py-3 w-28">Total £</th>
-                    <th class="py-3 w-12"></th>
+                    <th class="py-2">Description</th><th class="py-2 w-20">Qty</th>
+                    <th class="py-2 w-24">Unit £</th><th class="py-2 w-28">Total £</th><th class="py-2 w-10"></th>
                   </tr>
                 </thead>
                 <tbody id="itemsBody"></tbody>
                 <tfoot>
                   <tr class="border-t-2 border-turquoise-200">
-                    <td colspan="3" class="text-right font-bold py-4 text-slate-800">Net Total</td>
-                    <td class="py-4 font-bold text-xl text-turquoise-600" id="invTotal">£0.00</td>
+                    <td colspan="3" class="text-right font-bold py-3">Net Total</td>
+                    <td id="invTotal" class="font-bold text-xl text-turquoise-600">£0.00</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -262,221 +211,203 @@
 
         <div class="space-y-6">
           <div class="card">
-            <div class="kicker">Payment Status</div>
-            <label class="inline-flex items-center gap-3 p-3 bg-turquoise-50 rounded-2xl cursor-pointer hover:bg-turquoise-100 transition-colors">
-              <input id="paidToggle" type="checkbox" class="h-5 w-5 text-turquoise-500 rounded" />
+            <div class="text-turquoise-600 text-xs font-bold uppercase mb-2">Payment Status</div>
+            <label class="inline-flex items-center gap-3 p-3 bg-turquoise-50 rounded-xl cursor-pointer">
+              <input id="paidToggle" type="checkbox" class="h-5 w-5 text-turquoise-500 rounded">
               <span class="font-medium">Mark as paid</span>
             </label>
           </div>
 
           <div class="card">
-            <div class="kicker">Bank Details</div>
+            <div class="text-turquoise-600 text-xs font-bold uppercase mb-2">Bank Details</div>
             <div class="space-y-3">
-              <input id="bankName" class="input" placeholder="Bank Name" />
-              <input id="bankAccountName" class="input" placeholder="Account Name" />
+              <input id="bankName" class="input" placeholder="Bank Name">
+              <input id="bankAccountName" class="input" placeholder="Account Name">
               <div class="grid grid-cols-2 gap-3">
-                <input id="sortCode" class="input" placeholder="Sort Code" />
-                <input id="accountNo" class="input" placeholder="Account No" />
+                <input id="sortCode" class="input" placeholder="Sort Code">
+                <input id="accountNo" class="input" placeholder="Account No">
               </div>
             </div>
-            <div class="text-xs text-slate-500 mt-3 p-3 bg-slate-50 rounded-xl">
-              💡 These details appear on invoice footers. Update defaults in Settings.
-            </div>
+            <div class="text-xs text-slate-500 mt-2">These details print in the invoice footer.</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Upload & OCR -->
+    <!-- UPLOAD & OCR -->
     <section id="upload" class="hidden space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <div class="kicker">Document Processing</div>
+          <div class="text-turquoise-600 text-xs font-bold uppercase">Document Processing</div>
           <h2 class="text-3xl font-display font-bold text-slate-800">Upload & Extract Data</h2>
-          <p class="text-slate-600 mt-2">Use AI to extract invoice data from photos and PDFs</p>
+          <p class="text-slate-600 mt-1">Works with PDFs or photos (camera supported).</p>
         </div>
-        <div class="flex gap-3">
-          <button id="parseToInvoice" class="btn btn-primary">🔄 Fill Invoice Form</button>
-        </div>
+        <button id="parseToInvoice" class="btn btn-primary">🔄 Fill Invoice Form</button>
       </div>
 
       <div class="card space-y-6">
         <div class="grid sm:grid-cols-2 gap-6">
           <div>
-            <label class="label">📁 Select File</label>
-            <input id="uploadInput" type="file" accept="application/pdf,image/*" capture="environment" class="input" />
-            <div class="text-sm text-turquoise-600 mt-2 p-3 bg-turquoise-50 rounded-xl">
-              📸 <strong>Tip:</strong> Point camera at printed invoices or handwritten notes for automatic text extraction
-            </div>
+            <label class="label">Select File</label>
+            <input id="uploadInput" type="file" accept="application/pdf,image/*" capture="environment" class="input">
+            <div class="text-sm text-turquoise-700 mt-2">Tip: include text like “2 @ £17, 20 @ £15”.</div>
           </div>
           <div>
-            <label class="label">🎯 Processing Mode</label>
+            <label class="label">Processing Mode</label>
             <select id="ocrMode" class="input">
               <option value="invoice">Standard Invoice</option>
-              <option value="diary">Diary Format (e.g., "R - 2@£17, 20@£15...")</option>
+              <option value="diary">Diary Format (e.g. 2 @ £17, 20 @ £15)</option>
             </select>
           </div>
         </div>
 
         <div class="grid sm:grid-cols-2 gap-6">
           <div>
-            <label class="label">📝 Extracted Text</label>
+            <label class="label">Extracted Text</label>
             <textarea id="ocrText" rows="12" class="input font-mono text-sm"></textarea>
           </div>
           <div>
-            <label class="label">🔍 Parsed Data Preview</label>
-            <pre id="parsePreview" class="bg-slate-900 text-green-400 rounded-2xl p-4 text-xs overflow-auto h-[300px] font-mono"></pre>
+            <label class="label">Parsed Data Preview</label>
+            <pre id="parsePreview" class="bg-slate-900 text-green-400 rounded-xl p-3 text-xs overflow-auto h-[300px] font-mono"></pre>
           </div>
         </div>
 
-        <div class="flex gap-3 pt-4 border-t border-turquoise-100">
+        <div class="flex gap-2 pt-2 border-t border-turquoise-100">
           <button id="runOCR" class="btn btn-outline">🔍 Extract Text</button>
           <button id="runParse" class="btn btn-outline">🧠 Parse Data</button>
         </div>
       </div>
     </section>
 
-    <!-- Invoices -->
+    <!-- INVOICES -->
     <section id="invoices" class="hidden space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <div class="kicker">Invoice Management</div>
+          <div class="text-turquoise-600 text-xs font-bold uppercase">Invoice Management</div>
           <h2 class="text-3xl font-display font-bold text-slate-800">All Invoices</h2>
         </div>
-        <div class="flex gap-3">
-          <input id="searchInv" class="input w-48" placeholder="🔍 Search..." />
+        <div class="flex gap-2">
+          <input id="searchInv" class="input w-48" placeholder="🔍 Search">
           <select id="statusInv" class="input w-36">
-            <option value="all">All Status</option>
-            <option value="paid">Paid Only</option>
-            <option value="unpaid">Unpaid Only</option>
+            <option value="all">All</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option>
           </select>
         </div>
       </div>
       <div id="invList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
-    <!-- Expenses & Travel -->
+    <!-- EXPENSES & TRAVEL -->
     <section id="expenses" class="hidden space-y-6">
-      <div class="kicker">Financial Tracking</div>
-      <h2 class="text-3xl font-display font-bold text-slate-800 mb-6">Expenses & Travel</h2>
+      <div class="text-turquoise-600 text-xs font-bold uppercase">Financial Tracking</div>
+      <h2 class="text-3xl font-display font-bold text-slate-800">Expenses & Travel</h2>
 
       <div class="grid lg:grid-cols-4 gap-6">
         <div class="card">
-          <div class="kicker">💰 Add Expense</div>
-          <div class="space-y-4">
+          <div class="text-turquoise-600 text-xs font-bold uppercase mb-2">Add Expense</div>
+          <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-              <input id="expDate" type="date" class="input" />
+              <input id="expDate" type="date" class="input">
               <select id="expCat" class="input">
                 <option>Supplies</option><option>Fuel</option><option>Equipment</option>
                 <option>Insurance</option><option>Other</option>
               </select>
             </div>
-            <input id="expAmt" class="input" placeholder="Amount (£)" />
-            <input id="expNote" class="input" placeholder="Description" />
+            <input id="expAmt" class="input" placeholder="Amount (£)">
+            <input id="expNote" class="input" placeholder="Description">
             <button id="addExp" class="btn btn-primary w-full">💰 Add Expense</button>
           </div>
         </div>
 
         <div class="card">
-          <div class="kicker">🚗 Travel/Mileage</div>
-          <div class="space-y-4">
+          <div class="text-turquoise-600 text-xs font-bold uppercase mb-2">Travel/Mileage</div>
+          <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-              <input id="travDate" type="date" class="input" />
-              <input id="travMiles" class="input" placeholder="Miles" />
+              <input id="travDate" type="date" class="input">
+              <input id="travMiles" class="input" placeholder="Miles">
             </div>
             <div class="grid grid-cols-2 gap-3">
-              <input id="travRate" class="input" placeholder="Rate per mile" />
-              <input id="travNote" class="input" placeholder="Journey details" />
+              <input id="travRate" class="input" placeholder="Rate per mile">
+              <input id="travNote" class="input" placeholder="Journey details">
             </div>
             <button id="addTrav" class="btn btn-primary w-full">🚗 Add Travel</button>
           </div>
         </div>
 
         <div class="card lg:col-span-2">
-          <div class="kicker">📊 Summary</div>
           <div class="grid grid-cols-2 gap-6">
-            <div class="bg-amber-50 rounded-2xl p-4 text-center">
-              <div class="text-sm font-semibold text-amber-700 mb-1">Total Expenses</div>
+            <div class="rounded-xl p-4 bg-amber-50 text-center">
+              <div class="text-sm font-semibold text-amber-700">Total Expenses</div>
               <div id="expTotal" class="text-2xl font-bold text-amber-600">£0.00</div>
             </div>
-            <div class="bg-purple-50 rounded-2xl p-4 text-center">
-              <div class="text-sm font-semibold text-purple-700 mb-1">Travel Costs</div>
+            <div class="rounded-xl p-4 bg-purple-50 text-center">
+              <div class="text-sm font-semibold text-purple-700">Travel Costs</div>
               <div id="travTotal" class="text-2xl font-bold text-purple-600">£0.00</div>
             </div>
           </div>
-          <div class="text-sm text-turquoise-600 mt-4 p-3 bg-turquoise-50 rounded-xl">
-            📈 These amounts are automatically included in your tax year calculations on the Dashboard
-          </div>
+          <div class="text-sm text-turquoise-700 mt-3">These roll into the Dashboard automatically.</div>
         </div>
       </div>
 
       <div class="card">
-        <div class="kicker mb-4">📋 Recent Entries</div>
+        <div class="text-turquoise-600 text-xs font-bold uppercase mb-2">Recent Entries</div>
         <div id="expList" class="space-y-3"></div>
       </div>
     </section>
 
-    <!-- Settings -->
+    <!-- SETTINGS -->
     <section id="settings" class="hidden space-y-6">
-      <div class="kicker">Configuration</div>
-      <h2 class="text-3xl font-display font-bold text-slate-800 mb-6">Business Settings</h2>
+      <div class="text-turquoise-600 text-xs font-bold uppercase">Configuration</div>
+      <h2 class="text-3xl font-display font-bold text-slate-800">Business Settings</h2>
 
       <div class="card space-y-6">
-        <div class="border-b border-turquoise-100 pb-6">
-          <h3 class="font-semibold text-lg text-slate-800 mb-4">🏢 Business Information</h3>
+        <div>
+          <h3 class="font-semibold text-lg mb-3">Business Info</h3>
           <div class="grid sm:grid-cols-2 gap-4">
-            <div class="sm:col-span-2"><label class="label">Business Name</label><input id="bizName" class="input" placeholder="Your business name" /></div>
-            <div class="sm:col-span-2"><label class="label">Tagline (Optional)</label><input id="bizTag" class="input" placeholder="Professional tagline" /></div>
-            <div class="sm:col-span-2"><label class="label">Business Address</label><textarea id="bizAddress" class="input" rows="3" placeholder="Full business address"></textarea></div>
-            <div class="sm:col-span-2"><label class="label">Email Address</label><input id="bizEmail" class="input" placeholder="business@example.com" /></div>
+            <div class="sm:col-span-2"><label class="label">Business Name</label><input id="bizName" class="input"></div>
+            <div class="sm:col-span-2"><label class="label">Tagline</label><input id="bizTag" class="input"></div>
+            <div class="sm:col-span-2"><label class="label">Business Address</label><textarea id="bizAddress" class="input" rows="3"></textarea></div>
+            <div class="sm:col-span-2"><label class="label">Email</label><input id="bizEmail" class="input"></div>
           </div>
         </div>
 
-        <div class="border-b border-turquoise-100 pb-6">
-          <h3 class="font-semibold text-lg text-slate-800 mb-4">💷 Rates & Charges</h3>
+        <div>
+          <h3 class="font-semibold text-lg mb-3">Rates & Charges</h3>
           <div class="grid sm:grid-cols-3 gap-4">
-            <div><label class="label">Weekday Rate (£)</label><input id="rateWeekday" class="input" placeholder="15" /></div>
-            <div><label class="label">Weekend/Holiday Rate (£)</label><input id="rateWeekend" class="input" placeholder="17" /></div>
-            <div><label class="label">Mileage Rate (£)</label><input id="travelDefault" class="input" placeholder="0.45" /></div>
+            <div><label class="label">Weekday Rate (£)</label><input id="rateWeekday" class="input" placeholder="15"></div>
+            <div><label class="label">Weekend/Holiday Rate (£)</label><input id="rateWeekend" class="input" placeholder="17"></div>
+            <div><label class="label">Mileage Rate (£)</label><input id="travelDefault" class="input" placeholder="0.45"></div>
           </div>
         </div>
 
-        <div class="border-b border-turquoise-100 pb-6">
-          <h3 class="font-semibold text-lg text-slate-800 mb-4">🏦 Banking Details</h3>
+        <div>
+          <h3 class="font-semibold text-lg mb-3">Banking</h3>
           <div class="grid sm:grid-cols-2 gap-4">
-            <div><label class="label">Bank Name</label><input id="bankDefaultName" class="input" placeholder="Your Bank" /></div>
-            <div><label class="label">Account Name</label><input id="bankDefaultAcctName" class="input" placeholder="Account holder name" /></div>
-            <div><label class="label">Sort Code</label><input id="bankDefaultSort" class="input" placeholder="00-00-00" /></div>
-            <div><label class="label">Account Number</label><input id="bankDefaultAcct" class="input" placeholder="12345678" /></div>
+            <div><label class="label">Bank</label><input id="bankDefaultName" class="input"></div>
+            <div><label class="label">Account Name</label><input id="bankDefaultAcctName" class="input"></div>
+            <div><label class="label">Sort Code</label><input id="bankDefaultSort" class="input"></div>
+            <div><label class="label">Account No</label><input id="bankDefaultAcct" class="input"></div>
           </div>
         </div>
 
-        <div class="pb-6">
-          <h3 class="font-semibold text-lg text-slate-800 mb-4">🔢 Invoice Settings</h3>
+        <div>
+          <h3 class="font-semibold text-lg mb-3">Invoice Settings</h3>
           <div class="grid sm:grid-cols-3 gap-4">
-            <div><label class="label">Invoice Prefix (Optional)</label><input id="invPrefix" class="input" placeholder="INV-" /></div>
-            <div><label class="label">Next Invoice Number</label><input id="invNext" class="input" placeholder="590" /></div>
+            <div><label class="label">Invoice Prefix</label><input id="invPrefix" class="input" placeholder="INV-"></div>
+            <div><label class="label">Next Invoice No</label><input id="invNext" class="input" placeholder="590"></div>
             <div class="flex items-end"><button id="saveSettings" class="btn btn-primary w-full">💾 Save All Settings</button></div>
           </div>
         </div>
+
+        <div class="rounded-xl p-3 bg-turquoise-50 text-turquoise-700 text-sm">Optional cloud backup via Firebase below.</div>
       </div>
 
-      <!-- Firebase UI -->
-      <div class="card space-y-4">
-        <h3 class="font-semibold text-lg text-slate-800">☁️ Firebase (Web App) Settings</h3>
-        <p class="text-sm text-slate-600">
-          Paste your <strong>Firebase Web App</strong> config JSON (Project settings → General → Your apps → Web app).<br/>
-          <em>Do not use Admin private keys in the browser.</em>
-        </p>
+      <div class="card space-y-3">
+        <h3 class="font-semibold text-lg">☁️ Firebase (Web App) Settings</h3>
+        <p class="text-sm text-slate-600">Paste the <strong>Web App</strong> config JSON (not Admin keys).</p>
         <textarea id="firebaseConfigJson" class="input font-mono text-sm" rows="6" placeholder='{
-  "apiKey":"...",
-  "authDomain":"...",
-  "projectId":"...",
-  "storageBucket":"...",
-  "messagingSenderId":"...",
-  "appId":"..."
+  "apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."
 }'></textarea>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex gap-3 items-center">
           <button id="connectFirebase" class="btn btn-primary">Connect Firebase</button>
           <label class="inline-flex items-center gap-2"><input id="autoSync" type="checkbox" class="h-4 w-4"> <span class="text-sm">Enable Auto-Sync</span></label>
         </div>
@@ -485,519 +416,673 @@
     </section>
   </main>
 
-  <!-- App Script -->
+  <!-- APP (single module) -->
   <script type="module">
-    /***********************
-     * Utilities
-     ***********************/
-    const formatGBP = (n) => new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(Number(n||0));
-    const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
-    const todayISO = () => new Date().toISOString().slice(0,10);
+    "use strict";
 
-    const safeText = (el, v) => { const e = document.getElementById(el); if (e) e.textContent = v; };
-    const safeVal  = (el, v) => { const e = document.getElementById(el); if (e) e.value = v; };
+    /* ========== UTILITIES ========== */
+    function formatGBP(n){ return new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(Number(n||0)); }
+    function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
+    function todayISO(){ return new Date().toISOString().slice(0,10); }
+    function setText(id, val){ var el=document.getElementById(id); if(el){ el.textContent = val; } }
+    function setVal(id, val){ var el=document.getElementById(id); if(el){ el.value = val; } }
+    function getVal(id){ var el=document.getElementById(id); return el ? (el.value||"") : ""; }
+    function getChecked(id){ var el=document.getElementById(id); return !!(el && el.checked); }
 
     function ukTaxYearLabel(d){
-      try{const dt=(typeof d==='string')?new Date(d):(d||new Date());const y=dt.getFullYear();
-        const start=new Date(y,3,6);const from=dt>=start?y:y-1;const toShort=String((from+1)%100).padStart(2,'0');return `${from}/${toShort}`;}
-      catch{return '2025/26';}
+      try{
+        var dt = (typeof d==="string")? new Date(d) : (d || new Date());
+        var y = dt.getFullYear();
+        var start = new Date(y,3,6); // 6 Apr
+        var from = dt >= start ? y : y-1;
+        var toShort = String((from+1)%100).padStart(2,"0");
+        return from + "/" + toShort;
+      }catch(e){ return "2025/26"; }
     }
     function taxYearRange(label){
-      try{const [fromStr]=label.split('/');const from=Number(fromStr);
-        const start=new Date(from,3,6), end=new Date(from+1,3,6);
-        return [start.toISOString().slice(0,10), end.toISOString().slice(0,10)];
-      }catch{return ['2025-04-06','2026-04-06'];}
+      try{
+        var from = Number((label||"").split("/")[0]);
+        var start = new Date(from,3,6);
+        var end = new Date(from+1,3,6);
+        return [ start.toISOString().slice(0,10), end.toISOString().slice(0,10) ];
+      }catch(e){ return ["2025-04-06","2026-04-06"]; }
     }
 
-    /***********************
-     * Store (localStorage)
-     ***********************/
-    const Store = {
-      key:'diamond-equine-db',
-      load(){try{const raw=localStorage.getItem(this.key);if(!raw) return this.seed();
-        const d=JSON.parse(raw);d.invoices??=[];d.expenses??=[];d.travel??=[];d.settings??=this.defaultSettings();return d;}
-        catch{return this.seed();}},
-      save(db){try{localStorage.setItem(this.key, JSON.stringify(db)); if (Cloud.auto && Cloud.connected) Cloud.queueSave();}catch{alert('Error saving data');}},
-      defaultSettings(){return{
-        bizName:'Debra Herbert t/a Diamond Equine Grooming', bizTag:'Professional Equine Grooming',
-        bizAddress:'31 Teaseltun, Elvetham Heath, Fleet, Hampshire, GU51 5BY', bizEmail:'',
-        rateWeekday:15, rateWeekend:17, travelDefault:0.45,
-        bankName:'Nationwide', bankAccountName:'Mrs Debbie H Herbert', bankSort:'07-01-16', bankAccount:'32288417',
-        invPrefix:'', invNext:590, firebaseConfigJson:'', autoSync:false
-      }},
-      seed(){return {invoices:[],expenses:[],travel:[],settings:this.defaultSettings()};},
-      backup(){const blob=new Blob([localStorage.getItem(this.key)||'{}'],{type:'application/json'});
-        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`diamond-equine-backup-${todayISO()}.json`;a.click();},
-      async restore(file){const text=await file.text();localStorage.setItem(this.key,text);location.reload();}
-    };
-    let DB = Store.load();
-
-    /***********************
-     * Firebase (client)
-     ***********************/
-    const Cloud = {
-      connected:false, auto:!!DB.settings.autoSync, app:null, db:null, _t:null,
-      connectFromSettings(){
-        try{
-          const cfgRaw=(DB.settings.firebaseConfigJson||'').trim();
-          if(!cfgRaw) throw new Error('No Firebase config set.');
-          const cfg=JSON.parse(cfgRaw);
-          if(!window.firebase) throw new Error('Firebase SDK not loaded.');
-          this.app = firebase.apps?.length ? firebase.app() : firebase.initializeApp(cfg);
-          this.db  = firebase.firestore();
-          this.connected=true;
-          this.status('Connected to Firebase project: '+(cfg.projectId||''));
-        }catch(e){ this.connected=false; this.status('Firebase not connected: '+e.message,true); }
-      },
-      status(msg,err=false){ ['cloudStatus','firebaseConnStatus'].forEach(id=>{
-        const el=document.getElementById(id); if(el){el.textContent=msg; el.className='text-sm '+(err?'text-red-600':'text-emerald-600');}
-      });},
-      async pushAll(){
-        if(!this.connected) return this.status('Connect Firebase in Settings first.',true);
-        try{
-          const work=[];
-          DB.invoices.forEach(i=>work.push(['invoices',i.id,i]));
-          DB.expenses.forEach(e=>work.push(['expenses',e.id,e]));
-          DB.travel.forEach(t=>work.push(['travel',t.id,t]));
-          for (let i=0;i<work.length;i+=400){
-            const chunk=work.slice(i,i+400), batch=this.db.batch();
-            chunk.forEach(([col,id,data])=> batch.set(this.db.collection(col).doc(id||uid()), data, {merge:true}));
-            await batch.commit();
-          }
-          this.status('Sync Up complete.');
-        }catch(e){ console.error(e); this.status('Sync Up failed: '+e.message,true); }
-      },
-      async pullAll(){
-        if(!this.connected) return this.status('Connect Firebase in Settings first.',true);
-        try{
-          const fetchCol=async (c)=>(await this.db.collection(c).get()).docs.map(d=>d.data());
-          DB.invoices=await fetchCol('invoices'); DB.expenses=await fetchCol('expenses'); DB.travel=await fetchCol('travel');
-          Store.save(DB); UI.refreshYears(); UI.invoicesList(); UI.dashboard(); refreshExpensesUI();
-          this.status('Pull Down complete.');
-        }catch(e){ console.error(e); this.status('Pull Down failed: '+e.message,true); }
-      },
-      queueSave(){ clearTimeout(this._t); this._t=setTimeout(()=>this.pushAll(),800); }
-    };
-    if (DB.settings.firebaseConfigJson) Cloud.connectFromSettings();
-
-    /***********************
-     * OCR (PDF/Image)
-     ***********************/
-    const OCR = {
-      async extractFromPDF(file){
-        if (!window.__PDFJS_READY__) throw new Error('pdf.js not loaded (network blocked?).');
-        const buf = await file.arrayBuffer();
-        const doc = await pdfjsLib.getDocument({data:buf}).promise;
-        let text=''; for(let p=1;p<=doc.numPages;p++){ const page=await doc.getPage(p);
-          const content=await page.getTextContent(); text += content.items.map(i=>i.str).join(' ') + '\n'; }
-        return text;
-      },
-      async extractFromImage(file){
-        const { data:{ text } } = await Tesseract.recognize(file,'eng');
-        return text;
-      }
-    };
-
-    /***********************
-     * Parsing helpers
-     ***********************/
-    const Parser = {
-      parseInvoiceText(raw){
-        try{
-          const text=raw.replace(/\s+/g,' ').trim();
-          let number=(text.match(/Invoice\s*No:\s*(\d+)/i)||[])[1]||'';
-          let dateStr=(text.match(/Date:\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{4})/i)||[])[1]||'';
-          let date=''; if(dateStr){ const [d,mon,y]=dateStr.split('-');
-            const m={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11}[mon.slice(0,3)];
-            if(m!==undefined) date=new Date(Number(y),m,Number(d)).toISOString().slice(0,10);}
-          let clientName=(text.match(/To:\s*([^]+?)\s+(Qty|Description|Net|Address)/i)||[])[1];
-          if(!clientName) clientName=(text.match(/To:\s*([A-Za-z0-9 &.,'-]+)/i)||[])[1]||'';
-          const itemRegex=/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d{2})?)\s*£?\s*([\d,]+(?:\.\d{2})?)/gi;
-          const items=[]; let m;
-          while((m=itemRegex.exec(text))){
-            const qty=parseFloat(m[1]), unit=parseFloat(m[2]), line=parseFloat(String(m[3]).replace(/,/g,''));
-            if(qty>0 && unit>0) items.push({id:uid(),description:'Grooming Services',qty,unit,line});
-          }
-          items.forEach(it=>{ it.line = it.line || (it.qty*it.unit); });
-          let net=(text.match(/Net\s*Total\s*£?\s*([\d,]+(?:\.\d{2})?)/i)||[])[1];
-          const netTotal=net?parseFloat(net.replace(/,/g,'')):items.reduce((s,i)=>s+i.line,0);
-          return { number, date, clientName, items, totals:{ net: netTotal } };
-        }catch{ return { items:[], totals:{net:0} }; }
-      },
-      parseDiaryText(raw){
-        try{
-          const lines=(raw||'').replace(/\r/g,'').trim().split('\n').map(s=>s.trim()).filter(Boolean);
-          const items=[]; const pattern=/(\d+(?:\.\d+)?)\s*@\s*£?\s*(\d+(?:\.\d{2})?)/ig; let m;
-          for(const line of lines){ while((m=pattern.exec(line))){ const qty=parseFloat(m[1]), unit=parseFloat(m[2]); items.push({id:uid(),description:'Grooming (diary)',qty,unit,line:qty*unit}); } }
-          return { items, totals:{ net: items.reduce((s,i)=>s+i.line,0) } };
-        }catch{ return { items:[], totals:{net:0} }; }
-      }
-    };
-
-    /***********************
-     * UI
-     ***********************/
-    const UI = {
-      currentTab:'dashboard',
-      go(tab){
-        document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
-        document.getElementById(tab)?.classList.remove('hidden');
-        document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.remove('tab-active'));
-        [...document.querySelectorAll('#tabs .tab')].find(b=>b.dataset.tab===tab)?.classList.add('tab-active');
-        document.getElementById('tabSelect')?.value = tab;
-        this.currentTab=tab;
-      },
-      refreshYears(){
-        const years = new Set(DB.invoices.map(i=>ukTaxYearLabel(i.date||todayISO())));
-        years.add(ukTaxYearLabel(new Date()));
-        const sel=document.getElementById('yearSelect');
-        if (sel){ sel.innerHTML=[...years].sort().map(y=>`<option>${y}</option>`).join(''); sel.value=ukTaxYearLabel(new Date()); }
-      },
-      dashboard(){
-        const y=document.getElementById('yearSelect')?.value || ukTaxYearLabel(new Date());
-        const [start,end]=taxYearRange(y); const inYear=(d)=>d>=start && d<end;
-        const invs=DB.invoices.filter(i=>inYear(i.date||todayISO()));
-        const expenses=DB.expenses.filter(e=>inYear(e.date)); const travel=DB.travel.filter(t=>inYear(t.date));
-        const sumInvoiced=invs.reduce((s,i)=>s+(i.items||[]).reduce((a,b)=>a+(Number(b.qty||0)*Number(b.unit||0)),0),0);
-        const sumPaid=invs.filter(i=>i.paid).reduce((s,i)=>s+(i.items||[]).reduce((a,b)=>a+(Number(b.qty||0)*Number(b.unit||0)),0),0);
-        const sumExpenses=expenses.reduce((s,e)=>s+Number(e.amount||0),0);
-        const sumTravel=travel.reduce((s,t)=>s+(Number(t.miles||0)*Number(t.rate||0)),0);
-        const net=sumInvoiced - sumExpenses - sumTravel;
-        safeText('sumInvoiced', formatGBP(sumInvoiced));
-        safeText('sumPaid',     formatGBP(sumPaid));
-        safeText('sumExpenses', formatGBP(sumExpenses));
-        safeText('sumTravel',   formatGBP(sumTravel));
-        safeText('sumNet',      formatGBP(net));
-      },
-      invoicesList(){
-        const q=(document.getElementById('searchInv')?.value||'').toLowerCase();
-        const status=document.getElementById('statusInv')?.value || 'all';
-        const container=document.getElementById('invList'); if(!container) return;
-        const filtered=DB.invoices.filter(i=>{
-          const hay=[i.number,i.client?.name,i.client?.address].join(' ').toLowerCase();
-          const matchQ=!q || hay.includes(q); const matchS=status==='all' || (status==='paid'?i.paid:!i.paid); return matchQ&&matchS;
-        }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-        container.innerHTML = filtered.map(i=>{
-          const total=(i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
-          return `
-            <div class="card card-hover">
-              <div class="flex items-center justify-between mb-3">
-                <div class="font-bold text-lg">Invoice ${i.number||''}</div>
-                <span class="pill ${i.paid?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${i.paid?'PAID':'UNPAID'}</span>
-              </div>
-              <div class="text-slate-600 mb-2">${i.client?.name || 'No client'}</div>
-              <div class="text-sm text-slate-500 mb-2">${i.date || ''}</div>
-              <div class="text-2xl font-bold text-turquoise-600 mb-4">${formatGBP(total)}</div>
-              <div class="flex flex-wrap gap-2">
-                <button class="btn btn-outline text-xs" data-act="edit" data-id="${i.id}">✏️ Edit</button>
-                <button class="btn btn-outline text-xs" data-act="pdf" data-id="${i.id}">📄 PDF</button>
-                <button class="btn btn-outline text-xs" data-act="toggle" data-id="${i.id}">${i.paid?'Mark Unpaid':'Mark Paid'}</button>
-                <button class="btn btn-outline text-xs text-red-600" data-act="del" data-id="${i.id}">🗑️ Delete</button>
-              </div>
-            </div>`;
-        }).join('');
-        container.querySelectorAll('button').forEach(b=>{
-          b.addEventListener('click', ()=>{
-            const id=b.dataset.id, act=b.dataset.act, inv=DB.invoices.find(x=>x.id===id); if(!inv) return;
-            if(act==='edit'){ Forms.loadInvoice(inv); UI.go('new-invoice'); }
-            else if(act==='pdf'){ PDFMaker.download(inv); }
-            else if(act==='toggle'){ inv.paid=!inv.paid; Store.save(DB); UI.invoicesList(); UI.dashboard(); }
-            else if(act==='del'){ if(confirm('Delete this invoice?')){ DB.invoices = DB.invoices.filter(x=>x.id!==id); Store.save(DB); UI.invoicesList(); UI.dashboard(); } }
-          });
-        });
-      }
-    };
-    // expose UI for debugging (optional)
-    window.UI = UI;
-
-    /***********************
-     * Invoice form handlers
-     ***********************/
-    const Forms = {
-      clearInvoice(){
-        safeVal('invNumber', DB.settings.invNext||''); safeVal('invDate', todayISO());
-        safeVal('clientName',''); safeVal('clientAddress','');
-        const body=document.getElementById('itemsBody'); if(body) body.innerHTML='';
-        safeText('invTotal','£0.00'); const pt=document.getElementById('paidToggle'); if(pt) pt.checked=false;
-        safeVal('bankName',DB.settings.bankName||''); safeVal('bankAccountName',DB.settings.bankAccountName||'');
-        safeVal('sortCode',DB.settings.bankSort||''); safeVal('accountNo',DB.settings.bankAccount||'');
-      },
-      addItem(desc='Grooming Services', qty=1, unit=DB.settings.rateWeekday||15){
-        const id=uid(); const tr=document.createElement('tr'); tr.dataset.id=id;
-        tr.innerHTML=`
-          <td class="py-2"><input class="input text-sm" value="${desc}"></td>
-          <td class="py-2"><input class="input text-sm" type="number" step="0.01" value="${qty}"></td>
-          <td class="py-2"><input class="input text-sm" type="number" step="0.01" value="${unit}"></td>
-          <td class="py-2"><div class="px-2 font-semibold text-turquoise-600" data-role="line">£0.00</div></td>
-          <td class="py-2"><button class="btn btn-outline text-xs text-red-600" data-role="del">✕</button></td>`;
-        document.getElementById('itemsBody')?.appendChild(tr);
-        tr.querySelector('[data-role="del"]').addEventListener('click',()=>{ tr.remove(); Forms.calcTotal(); });
-        tr.querySelectorAll('input').forEach(el=>el.addEventListener('input', Forms.calcTotal));
-        Forms.calcTotal();
-      },
-      calcTotal(){
-        let total=0;
-        document.querySelectorAll('#itemsBody tr').forEach(tr=>{
-          const inputs=tr.querySelectorAll('input'); if(inputs.length<3) return;
-          const qty=parseFloat(inputs[1].value||'0'), unit=parseFloat(inputs[2].value||'0'); const line=qty*unit;
-          tr.querySelector('[data-role="line"]').textContent = formatGBP(line); total+=line;
-        });
-        safeText('invTotal', formatGBP(total));
-      },
-      readInvoice(){
-        const items=[]; document.querySelectorAll('#itemsBody tr').forEach(tr=>{
-          const inputs=tr.querySelectorAll('input'); if(inputs.length<3) return;
-          items.push({ id:tr.dataset.id||uid(), description:inputs[0].value||'Grooming Services', qty:Number(inputs[1].value||0), unit:Number(inputs[2].value||0) });
-        });
-        const val=(id)=>document.getElementById(id)?.value?.trim()||''; const checked=(id)=>!!document.getElementById(id)?.checked;
+    /* ========== STORE (localStorage) ========== */
+    var Store = {
+      key: "diamond-equine-db",
+      defaultSettings: function(){
         return {
-          id: uid(), number: val('invNumber'), date: val('invDate') || todayISO(),
-          client:{ name:val('clientName'), address:val('clientAddress') }, items,
-          paid: checked('paidToggle'),
-          bank:{ name:val('bankName'), accountName:val('bankAccountName'), sort:val('sortCode'), account:val('accountNo') }
+          bizName:"Debra Herbert t/a Diamond Equine Grooming",
+          bizTag:"Professional Equine Grooming",
+          bizAddress:"31 Teaseltun, Elvetham Heath, Fleet, Hampshire, GU51 5BY",
+          bizEmail:"",
+          rateWeekday:15, rateWeekend:17, travelDefault:0.45,
+          bankName:"Nationwide", bankAccountName:"Mrs Debbie H Herbert", bankSort:"07-01-16", bankAccount:"32288417",
+          invPrefix:"", invNext:590,
+          firebaseConfigJson:"", autoSync:false
         };
       },
-      loadInvoice(inv){
-        safeVal('invNumber',inv.number||''); safeVal('invDate',inv.date||todayISO());
-        safeVal('clientName',inv.client?.name||''); safeVal('clientAddress',inv.client?.address||'');
-        const body=document.getElementById('itemsBody'); if(body) body.innerHTML='';
-        (inv.items||[]).forEach(it=>Forms.addItem(it.description,it.qty,it.unit));
-        const pt=document.getElementById('paidToggle'); if(pt) pt.checked=!!inv.paid;
-        safeVal('bankName',inv.bank?.name||DB.settings.bankName||''); safeVal('bankAccountName',inv.bank?.accountName||DB.settings.bankAccountName||'');
-        safeVal('sortCode',inv.bank?.sort||DB.settings.bankSort||''); safeVal('accountNo',inv.bank?.account||DB.settings.bankAccount||'');
-        Forms.calcTotal(); Forms._editingId=inv.id;
+      seed: function(){ return { invoices:[], expenses:[], travel:[], settings: this.defaultSettings() }; },
+      load: function(){
+        try{
+          var raw = localStorage.getItem(this.key);
+          if(!raw){ return this.seed(); }
+          var d = JSON.parse(raw);
+          if(!d.invoices) d.invoices = [];
+          if(!d.expenses) d.expenses = [];
+          if(!d.travel) d.travel = [];
+          if(!d.settings) d.settings = this.defaultSettings();
+          return d;
+        }catch(e){ return this.seed(); }
       },
-      commitInvoice(){
-        const draft=Forms.readInvoice(); if(!draft){alert('Could not read invoice.'); return;}
-        if(Forms._editingId) draft.id=Forms._editingId;
-        const idx=DB.invoices.findIndex(i=>i.id===draft.id); if(idx>=0) DB.invoices[idx]=draft; else DB.invoices.push(draft);
-        const n=parseInt(draft.number,10); if(!isNaN(n) && n>=(DB.settings.invNext||0)) DB.settings.invNext=n+1;
-        Store.save(DB); Forms._editingId=null; alert('Invoice saved.'); UI.invoicesList(); UI.dashboard();
+      save: function(db){
+        try{ localStorage.setItem(this.key, JSON.stringify(db)); if(Cloud.auto && Cloud.connected){ Cloud.queueSave(); } }
+        catch(e){ alert("Error saving data"); }
+      },
+      backup: function(){
+        var blob = new Blob([localStorage.getItem(this.key)||"{}"],{type:"application/json"});
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = "diamond-equine-backup-"+todayISO()+".json"; a.click();
+      },
+      restore: function(file){
+        file.text().then(function(text){ localStorage.setItem(Store.key, text); location.reload(); });
+      }
+    };
+    var DB = Store.load();
+
+    /* ========== CLOUD (Firebase Web) ========== */
+    var Cloud = {
+      connected:false, auto: !!DB.settings.autoSync, app:null, db:null, _timer:null,
+      connectFromSettings: function(){
+        try{
+          var raw = (DB.settings.firebaseConfigJson||"").trim();
+          if(!raw) throw new Error("No Firebase config set");
+          var cfg = JSON.parse(raw);
+          if(!window.firebase) throw new Error("Firebase SDK not loaded");
+          this.app = (firebase.apps && firebase.apps.length) ? firebase.app() : firebase.initializeApp(cfg);
+          this.db = firebase.firestore();
+          this.connected = true;
+          this.status("Connected to Firebase project: " + (cfg.projectId||""));
+        }catch(e){
+          this.connected = false;
+          this.status("Firebase not connected: " + e.message, true);
+        }
+      },
+      status: function(msg, isErr){
+        var ids = ["cloudStatus","firebaseConnStatus"]; for(var i=0;i<ids.length;i++){
+          var el = document.getElementById(ids[i]); if(el){ el.textContent = msg; el.className = "text-sm " + (isErr?"text-red-600":"text-emerald-700"); }
+        }
+      },
+      queueSave: function(){ var self=this; if(self._timer) clearTimeout(self._timer); self._timer = setTimeout(function(){ self.pushAll(); }, 800); },
+      pushAll: function(){
+        if(!this.connected){ this.status("Connect Firebase in Settings first.",true); return; }
+        var work=[], i;
+        for(i=0;i<DB.invoices.length;i++){ work.push(["invoices", DB.invoices[i].id, DB.invoices[i]]); }
+        for(i=0;i<DB.expenses.length;i++){ work.push(["expenses", DB.expenses[i].id, DB.expenses[i]]); }
+        for(i=0;i<DB.travel.length;i++){ work.push(["travel", DB.travel[i].id, DB.travel[i]]); }
+        var self=this;
+        (async function(){
+          try{
+            for(var j=0;j<work.length;j+=400){
+              var chunk = work.slice(j, j+400);
+              var batch = self.db.batch();
+              for(var k=0;k<chunk.length;k++){
+                var col = chunk[k][0], id = chunk[k][1], data = chunk[k][2];
+                batch.set(self.db.collection(col).doc(id||uid()), data, {merge:true});
+              }
+              await batch.commit();
+            }
+            self.status("Sync Up complete.");
+          }catch(e){ console.error(e); self.status("Sync Up failed: " + e.message, true); }
+        }());
+      },
+      pullAll: function(){
+        if(!this.connected){ this.status("Connect Firebase in Settings first.",true); return; }
+        var self=this;
+        (async function(){
+          try{
+            async function fetchCol(c){ var snap = await self.db.collection(c).get(); var out=[]; snap.forEach(function(d){ out.push(d.data()); }); return out; }
+            DB.invoices = await fetchCol("invoices");
+            DB.expenses = await fetchCol("expenses");
+            DB.travel   = await fetchCol("travel");
+            Store.save(DB); UI.refreshYears(); UI.invoicesList(); UI.dashboard(); refreshExpensesUI();
+            self.status("Pull Down complete.");
+          }catch(e){ console.error(e); self.status("Pull Down failed: " + e.message, true); }
+        }());
+      }
+    };
+    if (DB.settings.firebaseConfigJson){ Cloud.connectFromSettings(); }
+
+    /* ========== OCR ========== */
+    var OCR = {
+      extractFromPDF: function(file){
+        return new Promise(function(resolve,reject){
+          if(!window.__PDF_READY__){ reject(new Error("pdf.js not loaded (network blocked?)")); return; }
+          file.arrayBuffer().then(function(buf){
+            pdfjsLib.getDocument({data:buf}).promise.then(async function(doc){
+              var text="", p;
+              for(p=1;p<=doc.numPages;p++){
+                /* eslint-disable no-await-in-loop */
+                var page = await doc.getPage(p);
+                var c = await page.getTextContent();
+                var i, line="";
+                for(i=0;i<c.items.length;i++){ line += c.items[i].str + " "; }
+                text += line + "\n";
+              }
+              resolve(text);
+            }).catch(reject);
+          }).catch(reject);
+        });
+      },
+      extractFromImage: function(file){
+        return Tesseract.recognize(file, "eng").then(function(res){ return res.data.text; });
       }
     };
 
-    /***********************
-     * PDF Maker
-     ***********************/
-    const PDFMaker = {
-      download(inv){
-        const jsPDF = window.jspdf?.jsPDF; if(!jsPDF){ alert('PDF library not loaded yet.'); return; }
-        const doc=new jsPDF({unit:'pt',format:'a4'}); const margin=48; let y=margin;
-        const total=(inv.items||[]).reduce((s,i)=>s+(Number(i.qty||0)*Number(i.unit||0)),0);
+    /* ========== PARSER ========== */
+    var Parser = {
+      parseInvoiceText: function(raw){
+        try{
+          var text = (raw||"").replace(/\s+/g," ").trim();
+          var number = ((text.match(/Invoice\s*No:\s*(\d+)/i)||[])[1]) || "";
+          var dateStr = ((text.match(/Date:\s*([0-9]{1,2}-[A-Za-z]{3}-[0-9]{4})/i)||[])[1]) || "";
+          var date = "";
+          if(dateStr){
+            var parts = dateStr.split("-");
+            var d = Number(parts[0]), mon = parts[1].slice(0,3), y = Number(parts[2]);
+            var months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+            if(months[mon] !== undefined){ date = new Date(y, months[mon], d).toISOString().slice(0,10); }
+          }
+          var clientName = ((text.match(/To:\s*([^]+?)\s+(Qty|Description|Net|Address)/i)||[])[1]) ||
+                           ((text.match(/To:\s*([A-Za-z0-9 &.,'-]+)/i)||[])[1]) || "";
 
-        doc.setFont('Times','bold'); doc.setFontSize(24); doc.setTextColor(45,212,191);
-        doc.text('🎠  Diamond Equine', margin, y); y+=30;
+          var itemRegex = /(\d+(?:\.\d+)?)\s+(\d+(?:\.\d{2})?)\s*£?\s*([\d,]+(?:\.\d{2})?)/gi;
+          var items=[], m;
+          while((m = itemRegex.exec(text))){
+            var qty = parseFloat(m[1]), unit = parseFloat(m[2]), line = parseFloat(String(m[3]).replace(/,/g,""));
+            if(qty>0 && unit>0){ items.push({ id:uid(), description:"Grooming Services", qty:qty, unit:unit, line:line }); }
+          }
+          for(var i=0;i<items.length;i++){ if(!items[i].line){ items[i].line = items[i].qty * items[i].unit; } }
+          var net = ((text.match(/Net\s*Total\s*£?\s*([\d,]+(?:\.\d{2})?)/i)||[])[1]);
+          var netTotal = net ? parseFloat(net.replace(/,/g,"")) : items.reduce(function(s,it){return s+(it.line||0);},0);
+          return { number:number, date:date, clientName:clientName, items:items, totals:{net:netTotal} };
+        }catch(e){ return { items:[], totals:{net:0} }; }
+      },
+      parseDiaryText: function(raw){
+        try{
+          var lines = (raw||"").replace(/\r/g,"").trim().split("\n");
+          var items=[], pattern = /(\d+(?:\.\d+)?)\s*@\s*£?\s*(\d+(?:\.\d{2})?)/ig, m, L;
+          for(L=0;L<lines.length;L++){
+            var line = lines[L];
+            while((m = pattern.exec(line))){
+              var qty = parseFloat(m[1]), unit = parseFloat(m[2]);
+              items.push({ id:uid(), description:"Grooming (diary)", qty:qty, unit:unit, line:qty*unit });
+            }
+          }
+          var total = items.reduce(function(s,it){ return s + (it.line||0); }, 0);
+          return { items:items, totals:{net:total} };
+        }catch(e){ return { items:[], totals:{net:0} }; }
+      }
+    };
 
-        doc.setFont('Times','normal'); doc.setFontSize(12); doc.setTextColor(15,118,110);
-        if(DB.settings.bizTag){ doc.text(DB.settings.bizTag, margin, y); y+=20; }
+    /* ========== UI ========== */
+    var UI = {
+      currentTab:"dashboard",
+      go: function(tab){
+        var secs = document.querySelectorAll("main > section"); var i;
+        for(i=0;i<secs.length;i++){ secs[i].classList.add("hidden"); }
+        var t = document.getElementById(tab); if(t){ t.classList.remove("hidden"); }
+        var btns = document.querySelectorAll("#tabs .tab"); for(i=0;i<btns.length;i++){ btns[i].classList.remove("tab-active"); }
+        var pick = document.querySelector('#tabs .tab[data-tab="'+tab+'"]'); if(pick){ pick.classList.add("tab-active"); }
+        var sel = document.getElementById("tabSelect"); if(sel){ sel.value = tab; }
+        this.currentTab = tab;
+      },
+      refreshYears: function(){
+        var years = {}; var i;
+        for(i=0;i<DB.invoices.length;i++){ years[ ukTaxYearLabel(DB.invoices[i].date||todayISO()) ] = true; }
+        years[ ukTaxYearLabel(new Date()) ] = true;
+        var list = Object.keys(years).sort();
+        var sel = document.getElementById("yearSelect");
+        if(sel){
+          var html = "";
+          for(i=0;i<list.length;i++){ html += "<option>"+list[i]+"</option>"; }
+          sel.innerHTML = html;
+          sel.value = ukTaxYearLabel(new Date());
+        }
+      },
+      dashboard: function(){
+        var sel = document.getElementById("yearSelect");
+        var y = sel ? sel.value : ukTaxYearLabel(new Date());
+        var range = taxYearRange(y), start = range[0], end = range[1];
+        function inYear(d){ return d >= start && d < end; }
 
-        y=margin; doc.setTextColor(51); doc.setFontSize(11);
-        const metaX=360; doc.text(`Invoice #: ${inv.number||''}`, metaX, y); y+=14; doc.text(`Date: ${inv.date||''}`, metaX, y); y+=18;
+        var invs = DB.invoices.filter(function(i){ return inYear(i.date||todayISO()); });
+        var expenses = DB.expenses.filter(function(e){ return inYear(e.date); });
+        var travel = DB.travel.filter(function(t){ return inYear(t.date); });
 
-        y=margin+60; doc.setFont('Times','bold'); doc.text('From:', margin, y);
-        doc.setFont('Times','normal'); doc.text(DB.settings.bizName || 'Diamond Equine', margin+50, y); y+=16;
-        doc.text(DB.settings.bizAddress || '', margin+50, y, {maxWidth:250}); y+=50;
+        function sumInv(arr){ var s=0, i,j; for(i=0;i<arr.length;i++){ var it=arr[i].items||[]; for(j=0;j<it.length;j++){ s += Number(it[j].qty||0)*Number(it[j].unit||0); } } return s; }
+        var sumInvoiced = sumInv(invs);
+        var sumPaid = sumInv(invs.filter(function(x){return !!x.paid;}));
+        var sumExpenses = expenses.reduce(function(s,e){return s+Number(e.amount||0);},0);
+        var sumTravel = travel.reduce(function(s,t){return s+(Number(t.miles||0)*Number(t.rate||0));},0);
+        var net = sumInvoiced - sumExpenses - sumTravel;
 
-        doc.setFont('Times','bold'); doc.text('Bill To:', margin, y);
-        doc.setFont('Times','normal'); doc.text(inv.client?.name || '', margin+50, y); y+=16;
-        doc.text(inv.client?.address || '', margin+50, y, {maxWidth:250}); y+=30;
+        setText("sumInvoiced", formatGBP(sumInvoiced));
+        setText("sumPaid", formatGBP(sumPaid));
+        setText("sumExpenses", formatGBP(sumExpenses));
+        setText("sumTravel", formatGBP(sumTravel));
+        setText("sumNet", formatGBP(net));
+      },
+      invoicesList: function(){
+        var qEl=document.getElementById("searchInv"), sEl=document.getElementById("statusInv");
+        var q = (qEl ? qEl.value : "").toLowerCase(); var status = sEl ? sEl.value : "all";
+        var container = document.getElementById("invList"); if(!container) return;
 
-        doc.setFont('Times','bold'); doc.text('Description', margin, y);
-        doc.text('Qty',360,y); doc.text('Unit £',420,y); doc.text('Line £',500,y);
-        y+=10; doc.setDrawColor(45,212,191); doc.line(margin,y,560,y); y+=16;
+        var filtered = DB.invoices.filter(function(i){
+          var hay = [(i.number||""),(i.client&&i.client.name||""),(i.client&&i.client.address||"")].join(" ").toLowerCase();
+          var matchQ = !q || hay.indexOf(q) >= 0;
+          var matchS = (status==="all") || (status==="paid" ? !!i.paid : !i.paid);
+          return matchQ && matchS;
+        }).sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
 
-        doc.setFont('Times','normal');
-        (inv.items||[]).forEach(it=>{
-          doc.text(String(it.description||''), margin, y, {maxWidth:300});
+        var html = "", i;
+        for(i=0;i<filtered.length;i++){
+          var inv = filtered[i];
+          var total = (inv.items||[]).reduce(function(s,it){return s+(Number(it.qty||0)*Number(it.unit||0));},0);
+          html += '' +
+            '<div class="card">'+
+              '<div class="flex items-center justify-between mb-2">'+
+                '<div class="font-bold text-lg">Invoice '+(inv.number||"")+'</div>'+
+                '<span class="pill '+(inv.paid?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700')+'">'+(inv.paid?'PAID':'UNPAID')+'</span>'+
+              '</div>'+
+              '<div class="text-slate-600">'+(inv.client&&inv.client.name||"")+'</div>'+
+              '<div class="text-sm text-slate-500">'+(inv.date||"")+'</div>'+
+              '<div class="text-2xl font-bold text-turquoise-600 my-3">'+formatGBP(total)+'</div>'+
+              '<div class="flex flex-wrap gap-2">'+
+                '<button class="btn btn-outline text-xs" data-act="edit" data-id="'+inv.id+'">✏️ Edit</button>'+
+                '<button class="btn btn-outline text-xs" data-act="pdf" data-id="'+inv.id+'">📄 PDF</button>'+
+                '<button class="btn btn-outline text-xs" data-act="toggle" data-id="'+inv.id+'">'+(inv.paid?'Mark Unpaid':'Mark Paid')+'</button>'+
+                '<button class="btn btn-outline text-xs text-red-600" data-act="del" data-id="'+inv.id+'">🗑️ Delete</button>'+
+              '</div>'+
+            '</div>';
+        }
+        container.innerHTML = html;
+
+        var buttons = container.querySelectorAll("button");
+        function handle(e){
+          var id = this.getAttribute("data-id");
+          var act = this.getAttribute("data-act");
+          var inv = DB.invoices.find(function(x){return x.id===id;});
+          if(!inv) return;
+          if(act==="edit"){ Forms.loadInvoice(inv); UI.go("new-invoice"); }
+          else if(act==="pdf"){ PDFMaker.download(inv); }
+          else if(act==="toggle"){ inv.paid = !inv.paid; Store.save(DB); UI.invoicesList(); UI.dashboard(); }
+          else if(act==="del"){ if(confirm("Delete this invoice?")){ DB.invoices = DB.invoices.filter(function(x){return x.id!==id;}); Store.save(DB); UI.invoicesList(); UI.dashboard(); } }
+        }
+        for(i=0;i<buttons.length;i++){ buttons[i].addEventListener("click", handle); }
+      }
+    };
+    window.UI = UI; // handy when testing in console
+
+    /* ========== FORMS ========== */
+    var Forms = {
+      _editingId: null,
+      clearInvoice: function(){
+        setVal("invNumber", DB.settings.invNext||"");
+        setVal("invDate", todayISO());
+        setVal("clientName", ""); setVal("clientAddress", "");
+        var body=document.getElementById("itemsBody"); if(body){ body.innerHTML=""; }
+        setText("invTotal","£0.00");
+        var pt=document.getElementById("paidToggle"); if(pt){ pt.checked=false; }
+        setVal("bankName", DB.settings.bankName||"");
+        setVal("bankAccountName", DB.settings.bankAccountName||"");
+        setVal("sortCode", DB.settings.bankSort||"");
+        setVal("accountNo", DB.settings.bankAccount||"");
+      },
+      addItem: function(desc, qty, unit){
+        if(!desc) desc = "Grooming Services";
+        if(!qty) qty = 1;
+        if(unit===undefined || unit===null) unit = DB.settings.rateWeekday||15;
+
+        var tr = document.createElement("tr"); tr.setAttribute("data-id", uid());
+        tr.innerHTML =
+          '<td class="py-2"><input class="input text-sm" value="'+desc+'"></td>'+
+          '<td class="py-2"><input class="input text-sm" type="number" step="0.01" value="'+qty+'"></td>'+
+          '<td class="py-2"><input class="input text-sm" type="number" step="0.01" value="'+unit+'"></td>'+
+          '<td class="py-2"><div class="px-2 font-semibold text-turquoise-600" data-role="line">£0.00</div></td>'+
+          '<td class="py-2"><button class="btn btn-outline text-xs text-red-600" data-role="del">✕</button></td>';
+        var body=document.getElementById("itemsBody"); if(body){ body.appendChild(tr); }
+
+        var del = tr.querySelector('[data-role="del"]');
+        if(del){ del.addEventListener("click", function(){ tr.remove(); Forms.calcTotal(); }); }
+        var inputs = tr.querySelectorAll("input");
+        for(var i=0;i<inputs.length;i++){ inputs[i].addEventListener("input", Forms.calcTotal); }
+        Forms.calcTotal();
+      },
+      calcTotal: function(){
+        var total = 0;
+        var rows = document.querySelectorAll("#itemsBody tr");
+        for(var i=0;i<rows.length;i++){
+          var ins = rows[i].querySelectorAll("input");
+          if(ins.length>=3){
+            var qty = parseFloat(ins[1].value||"0");
+            var unit = parseFloat(ins[2].value||"0");
+            var line = qty*unit;
+            var e = rows[i].querySelector('[data-role="line"]'); if(e){ e.textContent = formatGBP(line); }
+            total += line;
+          }
+        }
+        setText("invTotal", formatGBP(total));
+      },
+      readInvoice: function(){
+        var items=[], rows=document.querySelectorAll("#itemsBody tr"), i;
+        for(i=0;i<rows.length;i++){
+          var ins = rows[i].querySelectorAll("input");
+          if(ins.length>=3){
+            items.push({
+              id: rows[i].getAttribute("data-id") || uid(),
+              description: ins[0].value || "Grooming Services",
+              qty: Number(ins[1].value||0),
+              unit: Number(ins[2].value||0)
+            });
+          }
+        }
+        return {
+          id: uid(),
+          number: getVal("invNumber"),
+          date: getVal("invDate") || todayISO(),
+          client: { name:getVal("clientName"), address:getVal("clientAddress") },
+          items: items,
+          paid: getChecked("paidToggle"),
+          bank: { name:getVal("bankName"), accountName:getVal("bankAccountName"), sort:getVal("sortCode"), account:getVal("accountNo") }
+        };
+      },
+      loadInvoice: function(inv){
+        setVal("invNumber", inv.number||"");
+        setVal("invDate", inv.date||todayISO());
+        setVal("clientName", inv.client && inv.client.name || "");
+        setVal("clientAddress", inv.client && inv.client.address || "");
+        var body=document.getElementById("itemsBody"); if(body){ body.innerHTML=""; }
+        var i; for(i=0;i<(inv.items||[]).length;i++){ var it=inv.items[i]; Forms.addItem(it.description, it.qty, it.unit); }
+        var pt=document.getElementById("paidToggle"); if(pt){ pt.checked = !!inv.paid; }
+        setVal("bankName", (inv.bank && inv.bank.name) || DB.settings.bankName || "");
+        setVal("bankAccountName", (inv.bank && inv.bank.accountName) || DB.settings.bankAccountName || "");
+        setVal("sortCode", (inv.bank && inv.bank.sort) || DB.settings.bankSort || "");
+        setVal("accountNo", (inv.bank && inv.bank.account) || DB.settings.bankAccount || "");
+        Forms.calcTotal(); Forms._editingId = inv.id;
+      },
+      commitInvoice: function(){
+        var draft = Forms.readInvoice(); if(!draft){ alert("Could not read invoice."); return; }
+        if(Forms._editingId){ draft.id = Forms._editingId; }
+        var idx = DB.invoices.findIndex(function(i){return i.id===draft.id;});
+        if(idx>=0) DB.invoices[idx] = draft; else DB.invoices.push(draft);
+        var n = parseInt(draft.number,10);
+        if(!isNaN(n) && n >= (DB.settings.invNext||0)){ DB.settings.invNext = n+1; }
+        Store.save(DB); Forms._editingId = null; alert("Invoice saved."); UI.invoicesList(); UI.dashboard();
+      }
+    };
+
+    /* ========== PDF MAKER ========== */
+    var PDFMaker = {
+      download: function(inv){
+        var jsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+        if(!jsPDF){ alert("PDF library not loaded yet."); return; }
+        var doc = new jsPDF({unit:"pt", format:"a4"}), margin=48, y=margin;
+
+        function sumInv(i){ var s=0, j; for(j=0;j<(i.items||[]).length;j++){ s += Number(i.items[j].qty||0)*Number(i.items[j].unit||0); } return s; }
+        var total = sumInv(inv);
+
+        doc.setFont("Times","bold"); doc.setFontSize(24); doc.setTextColor(45,212,191);
+        doc.text("🎠  Diamond Equine", margin, y); y += 30;
+
+        doc.setFont("Times","normal"); doc.setFontSize(12); doc.setTextColor(15,118,110);
+        if(DB.settings.bizTag){ doc.text(DB.settings.bizTag, margin, y); y += 20; }
+
+        y = margin; doc.setTextColor(51); doc.setFontSize(11);
+        var metaX = 360; doc.text("Invoice #: " + (inv.number||""), metaX, y); y += 14;
+        doc.text("Date: " + (inv.date||""), metaX, y); y += 18;
+
+        y = margin + 60; doc.setFont("Times","bold"); doc.text("From:", margin, y);
+        doc.setFont("Times","normal"); doc.text(DB.settings.bizName || "Diamond Equine", margin+50, y); y += 16;
+        doc.text(DB.settings.bizAddress || "", margin+50, y, {maxWidth:250}); y += 50;
+
+        doc.setFont("Times","bold"); doc.text("Bill To:", margin, y);
+        doc.setFont("Times","normal"); doc.text(inv.client && inv.client.name || "", margin+50, y); y += 16;
+        doc.text(inv.client && inv.client.address || "", margin+50, y, {maxWidth:250}); y += 30;
+
+        doc.setFont("Times","bold"); doc.text("Description", margin, y);
+        doc.text("Qty", 360, y); doc.text("Unit £", 420, y); doc.text("Line £", 500, y); y += 10;
+        doc.setDrawColor(45,212,191); doc.line(margin, y, 560, y); y += 16;
+
+        doc.setFont("Times","normal");
+        var i; for(i=0;i<(inv.items||[]).length;i++){
+          var it=inv.items[i];
+          doc.text(String(it.description||""), margin, y, {maxWidth:300});
           doc.text(String(it.qty||0), 360, y);
           doc.text(String(Number(it.unit||0).toFixed(2)), 420, y);
-          doc.text(String((Number(it.qty||0)*Number(it.unit||0)).toFixed(2)), 500, y, {align:'right'});
-          y+=18;
-        });
+          doc.text(String((Number(it.qty||0)*Number(it.unit||0)).toFixed(2)), 500, y, {align:"right"});
+          y += 18;
+        }
 
-        y+=8; doc.setDrawColor(45,212,191); doc.line(380,y,560,y); y+=20;
-        doc.setFont('Times','bold'); doc.setTextColor(45,212,191); doc.text('Net Total',420,y);
-        doc.text(`£${total.toFixed(2)}`,500,y,{align:'right'});
+        y += 8; doc.setDrawColor(45,212,191); doc.line(380, y, 560, y); y += 20;
+        doc.setFont("Times","bold"); doc.setTextColor(45,212,191); doc.text("Net Total", 420, y);
+        doc.text("£" + total.toFixed(2), 500, y, {align:"right"});
 
-        y+=40; doc.setFont('Times','normal'); doc.setTextColor(51);
-        doc.text('Payment is due within 30 days.', margin, y); y+=16;
-        doc.text(`Bank: ${inv.bank?.name || DB.settings.bankName || ''}`, margin, y); y+=16;
-        doc.text(`Account Name: ${inv.bank?.accountName || DB.settings.bankAccountName || ''}`, margin, y); y+=16;
-        doc.text(`Sort Code: ${inv.bank?.sort || DB.settings.bankSort || ''}`, margin, y); y+=16;
-        doc.text(`Account No: ${inv.bank?.account || DB.settings.bankAccount || ''}`, margin, y);
+        y += 40; doc.setFont("Times","normal"); doc.setTextColor(51);
+        doc.text("Payment is due within 30 days.", margin, y); y += 16;
+        doc.text("Bank: " + (inv.bank && inv.bank.name || DB.settings.bankName || ""), margin, y); y += 16;
+        doc.text("Account Name: " + (inv.bank && inv.bank.accountName || DB.settings.bankAccountName || ""), margin, y); y += 16;
+        doc.text("Sort Code: " + (inv.bank && inv.bank.sort || DB.settings.bankSort || ""), margin, y); y += 16;
+        doc.text("Account No: " + (inv.bank && inv.bank.account || DB.settings.bankAccount || ""), margin, y);
 
-        doc.save(`invoice-${inv.number||inv.id}.pdf`);
+        doc.save("invoice-" + (inv.number||inv.id) + ".pdf");
       }
     };
 
-    /***********************
-     * Expenses/Travel UI
-     ***********************/
+    /* ========== EXPENSES UI ========== */
     function refreshExpensesUI(){
-      const list=document.getElementById('expList'); if(!list) return;
-      list.innerHTML=''; const entries=[
-        ...DB.expenses.map(e=>({type:'Expense',...e})),
-        ...DB.travel.map(t=>({type:'Travel', amount:Number(t.miles)*Number(t.rate), ...t}))
-      ].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-      entries.forEach(en=>{
-        const amt=en.type==='Expense'?en.amount:(Number(en.miles)*Number(en.rate));
-        const div=document.createElement('div');
-        div.className='flex items-start justify-between p-4 bg-turquoise-50 rounded-2xl border border-turquoise-100';
-        div.innerHTML=`
-          <div>
-            <div class="font-semibold text-slate-800">${en.type} – ${en.date}</div>
-            <div class="text-sm text-turquoise-600 mt-1">${en.note || en.category || ''} ${en.type==='Travel'?`(${en.miles} miles @ £${en.rate}/mile)`:''}</div>
-          </div>
-          <div class="font-bold text-lg text-slate-800">${formatGBP(amt)}</div>`;
-        list.appendChild(div);
-      });
-      safeText('expTotal', formatGBP(DB.expenses.reduce((s,e)=>s+Number(e.amount||0),0)));
-      safeText('travTotal', formatGBP(DB.travel.reduce((s,t)=>s+(Number(t.miles||0)*Number(t.rate||0)),0)));
+      var list = document.getElementById("expList"); if(!list) return;
+      list.innerHTML = "";
+      var entries = [];
+      var i;
+      for(i=0;i<DB.expenses.length;i++){ entries.push({type:"Expense", date:DB.expenses[i].date, amount:Number(DB.expenses[i].amount||0), note:DB.expenses[i].note, category:DB.expenses[i].category}); }
+      for(i=0;i<DB.travel.length;i++){ var t=DB.travel[i]; entries.push({type:"Travel", date:t.date, miles:Number(t.miles), rate:Number(t.rate), amount:Number(t.miles)*Number(t.rate), note:t.note}); }
+      entries.sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
+
+      for(i=0;i<entries.length;i++){
+        var en = entries[i];
+        var amt = en.amount;
+        var card = document.createElement("div");
+        card.className = "flex items-start justify-between p-4 bg-turquoise-50 rounded-xl border border-turquoise-100";
+        var detail = (en.type==="Travel" ? (" ("+en.miles+" miles @ £"+en.rate+"/mile)") : "");
+        var line2 = (en.note || en.category || "") + detail;
+        card.innerHTML =
+          '<div><div class="font-semibold text-slate-800">'+en.type+' – '+en.date+'</div>'+
+          '<div class="text-sm text-turquoise-700">'+line2+'</div></div>'+
+          '<div class="font-bold text-lg text-slate-800">'+formatGBP(amt)+'</div>';
+        list.appendChild(card);
+      }
+
+      var totalExp = DB.expenses.reduce(function(s,e){return s+Number(e.amount||0);},0);
+      var totalTrav = DB.travel.reduce(function(s,t){return s+(Number(t.miles||0)*Number(t.rate||0));},0);
+      setText("expTotal", formatGBP(totalExp));
+      setText("travTotal", formatGBP(totalTrav));
     }
 
-    /***********************
-     * Event wiring
-     ***********************/
+    /* ========== WIRING ========== */
     // Tabs
-    document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click', ()=>UI.go(b.dataset.tab)));
-    document.getElementById('tabSelect')?.addEventListener('change', e=>UI.go(e.target.value));
+    (function(){
+      var tabs = document.querySelectorAll("#tabs .tab");
+      for(var i=0;i<tabs.length;i++){ tabs[i].addEventListener("click", function(){ UI.go(this.getAttribute("data-tab")); }); }
+      var sel = document.getElementById("tabSelect"); if(sel){ sel.addEventListener("change", function(e){ UI.go(e.target.value); }); }
+    }());
 
-    // Quick Actions (replaces inline onclick)
-    document.getElementById('qaUpload')?.addEventListener('click', ()=>UI.go('upload'));
-    document.getElementById('qaNewInv')?.addEventListener('click', ()=>UI.go('new-invoice'));
-    document.getElementById('qaExpenses')?.addEventListener('click', ()=>UI.go('expenses'));
+    // Quick actions
+    var qaU=document.getElementById("qaUpload"), qaN=document.getElementById("qaNewInv"), qaE=document.getElementById("qaExpenses");
+    if(qaU) qaU.addEventListener("click", function(){ UI.go("upload"); });
+    if(qaN) qaN.addEventListener("click", function(){ UI.go("new-invoice"); });
+    if(qaE) qaE.addEventListener("click", function(){ UI.go("expenses"); });
 
     // Settings load/save
     function loadSettings(){
-      const s=DB.settings, set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v??'';};
-      set('bizName',s.bizName); set('bizTag',s.bizTag); set('bizAddress',s.bizAddress); set('bizEmail',s.bizEmail);
-      set('rateWeekday',s.rateWeekday||15); set('rateWeekend',s.rateWeekend||17); set('travelDefault',s.travelDefault||0.45);
-      set('bankDefaultName',s.bankName); set('bankDefaultAcctName',s.bankAccountName); set('bankDefaultSort',s.bankSort); set('bankDefaultAcct',s.bankAccount);
-      set('invPrefix',s.invPrefix); set('invNext',s.invNext);
-      set('firebaseConfigJson', s.firebaseConfigJson||'');
-      document.getElementById('rateWeekdayLbl').textContent = s.rateWeekday||15;
-      document.getElementById('rateWeekendLbl').textContent = s.rateWeekend||17;
-      const auto=document.getElementById('autoSync'); if(auto) auto.checked=!!s.autoSync;
+      var s=DB.settings;
+      setVal("bizName",s.bizName); setVal("bizTag",s.bizTag); setVal("bizAddress",s.bizAddress); setVal("bizEmail",s.bizEmail);
+      setVal("rateWeekday",s.rateWeekday||15); setVal("rateWeekend",s.rateWeekend||17); setVal("travelDefault",s.travelDefault||0.45);
+      setVal("bankDefaultName",s.bankName); setVal("bankDefaultAcctName",s.bankAccountName); setVal("bankDefaultSort",s.bankSort); setVal("bankDefaultAcct",s.bankAccount);
+      setVal("invPrefix",s.invPrefix); setVal("invNext",s.invNext);
+      setVal("firebaseConfigJson", s.firebaseConfigJson||"");
+      setText("rateWeekdayLbl", s.rateWeekday||15);
+      setText("rateWeekendLbl", s.rateWeekend||17);
+      var auto=document.getElementById("autoSync"); if(auto){ auto.checked = !!s.autoSync; }
     }
-    document.getElementById('saveSettings')?.addEventListener('click', ()=>{
-      const s=DB.settings, val=id=>document.getElementById(id)?.value||'';
-      s.bizName=val('bizName'); s.bizTag=val('bizTag'); s.bizAddress=val('bizAddress'); s.bizEmail=val('bizEmail');
-      s.rateWeekday=Number(val('rateWeekday')||0); s.rateWeekend=Number(val('rateWeekend')||0); s.travelDefault=Number(val('travelDefault')||0);
-      s.bankName=val('bankDefaultName'); s.bankAccountName=val('bankDefaultAcctName'); s.bankSort=val('bankDefaultSort'); s.bankAccount=val('bankDefaultAcct');
-      s.invPrefix=val('invPrefix'); s.invNext=Number(val('invNext')||s.invNext);
-      s.firebaseConfigJson = val('firebaseConfigJson');
-      s.autoSync = !!document.getElementById('autoSync')?.checked; Cloud.auto = s.autoSync;
-      Store.save(DB); loadSettings(); alert('Settings saved successfully!');
-    });
+    var saveSettingsBtn=document.getElementById("saveSettings");
+    if(saveSettingsBtn){
+      saveSettingsBtn.addEventListener("click", function(){
+        var s=DB.settings;
+        s.bizName=getVal("bizName"); s.bizTag=getVal("bizTag"); s.bizAddress=getVal("bizAddress"); s.bizEmail=getVal("bizEmail");
+        s.rateWeekday=Number(getVal("rateWeekday")||0); s.rateWeekend=Number(getVal("rateWeekend")||0); s.travelDefault=Number(getVal("travelDefault")||0);
+        s.bankName=getVal("bankDefaultName"); s.bankAccountName=getVal("bankDefaultAcctName"); s.bankSort=getVal("bankDefaultSort"); s.bankAccount=getVal("bankDefaultAcct");
+        s.invPrefix=getVal("invPrefix"); s.invNext=Number(getVal("invNext")||s.invNext);
+        s.firebaseConfigJson = getVal("firebaseConfigJson");
+        s.autoSync = !!document.getElementById("autoSync").checked; Cloud.auto = s.autoSync;
+        Store.save(DB); loadSettings(); alert("Settings saved successfully!");
+      });
+    }
 
     // Firebase controls
-    document.getElementById('connectFirebase')?.addEventListener('click', ()=>{
-      DB.settings.firebaseConfigJson = document.getElementById('firebaseConfigJson')?.value || '';
-      Store.save(DB); Cloud.connectFromSettings();
-    });
-    document.getElementById('openFirebaseSettings')?.addEventListener('click', ()=>UI.go('settings'));
-    document.getElementById('syncUp')?.addEventListener('click', ()=>Cloud.pushAll());
-    document.getElementById('pullDown')?.addEventListener('click', ()=>Cloud.pullAll());
+    var connBtn=document.getElementById("connectFirebase");
+    if(connBtn){ connBtn.addEventListener("click", function(){ DB.settings.firebaseConfigJson = getVal("firebaseConfigJson"); Store.save(DB); Cloud.connectFromSettings(); }); }
+    var openSet=document.getElementById("openFirebaseSettings"); if(openSet){ openSet.addEventListener("click", function(){ UI.go("settings"); }); }
+    var syncUp=document.getElementById("syncUp"); if(syncUp){ syncUp.addEventListener("click", function(){ Cloud.pushAll(); }); }
+    var pullDown=document.getElementById("pullDown"); if(pullDown){ pullDown.addEventListener("click", function(){ Cloud.pullAll(); }); }
 
-    // Dashboard init + actions
+    // Dashboard init
     UI.refreshYears(); UI.dashboard();
-    document.getElementById('yearSelect')?.addEventListener('change', UI.dashboard);
-    document.getElementById('backupData')?.addEventListener('click', ()=>Store.backup());
-    document.getElementById('restoreData')?.addEventListener('change', e=>e.target.files[0] && Store.restore(e.target.files[0]));
-    document.getElementById('exportCSV')?.addEventListener('click', ()=>{
-      try{
-        const rows=[['Type','Date','Ref','Name','Amount','Notes']];
-        DB.invoices.forEach(i=>{
-          const amt=(i.items||[]).reduce((s,it)=>s+(Number(it.qty||0)*Number(it.unit||0)),0);
-          rows.push(['Invoice', i.date, i.number, i.client?.name || '', amt, '']);
-        });
-        DB.expenses.forEach(e=>{
-          const notes=(e.category||'') + (e.note ? ' – ' + e.note : '');
-          rows.push(['Expense', e.date, '', '', e.amount, notes]);
-        });
-        DB.travel.forEach(t=>{
-          const detail = `${t.miles} miles @ £${t.rate}/mile` + (t.note ? ' – ' + t.note : '');
-          rows.push(['Travel', t.date, '', '', (Number(t.miles)*Number(t.rate)), detail]);
-        });
-        const csv=Papa.unparse(rows);
-        const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob); a.download='diamond-equine-summary.csv'; a.click();
-      }catch(e){ console.error('CSV export failed', e); alert('Error exporting data.'); }
-    });
+    var yearSel=document.getElementById("yearSelect"); if(yearSel){ yearSel.addEventListener("change", UI.dashboard); }
+    var backupBtn=document.getElementById("backupData"); if(backupBtn){ backupBtn.addEventListener("click", function(){ Store.backup(); }); }
+    var restoreInput=document.getElementById("restoreData"); if(restoreInput){ restoreInput.addEventListener("change", function(e){ if(e.target.files[0]) Store.restore(e.target.files[0]); }); }
 
-    // Samples
-    document.getElementById('loadSamples')?.addEventListener('click', ()=>{
-      if (DB.invoices.some(i=>['587','588','589'].includes(String(i.number)))) { alert('Sample data already loaded.'); return; }
-      const common={ bank:{name:'Nationwide',accountName:'Mrs Debbie H Herbert',sort:'07-01-16',account:'32288417'}, date:'2025-08-31' };
-      DB.invoices.push(
-        { id:uid(), number:'589', client:{name:'Claire',address:''}, items:[{id:uid(),description:'Grooming Services - Darcy',qty:1,unit:15}], paid:false, ...common },
-        { id:uid(), number:'587', client:{name:'Judith Sanders',address:''}, items:[{id:uid(),description:'Grooming Services',qty:11,unit:15}], paid:false, ...common },
-        { id:uid(), number:'588', client:{name:'Mr RK & Mrs RP Rietdyk t/a Moor Place Farm',address:''},
-          items:[{id:uid(),description:'Grooming Services',qty:20,unit:15},{id:uid(),description:'Grooming Weekend',qty:1,unit:17},{id:uid(),description:'Grooming Bank Holiday Weekend',qty:1,unit:17}], paid:false, ...common }
-      );
-      Store.save(DB); UI.refreshYears(); UI.invoicesList(); UI.dashboard(); alert('Sample data loaded successfully!');
-    });
+    // CSV Export (built with plain strings to avoid weird parser issues)
+    var exportBtn=document.getElementById("exportCSV");
+    if(exportBtn){
+      exportBtn.addEventListener("click", function(){
+        try{
+          var rows=[["Type","Date","Ref","Name","Amount","Notes"]];
+          var i;
+          for(i=0;i<DB.invoices.length;i++){
+            var inv=DB.invoices[i], amt=0, j;
+            for(j=0;j<(inv.items||[]).length;j++){ amt += Number(inv.items[j].qty||0)*Number(inv.items[j].unit||0); }
+            rows.push(["Invoice", inv.date, inv.number, (inv.client&&inv.client.name)||"", amt, ""]);
+          }
+          for(i=0;i<DB.expenses.length;i++){
+            var e=DB.expenses[i], notes=(e.category||"") + (e.note?(" - "+e.note):"");
+            rows.push(["Expense", e.date, "", "", e.amount, notes]);
+          }
+          for(i=0;i<DB.travel.length;i++){
+            var t=DB.travel[i], detail=(t.miles+" miles @ £"+t.rate+"/mile") + (t.note?(" - "+t.note):"");
+            rows.push(["Travel", t.date, "", "", (Number(t.miles)*Number(t.rate)), detail]);
+          }
+          var csv = Papa.unparse(rows);
+          var blob = new Blob([csv],{type:"text/csv"});
+          var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "diamond-equine-summary.csv"; a.click();
+        }catch(err){ console.error(err); alert("Error exporting CSV"); }
+      });
+    }
 
-    // New Invoice
-    document.getElementById('addWkday')?.addEventListener('click', ()=>Forms.addItem('Grooming Services',1,Number(DB.settings.rateWeekday||15)));
-    document.getElementById('addWkend')?.addEventListener('click', ()=>Forms.addItem('Grooming Weekend/Bank Holiday',1,Number(DB.settings.rateWeekend||17)));
-    document.getElementById('saveInvoice')?.addEventListener('click', Forms.commitInvoice);
-    document.getElementById('pdfInvoice')?.addEventListener('click', ()=>{ const inv=Forms.readInvoice(); if(inv) PDFMaker.download(inv); });
+    // Sample data
+    var loadSamples=document.getElementById("loadSamples");
+    if(loadSamples){
+      loadSamples.addEventListener("click", function(){
+        var exists=false, i;
+        for(i=0;i<DB.invoices.length;i++){ if(["587","588","589"].indexOf(String(DB.invoices[i].number))>=0){ exists=true; break; } }
+        if(exists){ alert("Sample data already loaded."); return; }
+        var common = { bank:{name:"Nationwide",accountName:"Mrs Debbie H Herbert",sort:"07-01-16",account:"32288417"}, date:"2025-08-31" };
+        DB.invoices.push(
+          { id:uid(), number:"589", client:{name:"Claire", address:""}, items:[{id:uid(), description:"Grooming Services - Darcy", qty:1, unit:15}], paid:false, bank:common.bank, date:common.date },
+          { id:uid(), number:"587", client:{name:"Judith Sanders", address:""}, items:[{id:uid(), description:"Grooming Services", qty:11, unit:15}], paid:false, bank:common.bank, date:common.date },
+          { id:uid(), number:"588", client:{name:"Mr RK & Mrs RP Rietdyk t/a Moor Place Farm", address:""},
+            items:[{id:uid(), description:"Grooming Services", qty:20, unit:15},{id:uid(), description:"Grooming Weekend", qty:1, unit:17},{id:uid(), description:"Grooming Bank Holiday Weekend", qty:1, unit:17}],
+            paid:false, bank:common.bank, date:common.date }
+        );
+        Store.save(DB); UI.refreshYears(); UI.invoicesList(); UI.dashboard(); alert("Sample data loaded.");
+      });
+    }
+
+    // New invoice buttons
+    var addWkday=document.getElementById("addWkday"); if(addWkday){ addWkday.addEventListener("click", function(){ Forms.addItem("Grooming Services",1,Number(DB.settings.rateWeekday||15)); }); }
+    var addWkend=document.getElementById("addWkend"); if(addWkend){ addWkend.addEventListener("click", function(){ Forms.addItem("Grooming Weekend/Bank Holiday",1,Number(DB.settings.rateWeekend||17)); }); }
+    var saveInv=document.getElementById("saveInvoice"); if(saveInv){ saveInv.addEventListener("click", Forms.commitInvoice); }
+    var pdfInv=document.getElementById("pdfInvoice"); if(pdfInv){ pdfInv.addEventListener("click", function(){ var inv=Forms.readInvoice(); if(inv){ PDFMaker.download(inv); } }); }
 
     // Defaults
     Forms.clearInvoice();
 
-    // Invoices list & filters
-    document.getElementById('searchInv')?.addEventListener('input', UI.invoicesList);
-    document.getElementById('statusInv')?.addEventListener('change', UI.invoicesList);
+    // Invoices list filters
+    var sInv=document.getElementById("searchInv"); if(sInv){ sInv.addEventListener("input", UI.invoicesList); }
+    var stInv=document.getElementById("statusInv"); if(stInv){ stInv.addEventListener("change", UI.invoicesList); }
     UI.invoicesList();
 
-    // Expenses & Travel
-    document.getElementById('addExp')?.addEventListener('click', ()=>{
-      const val=id=>document.getElementById(id)?.value||'';
-      const e={ id:uid(), date:val('expDate')||todayISO(), category:val('expCat')||'Other', amount:Number(val('expAmt')||0), note:val('expNote') };
-      DB.expenses.push(e); Store.save(DB); refreshExpensesUI(); UI.dashboard();
-      const a=document.getElementById('expAmt'); const n=document.getElementById('expNote'); if(a) a.value=''; if(n) n.value='';
-    });
-    document.getElementById('addTrav')?.addEventListener('click', ()=>{
-      const val=id=>document.getElementById(id)?.value||'';
-      const t={ id:uid(), date:val('travDate')||todayISO(), miles:Number(val('travMiles')||0), rate:Number(val('travRate')||DB.settings.travelDefault||0.45), note:val('travNote') };
-      DB.travel.push(t); Store.save(DB); refreshExpensesUI(); UI.dashboard();
-      const m=document.getElementById('travMiles'); const n=document.getElementById('travNote'); if(m) m.value=''; if(n) n.value='';
-    });
-    safeVal('travRate', DB.settings.travelDefault || 0.45);
+    // Expenses & travel events
+    var addExp=document.getElementById("addExp");
+    if(addExp){
+      addExp.addEventListener("click", function(){
+        var e = { id:uid(), date:getVal("expDate")||todayISO(), category:getVal("expCat")||"Other", amount:Number(getVal("expAmt")||0), note:getVal("expNote") };
+        DB.expenses.push(e); Store.save(DB); refreshExpensesUI(); UI.dashboard();
+        setVal("expAmt",""); setVal("expNote","");
+      });
+    }
+    var addTrav=document.getElementById("addTrav");
+    if(addTrav){
+      addTrav.addEventListener("click", function(){
+        var t = { id:uid(), date:getVal("travDate")||todayISO(), miles:Number(getVal("travMiles")||0), rate:Number(getVal("travRate")||DB.settings.travelDefault||0.45), note:getVal("travNote") };
+        DB.travel.push(t); Store.save(DB); refreshExpensesUI(); UI.dashboard();
+        setVal("travMiles",""); setVal("travNote","");
+      });
+    }
+    setVal("travRate", DB.settings.travelDefault || 0.45);
     refreshExpensesUI();
 
     // Upload & OCR
-    let lastParsed=null;
-    document.getElementById('runOCR')?.addEventListener('click', async ()=>{
-      try{
-        const f=document.getElementById('uploadInput')?.files?.[0]; const out=document.getElementById('ocrText');
-        if(!f || !out){ alert('Please choose a PDF or image first.'); return; }
-        out.value='Processing… (this may take a moment)';
-        let text=''; if(f.type==='application/pdf'){ text = await OCR.extractFromPDF(f); } else { text = await OCR.extractFromImage(f); }
-        out.value=text; document.getElementById('runParse')?.click();
-      }catch(e){ console.error(e); alert(e.message||'OCR failed.'); document.getElementById('ocrText')?.value=''; }
-    });
-    document.getElementById('runParse')?.addEventListener('click', ()=>{
-      const mode=document.getElementById('ocrMode')?.value; const t=document.getElementById('ocrText')?.value||'';
-      lastParsed = (mode==='diary') ? Parser.parseDiaryText(t) : Parser.parseInvoiceText(t);
-      const pre=document.getElementById('parsePreview'); if(pre) pre.textContent = JSON.stringify(lastParsed,null,2);
-    });
-    document.getElementById('parseToInvoice')?.addEventListener('click', ()=>{
-      if(!lastParsed){ alert('Please run Parse first.'); return; }
-      Forms.clearInvoice();
-      if(lastParsed.number) document.getElementById('invNumber').value = lastParsed.number;
-      if(lastParsed.date)   document.getElementById('invDate').value   = lastParsed.date;
-      if(lastParsed.clientName) document.getElementById('clientName').value = lastParsed.clientName;
-      (lastParsed.items||[]).forEach(it=>Forms.addItem(it.description||'Grooming Services', it.qty||1, it.unit||(DB.settings.rateWeekday||15)));
-      UI.go('new-invoice');
-    });
+    var lastParsed=null;
+    var runOCR=document.getElementById("runOCR");
+    if(runOCR){
+      runOCR.addEventListener("click", function(){
+        var input=document.getElementById("uploadInput"), out=document.getElementById("ocrText");
+        if(!input || !input.files || !input.files[0]){ alert("Choose a PDF or image first."); return; }
+        var f = input.files[0]; out.value = "Processing…";
+        var p = (f.type==="application/pdf") ? OCR.extractFromPDF(f) : OCR.extractFromImage(f);
+        p.then(function(text){ out.value=text; var btn=document.getElementById("runParse"); if(btn){ btn.click(); } })
+         .catch(function(err){ console.error(err); alert(err.message||"OCR failed."); out.value=""; });
+      });
+    }
+    var runParse=document.getElementById("runParse");
+    if(runParse){
+      runParse.addEventListener("click", function(){
+        var mode=getVal("ocrMode"), text=getVal("ocrText");
+        lastParsed = (mode==="diary") ? Parser.parseDiaryText(text) : Parser.parseInvoiceText(text);
+        var pre=document.getElementById("parsePreview"); if(pre){ pre.textContent = JSON.stringify(lastParsed,null,2); }
+      });
+    }
+    var parseToInvoice=document.getElementById("parseToInvoice");
+    if(parseToInvoice){
+      parseToInvoice.addEventListener("click", function(){
+        if(!lastParsed){ alert("Run Parse first."); return; }
+        Forms.clearInvoice();
+        if(lastParsed.number){ setVal("invNumber", lastParsed.number); }
+        if(lastParsed.date){ setVal("invDate", lastParsed.date); }
+        if(lastParsed.clientName){ setVal("clientName", lastParsed.clientName); }
+        var items = lastParsed.items||[], i;
+        for(i=0;i<items.length;i++){ Forms.addItem(items[i].description||"Grooming Services", items[i].qty||1, items[i].unit||(DB.settings.rateWeekday||15)); }
+        UI.go("new-invoice");
+      });
+    }
 
     // Settings tab init
-    document.querySelector('[data-tab="settings"]')?.addEventListener('click', loadSettings);
+    var st=document.querySelector('[data-tab="settings"]');
+    if(st){ st.addEventListener("click", loadSettings); }
     loadSettings();
-    if (Cloud.connected) Cloud.status('Connected to Firebase.');
+    if (Cloud.connected){ Cloud.status("Connected to Firebase."); }
   </script>
 </body>
 </html>
