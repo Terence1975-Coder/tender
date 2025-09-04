@@ -1,0 +1,401 @@
+# app.py
+# Prospecting Prospect Locator — single-file Streamlit app
+# --------------------------------------------------------
+# Uses Google Programmable Search / Custom Search JSON API to find pages on a
+# company's own website, crawls those pages politely (robots.txt respected),
+# extracts public contact info, optionally enriches with Hunter Domain Search,
+# and exports a CSV in your exact schema.
+#
+# Env vars (or fill in the sidebar):
+#   GOOGLE_API_KEY   -> Google Custom Search JSON API key
+#   GOOGLE_CSE_ID    -> Programmable Search Engine (CSE) ID
+#   HUNTER_API_KEY   -> (optional) Hunter API key
+#   USER_AGENT       -> e.g., "ProspectingTool/1.0 (+you@example.com)"
+#
+# Install deps:
+#   pip install streamlit requests beautifulsoup4 pandas tldextract python-dotenv
+#
+# Run:
+#   streamlit run app.py
+#
+# Please use responsibly and comply with laws/ToS (GDPR/PECR, Google API ToS, Hunter ToS, site terms).
+
+import os
+import io
+import re
+import time
+import requests
+import pandas as pd
+import streamlit as st
+import tldextract
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+from urllib.robotparser import RobotFileParser
+from dotenv import load_dotenv
+
+# =========================
+# Config & constants
+# =========================
+load_dotenv()
+
+CSV_COLUMNS = [
+    "Company Name","Website","Business Email","Address Line 1","Address Line 2","City","County","Postal Code","Country",
+    "Primary Contact First Name","Primary Contact Last Name","Primary Contact Email","Primary Contact Phone","Primary Contact Title",
+    "Primary Contact Role to us","Primary Contact Subscribed",
+    "Secondary Contact First Name","Secondary Contact Last Name","Secondary Contact Email","Secondary Contact Phone",
+    "Secondary Contact Title","Secondary Contact Role to us","Secondary Contact Subscribed","Notes"
+]
+
+def blank_row(company_name: str = "", website: str = "", note: str = "") -> dict:
+    return {
+        "Company Name": company_name, "Website": website, "Business Email": "",
+        "Address Line 1": "", "Address Line 2": "", "City": "", "County": "",
+        "Postal Code": "", "Country": "",
+        "Primary Contact First Name": "", "Primary Contact Last Name": "",
+        "Primary Contact Email": "", "Primary Contact Phone": "", "Primary Contact Title": "",
+        "Primary Contact Role to us": "", "Primary Contact Subscribed": "",
+        "Secondary Contact First Name": "", "Secondary Contact Last Name": "",
+        "Secondary Contact Email": "", "Secondary Contact Phone": "",
+        "Secondary Contact Title": "", "Secondary Contact Role to us": "",
+        "Secondary Contact Subscribed": "", "Notes": note
+    }
+
+# =========================
+# Utils
+# =========================
+def normalize_domain(url_or_domain: str | None) -> str | None:
+    if not url_or_domain:
+        return None
+    u = url_or_domain.strip().lower()
+    if not u:
+        return None
+    if not (u.startswith("http://") or u.startswith("https://")):
+        u = "http://" + u
+    ext = tldextract.extract(u)
+    if not ext or not ext.domain or not ext.suffix:
+        return None
+    return f"{ext.domain}.{ext.suffix}"
+
+def unique_by_key(dicts: list[dict], key_fn) -> list[dict]:
+    seen = set()
+    out = []
+    for d in dicts:
+        k = key_fn(d)
+        if not k:
+            out.append(d)  # if no key, keep (rare)
+            continue
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(d)
+    return out
+
+# =========================
+# Google Custom Search
+# =========================
+GOOGLE_API = "https://www.googleapis.com/customsearch/v1"
+
+def _cse_request(api_key: str, cse_id: str, q: str, num: int = 10) -> dict:
+    r = requests.get(GOOGLE_API, params={"key": api_key, "cx": cse_id, "q": q, "num": num}, timeout=20)
+    r.raise_for_status()
+    return r.json() or {}
+
+def guess_company_website(company_name: str, api_key: str, cse_id: str) -> str | None:
+    data = _cse_request(api_key, cse_id, f"{company_name} official site", num=5)
+    for it in data.get("items", []) or []:
+        domain = normalize_domain(it.get("link", ""))
+        if domain:
+            return domain
+    return None
+
+def find_candidate_pages(domain: str, api_key: str, cse_id: str) -> list[str]:
+    # Safe, prospecting-focused operators (“dorks”) on the company’s own site
+    queries = [
+        f"site:{domain} contact",
+        f"site:{domain} about",
+        f"site:{domain} team",
+        f"site:{domain} leadership",
+        f"site:{domain} 'meet the team'",
+        f"site:{domain} management",
+        f"site:{domain} press OR newsroom",
+        f"site:{domain} news",
+        f"site:{domain} careers",
+        f"site:{domain} ('email' OR '@{domain}')",
+        f"site:{domain} ('phone' OR 'tel')",
+        f"site:{domain} (imprint OR 'legal notice' OR 'registered office')"
+    ]
+    seen, urls = set(), []
+    for q in queries:
+        data = _cse_request(api_key, cse_id, q, num=10)
+        for it in data.get("items", []) or []:
+            link = it.get("link")
+            if link and (domain in link) and (link not in seen):
+                seen.add(link)
+                urls.append(link)
+    return urls[:40]
+
+# =========================
+# Scraping (robots-aware)
+# =========================
+def _robots_allows(url: str, user_agent: str) -> bool:
+    try:
+        p = urlparse(url)
+        robots_url = f"{p.scheme}://{p.netloc}/robots.txt"
+        rp = RobotFileParser()
+        rp.set_url(robots_url)
+        rp.read()
+        return rp.can_fetch(user_agent, url)
+    except Exception:
+        return True  # if robots cannot be read, fall back to allowing the single URL
+
+def fetch(url: str, user_agent: str, timeout: int = 20) -> str | None:
+    if not _robots_allows(url, user_agent):
+        return None
+    try:
+        r = requests.get(url, headers={"User-Agent": user_agent}, timeout=timeout)
+        if r.status_code >= 400:
+            return None
+        return r.text
+    except Exception:
+        return None
+
+EMAIL_RE = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', re.I)
+PHONE_RE = re.compile(r'(?:(?:\+?\d{1,3}[\s\-\.])?(?:\(?\d{2,4}\)?[\s\-\.])?\d{3,4}[\s\-\.]?\d{3,4})')
+NAME_RE  = re.compile(r'\b([A-Z][a-z]{1,})(?:\s+([A-Z][a-z]{1,})){1,2}\b')
+TITLE_KEYWORDS = [
+    "CEO","CTO","CFO","COO","CMO","CIO","Founder","Co-Founder","Director","Managing Director",
+    "Head of","VP","Vice President","Manager","Lead","Engineer","Sales","Marketing","Operations",
+    "Product","Finance","HR","People","Recruitment","Consultant","Partner","Principal","Chair","Chairman","Chairwoman"
+]
+
+def extract_emails(html: str) -> set[str]:
+    return set(EMAIL_RE.findall(html))
+
+def extract_phone_numbers(html: str) -> set[str]:
+    raw = PHONE_RE.findall(html)
+    cleaned = set()
+    for p in raw:
+        s = re.sub(r'[^\d\+]', '', p)
+        if len(s) >= 8:
+            cleaned.add(s)
+    return cleaned
+
+def extract_people(html: str) -> list[dict]:
+    soup = BeautifulSoup(html, "html.parser")
+    texts = []
+    for tag in soup.find_all(["h1","h2","h3","h4","strong","p","li","span","div"]):
+        txt = ' '.join(tag.get_text(separator=' ', strip=True).split())
+        if txt:
+            texts.append(txt)
+
+    people = []
+    for t in texts:
+        for m in NAME_RE.finditer(t):
+            parts = m.group(0).split()
+            if len(parts) not in (2,3):
+                continue
+            if parts[0].lower() in {"our","the","and","with","for","join","your","contact"}:
+                continue
+            title = ""
+            for kw in TITLE_KEYWORDS:
+                if kw in t:
+                    title = kw
+                    break
+            email = next(iter(EMAIL_RE.findall(t)), "") if "@" in t else ""
+            people.append({
+                "first_name": parts[0],
+                "last_name": parts[-1] if len(parts) >= 2 else "",
+                "title": title,
+                "email": email,
+                "phone": ""
+            })
+    # de-dup by (first,last,title)
+    uniq, seen = [], set()
+    for p in people:
+        k = (p["first_name"], p["last_name"], p["title"])
+        if k in seen: 
+            continue
+        seen.add(k)
+        uniq.append(p)
+    return uniq
+
+def harvest_from_urls(company_name: str, website_base: str, urls: list[str], user_agent: str) -> list[dict]:
+    rows = []
+    seen_people = set()
+    for url in urls[:20]:
+        html = fetch(url, user_agent)
+        time.sleep(1.0)  # polite throttle
+        if not html:
+            continue
+        emails = extract_emails(html)
+        phones = extract_phone_numbers(html)
+        people = extract_people(html)
+
+        for p in people[:5]:
+            key = (p.get("first_name",""), p.get("last_name",""), p.get("title",""))
+            if key in seen_people:
+                continue
+            seen_people.add(key)
+            row = blank_row(company_name, website_base)
+            row["Primary Contact First Name"] = p.get("first_name","")
+            row["Primary Contact Last Name"]  = p.get("last_name","")
+            row["Primary Contact Email"]      = p.get("email","")
+            row["Primary Contact Phone"]      = p.get("phone","")
+            row["Primary Contact Title"]      = p.get("title","")
+            rows.append(row)
+
+        if emails or phones:
+            row = blank_row(company_name, website_base)
+            row["Business Email"] = next(iter(emails), "")
+            row["Primary Contact Phone"] = next(iter(phones), "")
+            rows.append(row)
+
+    # Deduplicate by (Primary Contact Email or Business Email) + Phone + Title + Names
+    def key_fn(r: dict):
+        ident = (r.get("Primary Contact Email") or r.get("Business Email") or "").lower().strip()
+        phone = r.get("Primary Contact Phone","").strip()
+        name  = (r.get("Primary Contact First Name","").lower().strip(),
+                 r.get("Primary Contact Last Name","").lower().strip())
+        title = r.get("Primary Contact Title","").lower().strip()
+        if ident or phone or any(name):
+            return (ident, phone, name, title)
+        return None
+
+    return unique_by_key(rows, key_fn)
+
+# =========================
+# Hunter enrichment (optional)
+# =========================
+HUNTER_API = "https://api.hunter.io/v2"
+
+def hunter_domain_search(domain: str, api_key: str, limit: int = 20) -> list[dict]:
+    params = {"domain": domain, "limit": max(1, min(limit, 100)), "api_key": api_key}
+    r = requests.get(f"{HUNTER_API}/domain-search", params=params, timeout=20)
+    r.raise_for_status()
+    data = r.json() or {}
+    emails = (data.get("data") or {}).get("emails", []) or []
+    people = []
+    for e in emails:
+        people.append({
+            "first_name": e.get("first_name") or "",
+            "last_name":  e.get("last_name") or "",
+            "email":      e.get("value") or "",
+            "phone":      e.get("phone_number") or "",
+            "title":      e.get("position") or "",
+            "department": e.get("department") or "",
+            "seniority":  e.get("seniority") or "",
+            "type":       e.get("type") or ""
+        })
+    return people
+
+# =========================
+# Streamlit UI
+# =========================
+st.set_page_config(page_title="Prospecting Prospect Locator", page_icon="🔎")
+st.title("🔎 Prospecting Prospect Locator")
+st.caption("Find public contacts on company websites (via Google Custom Search API), optionally enrich with Hunter, then export to your CRM CSV.")
+
+with st.sidebar:
+    st.subheader("API configuration")
+    GOOGLE_API_KEY = st.text_input("GOOGLE_API_KEY", value=os.getenv("GOOGLE_API_KEY", ""), type="password")
+    GOOGLE_CSE_ID  = st.text_input("GOOGLE_CSE_ID",  value=os.getenv("GOOGLE_CSE_ID", ""), type="password")
+    USER_AGENT     = st.text_input("USER_AGENT (optional)", value=os.getenv("USER_AGENT", "ProspectingTool/1.0"))
+    st.markdown("---")
+    st.subheader("Enrichment (optional)")
+    HUNTER_API_KEY = st.text_input("HUNTER_API_KEY", value=os.getenv("HUNTER_API_KEY", ""), type="password")
+    USE_HUNTER     = st.checkbox("Use Hunter enrichment", value=bool(os.getenv("HUNTER_API_KEY", "")))
+    st.caption("If enabled, Hunter Domain Search adds public professional emails/titles for the company's domain.")
+    st.markdown("---")
+    st.caption("This app does **not** scrape Google; it uses the official Custom Search JSON API and respects robots.txt.")
+
+mode = st.radio("Choose mode", ["Single company", "Upload CSV"], horizontal=True)
+
+def process_company(company_name: str, website_hint: str | None) -> pd.DataFrame:
+    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+        st.error("Please provide GOOGLE_API_KEY and GOOGLE_CSE_ID in the sidebar.")
+        return pd.DataFrame(columns=CSV_COLUMNS)
+
+    domain = normalize_domain(website_hint) if website_hint else None
+    if not domain:
+        with st.spinner(f"Finding official website for {company_name}..."):
+            domain = guess_company_website(company_name, GOOGLE_API_KEY, GOOGLE_CSE_ID)
+
+    if not domain:
+        st.warning(f"Couldn't determine a website for '{company_name}'.")
+        return pd.DataFrame([blank_row(company_name=company_name)])
+
+    with st.spinner(f"Searching pages on {domain}..."):
+        urls = find_candidate_pages(domain, GOOGLE_API_KEY, GOOGLE_CSE_ID)
+
+    with st.spinner("Crawling pages and extracting public info (respecting robots.txt)..."):
+        rows = harvest_from_urls(company_name, f"https://{domain}", urls, USER_AGENT)
+
+    # Optional Hunter enrichment
+    if USE_HUNTER and HUNTER_API_KEY:
+        try:
+            with st.spinner("Enriching with Hunter Domain Search..."):
+                people = hunter_domain_search(domain, HUNTER_API_KEY, limit=20)
+                hunter_rows = []
+                for p in people:
+                    r = blank_row(company_name, f"https://{domain}")
+                    r["Primary Contact First Name"] = p.get("first_name","")
+                    r["Primary Contact Last Name"]  = p.get("last_name","")
+                    r["Primary Contact Email"]      = p.get("email","")
+                    r["Primary Contact Phone"]      = p.get("phone","")
+                    r["Primary Contact Title"]      = p.get("title","")
+                    hunter_rows.append(r)
+                rows.extend(hunter_rows)
+        except Exception as e:
+            st.warning(f"Hunter enrichment failed: {e}")
+
+    if not rows:
+        rows = [blank_row(company_name=company_name, website=f"https://{domain}")]
+
+    df = pd.DataFrame(rows)
+    # Ensure column order and fill any missing columns
+    for col in CSV_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[CSV_COLUMNS]
+    return df
+
+if mode == "Single company":
+    with st.form("single"):
+        company = st.text_input("Company Name", placeholder="Acme Ltd")
+        website_hint = st.text_input("Website (optional)", placeholder="https://www.acme.com")
+        submitted = st.form_submit_button("Run")
+    if submitted and company.strip():
+        df = process_company(company.strip(), website_hint.strip() or None)
+        st.dataframe(df, use_container_width=True)
+        st.download_button("Download CSV", data=df.to_csv(index=False).encode("utf-8"),
+                           file_name="prospects.csv", mime="text/csv")
+
+else:
+    st.info("Upload a CSV with a 'Company Name' column and optional 'Website'.")
+    uploaded = st.file_uploader("Upload CSV", type=["csv"])
+    if uploaded is not None:
+        try:
+            in_df = pd.read_csv(uploaded)
+        except Exception:
+            uploaded.seek(0)
+            in_df = pd.read_csv(io.StringIO(uploaded.read().decode("utf-8")))
+        if "Company Name" not in in_df.columns:
+            st.error("CSV must include a 'Company Name' column.")
+        else:
+            all_rows = []
+            progress = st.progress(0.0)
+            total = len(in_df)
+            for i, row in in_df.iterrows():
+                company = str(row.get("Company Name", "")).strip()
+                website_hint = str(row.get("Website", "")).strip() if "Website" in in_df.columns else ""
+                if not company:
+                    continue
+                df_part = process_company(company, website_hint or None)
+                all_rows.append(df_part)
+                progress.progress(min(1.0, (i + 1) / total))
+                time.sleep(0.2)
+            if all_rows:
+                out_df = pd.concat(all_rows, ignore_index=True)
+                st.dataframe(out_df, use_container_width=True)
+                st.download_button("Download CSV", data=out_df.to_csv(index=False).encode("utf-8"),
+                                   file_name="prospects.csv", mime="text/csv")
