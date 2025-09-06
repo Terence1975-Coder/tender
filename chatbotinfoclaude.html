@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Showcase</title>
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --bg-primary: #0b1020;
+            --bg-card: #0f162e;
+            --accent-cyan: #6ee7ff;
+            --accent-purple: #a78bfa;
+            --text-primary: #e6e9f2;
+            --text-secondary: #9ca3af;
+            --border-color: #1f2937;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header Styles */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Toggle Styles */
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .toggle {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 0.5rem;
+            gap: 0.25rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .toggle-option {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: calc(var(--radius) - 4px);
+            transition: var(--transition);
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: relative;
+            outline: none;
+        }
+
+        .toggle-option:hover {
+            color: var(--text-primary);
+        }
+
+        .toggle-option:focus-visible {
+            box-shadow: 0 0 0 2px var(--accent-cyan);
+        }
+
+        .toggle-option.active {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: var(--bg-primary);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content Grid */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            opacity: 0.5;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        /* Showcase Card */
+        .showcase-content {
+            display: grid;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .showcase-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .overview {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .tagline {
+            font-size: 1.125rem;
+            color: var(--accent-cyan);
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .capabilities {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .capabilities li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .capabilities li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .flow-explanation {
+            background: rgba(110, 231, 255, 0.1);
+            padding: 1rem;
+            border-radius: var(--radius);
+            border-left: 3px solid var(--accent-cyan);
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+
+        /* Mock Chat */
+        .mock-chat {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-header {
+            padding: 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .chat-messages {
+            height: 250px;
+            overflow-y: auto;
+            padding: 1rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: var(--bg-primary);
+            margin-left: auto;
+        }
+
+        .message.bot .message-bubble {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-input-container {
+            padding: 1rem;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        /* Requirements Card */
+        .requirements-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .action-btn:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            transform: translateY(-1px);
+        }
+
+        .action-btn:focus-visible {
+            box-shadow: 0 0 0 2px var(--accent-cyan);
+        }
+
+        .requirements-grid {
+            display: grid;
+            gap: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease-out 0.2s forwards;
+        }
+
+        .requirement-item {
+            background: rgba(110, 231, 255, 0.05);
+            padding: 1.25rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .requirement-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-cyan);
+        }
+
+        .requirement-item:focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: 2px;
+        }
+
+        .requirement-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .requirement-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .requirement-tag {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .requirement-tag.data { border-color: #3b82f6; color: #3b82f6; }
+        .requirement-tag.api { border-color: #10b981; color: #10b981; }
+        .requirement-tag.ai { border-color: var(--accent-purple); color: var(--accent-purple); }
+        .requirement-tag.safety { border-color: #f59e0b; color: #f59e0b; }
+        .requirement-tag.analytics { border-color: #ef4444; color: #ef4444; }
+        .requirement-tag.ops { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+        .requirement-detail {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .requirement-tip {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            max-height: 0;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .requirement-item.expanded .requirement-tip {
+            max-height: 100px;
+        }
+
+        .legend {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .toggle-option {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            .requirements-actions {
+                justify-content: center;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <h1 class="title">Chatbot Showcase</h1>
+            </div>
+            <p class="subtitle">Compare enterprise chatbot implementations and their technical requirements</p>
+        </header>
+
+        <!-- Toggle -->
+        <div class="toggle-container">
+            <div class="toggle" role="tablist" aria-label="Chatbot types">
+                <button class="toggle-option active" role="tab" aria-selected="true" data-type="faqs" tabindex="0">
+                    FAQs
+                </button>
+                <button class="toggle-option" role="tab" aria-selected="false" data-type="bookings" tabindex="-1">
+                    Bookings
+                </button>
+                <button class="toggle-option" role="tab" aria-selected="false" data-type="troubleshooting" tabindex="-1">
+                    Troubleshooting
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Showcase Card -->
+            <section class="card">
+                <h2 class="card-title">Chatbot Showcase</h2>
+                <div class="showcase-content">
+                    <div class="overview">
+                        <div class="tagline" id="tagline">Instant answers to common questions.</div>
+                        <ul class="capabilities" id="capabilities">
+                            <li>Deflects repetitive queries 24/7</li>
+                            <li>Trains on your knowledge base and website</li>
+                        </ul>
+                        <div class="flow-explanation">
+                            <strong>Typical Flow:</strong>
+                            <div id="flow-text">User → Intent detect → Retrieve → Generate answer → Cite/Link</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mock-chat">
+                        <div class="chat-header">Live Demo Preview</div>
+                        <div class="chat-messages" id="chat-messages">
+                            <!-- Messages will be populated by JavaScript -->
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" placeholder="Demo only - interaction disabled" disabled>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Requirements Card -->
+            <section class="card">
+                <h2 class="card-title">Technical Requirements</h2>
+                
+                <div class="requirements-actions">
+                    <button class="action-btn" id="copy-btn" aria-label="Copy requirements as markdown checklist">
+                        📋 Copy as Checklist
+                    </button>
+                    <button class="action-btn" id="download-btn" aria-label="Download requirements as JSON">
+                        📁 Download JSON
+                    </button>
+                </div>
+
+                <div class="requirements-grid" id="requirements-grid">
+                    <!-- Requirements will be populated by JavaScript -->
+                </div>
+
+                <div class="legend">
+                    <div class="legend-title">Requirement Categories</div>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: #3b82f6;"></div>
+                            <span>Data</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: #10b981;"></div>
+                            <span>API</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: var(--accent-purple);"></div>
+                            <span>AI</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: #f59e0b;"></div>
+                            <span>Safety</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: #ef4444;"></div>
+                            <span>Analytics</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="border-color: var(--accent-cyan);"></div>
+                            <span>Ops</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 Chatbot Showcase. Built with modern web standards and accessibility in mind.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Data model with comprehensive chatbot configurations
+        const CHATBOTS = {
+            faqs: {
+                label: "FAQs",
+                tagline: "Instant answers to common questions.",
+                overview: [
+                    "Deflects repetitive queries 24/7",
+                    "Trains on your knowledge base and website",
+                    "Reduces support ticket volume by 60-80%"
+                ],
+                flow: "User → Intent detect → Retrieve → Generate answer → Cite/Link",
+                mockConversation: [
+                    { from: "user", text: "What are your course prerequisites?" },
+                    { from: "bot", text: "You'll need basic Python and Git. Full list here: python.org/basics" },
+                    { from: "user", text: "How long is the course?" },
+                    { from: "bot", text: "12 weeks, self-paced, with weekly live Q&A sessions." }
+                ],
+                requirements: [
+                    {
+                        name: "Knowledge base (FAQ corpus)",
+                        detail: "Structured articles or CSV/JSON; embed or index for retrieval.",
+                        tag: "data",
+                        tip: "Start with your top 50 FAQs and expand based on user queries."
+                    },
+                    {
+                        name: "RAG pipeline (optional)",
+                        detail: "Vector store for semantic search; chunking & citations.",
+                        tag: "ai",
+                        tip: "Use embedding models like OpenAI ada-002 or open-source alternatives."
+                    },
+                    {
+                        name: "Admin CMS",
+                        detail: "Update FAQs without code; versioning & approvals.",
+                        tag: "ops",
+                        tip: "Consider headless CMS like Strapi or custom admin panels."
+                    },
+                    {
+                        name: "Guardrails",
+                        detail: "Off-topic handling, safe responses, escalation.",
+                        tag: "safety",
+                        tip: "Implement intent confidence thresholds and fallback responses."
+                    },
+                    {
+                        name: "Analytics",
+                        detail: "Deflection rate, unresolved intents, retraining loop.",
+                        tag: "analytics",
+                        tip: "Track metrics like resolution rate and user satisfaction scores."
+                    }
+                ]
+            },
+            bookings: {
+                label: "Bookings",
+                tagline: "Seamless appointment and reservation management.",
+                overview: [
+                    "Real-time availability checking",
+                    "Automated booking confirmations",
+                    "Payment processing integration",
+                    "Calendar synchronization"
+                ],
+                flow: "User → Intent → Availability lookup (API) → Reserve → Confirm/Pay → Notify",
+                mockConversation: [
+                    { from: "user", text: "I'd like to book a consultation for next week" },
+                    { from: "bot", text: "I can help with that! What service are you looking for?" },
+                    { from: "user", text: "Product demo, preferably Tuesday afternoon" },
+                    { from: "bot", text: "Great! I have slots at 2:00 PM and 4:00 PM on Tuesday. Shall I book the 2:00 PM slot?" }
+                ],
+                requirements: [
+                    {
+                        name: "Calendar API integration",
+                        detail: "Google Calendar, Outlook, or Calendly API for availability.",
+                        tag: "api",
+                        tip: "Use OAuth 2.0 for secure calendar access and real-time sync."
+                    },
+                    {
+                        name: "Booking database",
+                        detail: "Store reservations, customer data, preferences.",
+                        tag: "data",
+                        tip: "Design with proper indexing on date/time fields for fast queries."
+                    },
+                    {
+                        name: "Payment gateway",
+                        detail: "Stripe, PayPal integration for deposits/full payments.",
+                        tag: "api",
+                        tip: "Implement webhook handlers for payment status updates."
+                    },
+                    {
+                        name: "Notification system",
+                        detail: "Email/SMS confirmations, reminders, cancellations.",
+                        tag: "ops",
+                        tip: "Use services like SendGrid or Twilio for reliable delivery."
+                    },
+                    {
+                        name: "Conflict resolution",
+                        detail: "Double-booking prevention, buffer time management.",
+                        tag: "safety",
+                        tip: "Implement database-level constraints and real-time availability checks."
+                    },
+                    {
+                        name: "User profiles",
+                        detail: "Customer history, preferences, GDPR compliance.",
+                        tag: "data",
+                        tip: "Design with data portability and deletion capabilities in mind."
+                    }
+                ]
+            },
+            troubleshooting: {
+                label: "Troubleshooting",
+                tagline: "Intelligent problem diagnosis and resolution.",
+                overview: [
+                    "Interactive diagnostic workflows",
+                    "Device and app compatibility checks",
+                    "Automated ticket creation for complex issues",
+                    "Knowledge article recommendations"
+                ],
+                flow: "User → Intent → Decision tree/Diagnostics → Steps → Verify → Resolve/Escalate",
+                mockConversation: [
+                    { from: "user", text: "My app keeps crashing when I try to upload files" },
+                    { from: "bot", text: "I'll help diagnose this. What device are you using and what's the app version?" },
+                    { from: "user", text: "iPhone 13, app version 2.1.4" },
+                    { from: "bot", text: "Let's try clearing the app cache first. Go to Settings > App Storage > Clear Cache. Did this resolve the issue?" }
+                ],
+                requirements: [
+                    {
+                        name: "Decision tree engine",
+                        detail: "Flowchart logic for diagnostic workflows and branching.",
+                        tag: "ai",
+                        tip: "Use rule-based systems or decision tree ML models for routing."
+                    },
+                    {
+                        name: "Knowledge articles",
+                        detail: "Searchable database of solutions, FAQs, troubleshooting guides.",
+                        tag: "data",
+                        tip: "Tag articles by product, issue type, and difficulty level."
+                    },
+                    {
+                        name: "ITSM integration",
+                        detail: "Jira, ServiceNow API for ticket creation and tracking.",
+                        tag: "api",
+                        tip: "Automate ticket creation with extracted user context and logs."
+                    },
+                    {
+                        name: "Telemetry ingestion",
+                        detail: "Device info, app logs, error traces for context.",
+                        tag: "data",
+                        tip: "Implement secure log collection with user consent and privacy controls."
+                    },
+                    {
+                        name: "Escalation rules",
+                        detail: "Human handoff triggers, priority assignment logic.",
+                        tag: "ops",
+                        tip: "Define clear escalation criteria based on issue complexity and user tier."
+                    },
+                    {
+                        name: "Session management",
+                        detail: "Conversation state, diagnostic progress tracking.",
+                        tag: "ops",
+                        tip: "Store session data with expiration and allow users to resume diagnostics."
+                    }
+                ]
+            }
+        };
+
+        // Application state
+        let currentChatbot = 'faqs';
+        let expandedRequirements = new Set();
+
+        // DOM elements
+        const toggleOptions = document.querySelectorAll('.toggle-option');
+        const taglineEl = document.getElementById('tagline');
+        const capabilitiesEl = document.getElementById('capabilities');
+        const flowTextEl = document.getElementById('flow-text');
+        const chatMessagesEl = document.getElementById('chat-messages');
+        const requirementsGridEl = document.getElementById('requirements-grid');
+        const copyBtn = document.getElementById('copy-btn');
+        const downloadBtn = document.getElementById('download-btn');
+
+        // Initialize application
+        function init() {
+            // Load saved state from localStorage
+            const savedChatbot = localStorage.getItem('selectedChatbot');
+            if (savedChatbot && CHATBOTS[savedChatbot]) {
+                currentChatbot = savedChatbot;
+            }
+
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Render initial state
+            updateActiveToggle();
+            renderChatbot();
+        }
+
+        // Event listeners setup
+        function setupEventListeners() {
+            // Toggle navigation
+            toggleOptions.forEach(option => {
+                option.addEventListener('click', handleToggleClick);
+                option.addEventListener('keydown', handleToggleKeydown);
+            });
+
+            // Action buttons
+            copyBtn.addEventListener('click', copyRequirementsAsMarkdown);
+            downloadBtn.addEventListener('click', downloadRequirementsAsJSON);
+
+            // Keyboard navigation for requirements
+            document.addEventListener('keydown', handleGlobalKeydown);
+        }
+
+        // Toggle click handler
+        function handleToggleClick(e) {
+            const newChatbot = e.target.dataset.type;
+            if (newChatbot && newChatbot !== currentChatbot) {
+                currentChatbot = newChatbot;
+                localStorage.setItem('selectedChatbot', currentChatbot);
+                updateActiveToggle();
+                renderChatbot();
+            }
+        }
+
+        // Keyboard navigation for toggle
+        function handleToggleKeydown(e) {
+            const options = Array.from(toggleOptions);
+            const currentIndex = options.findIndex(opt => opt === e.target);
+            
+            let newIndex = currentIndex;
+            
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    e.preventDefault();
+                    newIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+                    break;
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    newIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    e.target.click();
+                    return;
+            }
+            
+            // Update focus and tabindex
+            options[currentIndex].setAttribute('tabindex', '-1');
+            options[currentIndex].setAttribute('aria-selected', 'false');
+            options[newIndex].setAttribute('tabindex', '0');
+            options[newIndex].setAttribute('aria-selected', 'true');
+            options[newIndex].focus();
+        }
+
+        // Global keyboard shortcuts
+        function handleGlobalKeydown(e) {
+            // Alt + 1, 2, 3 for quick toggle switching
+            if (e.altKey && ['1', '2', '3'].includes(e.key)) {
+                e.preventDefault();
+                const chatbotKeys = Object.keys(CHATBOTS);
+                const index = parseInt(e.key) - 1;
+                if (chatbotKeys[index]) {
+                    currentChatbot = chatbotKeys[index];
+                    localStorage.setItem('selectedChatbot', currentChatbot);
+                    updateActiveToggle();
+                    renderChatbot();
+                }
+            }
+        }
+
+        // Update active toggle state
+        function updateActiveToggle() {
+            toggleOptions.forEach(option => {
+                const isActive = option.dataset.type === currentChatbot;
+                option.classList.toggle('active', isActive);
+                option.setAttribute('aria-selected', isActive);
+                option.setAttribute('tabindex', isActive ? '0' : '-1');
+            });
+        }
+
+        // Render chatbot content
+        function renderChatbot() {
+            const chatbot = CHATBOTS[currentChatbot];
+            
+            // Update overview section with animation
+            updateOverviewWithAnimation(chatbot);
+            
+            // Update mock chat
+            renderMockChat(chatbot.mockConversation);
+            
+            // Update requirements
+            renderRequirements(chatbot.requirements);
+        }
+
+        // Update overview section with smooth animation
+        function updateOverviewWithAnimation(chatbot) {
+            const overviewEl = document.querySelector('.overview');
+            
+            // Fade out
+            overviewEl.style.opacity = '0';
+            overviewEl.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                // Update content
+                taglineEl.textContent = chatbot.tagline;
+                flowTextEl.textContent = chatbot.flow;
+                
+                // Update capabilities
+                capabilitiesEl.innerHTML = chatbot.overview
+                    .map(item => `<li>${item}</li>`)
+                    .join('');
+                
+                // Fade in
+                overviewEl.style.opacity = '1';
+                overviewEl.style.transform = 'translateY(0)';
+            }, 150);
+        }
+
+        // Render mock chat messages
+        function renderMockChat(conversation) {
+            chatMessagesEl.innerHTML = '';
+            
+            conversation.forEach((message, index) => {
+                setTimeout(() => {
+                    const messageEl = createMessageElement(message);
+                    chatMessagesEl.appendChild(messageEl);
+                    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+                }, index * 500);
+            });
+        }
+
+        // Create message element
+        function createMessageElement(message) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${message.from}`;
+            
+            const avatar = createAvatarElement(message.from);
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = message.text;
+            
+            if (message.from === 'user') {
+                messageEl.appendChild(bubble);
+                messageEl.appendChild(avatar);
+            } else {
+                messageEl.appendChild(avatar);
+                messageEl.appendChild(bubble);
+            }
+            
+            return messageEl;
+        }
+
+        // Create avatar element
+        function createAvatarElement(type) {
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            
+            if (type === 'user') {
+                avatar.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 100%; height: 100%; color: var(--accent-cyan);">
+                        <circle cx="12" cy="12" r="10" fill="var(--bg-card)"/>
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+                    </svg>
+                `;
+            } else {
+                avatar.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 100%; height: 100%; color: var(--accent-purple);">
+                        <circle cx="12" cy="12" r="10" fill="var(--bg-card)"/>
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                        <path d="M2 17L12 22L22 17" fill="currentColor"/>
+                        <path d="M2 12L12 17L22 12" fill="currentColor"/>
+                    </svg>
+                `;
+            }
+            
+            return avatar;
+        }
+
+        // Render requirements grid
+        function renderRequirements(requirements) {
+            const gridEl = requirementsGridEl;
+            
+            // Fade out
+            gridEl.style.opacity = '0';
+            gridEl.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                gridEl.innerHTML = requirements
+                    .map(req => createRequirementHTML(req))
+                    .join('');
+                
+                // Add click listeners
+                gridEl.querySelectorAll('.requirement-item').forEach(item => {
+                    item.addEventListener('click', toggleRequirementExpansion);
+                    item.addEventListener('keydown', handleRequirementKeydown);
+                });
+                
+                // Fade in
+                gridEl.style.opacity = '1';
+                gridEl.style.transform = 'translateY(0)';
+            }, 150);
+        }
+
+        // Create requirement HTML
+        function createRequirementHTML(req) {
+            return `
+                <div class="requirement-item" tabindex="0" data-name="${req.name}" role="button" aria-expanded="false">
+                    <div class="requirement-header">
+                        <div class="requirement-name">${req.name}</div>
+                        <div class="requirement-tag ${req.tag}">${req.tag.toUpperCase()}</div>
+                    </div>
+                    <div class="requirement-detail">${req.detail}</div>
+                    <div class="requirement-tip">💡 <strong>Implementation tip:</strong> ${req.tip}</div>
+                </div>
+            `;
+        }
+
+        // Toggle requirement expansion
+        function toggleRequirementExpansion(e) {
+            const item = e.currentTarget;
+            const name = item.dataset.name;
+            const isExpanded = expandedRequirements.has(name);
+            
+            if (isExpanded) {
+                expandedRequirements.delete(name);
+                item.classList.remove('expanded');
+                item.setAttribute('aria-expanded', 'false');
+            } else {
+                expandedRequirements.add(name);
+                item.classList.add('expanded');
+                item.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        // Keyboard navigation for requirements
+        function handleRequirementKeydown(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleRequirementExpansion(e);
+            }
+        }
+
+        // Copy requirements as markdown checklist
+        function copyRequirementsAsMarkdown() {
+            const chatbot = CHATBOTS[currentChatbot];
+            const markdown = `# ${chatbot.label} Chatbot Requirements\n\n` +
+                chatbot.requirements.map(req => 
+                    `- [ ] **${req.name}** (${req.tag.toUpperCase()})\n  ${req.detail}\n`
+                ).join('\n');
+            
+            navigator.clipboard.writeText(markdown).then(() => {
+                showFeedback(copyBtn, '✓ Copied!');
+            }).catch(() => {
+                showFeedback(copyBtn, '❌ Failed to copy');
+            });
+        }
+
+        // Download requirements as JSON
+        function downloadRequirementsAsJSON() {
+            const chatbot = CHATBOTS[currentChatbot];
+            const dataStr = JSON.stringify(chatbot, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const url = URL.createObjectURL(dataBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentChatbot}-chatbot-config.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showFeedback(downloadBtn, '✓ Downloaded!');
+        }
+
+        // Show feedback on button
+        function showFeedback(button, message) {
+            const originalText = button.textContent;
+            button.textContent = message;
+            button.style.background = 'var(--accent-cyan)';
+            button.style.color = 'var(--bg-primary)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+                button.style.color = '';
+            }, 2000);
+        }
+
+        // Initialize application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Handle visibility change to pause/resume animations
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                document.body.style.animationPlayState = 'paused';
+            } else {
+                document.body.style.animationPlayState = 'running';
+            }
+        });
+    </script>
+</body>
+</html>
