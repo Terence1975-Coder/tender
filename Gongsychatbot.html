@@ -4,78 +4,132 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Bootcamp Concierge – Chatbot & Admin</title>
+<!--
+  Single-file web app
+  - Bootcamp Q&A chatbot with optional GPT integration
+  - Secret phrase to open admin portal: "NICEONEBRUVA" → passcode "1975"
+  - Admin edits course data, callback button/link, register link, OpenAI key, Firebase config
+  - Firestore used if configured; otherwise localStorage fallback
+  - Styled to echo the look/feel of the provided screenshot (lavender/purple UI)
+-->
 <style>
   :root{
-    --bg:#f5f2ff; --panel:#ffffff; --brand:#7c3aed; --brand-2:#6366f1;
-    --text:#1c1c28; --muted:#6b6b88; --border:#eadffd; --shadow:0 8px 24px rgba(74,58,255,.12);
+    --bg:#f5f2ff;               /* soft lilac */
+    --panel:#ffffff;
+    --brand:#7c3aed;            /* purple */
+    --brand-2:#6366f1;          /* indigo */
+    --text:#1c1c28;
+    --muted:#6b6b88;
+    --chip:#efeafe;
+    --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
+    --border: #eadffd;
+    --shadow:0 8px 24px rgba(74,58,255,.12);
     --radius:18px;
   }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0; font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif; color:var(--text); background:var(--bg)}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; color:var(--text); background:var(--bg)}
   a{color:var(--brand)}
-  .app{display:grid; grid-template-columns:220px 1fr; min-height:100vh}
+
+  /* Shell */
+  .app{display:grid; grid-template-columns:260px 1fr; min-height:100vh}
   aside{background:#faf7ff; border-right:1px solid var(--border); padding:16px}
   main{display:flex; flex-direction:column}
+
+  /* Sidebar */
   .s-logo{display:flex; align-items:center; gap:12px; padding:10px 10px 20px}
   .s-logo .dot{width:36px; height:36px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #ffd97a, #ffb300 60%, #f59e0b); box-shadow: inset 0 0 0 4px #fff7}
   .s-logo h2{margin:0; font-size:20px; letter-spacing:.4px}
+
   .nav{display:flex; flex-direction:column; gap:10px}
   .nav a{display:flex; align-items:center; gap:12px; padding:14px 12px; border-radius:14px; text-decoration:none; color:#3f3d56; background:#fff; border:1px solid var(--border); box-shadow: var(--shadow)}
   .nav a span.icon{width:28px; height:28px; border-radius:50%; background:#ece9ff; display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:#6d5dfc}
   .nav a.active{background:#ede9fe}
+
+  /* Header */
   header{display:flex; align-items:center; justify-content:space-between; padding:16px 22px; background:#fff; border-bottom:1px solid var(--border)}
   .title{display:flex; align-items:center; gap:12px}
   .title h1{font-size:22px; margin:0}
   .pill{background:#eef2ff; color:#3730a3; padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid #dbe4ff}
+
+  /* Content layout */
   .content{padding:22px; display:grid; grid-template-columns:1.15fr .85fr; gap:18px}
   @media(max-width:1080px){.content{grid-template-columns:1fr}}
   .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow: var(--shadow); padding:16px}
   .card h3{margin:0 0 8px; font-size:18px}
   .muted{color:var(--muted)}
+
+  /* Chat */
   .chat-wrap{display:flex; flex-direction:column; height:560px}
   .chat{flex:1; overflow:auto; padding:12px; background:#fbfaff; border:1px solid var(--border); border-radius:14px}
   .bubble{max-width:78%; padding:10px 12px; margin:8px 0; border-radius:14px; box-shadow:0 3px 8px rgba(0,0,0,.05)}
-  .bot{background:#f5f3ff; border:1px solid #e6e1ff} .user{background:#e0f7ff; border:1px solid #bde8ff; margin-left:auto}
-  .row{display:flex; gap:8px; align-items:flex-end} .row .avatar{width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#6d5dfc,#9a8cff)}
-  .row.user{flex-direction:row-reverse} .row.user .avatar{background:linear-gradient(135deg,#06b6d4,#67e8f9)}
-  .chat-input{display:flex; gap:8px; margin-top:10px} .chat-input input{flex:1; padding:12px; border-radius:12px; border:1px solid var(--border)}
+  .bot{background:#f5f3ff; border:1px solid #e6e1ff}
+  .user{background:#e0f7ff; border:1px solid #bde8ff; margin-left:auto}
+  .row{display:flex; gap:8px; align-items:flex-end}
+  .row .avatar{width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#6d5dfc,#9a8cff)}
+  .row.user{flex-direction:row-reverse}
+  .row.user .avatar{background:linear-gradient(135deg,#06b6d4,#67e8f9)}
+  .chat-input{display:flex; gap:8px; margin-top:10px}
+  .chat-input input{flex:1; padding:12px; border-radius:12px; border:1px solid var(--border)}
   .btn{border:1px solid var(--border); background:linear-gradient(#fff,#f9f7ff); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:600; color:#4b3bab}
-  .btn.primary{background:linear-gradient(180deg,#7c3aed,#6366f1); color:#fff; border:none} .btn.ghost{background:#fff}
-  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px} @media(max-width:900px){.info-grid{grid-template-columns:1fr}}
+  .btn.primary{background:linear-gradient(180deg,#7c3aed,#6366f1); color:#fff; border:none}
+  .btn.ghost{background:#fff}
+
+  /* Course info panel */
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:900px){.info-grid{grid-template-columns:1fr}}
   .info-item{background:#fbfaff; border:1px solid var(--border); border-radius:12px; padding:12px}
   .info-item h4{margin:0 0 6px; font-size:14px; color:#4b3bab}
+
   .ctas{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px}
   .badge{background:#ede9fe; border:1px solid #ded7ff; color:#4b3bab; padding:4px 8px; border-radius:999px; font-size:12px}
-  .modal{position:fixed; inset:0; display:none; backdrop-filter: blur(6px); background:rgba(36,0,70,.2)} .modal.open{display:grid; place-items:center}
-  .sheet{width:min(980px,95vw); max-height:90vh; overflow:auto; background:#fff; border-radius:22px; box-shadow:0 24px 80px rgba(88,54,255,.35); border:1px solid var(--border)}
-  .sheet header{position:sticky; top:0; background:#fff} .sheet .body{padding:16px 22px 22px}
-  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px} @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+  /* Admin modal */
+  .modal{position:fixed; inset:0; display:none; backdrop-filter: blur(6px); background:rgba(36,0,70,.2)}
+  .modal.open{display:grid; place-items:center}
+  .sheet{width:min(960px,95vw); max-height:90vh; overflow:auto; background:#fff; border-radius:22px; box-shadow:0 24px 80px rgba(88,54,255,.35); border:1px solid var(--border)}
+  .sheet header{position:sticky; top:0; background:#fff}
+  .sheet .body{padding:16px 22px 22px}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
   label{font-size:13px; display:block; color:#4b3bab; margin:10px 0 6px}
-  input[type="text"], input[type="url"], input[type="password"], input[type="file"], textarea{width:100%; border:1px solid var(--border); border-radius:12px; padding:10px; font:inherit}
-  textarea{min-height:90px} .hr{height:1px; background:var(--border); margin:14px 0} .small{font-size:12px; color:#6b6b88}
-  .k{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; font-size:12px}
-  .kb-list{display:grid; gap:8px} .kb-item{background:#fbfaff; border:1px solid var(--border); border-radius:12px; padding:10px; display:flex; justify-content:space-between; align-items:center}
+  input[type="text"], input[type="url"], input[type="password"], textarea{width:100%; border:1px solid var(--border); border-radius:12px; padding:10px; font:inherit}
+  textarea{min-height:90px}
+  .hr{height:1px; background:var(--border); margin:14px 0}
+  .small{font-size:12px; color:var(--muted)}
+  .k{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+
+  .toast{position:fixed; right:18px; bottom:18px; background:#111827; color:#fff; padding:10px 12px; border-radius:12px; box-shadow: var(--shadow); opacity:0; transform: translateY(8px); transition:.2s}
+  .toast.show{opacity:1; transform:none}
+
   .warn{padding:10px 12px; border:1px solid #fde68a; background:#fff7ed; color:#92400e; border-radius:12px}
 </style>
 </head>
 <body>
 <div class="app">
   <aside>
-    <div class="s-logo"><div class="dot"></div><h2>GONGSY</h2></div>
+    <div class="s-logo">
+      <div class="dot" aria-hidden="true"></div>
+      <h2>GONGSY</h2>
+    </div>
     <nav class="nav">
-      <a class="active" href="#" id="nav-chat"><span class="icon">💬</span> Chatbot</a>
-      <a href="#" id="nav-screening"><span class="icon">📝</span> Bootcamp Screening</a>
+      <a class="active" href="#" id="nav-dashboard"><span class="icon">⭐</span> Dashboard</a>
+      <a href="#" id="nav-chat"><span class="icon">💬</span> Chatbot</a>
+      <a href="#" id="nav-course"><span class="icon">🎓</span> Bootcamps</a>
+      <a href="#" id="nav-settings"><span class="icon">⚙️</span> Settings</a>
     </nav>
   </aside>
+
   <main>
     <header>
       <div class="title"><span class="pill">Bootcamp Concierge</span><h1 id="courseTitle">AI Engineering Bootcamp</h1></div>
       <div class="right"><span class="badge" id="envBadge">Local Mode</span></div>
     </header>
+
     <section class="content">
       <div class="card">
         <h3>Ask about our bootcamps</h3>
-        <p class="muted">Type <strong>NICEONEBRUVA</strong> to open Admin. Upload PDFs there to power RAG answers.</p>
+        <p class="muted">Try: “When is the next cohort?”, “What does the syllabus cover?”, or “How much is it?”. Type <strong>NICEONEBRUVA</strong> to open admin.</p>
         <div class="chat-wrap">
           <div class="chat" id="chat"></div>
           <div class="chat-input">
@@ -88,11 +142,14 @@
           </div>
         </div>
       </div>
+
       <div class="card">
         <h3>Bootcamp overview</h3>
         <div class="info-grid">
           <div class="info-item"><h4>Summary</h4><div id="courseSummary" class="muted"></div></div>
-          <div class="info-item"><h4>Key facts</h4><ul id="facts" class="muted" style="margin:0 0 0 18px"></ul></div>
+          <div class="info-item"><h4>Key facts</h4>
+            <ul class="muted" id="facts" style="margin:0 0 0 18px"></ul>
+          </div>
           <div class="info-item"><h4>Next cohort</h4><div id="nextCohort" class="muted"></div></div>
           <div class="info-item"><h4>Location</h4><div id="location" class="muted"></div></div>
         </div>
@@ -101,56 +158,68 @@
   </main>
 </div>
 
-<!-- Admin -->
+<!-- Admin Modal (locked behind secret + passcode) -->
 <div class="modal" id="adminModal" aria-hidden="true">
   <div class="sheet">
-    <header><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 22px"><div style="display:flex;gap:10px;align-items:center"><span class="pill">Admin</span><strong>Bootcamp Settings</strong></div><button class="btn" id="closeAdmin">Close</button></div></header>
+    <header>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px">
+        <div style="display:flex; gap:10px; align-items:center"><span class="pill">Admin</span><strong>Bootcamp Settings</strong></div>
+        <button class="btn" id="closeAdmin">Close</button>
+      </div>
+    </header>
     <div class="body">
       <div id="adminGate">
         <label>Enter passcode</label>
         <input id="passcode" type="password" placeholder="••••" />
-        <div class="small">Hint: 1975</div>
-        <div style="margin-top:10px;display:flex;gap:8px"><button id="unlock" class="btn primary">Unlock</button></div>
+        <div class="small">Hint: provided by request (<span class="k">1975</span>)</div>
+        <div style="margin-top:10px; display:flex; gap:8px"><button id="unlock" class="btn primary">Unlock</button></div>
         <div id="gateMsg" class="small muted" style="margin-top:8px"></div>
         <div class="hr"></div>
-        <div class="warn">Secrets are stored locally in <strong>localStorage</strong> on this device only.</div>
+        <div class="warn">⚠️ Keep your keys/config private. This tool stores secrets in <strong>localStorage</strong> on this device only.</div>
       </div>
+
       <div id="adminBody" style="display:none">
         <div class="grid-2">
           <div>
             <h3>Course content</h3>
-            <label>Title</label><input id="fTitle" type="text" />
-            <label>Summary</label><textarea id="fSummary"></textarea>
-            <label>Key facts (one per line)</label><textarea id="fFacts"></textarea>
-            <label>Next cohort</label><input id="fCohort" type="text" />
-            <label>Location</label><input id="fLocation" type="text" />
-            <label>Pre‑screening questionnaire URL</label><input id="fScreening" type="url" placeholder="https://your-training-site/prescreening" />
-            <label>FAQs (Q|A per line)</label><textarea id="fFaqs" placeholder="What is the duration?|12 weeks&#10;Do you offer certificates?|Yes, a digital certificate…"></textarea>
-            <label>Troubleshooting (Issue|Resolution per line)</label><textarea id="fTroubles" placeholder="I can't access the portal|Reset your password at …"></textarea>
+            <label>Title</label>
+            <input id="fTitle" type="text" />
+            <label>Summary</label>
+            <textarea id="fSummary"></textarea>
+            <label>Key facts (one per line)</label>
+            <textarea id="fFacts"></textarea>
+            <label>Next cohort</label>
+            <input id="fCohort" type="text" />
+            <label>Location</label>
+            <input id="fLocation" type="text" />
+            <label>FAQs (Q|A per line)</label>
+            <textarea id="fFaqs" placeholder="What is the duration?|12 weeks\nDo you offer certificates?|Yes, a digital certificate…"></textarea>
+            <label>Troubleshooting (Issue|Resolution per line)</label>
+            <textarea id="fTroubles" placeholder="I can't access the portal|Reset your password at …"></textarea>
           </div>
           <div>
             <h3>Actions & integrations</h3>
-            <label>Register link (URL)</label><input id="fRegister" type="url" />
-            <label>Callback button label</label><input id="fCallbackLabel" type="text" />
-            <label>Callback webhook/mailto (URL)</label><input id="fCallbackUrl" type="url" placeholder="mailto:admissions@example.com?subject=Callback%20Request" />
+            <label>Register link (URL)</label>
+            <input id="fRegister" type="url" />
+            <label>Callback button label</label>
+            <input id="fCallbackLabel" type="text" />
+            <label>Callback webhook/mailto (URL)</label>
+            <input id="fCallbackUrl" type="url" placeholder="mailto:admissions@example.com?subject=Callback%20Request" />
+
             <div class="hr"></div>
-            <h3>GPT + RAG (optional)</h3>
-            <label>OpenAI API key</label><input id="fOpenAI" type="password" placeholder="sk-…" />
-            <label>Model (chat)</label><input id="fModel" type="text" value="gpt-4o-mini" />
-            <label>Embeddings model</label><input id="fEmbedModel" type="text" value="text-embedding-3-small" />
+            <h3>Optional: GPT responses</h3>
+            <label>OpenAI API key</label>
+            <input id="fOpenAI" type="password" placeholder="sk-…" />
+            <label>Model</label>
+            <input id="fModel" type="text" value="gpt-4o-mini" />
+
             <div class="hr"></div>
-            <h3>Knowledge base (PDFs per course)</h3>
-            <label>Upload one or more PDFs</label><input id="kbUpload" type="file" accept="application/pdf" multiple />
-            <div class="small">We extract text in-browser (no files are sent anywhere). Then we chunk and index it for retrieval.</div>
-            <div class="kb-list" id="kbList" style="margin-top:8px"></div>
-            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
-              <button class="btn" id="btnClearKB">Clear knowledge</button>
-              <button class="btn" id="btnRebuild">Rebuild index</button>
-            </div>
-            <div class="hr"></div>
-            <h3>Firebase (optional)</h3>
-            <div class="small">Paste Firestore config JSON to sync course settings; we do not use Storage (so no CORS).</div>
-            <label>Firebase config JSON</label><textarea id="fFirebase" placeholder='{"apiKey":"…","authDomain":"…","projectId":"prospecting-f2f42","storageBucket":"prospecting-f2f42.appspot.com","appId":"…"}'></textarea>
+            <h3>Optional: Firebase</h3>
+            <div class="small">Paste your config JSON to use Firestore for persistence. We pre‑filled some values from your error (projectId & storageBucket).</div>
+            <label>Firebase config JSON</label>
+            <textarea id="fFirebase" placeholder='{"apiKey":"…","authDomain":"…","projectId":"prospecting-f2f42","storageBucket":"prospecting-f2f42.appspot.com","appId":"…"}'></textarea>
+            <div class="small">If Storage CORS blocks listing, prefer saving to <strong>Firestore</strong> (no CORS needed here). Storage is only required for files.</div>
+
             <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
               <button class="btn" id="btnSave">Save</button>
               <button class="btn" id="btnExport">Export JSON</button>
@@ -168,108 +237,275 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/**********************
+ * Default Course Data *
+ **********************/
 const DEFAULT_DATA = {
   course: {
     title: 'AI Engineering Bootcamp',
     summary: 'A 12‑week, hands‑on program covering Python, ML, LLMs, RAG, vector databases, MLOps, and deployment on the cloud. Weekly live sessions + capstone.',
-    facts: ['Duration: 12 weeks','Schedule: 2× evenings + 1× weekend lab','Prereqs: Python, basic Git','Certificate upon completion'],
+    facts: [
+      'Duration: 12 weeks',
+      'Schedule: 2× evenings + 1× weekend lab',
+      'Prereqs: Python, basic Git',
+      'Certificate upon completion'
+    ],
     nextCohort: 'Starts 6 Oct 2025 – rolling admissions',
     location: 'Hybrid (London + Remote)',
-    registerUrl: '#', screeningUrl:'#',
-    callbackLabel: 'Request interview callback', callbackUrl: 'mailto:admissions@example.com?subject=Callback%20Request',
-    faqs: [{q:'How long is the bootcamp?', a:'12 weeks.'},{q:'Do I need prior ML?', a:'Helpful but not required.'}],
-    troubleshooting: [{issue:'Cannot access portal', fix:'Use reset password link.'}]
+    registerUrl: 'https://example.com/register',
+    callbackLabel: 'Request interview callback',
+    callbackUrl: 'mailto:admissions@example.com?subject=Callback%20Request',
+    faqs: [
+      {q:'How long is the bootcamp?', a:'12 weeks. Expect ~8–10 hours/week including labs.'},
+      {q:'Do I need prior ML experience?', a:'Helpful but not required. We begin with core ML then move to LLMs and MLOps.'},
+      {q:'Is there a certificate?', a:'Yes, a shareable certificate is issued upon meeting assessment criteria.'},
+      {q:'What projects will I build?', a:'You will ship 3 mini‑projects and one capstone (e.g., an RAG app with evaluations).'}
+    ],
+    troubleshooting: [
+      {issue:'I cannot access the portal', fix:'Use the reset link on the login page; check spam for the reset email.'},
+      {issue:'My notebook will not run', fix:'Ensure you installed dependencies; try restarting the kernel and pulling the latest template.'}
+    ]
   },
-  ai: { useOpenAI:false, model:'gpt-4o-mini', embedModel:'text-embedding-3-small', apiKey:'' },
-  firebase: { projectId:'prospecting-f2f42', storageBucket:'prospecting-f2f42.appspot.com' },
-  rag: { docs: [] }
+  ai: { useOpenAI: false, model: 'gpt-4o-mini', apiKey: '' },
+  firebase: { projectId: 'prospecting-f2f42', storageBucket: 'prospecting-f2f42.appspot.com' }
 };
 
-const LS_KEY='bootcamp.concierge.v4';
-const ui=id=>document.getElementById(id);
-function loadState(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||DEFAULT_DATA}catch(e){return DEFAULT_DATA} }
-function saveState(s){ try{localStorage.setItem(LS_KEY, JSON.stringify(s));}catch(e){console.warn('localStorage quota',e);} }
-function toast(m,t=2200){ const n=ui('toast'); n.textContent=m; n.classList.add('show'); setTimeout(()=>n.classList.remove('show'),t); }
-let STATE=loadState();
+/***************************
+ * Persistence & utilities  *
+ ***************************/
+const LS_KEY = 'bootcamp.concierge.v1';
+const $ = (sel, el=document)=> el.querySelector(sel);
+const $$ = (sel, el=document)=> [...el.querySelectorAll(sel)];
+const ui = id => document.getElementById(id);
 
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || DEFAULT_DATA }catch(e){ return DEFAULT_DATA }
+}
+function saveState(state){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function toast(msg, t=2200){ const n=ui('toast'); n.textContent=msg; n.classList.add('show'); setTimeout(()=>n.classList.remove('show'), t); }
+function mdEscape(s=''){ return s.replace(/[\n\r]+/g,' '); }
+
+let STATE = loadState();
+
+/**********************
+ * Rendering functions *
+ **********************/
 function renderCourse(){
-  ui('courseTitle').textContent=STATE.course.title;
-  ui('courseSummary').textContent=STATE.course.summary;
-  ui('nextCohort').textContent=STATE.course.nextCohort;
-  ui('location').textContent=STATE.course.location;
-  const facts=ui('facts'); facts.innerHTML=''; STATE.course.facts.forEach(f=>{const li=document.createElement('li'); li.textContent=f; facts.appendChild(li);});
-  ui('registerLink').href=STATE.course.registerUrl||'#';
-  ui('callbackBtn').textContent=STATE.course.callbackLabel||'Request interview callback';
+  ui('courseTitle').textContent = STATE.course.title;
+  ui('courseSummary').textContent = STATE.course.summary;
+  ui('nextCohort').textContent = STATE.course.nextCohort;
+  ui('location').textContent = STATE.course.location;
+  const facts = ui('facts'); facts.innerHTML='';
+  STATE.course.facts.forEach(f=>{ const li=document.createElement('li'); li.textContent=f; facts.appendChild(li); });
+  // CTAs
+  const reg = ui('registerLink'); reg.href = STATE.course.registerUrl || '#';
+  ui('callbackBtn').textContent = STATE.course.callbackLabel || 'Request interview callback';
 }
-function addMsg(from, text){ const wrap=ui('chat'); const row=document.createElement('div'); row.className='row '+(from==='user'?'user':''); const avatar=document.createElement('div'); avatar.className='avatar'; const bubble=document.createElement('div'); bubble.className='bubble '+(from==='user'?'user':'bot'); bubble.textContent=text; row.append(avatar,bubble); wrap.append(row); wrap.scrollTop=wrap.scrollHeight; }
-function systemIntro(){ ui('chat').innerHTML=''; addMsg('bot', `Hi! Ask me about the ${STATE.course.title}.`); }
 
-/* -------- PDF.js loader (fixed) -------- */
-async function ensurePdfJs(){
-  if(window.pdfjsLib) return window.pdfjsLib;
-  try{
-    const lib = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.mjs');
-    lib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.mjs';
-    window.pdfjsLib = lib; return lib;
-  }catch(e){
-    // Fallback CDN
-    const lib = await import('https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.mjs');
-    lib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.mjs';
-    window.pdfjsLib = lib; return lib;
-  }
+function addMsg(from, text){
+  const wrap = ui('chat');
+  const row = document.createElement('div'); row.className = 'row ' + (from==='user'?'user':'');
+  const avatar = document.createElement('div'); avatar.className='avatar';
+  const bubble = document.createElement('div'); bubble.className = 'bubble ' + (from==='user'?'user':'bot'); bubble.textContent = text;
+  row.append(avatar, bubble); wrap.append(row); wrap.scrollTop = wrap.scrollHeight;
 }
-function chunkText(txt,size=1200,overlap=120){ const out=[]; let i=0; while(i<txt.length){ const end=Math.min(txt.length,i+size); out.push(txt.slice(i,end).trim()); i=end-overlap; if(i<0)i=0;} return out.filter(Boolean); }
-async function extractPdfText(file){ await ensurePdfJs(); const buf=await file.arrayBuffer(); const pdf=await window.pdfjsLib.getDocument({data:buf}).promise; let text=''; for(let p=1;p<=pdf.numPages;p++){ const page=await pdf.getPage(p); const c=await page.getTextContent(); text+=c.items.map(i=>i.str).join(' ')+'\\n'; } return {text,pages:pdf.numPages}; }
-function tokens(s){ return s.toLowerCase().replace(/[^a-z0-9\\s]/g,' ').split(/\\s+/).filter(Boolean); }
-function keywordScore(q,txt){ const A=new Set(tokens(q)); let hit=0; const w=tokens(txt); w.forEach(t=>{ if(A.has(t)) hit++; }); return hit/Math.max(10,w.length); }
-async function indexPdfFiles(fileList){ const files=[...fileList]; for(const f of files){ const {text,pages}=await extractPdfText(f); const chunks=chunkText(text); const doc={id:Math.random().toString(36).slice(2), name:f.name, pages, courseTag:STATE.course.title, textBytes:text.length, chunks:chunks.map(t=>({text:t}))}; STATE.rag.docs.push(doc);} saveState(STATE); renderKBList(); updateEnvBadge(); toast('PDFs indexed for RAG'); }
-function renderKBList(){ const list=ui('kbList'); if(!list) return; list.innerHTML=''; if(!STATE.rag.docs.length){ list.innerHTML='<div class="small">No PDFs uploaded yet.</div>'; return; } STATE.rag.docs.forEach(d=>{ const row=document.createElement('div'); row.className='kb-item'; row.innerHTML=`<div><strong>${d.name}</strong> <span class="small">— ${d.pages}p, ${(d.textBytes/1024|0)}KB</span></div>`; const del=document.createElement('button'); del.className='btn'; del.textContent='Remove'; del.onclick=()=>{ STATE.rag.docs=STATE.rag.docs.filter(x=>x.id!==d.id); saveState(STATE); renderKBList(); updateEnvBadge(); }; row.append(del); list.append(row); }); }
-async function retrieveRelevantChunks(query,k=3){ const docs=(STATE.rag?.docs||[]).filter(d=>d.courseTag===STATE.course.title); const all=[]; docs.forEach(d=>d.chunks.forEach(c=>all.push(c))); if(!all.length) return []; return all.map(c=>({c,s:keywordScore(query,c.text)})).sort((a,b)=>b.s-a.s).slice(0,k).map(x=>x.c); }
 
-/* -------- Replies -------- */
-function normalize(s=''){ return s.toLowerCase().replace(/[^a-z0-9\\s]/g,' '); }
-function overlapScore(a,b){ const A=new Set(normalize(a).split(/\\s+/).filter(Boolean)); const B=new Set(normalize(b).split(/\\s+/).filter(Boolean)); let o=0; A.forEach(x=>{ if(B.has(x)) o++;}); return o/(1+Math.min(A.size,B.size)); }
+function systemIntro(){
+  ui('chat').innerHTML='';
+  addMsg('bot', `Hi! I\'m your bootcamp concierge. Ask me anything about the ${STATE.course.title}.`);
+}
+
+/*********************************
+ * Conversational AI (two modes)  *
+ *********************************/
+function normalize(s=''){ return s.toLowerCase().replace(/[^a-z0-9\s]/g,' '); }
+function overlapScore(a,b){ const A=new Set(normalize(a).split(/\s+/).filter(Boolean)); const B=new Set(normalize(b).split(/\s+/).filter(Boolean)); let o=0; A.forEach(x=>{ if(B.has(x)) o++;}); return o/(1+Math.min(A.size,B.size)); }
 
 async function replyLocal(q){
+  // Secret phrase → admin
   if(q.trim().toUpperCase()==='NICEONEBRUVA'){ openAdmin(); return; }
-  const hits=await retrieveRelevantChunks(q,2);
-  if(hits.length){ const snippet=hits.map(h=>h.text.trim()).join('\\n---\\n').slice(0,800); return `According to the course material:\\n\\n${snippet}`; }
-  const n=normalize(q);
-  if(/(price|cost|tuition|fee)/.test(n)) return `Tuition details shared during admissions. Early‑bird ranges £1,200–£1,800.`;
+
+  // Direct patterns
+  const n = normalize(q);
+  if(/(price|cost|tuition|fee)/.test(n)) return `Tuition details: we\'ll send exact pricing during admissions. Typical early‑bird is £1,200–£1,800 depending on cohort.`;
   if(/(start|cohort|date|when)/.test(n)) return STATE.course.nextCohort;
-  if(/(location|where)/.test(n)) return `We're ${STATE.course.location}.`;
-  if(/(register|sign ?up|enrol|enroll)/.test(n)) return `Register here: ${STATE.course.registerUrl}`;
-  let best=null,score=0; STATE.course.faqs.forEach(f=>{ const s=overlapScore(q,f.q); if(s>score){score=s; best=f;} }); if(best&&score>.15) return best.a;
-  return 'I couldn’t find that in our notes. Try uploading PDFs in Admin to power exact answers.';
+  if(/(location|where)/.test(n)) return `We\'re ${STATE.course.location}.`;
+  if(/(register|sign ?up|enrol)/.test(n)) return `You can register here: ${STATE.course.registerUrl}`;
+
+  // FAQ similarity
+  let best=null, score=0; STATE.course.faqs.forEach(f=>{ const s=overlapScore(q, f.q); if(s>score){score=s; best=f;} });
+  if(best && score>.15) return best.a;
+
+  // Troubleshooting
+  let tbest=null, tscore=0; STATE.course.troubleshooting.forEach(t=>{ const s=overlapScore(q, t.issue); if(s>tscore){tscore=s; tbest=t;} });
+  if(tbest && tscore>.18) return tbest.fix;
+
+  // Fallback
+  return "I couldn’t find that in our notes. Ask about duration, syllabus, cohort dates, or fees — or type ‘register’.";
 }
 
-async function handleSend(){ const input=ui('chatInput'); const q=input.value.trim(); if(!q) return; input.value=''; addMsg('user', q); addMsg('bot','…'); const last=ui('chat').lastElementChild; const a=await replyLocal(q); last.querySelector('.bubble').textContent=a; }
+async function replyOpenAI(q){
+  const key = STATE.ai.apiKey; if(!key){ return replyLocal(q); }
+  const sys = `You are a concise admissions concierge for the following bootcamp. Use the context strictly, cite prices as 'typical range' if absent. If troubleshooting, give clear, actionable steps in bullet form.\n\nCOURSE DATA:\nTitle: ${STATE.course.title}\nSummary: ${mdEscape(STATE.course.summary)}\nFacts: ${STATE.course.facts.join('; ')}\nNext cohort: ${STATE.course.nextCohort}\nLocation: ${STATE.course.location}\nRegister: ${STATE.course.registerUrl}\nFAQs: ${STATE.course.faqs.map(f=>`Q:${mdEscape(f.q)} A:${mdEscape(f.a)}`).join(' | ')}\nTroubleshooting: ${STATE.course.troubleshooting.map(t=>`Issue:${mdEscape(t.issue)} Fix:${mdEscape(t.fix)}`).join(' | ')}`;
+  try{
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+      body: JSON.stringify({
+        model: STATE.ai.model||'gpt-4o-mini',
+        messages:[{role:'system', content: sys}, {role:'user', content:q}],
+        temperature:0.3, max_tokens:260
+      })
+    });
+    if(!res.ok){ const t=await res.text(); console.warn('OpenAI error', t); return replyLocal(q); }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || replyLocal(q);
+  }catch(e){ console.warn(e); return replyLocal(q); }
+}
 
-/* -------- Callback & Nav -------- */
-ui('callbackBtn').addEventListener('click', ()=>{ const name=prompt('Your name'); if(!name) return; const phone=prompt('Phone'); const email=prompt('Email'); const payload={ts:Date.now(),name,phone,email}; const mail=STATE.course.callbackUrl+`&body=${encodeURIComponent(JSON.stringify(payload,null,2))}`; window.location.href=mail; });
-ui('nav-screening').addEventListener('click', e=>{ e.preventDefault(); const url=STATE.course.screeningUrl||'#'; if(url==='#'){ alert('Admin: add a pre‑screening URL.'); } else { window.open(url,'_blank'); } });
+async function handleSend(){
+  const input = ui('chatInput'); const q = input.value.trim(); if(!q) return; input.value='';
+  addMsg('user', q);
+  const thinking = '…'; addMsg('bot', thinking);
+  const last = ui('chat').lastElementChild; // placeholder
+  const useGPT = !!STATE.ai.apiKey && STATE.ai.useOpenAI !== false; // if key present, default to true
+  const a = useGPT ? await replyOpenAI(q) : await replyLocal(q);
+  last.querySelector('.bubble').textContent = a;
+}
+
+/**********************
+ * Callback + Register *
+ **********************/
+ui('callbackBtn').addEventListener('click', ()=>{
+  const name = prompt('Your name'); if(!name) return;
+  const phone = prompt('Phone / WhatsApp');
+  const email = prompt('Email');
+  const payload = {ts: Date.now(), name, phone, email, note:'Interview callback request'};
+  // Try Firestore, else mailto/webhook, else download JSON
+  if(window.firestore){
+    firestoreAdd('callbacks', payload).then(()=> toast('Callback saved to Firestore')).catch(()=> fallback())
+  } else fallback();
+
+  function fallback(){
+    if(STATE.course.callbackUrl && STATE.course.callbackUrl.startsWith('mailto:')){
+      const m = STATE.course.callbackUrl + `&body=${encodeURIComponent(JSON.stringify(payload,null,2))}`;
+      window.location.href = m;
+    } else if(STATE.course.callbackUrl){
+      fetch(STATE.course.callbackUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}).then(()=>toast('Callback sent')).catch(()=> downloadJSON(payload, 'callback.json'))
+    } else {
+      downloadJSON(payload, 'callback.json');
+    }
+  }
+});
+
+function downloadJSON(obj, filename){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+}
+
+/****************
+ * Admin portal  *
+ ****************/
+let adminArmed = false; // opened via secret phrase
+function openAdmin(){ ui('adminModal').classList.add('open'); ui('adminModal').setAttribute('aria-hidden','false'); ui('passcode').focus(); }
+function closeAdmin(){ ui('adminModal').classList.remove('open'); ui('adminModal').setAttribute('aria-hidden','true'); }
+ui('closeAdmin').addEventListener('click', closeAdmin);
+ui('unlock').addEventListener('click', ()=>{
+  if(ui('passcode').value.trim()==='1975'){ ui('adminGate').style.display='none'; ui('adminBody').style.display='block'; loadAdminForm(); }
+  else{ ui('gateMsg').textContent='Incorrect passcode'; }
+});
+
+function loadAdminForm(){
+  ui('fTitle').value = STATE.course.title;
+  ui('fSummary').value = STATE.course.summary;
+  ui('fFacts').value = STATE.course.facts.join('\n');
+  ui('fCohort').value = STATE.course.nextCohort;
+  ui('fLocation').value = STATE.course.location;
+  ui('fRegister').value = STATE.course.registerUrl;
+  ui('fCallbackLabel').value = STATE.course.callbackLabel;
+  ui('fCallbackUrl').value = STATE.course.callbackUrl;
+  ui('fFaqs').value = STATE.course.faqs.map(x=>`${x.q}|${x.a}`).join('\n');
+  ui('fTroubles').value = STATE.course.troubleshooting.map(x=>`${x.issue}|${x.fix}`).join('\n');
+  ui('fOpenAI').value = STATE.ai.apiKey||'';
+  ui('fModel').value = STATE.ai.model||'gpt-4o-mini';
+  // Prefill Firebase JSON if blank
+  const fb = STATE.firebase||{};
+  const pre = {projectId: fb.projectId||'prospecting-f2f42', storageBucket: fb.storageBucket||'prospecting-f2f42.appspot.com'};
+  ui('fFirebase').value = JSON.stringify({...pre, ...fb}, null, 2);
+}
+
+ui('btnSave').addEventListener('click', ()=>{
+  STATE.course.title = ui('fTitle').value.trim();
+  STATE.course.summary = ui('fSummary').value.trim();
+  STATE.course.facts = ui('fFacts').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  STATE.course.nextCohort = ui('fCohort').value.trim();
+  STATE.course.location = ui('fLocation').value.trim();
+  STATE.course.registerUrl = ui('fRegister').value.trim();
+  STATE.course.callbackLabel = ui('fCallbackLabel').value.trim();
+  STATE.course.callbackUrl = ui('fCallbackUrl').value.trim();
+  STATE.course.faqs = ui('fFaqs').value.split(/\n+/).map(line=>{ const [q,a]=line.split('|'); return q&&a?{q:q.trim(), a:a.trim()}:null }).filter(Boolean);
+  STATE.course.troubleshooting = ui('fTroubles').value.split(/\n+/).map(line=>{ const [i,f]=line.split('|'); return i&&f?{issue:i.trim(), fix:f.trim()}:null }).filter(Boolean);
+  STATE.ai.apiKey = ui('fOpenAI').value.trim(); STATE.ai.useOpenAI = !!STATE.ai.apiKey; STATE.ai.model = ui('fModel').value.trim()||'gpt-4o-mini';
+  try{ STATE.firebase = JSON.parse(ui('fFirebase').value) }catch(e){ toast('Firebase JSON invalid (keeping previous)'); }
+  saveState(STATE); renderCourse(); toast('Saved');
+});
+
+ui('btnExport').addEventListener('click', ()=> downloadJSON(STATE, 'bootcamp-config.json'));
+ui('btnImport').addEventListener('click', ()=>{
+  const el = document.createElement('input'); el.type='file'; el.accept='application/json'; el.onchange = async ()=>{
+    const file = el.files[0]; if(!file) return; const txt = await file.text();
+    try{ STATE = JSON.parse(txt); saveState(STATE); renderCourse(); loadAdminForm(); toast('Imported'); }catch(e){ toast('Invalid JSON'); }
+  }; el.click();
+});
+
+/*******************
+ * Firebase (opt-in) *
+ *******************/
+// We load compat SDKs at runtime only when needed, to keep the page light.
+let firebaseApp, firestore;
+async function ensureFirebase(){
+  if(window.firebase?.apps?.length){ firebaseApp = window.firebase.app(); return; }
+  await Promise.all([
+    import('https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js')
+  ]);
+  const cfg = STATE.firebase||{}; if(!cfg.projectId){ throw new Error('Missing Firebase config'); }
+  firebaseApp = window.firebase.initializeApp(cfg);
+  firestore = window.firebase.firestore();
+  // Anonymous auth so Firestore rules can allow reads/writes
+  try{ await window.firebase.auth().signInAnonymously(); }catch(e){ console.warn('Auth', e); }
+}
+
+async function firestoreAdd(collection, doc){
+  await ensureFirebase();
+  return firestore.collection(collection).add(doc);
+}
+
+ui('btnSync').addEventListener('click', async ()=>{
+  try{
+    await ensureFirebase();
+    await firestore.collection('bootcamps').doc('default').set(STATE.course);
+    toast('Synced to Firestore (bootcamps/default)');
+  }catch(e){ console.error(e); ui('adminMsg').innerHTML = `<div class="warn">${e.message}<br/>If you see CORS errors for Storage, prefer Firestore which does not require CORS.</div>`; }
+});
+
+/*************************
+ * Navigation (cosmetic)  *
+ *************************/
+$$('.nav a').forEach(a=> a.addEventListener('click', e=>{ $$('.nav a').forEach(x=>x.classList.remove('active')); a.classList.add('active'); e.preventDefault(); }));
+
+/******************
+ * Event bindings  *
+ ******************/
 ui('sendBtn').addEventListener('click', handleSend);
 ui('chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') handleSend(); });
 
-/* -------- Admin -------- */
-function openAdmin(){ ui('adminModal').classList.add('open'); ui('passcode').focus(); }
-function closeAdmin(){ ui('adminModal').classList.remove('open'); }
-ui('closeAdmin').addEventListener('click', closeAdmin);
-ui('unlock').addEventListener('click', ()=>{ if(ui('passcode').value.trim()==='1975'){ ui('adminGate').style.display='none'; ui('adminBody').style.display='block'; loadAdminForm(); renderKBList(); } else { ui('gateMsg').textContent='Incorrect passcode'; } });
-function loadAdminForm(){ ui('fTitle').value=STATE.course.title; ui('fSummary').value=STATE.course.summary; ui('fFacts').value=STATE.course.facts.join('\\n'); ui('fCohort').value=STATE.course.nextCohort; ui('fLocation').value=STATE.course.location; ui('fScreening').value=STATE.course.screeningUrl||''; ui('fRegister').value=STATE.course.registerUrl; ui('fCallbackLabel').value=STATE.course.callbackLabel; ui('fCallbackUrl').value=STATE.course.callbackUrl; ui('fFaqs').value=STATE.course.faqs.map(x=>`${x.q}|${x.a}`).join('\\n'); ui('fTroubles').value=STATE.course.troubleshooting.map(x=>`${x.issue}|${x.fix}`).join('\\n'); ui('fOpenAI').value=STATE.ai.apiKey||''; ui('fModel').value=STATE.ai.model; ui('fEmbedModel').value=STATE.ai.embedModel; ui('envBadge').textContent = (STATE.rag.docs.length? 'RAG (local)':'Local Mode'); }
-ui('btnSave').addEventListener('click', ()=>{ STATE.course.title=ui('fTitle').value.trim(); STATE.course.summary=ui('fSummary').value.trim(); STATE.course.facts=ui('fFacts').value.split(/\\n+/).map(s=>s.trim()).filter(Boolean); STATE.course.nextCohort=ui('fCohort').value.trim(); STATE.course.location=ui('fLocation').value.trim(); STATE.course.registerUrl=ui('fRegister').value.trim(); STATE.course.screeningUrl=ui('fScreening').value.trim(); STATE.course.callbackLabel=ui('fCallbackLabel').value.trim(); STATE.course.callbackUrl=ui('fCallbackUrl').value.trim(); STATE.course.faqs=ui('fFaqs').value.split(/\\n+/).map(l=>{const [q,a]=l.split('|'); return q&&a?{q:q.trim(),a:a.trim()}:null}).filter(Boolean); STATE.course.troubleshooting=ui('fTroubles').value.split(/\\n+/).map(l=>{const [i,f]=l.split('|'); return i&&f?{issue:i.trim(),fix:f.trim()}:null}).filter(Boolean); saveState(STATE); renderCourse(); updateEnvBadge(); toast('Saved'); });
-ui('btnExport').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(STATE,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bootcamp-config.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); });
-ui('btnImport').addEventListener('click', ()=>{ const el=document.createElement('input'); el.type='file'; el.accept='application/json'; el.onchange=async()=>{const f=el.files[0]; if(!f) return; const txt=await f.text(); try{STATE=JSON.parse(txt); saveState(STATE); renderCourse(); loadAdminForm(); renderKBList(); updateEnvBadge(); toast('Imported');}catch{toast('Invalid JSON');}}; el.click(); });
+ui('registerLink').addEventListener('click', e=>{ if(!STATE.course.registerUrl){ e.preventDefault(); alert('Admin: add a register URL in the portal.'); }});
 
-/* KB bindings */
-ui('kbUpload')?.addEventListener('change', e=>{ const files=e.target.files; if(files?.length){ indexPdfFiles(files); e.target.value=''; } });
-ui('btnClearKB')?.addEventListener('click', ()=>{ STATE.rag.docs=[]; saveState(STATE); renderKBList(); updateEnvBadge(); toast('Cleared'); });
-ui('btnRebuild')?.addEventListener('click', ()=>{ toast('Vector embeddings require an OpenAI key. Using keyword retrieval for now.'); });
-
-function updateEnvBadge(){ const docs=(STATE.rag?.docs||[]).length; ui('envBadge').textContent = (docs? 'RAG (local)' : 'Local Mode'); }
-
-/* Init */
-renderCourse(); systemIntro(); updateEnvBadge();
+// Initialize
+renderCourse(); systemIntro();
+// Indicate environment
+ui('envBadge').textContent = (STATE.ai.apiKey? 'GPT Enabled' : 'Local Mode');
 </script>
 </body>
 </html>
