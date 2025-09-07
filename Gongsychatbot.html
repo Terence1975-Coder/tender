@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bootcamp Concierge – Chatbot & Admin</title>
+<title>Bootcamp Concierge – Chatbot & Admin (Accessible Fix)</title>
 <style>
   :root{
     --bg:#f5f2ff; --panel:#ffffff; --brand:#7c3aed; --brand-2:#6366f1;
@@ -62,7 +62,6 @@
 <!-- pdf.js (classic build – no module/CORS fuss) -->
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>
-  // Point worker to matching CDN file
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
   } else {
@@ -71,7 +70,7 @@
 </script>
 </head>
 <body>
-<div class="app">
+<div class="app" id="appRoot">
   <aside>
     <div class="s-logo"><div class="dot" aria-hidden="true"></div><h2>GONGSY</h2></div>
     <nav class="nav">
@@ -86,14 +85,14 @@
       <div class="right"><span class="badge" id="envBadge">Local Mode</span></div>
     </header>
 
-    <section class="content">
+    <section class="content" aria-live="polite">
       <div class="card">
         <h3>Ask about our bootcamps</h3>
         <p class="muted">Upload course PDFs in Admin to enable RAG. Try: “What are the prerequisites?” or “Show me modules”. Type <strong>NICEONEBRUVA</strong> to open admin.</p>
         <div class="chat-wrap">
           <div class="chat" id="chat"></div>
           <div class="chat-input">
-            <input id="chatInput" type="text" placeholder="Type your question…" />
+            <input id="chatInput" type="text" placeholder="Type your question…" aria-label="Type your message" />
             <button class="btn primary" id="sendBtn">Send</button>
           </div>
           <div class="ctas">
@@ -117,17 +116,17 @@
 </div>
 
 <!-- Admin Modal -->
-<div class="modal" id="adminModal" aria-hidden="true">
+<div class="modal" id="adminModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
   <div class="sheet">
     <header>
       <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 22px">
-        <div style="display:flex; gap:10px; align-items:center"><span class="pill">Admin</span><strong>Bootcamp Settings</strong></div>
+        <div style="display:flex; gap:10px; align-items:center"><span class="pill" id="adminTitle">Admin</span><strong>Bootcamp Settings</strong></div>
         <button class="btn" id="closeAdmin">Close</button>
       </div>
     </header>
     <div class="body">
       <div id="adminGate">
-        <label>Enter passcode</label>
+        <label for="passcode">Enter passcode</label>
         <input id="passcode" type="password" placeholder="••••" />
         <div class="small">Hint: <span style="font-family:ui-monospace">1975</span></div>
         <div style="margin-top:10px; display:flex; gap:8px"><button id="unlock" class="btn primary">Unlock</button></div>
@@ -145,7 +144,7 @@
             <label>Key facts (one per line)</label><textarea id="fFacts"></textarea>
             <label>Next cohort</label><input id="fCohort" type="text" />
             <label>Location</label><input id="fLocation" type="text" />
-            <label>Pre‑screening questionnaire URL</label><input id="fScreening" type="url" placeholder="https://your-training-site/prescreening" />
+            <label>Pre-screening questionnaire URL</label><input id="fScreening" type="url" placeholder="https://your-training-site/prescreening" />
             <label>FAQs (Q|A per line)</label><textarea id="fFaqs" placeholder="What is the duration?|12 weeks&#10;Do you offer certificates?|Yes, a digital certificate…"></textarea>
             <label>Troubleshooting (Issue|Resolution per line)</label><textarea id="fTroubles" placeholder="I can't access the portal|Reset your password at …"></textarea>
           </div>
@@ -161,7 +160,7 @@
             <label>Embeddings model</label><input id="fEmbedModel" type="text" value="text-embedding-3-small" />
             <div class="hr"></div>
             <h3>Knowledge base (PDFs per course)</h3>
-            <label>Upload one or more PDFs</label><input id="kbUpload" type="file" accept="application/pdf" multiple />
+            <label for="kbUpload">Upload one or more PDFs</label><input id="kbUpload" type="file" accept="application/pdf" multiple />
             <div class="small">Text is extracted in-browser (no files are sent anywhere). Then we chunk and index it for retrieval.</div>
             <div class="kb-list" id="kbList" style="margin-top:8px"></div>
             <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
@@ -176,7 +175,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 /**********************
@@ -216,7 +215,7 @@ const DEFAULT_DATA = {
 /***************************
  * Persistence & utilities  *
  ***************************/
-const LS_KEY = 'bootcamp.concierge.v5';
+const LS_KEY = 'bootcamp.concierge.v6';
 const ui = id => document.getElementById(id);
 const $ = (sel, el=document)=> el.querySelector(sel);
 function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || DEFAULT_DATA }catch(e){ return DEFAULT_DATA } }
@@ -257,10 +256,28 @@ function systemIntro(){
  * RAG (PDF → chunks)   *
  ***********************/
 function chunkText(txt, size=1200, overlap=120){
-  const chunks=[]; let i=0;
-  while(i<txt.length){ const end=Math.min(txt.length,i+size); chunks.push(txt.slice(i,end).trim()); i=end-overlap; if(i<0) i=0; }
-  return chunks.filter(Boolean);
+  // Robust chunker: guarantees forward progress and caps iterations
+  txt = String(txt || '');
+  size = Math.max(200, Number(size) || 1200);       // floor size
+  overlap = Math.max(0, Number(overlap) || 120);
+  if (overlap >= size) overlap = Math.floor(size/3); // ensure progress
+  const L = txt.length;
+  const chunks = [];
+  let i = 0;
+  const step = size - overlap;
+  const maxIter = 1 + Math.ceil(L / Math.max(1, step));
+  for (let iter = 0; iter < maxIter && i < L; iter++) {
+    const end = Math.min(L, i + size);
+    const slice = txt.slice(i, end).trim();
+    if (slice) chunks.push(slice);
+    if (end >= L) break;
+    const next = end - overlap;
+    // Force forward progress even if math goes weird
+    i = next > i ? next : end;
+  }
+  return chunks;
 }
+
 async function extractPdfText(file){
   if(!window.pdfjsLib){ throw new Error('PDF.js library not available'); }
   const buf = await file.arrayBuffer();
@@ -269,12 +286,13 @@ async function extractPdfText(file){
   for(let p=1;p<=pdf.numPages;p++){
     const page=await pdf.getPage(p);
     const c=await page.getTextContent();
-    text += c.items.map(i=>i.str).join(' ') + '\\n';
+    text += c.items.map(i=>i.str).join(' ') + '\n';
   }
   return {text, pages: pdf.numPages};
 }
-function tokens(s){ return s.toLowerCase().replace(/[^a-z0-9\\s]/g,' ').split(/\\s+/).filter(Boolean); }
-function keywordScore(q,txt){ const A=new Set(tokens(q)); let hit=0; const w=tokens(txt); w.forEach(t=>{ if(A.has(t)) hit++;}); return hit/Math.max(10,w.length); }
+
+function tokens(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean); }
+function keywordScore(q,txt){ const A=new Set(tokens(q)); let hit=0; const w=tokens(txt); for(const t of w){ if(A.has(t)) hit++; } return hit/Math.max(10,w.length); }
 
 async function indexPdfFiles(fileList){
   const files=[...fileList];
@@ -284,7 +302,7 @@ async function indexPdfFiles(fileList){
       toast(`Heads up: "${f.name}" has little/no extractable text. If it's a scanned PDF, OCR is needed.`);
     }
     const chunks=chunkText(text || '');
-    const doc={id:uuid(), name:f.name, pages, courseTag: STATE.course.title, textBytes:text.length, chunks:chunks.map(t=>({text:t, embedding:null}))};
+    const doc={id:uuid(), name:f.name, pages, courseTag: STATE.course.title, textBytes:(text||'').length, chunks:chunks.map(t=>({text:t}))};
     STATE.rag.docs.push(doc);
   }
   saveState(STATE); renderKBList(); updateEnvBadge(); toast('PDFs indexed for RAG');
@@ -306,23 +324,22 @@ async function retrieveRelevantChunks(query,k=3){
   const docs=(STATE.rag?.docs||[]).filter(d=> d.courseTag===STATE.course.title);
   const all=[]; docs.forEach(d=> d.chunks.forEach(c=> all.push(c)));
   if(!all.length) return [];
-  // If we had embeddings, we could do cosine similarity here. For now, keyword score:
   return all.map(c=>({c, s: keywordScore(query,c.text)})).sort((a,b)=>b.s-a.s).slice(0,k).map(x=>x.c);
 }
 
 /*********************************
  * Conversational replies         *
  *********************************/
-function normalize(s=''){ return s.toLowerCase().replace(/[^a-z0-9\\s]/g,' '); }
-function overlapScore(a,b){ const A=new Set(normalize(a).split(/\\s+/).filter(Boolean)); const B=new Set(normalize(b).split(/\\s+/).filter(Boolean)); let o=0; A.forEach(x=>{ if(B.has(x)) o++;}); return o/(1+Math.min(A.size,B.size)); }
+function normalize(s=''){ return s.toLowerCase().replace(/[^a-z0-9\s]/g,' '); }
+function overlapScore(a,b){ const A=new Set(normalize(a).split(/\s+/).filter(Boolean)); const B=new Set(normalize(b).split(/\s+/).filter(Boolean)); let o=0; A.forEach(x=>{ if(B.has(x)) o++;}); return o/(1+Math.min(A.size,B.size)); }
 
 async function replyLocal(q){
   if(q.trim().toUpperCase()==='NICEONEBRUVA'){ openAdmin(); return; }
   if(STATE.rag && STATE.rag.docs && STATE.rag.docs.length){
     const hits = await retrieveRelevantChunks(q, 2);
     if(hits.length){
-      const snippet = hits.map(h=>h.text.trim()).join('\\n---\\n').slice(0,800);
-      return `According to the course material:\\n\\n${snippet}\\n\\n(Upload more PDFs in Admin for better coverage.)`;
+      const snippet = hits.map(h=>h.text.trim()).join('\n---\n').slice(0,800);
+      return `According to the course material:\n\n${snippet}\n\n(Upload more PDFs in Admin for better coverage.)`;
     }
   }
   const n = normalize(q);
@@ -350,8 +367,27 @@ ui('callbackBtn').addEventListener('click', ()=>{
 /****************
  * Admin portal  *
  ****************/
-function openAdmin(){ ui('adminModal').classList.add('open'); ui('passcode').focus(); }
-function closeAdmin(){ ui('adminModal').classList.remove('open'); }
+const appRoot = ui('appRoot');
+const adminModal = ui('adminModal');
+const navChat = ui('nav-chat');
+
+function openAdmin(){
+  // Make background inert and reveal modal to AT before focusing
+  if ('inert' in appRoot) { appRoot.inert = true; }
+  adminModal.classList.add('open');
+  adminModal.setAttribute('aria-hidden','false');
+  setTimeout(()=> ui('passcode')?.focus(), 0);
+}
+
+function closeAdmin(){
+  // Move focus away from inside the modal before hiding from AT
+  ui('closeAdmin').focus();
+  adminModal.classList.remove('open');
+  adminModal.setAttribute('aria-hidden','true');
+  if ('inert' in appRoot) { appRoot.inert = false; }
+  (navChat || document.body).focus();
+}
+
 ui('closeAdmin').addEventListener('click', closeAdmin);
 ui('unlock').addEventListener('click', ()=>{
   if(ui('passcode').value.trim()==='1975'){
@@ -363,15 +399,15 @@ ui('unlock').addEventListener('click', ()=>{
 function loadAdminForm(){
   ui('fTitle').value = STATE.course.title;
   ui('fSummary').value = STATE.course.summary;
-  ui('fFacts').value = STATE.course.facts.join('\\n');
+  ui('fFacts').value = STATE.course.facts.join('\n');
   ui('fCohort').value = STATE.course.nextCohort;
   ui('fLocation').value = STATE.course.location;
   ui('fRegister').value = STATE.course.registerUrl;
   ui('fScreening').value = STATE.course.screeningUrl||'';
   ui('fCallbackLabel').value = STATE.course.callbackLabel;
   ui('fCallbackUrl').value = STATE.course.callbackUrl;
-  ui('fFaqs').value = STATE.course.faqs.map(x=>`${x.q}|${x.a}`).join('\\n');
-  ui('fTroubles').value = STATE.course.troubleshooting.map(x=>`${x.issue}|${x.fix}`).join('\\n');
+  ui('fFaqs').value = STATE.course.faqs.map(x=>`${x.q}|${x.a}`).join('\n');
+  ui('fTroubles').value = STATE.course.troubleshooting.map(x=>`${x.issue}|${x.fix}`).join('\n');
   ui('fOpenAI').value = STATE.ai.apiKey||'';
   ui('fModel').value = STATE.ai.model||'gpt-4o-mini';
   ui('fEmbedModel').value = STATE.ai.embedModel||'text-embedding-3-small';
@@ -388,7 +424,7 @@ ui('kbUpload')?.addEventListener('change', (e)=>{
 ui('btnSave')?.addEventListener('click', ()=>{
   STATE.course.title = ui('fTitle').value.trim();
   STATE.course.summary = ui('fSummary').value.trim();
-  STATE.course.facts = ui('fFacts').value.split(/\\n+/).map(s=>s.trim()).filter(Boolean);
+  STATE.course.facts = ui('fFacts').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
   STATE.course.nextCohort = ui('fCohort').value.trim();
   STATE.course.location = ui('fLocation').value.trim();
   STATE.course.registerUrl = ui('fRegister').value.trim();
@@ -424,6 +460,12 @@ function updateEnvBadge(){
 /* Init */
 if(!STATE.rag) STATE.rag={docs:[]};
 renderCourse(); systemIntro(); renderKBList?.(); updateEnvBadge();
+
+// Global keyboard: open Admin on secret phrase submission
+document.addEventListener('keydown', (e)=>{
+  // Keep normal typing in input; users open admin by sending the phrase
+  // No global capture here.
+});
 </script>
 </body>
 </html>
