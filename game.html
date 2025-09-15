@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Agile × PRINCE2 — Balancing Project Manager</title>
   <style>
     :root {
@@ -25,6 +27,10 @@
     .note{margin-left:auto}
     .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px;
       background:#eaf2ff; border:1px solid rgba(15,23,42,.15); border-bottom-width:2px; padding:1px 5px; border-radius:6px; color:#0f172a}
+    .fs-btn{position:fixed; z-index:10; right:calc(env(safe-area-inset-right) + 12px); bottom:calc(env(safe-area-inset-bottom) + 12px); display:none; padding:10px 14px; border-radius:12px; background:rgba(14,165,233,.16); border:1px solid rgba(14,165,233,.35); color:#0f172a; font-weight:700; box-shadow:0 8px 18px rgba(2,6,23,.18); backdrop-filter: blur(6px);} 
+    .fs-btn:active{transform:translateY(1px)}
+    @media (pointer:coarse){ .fs-btn{display:inline-flex; align-items:center; gap:8px;} }
+    body{overscroll-behavior:contain;}
   </style>
 </head>
 <body>
@@ -34,6 +40,7 @@
       <div class="hint">Mobile‑friendly • Single‑file • iframe‑safe</div>
     </header>
     <canvas id="game" width="900" height="600" aria-label="Game canvas"></canvas>
+    <button id="fsBtn" class="fs-btn" aria-label="Enter fullscreen">⛶ Fullscreen</button>
     <div class="hud">
       <span class="badge">Controls: ←/→ or A/D · Touch left/right · Mouse move · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
       <span class="badge">Goal: stack tasks until your tower touches the top line</span>
@@ -50,14 +57,31 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    function viewportSize(){
+      const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0) || window.innerWidth;
+      const vh = (window.visualViewport && window.visualViewport.height) ? Math.round(window.visualViewport.height) : window.innerHeight;
+      return {vw, vh};
+    }
     function resize(){
-      const styleW = canvas.clientWidth; const styleH = Math.round(styleW * 2/3);
+      const {vw, vh} = viewportSize();
+      const isPortrait = vh >= vw;
+      let styleW, styleH;
+      if(isPortrait){
+        // Portrait: prioritize height (fullscreen feel). Keep ~9:16 aspect
+        styleH = vh; // fill available height
+        styleW = Math.min(vw, Math.floor(styleH * 9/16));
+      } else {
+        // Landscape fallback: previous 3:2 ratio
+        styleW = vw;
+        styleH = Math.round(styleW * 2/3);
+      }
+      canvas.style.width = styleW + 'px';
       canvas.style.height = styleH + 'px';
       canvas.width  = Math.floor(styleW * DPR);
       canvas.height = Math.floor(styleH * DPR);
       ctx.setTransform(DPR,0,0,DPR,0,0);
     }
-    new ResizeObserver(resize).observe(canvas); resize();
+    const ro = new ResizeObserver(resize); ro.observe(canvas); window.addEventListener('orientationchange', ()=>setTimeout(resize, 200)); resize();
 
     // --- World / State -----------------------------------------------------
     const STATE = { MENU:'menu', PLAYING:'playing', SUCCESS:'success', GAMEOVER:'gameover', PAUSED:'paused' };
@@ -161,9 +185,9 @@
 
     canvas.addEventListener('mousemove', (e)=>{ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0,Math.min(world.w()-player.w,x-player.w/2)); });
     function handleTouch(e){
-      // Tap to start or restart
+      // Tap to start/restart (also a valid user gesture to enter fullscreen)
       if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){
-        resetGame(); state=STATE.PLAYING;
+        resetGame(); state=STATE.PLAYING; goFullscreen();
       }
       const r=canvas.getBoundingClientRect();
       const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left;
@@ -178,6 +202,20 @@
     canvas.addEventListener('touchend',  ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
 
     canvas.addEventListener('click', ()=>{ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; } });
+
+    // Fullscreen handling (best-effort: Android Chrome supported; iOS uses standalone/A2HS)
+    async function goFullscreen(){
+      const el = document.documentElement;
+      try{
+        if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen({navigationUI:'hide'}); }
+        if(screen.orientation && screen.orientation.lock){ try{ await screen.orientation.lock('portrait'); }catch(e){} }
+      }catch(e){}
+    }
+    const fsBtn = document.getElementById('fsBtn');
+    if(fsBtn){
+      fsBtn.addEventListener('click', async (e)=>{ e.preventDefault(); await goFullscreen(); });
+    }
+
     window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; } });
     function togglePause(){ if(state===STATE.PLAYING) state=STATE.PAUSED; else if(state===STATE.PAUSED) state=STATE.PLAYING; }
 
@@ -345,6 +383,8 @@
       console.assert(aabb({x:0,y:0,w:10,h:10},{x:20,y:20,w:5,h:5})===false, 'aabb no overlap');
       // completion line sanity
       const cy = completionLineY(); console.assert(cy>0 && cy < canvas.clientHeight, 'completion line within canvas');
+      // extra: HUD vs completion line ordering
+      console.assert(completionLineY() > 0 && completionLineY() > (hudHeightPx()-1), 'completion line below HUD');
       console.log('[tests] OK');
     })();
 
