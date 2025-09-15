@@ -2,123 +2,146 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agile × PRINCE2 — Project Manager Mini‑Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Agile × PRINCE2 — Balancing Project Manager</title>
   <style>
     :root {
-      --bg:#0e1220; --panel:#151a2b; --muted:#9fb2c6; --text:#eef5ff;
-      --agile:#2dd4bf; --p2:#8b5cf6; --danger:#ff6b6b; --accent:#5dd4ff;
+      --bg1:#eef4ff; --bg2:#d9e4ff; --panel:#ffffff; --muted:#4b6078; --text:#0f172a;
+      --agile:#22c3aa; --p2:#7c5af5; --danger:#ef4444; --accent:#0ea5e9; --success:#22c55e;
     }
     html,body{height:100%}
-    body{margin:0; background: radial-gradient(1200px 600px at 50% -20%, #1a2142 0%, var(--bg) 60%);
-      color:var(--text); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+    body{margin:0; background: radial-gradient(1400px 800px at 50% -20%, var(--bg2) 0%, var(--bg1) 60%);
+      color:var(--text); font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
       display:grid; place-items:center;}
-    .wrap{width:min(900px, 95vw)}
-    header{display:flex; align-items:center; justify-content:space-between; margin:14px 4px 8px}
-    h1{font-size:clamp(18px, 3vw, 24px); margin:0; letter-spacing:.3px}
-    .hint{color:var(--muted); font-size:14px}
-    canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg, #0d1124 0%, #0a0f1d 100%);
-      border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-      cursor: crosshair;}
-    .hud{position:relative; margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; color:var(--muted); font-size:14px}
-    .badge{background:var(--panel); border:1px solid #212743; padding:6px 10px; border-radius:999px}
+    .wrap{width:min(900px, 100vw)}
+    header{display:flex; align-items:center; justify-content:space-between; margin:10px 6px 6px}
+    h1{font-size:clamp(16px, 5vw, 22px); margin:0; letter-spacing:.3px}
+    .hint{color:var(--muted); font-size:13px}
+    canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg, #f1f5ff 0%, #e6efff 100%);
+      border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.7);
+      touch-action:none;}
+    .hud{position:relative; margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--muted); font-size:13px}
+    .badge{background:var(--panel); border:1px solid rgba(15,23,42,.08); padding:4px 8px; border-radius:999px; box-shadow:0 1px 0 rgba(255,255,255,.6)}
     .note{margin-left:auto}
     .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px;
-      background:#0a0e1a; border:1px solid #2a3254; border-bottom-width:2px; padding:2px 6px; border-radius:6px; color:#d7e0ea}
+      background:#eaf2ff; border:1px solid rgba(15,23,42,.15); border-bottom-width:2px; padding:1px 5px; border-radius:6px; color:#0f172a}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>🗂️ Agile × PRINCE2 — Project Manager</h1>
-      <div class="hint">Single‑file • file:// friendly • iframe‑safe</div>
+      <h1>🗂️ Agile × PRINCE2 — Balancing Project Manager</h1>
+      <div class="hint">Mobile‑friendly • Single‑file • iframe‑safe</div>
     </header>
     <canvas id="game" width="900" height="600" aria-label="Game canvas"></canvas>
     <div class="hud">
-      <span class="badge">Controls: ←/→ or A/D · Mouse move · Touch left/right · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
-      <span class="badge">Goal: deliver value, avoid being crushed by tasks</span>
-      <span class="badge note">Tip: host anywhere & share the link in a LinkedIn post.</span>
+      <span class="badge">Controls: ←/→ or A/D · Touch left/right · Mouse move · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
+      <span class="badge">Goal: stack tasks until your tower touches the top line</span>
+      <span class="badge note">Mobile play supported</span>
     </div>
   </div>
 
   <script>
   (()=>{
-    // --- Canvas & DPI setup -------------------------------------------------
+    'use strict';
+    const DEBUG = false; // set to true to run console tests
+
+    // --- Canvas setup ------------------------------------------------------
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     function resize(){
       const styleW = canvas.clientWidth; const styleH = Math.round(styleW * 2/3);
-      canvas.style.height = styleH + 'px'; canvas.width = Math.floor(styleW * DPR); canvas.height = Math.floor(styleH * DPR);
+      canvas.style.height = styleH + 'px';
+      canvas.width  = Math.floor(styleW * DPR);
+      canvas.height = Math.floor(styleH * DPR);
       ctx.setTransform(DPR,0,0,DPR,0,0);
     }
     new ResizeObserver(resize).observe(canvas); resize();
 
-    // --- Game state ---------------------------------------------------------
-    const STATE = { MENU:'menu', PLAYING:'playing', GAMEOVER:'gameover', PAUSED:'paused' };
+    // --- World / State -----------------------------------------------------
+    const STATE = { MENU:'menu', PLAYING:'playing', SUCCESS:'success', GAMEOVER:'gameover', PAUSED:'paused' };
     let state = STATE.MENU;
     const world = {
       w: () => canvas.clientWidth,
       h: () => parseInt(canvas.style.height)||canvas.height/DPR,
-      time:0, score:0, lives:3, best:+(localStorage.getItem('pm_best')||0),
-      difficulty:1, spawnEvery:700, lastSpawnAt:0, level:0, rngSeed: (Math.random()*1e9)|0,
-      stageIndex:0
+      time: 0, score: 0, lives: 3,
+      best: +(localStorage.getItem('pm_best')||0),
+      projects: +(localStorage.getItem('pm_projects')||0),
+      difficulty: 1, spawnEvery: 700, lastSpawnAt: 0, level: 0,
+      rngSeed: (Math.random()*1e9)|0,
     };
 
-    const PRINCE2_STAGES = [
-      'Starting Up a Project',
-      'Initiating a Project',
-      'Directing a Project',
-      'Controlling a Stage',
-      'Managing Product Delivery',
-      'Managing Stage Boundaries',
-      'Closing a Project'
-    ];
+    // HUD sizing (responsive for mobile)
+    function hudScale(){ return Math.max(0.95, Math.min(1.4, world.w()/620)); }
+    function hudHeightPx(){ return Math.round(58 * hudScale()); }
 
-    const AGILE_TASKS = [
-      'Sprint Planning','Daily Scrum','Backlog Refinement','Sprint Review','Retrospective',
-      'User Story Mapping','Definition of Done','Release Planning','CI/CD Check','Demo Prep'
-    ];
-    const P2_PRODUCTS = [
-      'Business Case','PID','Stage Plan','RAID Log','Quality Register','Lessons Log',
-      'Risk Response','Change Request','Highlight Report','End Stage Report'
-    ];
+    // top completion line (just under HUD)
+    function completionLineY(){ return hudHeightPx() + 6; }
 
-    // LCG RNG
-    function rnd(){ world.rngSeed = (1664525*world.rngSeed + 1013904223)>>>0; return world.rngSeed/0xFFFFFFFF }
-    function rand(min,max){ return min + rnd()*(max-min) }
-    function choice(arr){ return arr[(Math.random()*arr.length)|0] }
+    const AGILE_TASKS = ['Sprint Planning','Daily Scrum','Backlog Refinement','Sprint Review','Retrospective','User Story Mapping','Definition of Done','Release Planning','CI/CD Check','Demo Prep'];
+    const P2_PRODUCTS = ['Business Case','PID','Stage Plan','RAID Log','Quality Register','Lessons Log','Risk Response','Change Request','Highlight Report','End Stage Report'];
 
-    // --- Entities -----------------------------------------------------------
-    const player = { w:72,h:16,x:0,y:0,speed:460,targetX:null, reset(){ this.x=(world.w()-this.w)/2; this.y=world.h()-this.h-18; this.targetX=null; }};
-    const blocks = [];
+    // --- RNG ---------------------------------------------------------------
+    function rnd(){ world.rngSeed = (1664525*world.rngSeed + 1013904223)>>>0; return world.rngSeed/0xFFFFFFFF; }
+    function rand(min,max){ return min + rnd()*(max-min); }
+    function choice(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+    // --- Entities ----------------------------------------------------------
+    const player = { w: 120, h: 18, x: 0, y: 0, speed: 520, targetX: null, reset(){ this.x=(world.w()-this.w)/2; this.y=world.h()-this.h-18; this.targetX=null; } };
+    const blocks = [];   // falling tasks
+    const stack  = [];   // stacked on bar
+    function stackHeight(){ return stack.reduce((a,b)=>a+b.h,0); }
+
+    // --- Text sizing to fit blocks (label + due) ---------------------------
+    function measureTask(label, due){
+      ctx.save();
+      const labelFont = '700 12px system-ui';
+      const dueFont   = '600 11px system-ui';
+      const maxW=160, padX=12, padY=10, lh=14, dueGap=12;
+
+      ctx.font = labelFont;
+      const words = label.split(' ');
+      const lines=[]; let line='';
+      for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width<=maxW){ line=test; } else { if(line) lines.push(line); line=w; } }
+      if(line) lines.push(line);
+      const labelW = Math.max(...lines.map(t=>ctx.measureText(t).width));
+
+      ctx.font = dueFont; const dueW = ctx.measureText(due).width;
+
+      const width  = Math.min(maxW, Math.max(60, Math.max(labelW, dueW) + padX*2));
+      const height = (lines.length*lh + padY*2) + dueGap; // room for due line
+      ctx.restore();
+      return {width,height,lines,lh,labelFont,dueFont};
+    }
 
     function makeLabel(){
       const agile = Math.random() < 0.55;
       const label = agile ? choice(AGILE_TASKS) : choice(P2_PRODUCTS);
-      const days = Math.floor(rand(-3, 8)); // D-3 to D+7
-      const due = days>=0 ? `D+${days}` : `D${days}`;
+      const days  = Math.floor(rand(-3, 8));
+      const due   = days>=0 ? `D+${days}` : `D${days}`;
       return { label, due, agile };
     }
 
     function spawnBlock(){
-      const size = rand(34, 70);
-      const {label,due,agile} = makeLabel();
-      blocks.push({ x: rand(6, world.w()-size-6), y: -size, w:size, h:size, vy: rand(160,240)*world.difficulty,
-        agile, text1: label, text2: due, shadow: rand(2,6) });
+      const { label, due, agile } = makeLabel();
+      const m = measureTask(label, due);
+      const x = rand(6, Math.max(6, world.w()-m.width-6));
+      blocks.push({ x, y:-m.height, w:m.width, h:m.height, vy:rand(160,240)*world.difficulty, agile,
+        text1:label, text2:due, lines:m.lines, lh:m.lh, labelFont:m.labelFont, dueFont:m.dueFont, shadow:rand(2,6) });
     }
 
     function resetGame(){
-      world.time=0; world.score=0; world.lives=3; world.difficulty=1; world.spawnEvery=700; world.lastSpawnAt=0; world.level=0; world.stageIndex=0; toasts.length=0;
-      blocks.length=0; player.reset();
+      world.time=0; world.score=0; world.lives=3;
+      blocks.length=0; stack.length=0; player.reset();
     }
 
-    // --- Input --------------------------------------------------------------
+    // --- Input -------------------------------------------------------------
     const keys = new Set();
     window.addEventListener('keydown', (e)=>{
       if(['ArrowLeft','ArrowRight','Space','KeyA','KeyD','KeyP'].includes(e.code)) e.preventDefault();
       if(e.code==='Space'){
-        if(state===STATE.MENU||state===STATE.GAMEOVER){ resetGame(); state=STATE.PLAYING; }
+        if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; }
         else if(state===STATE.PLAYING){ togglePause(); }
         return;
       }
@@ -127,153 +150,167 @@
     });
     window.addEventListener('keyup', (e)=>{ if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.delete(e.code); });
 
-    canvas.addEventListener('mousemove',(e)=>{
-      const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
-    });
-    function handleTouch(e){
-      const r=canvas.getBoundingClientRect(); const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
-      const left = x < world.w()/2; if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); } else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); }
-      e.preventDefault();
-    }
+    canvas.addEventListener('mousemove', (e)=>{ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0,Math.min(world.w()-player.w,x-player.w/2)); });
+    function handleTouch(e){ const r=canvas.getBoundingClientRect(); const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2)); const left=x<world.w()/2; if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); } else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); } e.preventDefault(); }
     canvas.addEventListener('touchstart', handleTouch, {passive:false});
-    canvas.addEventListener('touchmove', handleTouch, {passive:false});
-    canvas.addEventListener('touchend', ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
-    canvas.addEventListener('click', ()=>{ if(state===STATE.MENU||state===STATE.GAMEOVER){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; }});
-    window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; }});
+    canvas.addEventListener('touchmove',  handleTouch, {passive:false});
+    canvas.addEventListener('touchend',  ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
+
+    canvas.addEventListener('click', ()=>{ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; } });
+    window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; } });
     function togglePause(){ if(state===STATE.PLAYING) state=STATE.PAUSED; else if(state===STATE.PAUSED) state=STATE.PLAYING; }
 
-    // --- Utils --------------------------------------------------------------
+    // --- Helpers -----------------------------------------------------------
     function aabb(a,b){ return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
     function drawRoundRect(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-
-    // --- Level / Stage progression -----------------------------------------
-    const LEVEL_UP_EVERY = 18; // seconds
-    function onLevelUp(){
-      world.level++;
-      if(world.stageIndex < PRINCE2_STAGES.length){
-        toast(`Stage Completed: ${PRINCE2_STAGES[world.stageIndex++]}`);
-      } else {
-        toast(`Release Delivered ✔`);
-      }
-    }
-
-    // --- Loop ---------------------------------------------------------------
-    let last = performance.now();
-    function loop(now){ const dt=Math.min(0.033, (now-last)/1000); last=now; if(state===STATE.PLAYING){ update(dt); } render(); requestAnimationFrame(loop); }
-
-    function update(dt){
-      world.time += dt; world.score += dt*120; // delivery value
-      world.difficulty = 1 + Math.min(2.7, world.time/30);
-      world.spawnEvery = Math.max(220, 700 - world.time*12);
-      const prevLevel = world.level; if(Math.floor(world.time/LEVEL_UP_EVERY) > prevLevel){ onLevelUp(); }
-
-      // Player movement
-      const left = keys.has('ArrowLeft')||keys.has('KeyA'); const right = keys.has('ArrowRight')||keys.has('KeyD');
-      let vx = 0; if(left) vx-=player.speed; if(right) vx+=player.speed; player.x += vx*dt;
-      if(player.targetX!=null){ const diff=player.targetX-player.x; player.x += diff*Math.min(1,12*dt); }
-      player.x=Math.max(0, Math.min(world.w()-player.w, player.x)); player.y=world.h()-player.h-18;
-
-      // Spawning
-      if(nowMs()-world.lastSpawnAt > world.spawnEvery){ world.lastSpawnAt=nowMs(); spawnBlock(); }
-
-      // Blocks
-      for(let i=blocks.length-1;i>=0;i--){ const b=blocks[i]; b.y += b.vy*dt; if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, b)){
-          blocks.splice(i,1); world.lives--; flash(0.25); toast('Scope Creep! −1 life', 1000);
-          if(world.lives<=0){ world.best=Math.max(world.best, Math.floor(world.score)); localStorage.setItem('pm_best', String(world.best)); state=STATE.GAMEOVER; break; }
-          continue;
-        }
-        if(b.y > world.h()+80){ blocks.splice(i,1); }
-      }
-
-      // toasts
-      for(let i=toasts.length-1;i>=0;i--){ const t=toasts[i]; t.t+=dt*1000; if(t.t>t.duration) toasts.splice(i,1); }
-    }
-
     function nowMs(){ return performance.now(); }
 
-    // --- VFX / Toasts -------------------------------------------------------
-    let flashT=0; function flash(t){ flashT=Math.max(flashT,t); }
-    const toasts=[]; function toast(text, duration=1800){ toasts.push({text, t:0, duration}); }
+    function drawTaskBlock(x,y,w,h,agile,lines,lh,labelFont,dueText,dueFont){
+      // glow ring
+      ctx.save(); ctx.shadowColor='rgba(34,197,94,.85)'; ctx.shadowBlur=12; ctx.lineWidth=3; ctx.strokeStyle='#22c55e'; drawRoundRect(x,y,w,h,10); ctx.stroke(); ctx.restore();
+      // fill
+      ctx.save(); drawRoundRect(x,y,w,h,10); ctx.fillStyle = agile ? 'var(--agile)' : 'var(--p2)'; ctx.fill();
+      // label
+      ctx.fillStyle='#fff'; ctx.font=labelFont; ctx.textAlign='center'; ctx.textBaseline='middle';
+      const cx=x+w/2, cy=y+h/2 - 6;
+      for(let i=0;i<lines.length;i++){ const off=(i-(lines.length-1)/2)*lh; ctx.fillText(lines[i], cx, cy+off); }
+      // due under
+      ctx.font=dueFont; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fillText(dueText, cx, y + h/2 + 14);
+      ctx.restore();
+    }
 
-    // --- Rendering ----------------------------------------------------------
+    // --- Loop --------------------------------------------------------------
+    let last = performance.now();
+    function loop(now){ const dt=Math.min(0.033,(now-last)/1000); last=now; if(state===STATE.PLAYING){ update(dt); } render(); requestAnimationFrame(loop); }
+
+    function update(dt){
+      world.time += dt;
+      world.difficulty = 1 + Math.min(2.5, world.time/32);
+      world.spawnEvery = Math.max(260, 700 - world.time*10);
+
+      // player movement
+      const left = keys.has('ArrowLeft')||keys.has('KeyA');
+      const right= keys.has('ArrowRight')||keys.has('KeyD');
+      let vx = 0; if(left) vx -= player.speed; if(right) vx += player.speed; player.x += vx*dt;
+      if(player.targetX!=null){ const diff = player.targetX - player.x; player.x += diff * Math.min(1, 12*dt); }
+      player.x = Math.max(0, Math.min(world.w()-player.w, player.x));
+      player.y = world.h()-player.h-18;
+
+      if(nowMs() - world.lastSpawnAt > world.spawnEvery){ world.lastSpawnAt = nowMs(); spawnBlock(); }
+
+      // falling tasks
+      const compY = completionLineY();
+      for(let i=blocks.length-1;i>=0;i--){ const b=blocks[i]; b.y += b.vy*dt;
+        if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, b)){
+          // stick to stack keeping exact look
+          blocks.splice(i,1);
+          stack.push({ w:Math.round(b.w), h:Math.round(b.h), agile:b.agile, lines:b.lines, lh:b.lh, labelFont:b.labelFont, text2:b.text2, dueFont:b.dueFont });
+          // SUCCESS strictly when tower hits the top line under HUD
+          if((player.y - stackHeight()) <= compY){
+            state = STATE.SUCCESS;
+          }
+          continue;
+        }
+        if(b.y > world.h()+80){ blocks.splice(i,1); world.lives--; if(world.lives<=0){ state=STATE.GAMEOVER; } }
+      }
+    }
+
+    // --- Render ------------------------------------------------------------
     function render(){
-      const W=world.w(), H=world.h(); ctx.clearRect(0,0,W,H);
-      // background vignette
-      const grd = ctx.createRadialGradient(W/2, H*0.2, 40, W/2, H*0.2, Math.max(W,H));
-      grd.addColorStop(0,'rgba(93,212,255,0.06)'); grd.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
-      // dots
-      ctx.globalAlpha=.25; ctx.fillStyle='#1b2344'; for(let i=0;i<40;i++) ctx.fillRect((i*73)%W, (i*131)%H, 2, 2); ctx.globalAlpha=1;
+      const W=world.w(), H=world.h();
+      ctx.clearRect(0,0,W,H);
 
-      // Blocks
+      // soft grid background
+      ctx.fillStyle='rgba(15,23,42,.06)';
+      for(let i=0;i<W;i+=24) ctx.fillRect(i,0,1,H);
+      for(let j=0;j<H;j+=24) ctx.fillRect(0,j,W,1);
+
+      // completion line just under HUD
+      const compY = completionLineY();
+      ctx.fillStyle='rgba(34,197,94,.7)'; ctx.fillRect(0, compY, W, 3);
+
+      // falling blocks
       for(const b of blocks){
-        ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=b.shadow; ctx.shadowOffsetY=2; drawRoundRect(b.x,b.y,b.w,b.h,10);
-        ctx.fillStyle = b.agile ? 'var(--agile)' : 'var(--p2)'; ctx.fill();
-        // labels
-        ctx.fillStyle='#0a0f1d'; ctx.font='700 12px system-ui,-apple-system,Segoe UI,Roboto'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        const cx = b.x + b.w/2, cy = b.y + b.h/2 - 6; wrapText(b.text1, cx, cy, b.w-10, 2);
-        ctx.fillStyle='rgba(0,0,0,.6)'; ctx.font='600 11px system-ui,-apple-system,Segoe UI'; ctx.fillText(b.text2, cx, b.y + b.h/2 + 14);
-        ctx.restore();
+        drawTaskBlock(b.x,b.y,b.w,b.h,b.agile,b.lines,b.lh,b.labelFont,b.text2,b.dueFont);
       }
 
-      // Player
-      ctx.save(); ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2; drawRoundRect(player.x,player.y,player.w,player.h,8); ctx.fillStyle='var(--accent)'; ctx.fill(); ctx.restore();
+      // player bar
+      ctx.save(); drawRoundRect(player.x,player.y,player.w,player.h,10); ctx.fillStyle='var(--accent)'; ctx.fill(); ctx.restore();
 
-      // HUD
-      drawHUD(14,14);
+      // stacked tasks: identical look & layout as when falling
+      let yTop=player.y;
+      for(const s of stack){ yTop -= s.h; const x = player.x + (player.w - s.w)/2;
+        drawTaskBlock(x,yTop,s.w,s.h,s.agile,s.lines,s.lh,s.labelFont,s.text2,s.dueFont);
+      }
 
-      // Overlays
+      drawHUD(10,10);
       if(state!==STATE.PLAYING){ drawOverlay(); }
-
-      // Flash
-      if(flashT>0){ const a=Math.min(.35, flashT*1.4); ctx.fillStyle=`rgba(255,107,107,${a})`; ctx.fillRect(0,0,W,H); flashT -= 1/60; }
-
-      // Toasts
-      for(let i=0;i<toasts.length;i++) drawToast(toasts[i], i);
     }
 
     function drawHUD(x,y){
-      ctx.save(); ctx.textBaseline='top';
-      ctx.font='700 16px system-ui,-apple-system,Segoe UI,Roboto'; ctx.fillStyle='#c9d5e1'; ctx.fillText(`Value: ${Math.floor(world.score)}`, x, y);
-      ctx.font='600 14px system-ui,-apple-system,Segoe UI,Roboto'; ctx.fillStyle='#9eb1c4';
-      const hearts = `Lives: ${'❤'.repeat(world.lives)}${'♡'.repeat(Math.max(0,3-world.lives))}`; ctx.fillText(hearts, x, y+22);
-      const stage = PRINCE2_STAGES[world.stageIndex] || 'Sprints Continue'; ctx.fillText(`Stage: ${stage}`, x, y+42);
-      const level = Math.floor(world.time/18)+1; ctx.fillText(`Sprint: ${level}`, x, y+62);
-      ctx.fillText(`Best: ${world.best}`, x, y+82);
+      const s = hudScale();
+      const panelH = hudHeightPx();
+      const panelR = 10;
+      // panel background to improve visibility on phones
+      ctx.save();
+      drawRoundRect(x-6, y-6, Math.min(world.w()-20, 360*s), panelH, panelR);
+      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(2,6,23,.08)'; ctx.lineWidth=1; ctx.stroke();
+
+      // text
+      ctx.fillStyle='#0f172a';
+      ctx.font = `700 ${Math.round(14*s)}px system-ui`;
+      ctx.fillText(`Value: ${Math.floor(world.score)}`, x+6, y+4);
+      ctx.font = `600 ${Math.round(13*s)}px system-ui`;
+      ctx.fillStyle='#334155';
+      ctx.fillText(`Lives: ${'❤'.repeat(world.lives)}${'♡'.repeat(Math.max(0,3-world.lives))}`, x+6, y+24*s);
+      ctx.fillText(`Projects Completed: ${world.projects}`, x+6, y+44*s);
       ctx.restore();
     }
 
     function drawOverlay(){
-      const W=world.w(), H=world.h(); ctx.save(); ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(0,0,W,H);
-      const cardW=Math.min(560,W-40), cardH= state===STATE.GAMEOVER? 260: 240, x=(W-cardW)/2, y=(H-cardH)/2;
-      ctx.save(); ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=16; ctx.shadowOffsetY=4; drawRoundRect(x,y,cardW,cardH,16); ctx.fillStyle='#101527'; ctx.fill(); ctx.restore();
-      ctx.fillStyle='#e6eef7'; ctx.font='700 24px system-ui,-apple-system,Segoe UI,Roboto'; const title = state===STATE.MENU? 'Agile × PRINCE2 — Project Manager' : state===STATE.GAMEOVER? 'Project Closed' : 'Paused'; centerText(title, y+22);
-      ctx.fillStyle='#9fb4c9'; ctx.font='16px system-ui,-apple-system,Segoe UI,Roboto';
-      const lines=[
-        'Deliver value by dodging tasks. Survive to finish stages.',
-        'Controls: ←/→ or A/D · Space/Click start · P pause',
-        'Touch: left/right half · Mouse: move to steer'
-      ]; lines.forEach((t,i)=> centerText(t, y+60 + i*22));
-      if(state===STATE.GAMEOVER){ ctx.fillStyle='#ffb4b4'; ctx.font='600 18px system-ui,-apple-system,Segoe UI,Roboto'; centerText(`Final Value: ${Math.floor(world.score)}`, y+136); }
-      ctx.fillStyle='#b6c7d8'; ctx.font='600 16px system-ui,-apple-system,Segoe UI,Roboto'; centerText('Press Space or Click to begin', y+cardH-32);
+      const W=world.w(), H=world.h();
+      ctx.save(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(0,0,W,H);
+      const cardW=Math.min(600,W-30), cardH= 260, x=(W-cardW)/2, y=(H-cardH)/2; // centered
+      drawRoundRect(x,y,cardW,cardH,14); ctx.fillStyle='#fff'; ctx.fill();
+      ctx.fillStyle='#0f172a'; ctx.font='800 22px system-ui';
+      const title = state===STATE.MENU? 'Catch & Stack the Tasks' : state===STATE.GAMEOVER? 'Project Closed' : (state===STATE.SUCCESS? '🎉 Project Completed!' : 'Paused');
+      centerText(title, y+28);
+      ctx.fillStyle='#334155'; ctx.font='15px system-ui';
+      if(state===STATE.SUCCESS){
+        centerText('Well done! You delivered the project.', y+74);
+        centerText('Why not enquire about our Project Management and IT Bootcamps', y+104);
+        centerText('to upskill on a Government Subsidised Skills Bootcamp.', y+126);
+      } else if(state===STATE.GAMEOVER){
+        centerText('You ran out of lives — try again!', y+92);
+      } else if(state===STATE.MENU){
+        centerText('Catch and stack tasks until you touch the top line.', y+92);
+        centerText('Controls: Touch · ←/→ · A/D · Mouse · Space to start', y+116);
+      }
+      ctx.fillStyle='var(--accent)'; ctx.font='700 15px system-ui';
+      centerText('Tap or Space to play', y+cardH-32);
       ctx.restore();
     }
 
-    function centerText(t, y){ const W=world.w(); const w=ctx.measureText(t).width; ctx.fillText(t, (W-w)/2, y); }
+    function centerText(t,y){ const W=world.w(); const w=ctx.measureText(t).width; ctx.fillText(t,(W-w)/2,y); }
 
-    function wrapText(text, x, y, maxWidth, maxLines){
-      const words = text.split(' '); let line=''; const lines=[]; for(const w of words){ const test=line? line+' '+w:w; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { lines.push(line); line=w; if(lines.length>=maxLines-1) break; } }
-      if(line) lines.push(line); const startY = y - (lines.length-1)*8; for(let i=0;i<lines.length;i++){ ctx.fillText(lines[i], x, startY + i*16); }
-    }
+    // --- Tiny runtime tests (opt-in) --------------------------------------
+    (function runTests(){
+      if(!DEBUG) return;
+      console.log('[tests] start');
+      const m = measureTask('Do', 'D+123456');
+      ctx.save(); ctx.font='600 11px system-ui'; const dueW = ctx.measureText('D+123456').width; ctx.restore();
+      console.assert(m.width >= dueW, 'width covers due text');
+      const before = blocks.length; spawnBlock(); console.assert(blocks.length===before+1, 'spawnBlock pushes a block'); blocks.pop();
+      console.assert(aabb({x:0,y:0,w:10,h:10},{x:5,y:5,w:10,h:10})===true, 'aabb overlap true');
+      console.assert(aabb({x:0,y:0,w:10,h:10},{x:20,y:20,w:5,h:5})===false, 'aabb no overlap');
+      console.log('[tests] OK');
+    })();
 
-    function drawToast(t, i){
-      const W=world.w(); const alpha = Math.max(0, Math.min(1, (t.duration - t.t)/200, t.t/200));
-      ctx.save(); ctx.globalAlpha = alpha; const padX=16, padY=10; ctx.font='700 14px system-ui,-apple-system,Segoe UI,Roboto'; const w=ctx.measureText(t.text).width + padX*2; const h=34;
-      const x=(W-w)/2, y=18 + i*(h+8); drawRoundRect(x,y,w,h,10); ctx.fillStyle='#0f1530'; ctx.fill(); ctx.fillStyle='#d7e3f2'; ctx.fillText(t.text, x+padX, y+padY+4); ctx.restore();
-    }
-
-    // Init
+    // --- Kick off ----------------------------------------------------------
     player.reset(); requestAnimationFrame(loop);
   })();
   </script>
 </body>
 </html>
+
