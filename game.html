@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agile × PRINCE2 — Project Manager Mini‑Game</title>
+  <style>
+    :root {
+      --bg:#0e1220; --panel:#151a2b; --muted:#9fb2c6; --text:#eef5ff;
+      --agile:#2dd4bf; --p2:#8b5cf6; --danger:#ff6b6b; --accent:#5dd4ff;
+    }
+    html,body{height:100%}
+    body{margin:0; background: radial-gradient(1200px 600px at 50% -20%, #1a2142 0%, var(--bg) 60%);
+      color:var(--text); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+      display:grid; place-items:center;}
+    .wrap{width:min(900px, 95vw)}
+    header{display:flex; align-items:center; justify-content:space-between; margin:14px 4px 8px}
+    h1{font-size:clamp(18px, 3vw, 24px); margin:0; letter-spacing:.3px}
+    .hint{color:var(--muted); font-size:14px}
+    canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg, #0d1124 0%, #0a0f1d 100%);
+      border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+      cursor: crosshair;}
+    .hud{position:relative; margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; color:var(--muted); font-size:14px}
+    .badge{background:var(--panel); border:1px solid #212743; padding:6px 10px; border-radius:999px}
+    .note{margin-left:auto}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px;
+      background:#0a0e1a; border:1px solid #2a3254; border-bottom-width:2px; padding:2px 6px; border-radius:6px; color:#d7e0ea}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🗂️ Agile × PRINCE2 — Project Manager</h1>
+      <div class="hint">Single‑file • file:// friendly • iframe‑safe</div>
+    </header>
+    <canvas id="game" width="900" height="600" aria-label="Game canvas"></canvas>
+    <div class="hud">
+      <span class="badge">Controls: ←/→ or A/D · Mouse move · Touch left/right · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
+      <span class="badge">Goal: deliver value, avoid being crushed by tasks</span>
+      <span class="badge note">Tip: host anywhere & share the link in a LinkedIn post.</span>
+    </div>
+  </div>
+
+  <script>
+  (()=>{
+    // --- Canvas & DPI setup -------------------------------------------------
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    function resize(){
+      const styleW = canvas.clientWidth; const styleH = Math.round(styleW * 2/3);
+      canvas.style.height = styleH + 'px'; canvas.width = Math.floor(styleW * DPR); canvas.height = Math.floor(styleH * DPR);
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+    }
+    new ResizeObserver(resize).observe(canvas); resize();
+
+    // --- Game state ---------------------------------------------------------
+    const STATE = { MENU:'menu', PLAYING:'playing', GAMEOVER:'gameover', PAUSED:'paused' };
+    let state = STATE.MENU;
+    const world = {
+      w: () => canvas.clientWidth,
+      h: () => parseInt(canvas.style.height)||canvas.height/DPR,
+      time:0, score:0, lives:3, best:+(localStorage.getItem('pm_best')||0),
+      difficulty:1, spawnEvery:700, lastSpawnAt:0, level:0, rngSeed: (Math.random()*1e9)|0,
+      stageIndex:0
+    };
+
+    const PRINCE2_STAGES = [
+      'Starting Up a Project',
+      'Initiating a Project',
+      'Directing a Project',
+      'Controlling a Stage',
+      'Managing Product Delivery',
+      'Managing Stage Boundaries',
+      'Closing a Project'
+    ];
+
+    const AGILE_TASKS = [
+      'Sprint Planning','Daily Scrum','Backlog Refinement','Sprint Review','Retrospective',
+      'User Story Mapping','Definition of Done','Release Planning','CI/CD Check','Demo Prep'
+    ];
+    const P2_PRODUCTS = [
+      'Business Case','PID','Stage Plan','RAID Log','Quality Register','Lessons Log',
+      'Risk Response','Change Request','Highlight Report','End Stage Report'
+    ];
+
+    // LCG RNG
+    function rnd(){ world.rngSeed = (1664525*world.rngSeed + 1013904223)>>>0; return world.rngSeed/0xFFFFFFFF }
+    function rand(min,max){ return min + rnd()*(max-min) }
+    function choice(arr){ return arr[(Math.random()*arr.length)|0] }
+
+    // --- Entities -----------------------------------------------------------
+    const player = { w:72,h:16,x:0,y:0,speed:460,targetX:null, reset(){ this.x=(world.w()-this.w)/2; this.y=world.h()-this.h-18; this.targetX=null; }};
+    const blocks = [];
+
+    function makeLabel(){
+      const agile = Math.random() < 0.55;
+      const label = agile ? choice(AGILE_TASKS) : choice(P2_PRODUCTS);
+      const days = Math.floor(rand(-3, 8)); // D-3 to D+7
+      const due = days>=0 ? `D+${days}` : `D${days}`;
+      return { label, due, agile };
+    }
+
+    function spawnBlock(){
+      const size = rand(34, 70);
+      const {label,due,agile} = makeLabel();
+      blocks.push({ x: rand(6, world.w()-size-6), y: -size, w:size, h:size, vy: rand(160,240)*world.difficulty,
+        agile, text1: label, text2: due, shadow: rand(2,6) });
+    }
+
+    function resetGame(){
+      world.time=0; world.score=0; world.lives=3; world.difficulty=1; world.spawnEvery=700; world.lastSpawnAt=0; world.level=0; world.stageIndex=0; toasts.length=0;
+      blocks.length=0; player.reset();
+    }
+
+    // --- Input --------------------------------------------------------------
+    const keys = new Set();
+    window.addEventListener('keydown', (e)=>{
+      if(['ArrowLeft','ArrowRight','Space','KeyA','KeyD','KeyP'].includes(e.code)) e.preventDefault();
+      if(e.code==='Space'){
+        if(state===STATE.MENU||state===STATE.GAMEOVER){ resetGame(); state=STATE.PLAYING; }
+        else if(state===STATE.PLAYING){ togglePause(); }
+        return;
+      }
+      if(e.code==='KeyP'){ togglePause(); return; }
+      if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.add(e.code);
+    });
+    window.addEventListener('keyup', (e)=>{ if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.delete(e.code); });
+
+    canvas.addEventListener('mousemove',(e)=>{
+      const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
+    });
+    function handleTouch(e){
+      const r=canvas.getBoundingClientRect(); const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
+      const left = x < world.w()/2; if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); } else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); }
+      e.preventDefault();
+    }
+    canvas.addEventListener('touchstart', handleTouch, {passive:false});
+    canvas.addEventListener('touchmove', handleTouch, {passive:false});
+    canvas.addEventListener('touchend', ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
+    canvas.addEventListener('click', ()=>{ if(state===STATE.MENU||state===STATE.GAMEOVER){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; }});
+    window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; }});
+    function togglePause(){ if(state===STATE.PLAYING) state=STATE.PAUSED; else if(state===STATE.PAUSED) state=STATE.PLAYING; }
+
+    // --- Utils --------------------------------------------------------------
+    function aabb(a,b){ return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+    function drawRoundRect(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+    // --- Level / Stage progression -----------------------------------------
+    const LEVEL_UP_EVERY = 18; // seconds
+    function onLevelUp(){
+      world.level++;
+      if(world.stageIndex < PRINCE2_STAGES.length){
+        toast(`Stage Completed: ${PRINCE2_STAGES[world.stageIndex++]}`);
+      } else {
+        toast(`Release Delivered ✔`);
+      }
+    }
+
+    // --- Loop ---------------------------------------------------------------
+    let last = performance.now();
+    function loop(now){ const dt=Math.min(0.033, (now-last)/1000); last=now; if(state===STATE.PLAYING){ update(dt); } render(); requestAnimationFrame(loop); }
+
+    function update(dt){
+      world.time += dt; world.score += dt*120; // delivery value
+      world.difficulty = 1 + Math.min(2.7, world.time/30);
+      world.spawnEvery = Math.max(220, 700 - world.time*12);
+      const prevLevel = world.level; if(Math.floor(world.time/LEVEL_UP_EVERY) > prevLevel){ onLevelUp(); }
+
+      // Player movement
+      const left = keys.has('ArrowLeft')||keys.has('KeyA'); const right = keys.has('ArrowRight')||keys.has('KeyD');
+      let vx = 0; if(left) vx-=player.speed; if(right) vx+=player.speed; player.x += vx*dt;
+      if(player.targetX!=null){ const diff=player.targetX-player.x; player.x += diff*Math.min(1,12*dt); }
+      player.x=Math.max(0, Math.min(world.w()-player.w, player.x)); player.y=world.h()-player.h-18;
+
+      // Spawning
+      if(nowMs()-world.lastSpawnAt > world.spawnEvery){ world.lastSpawnAt=nowMs(); spawnBlock(); }
+
+      // Blocks
+      for(let i=blocks.length-1;i>=0;i--){ const b=blocks[i]; b.y += b.vy*dt; if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, b)){
+          blocks.splice(i,1); world.lives--; flash(0.25); toast('Scope Creep! −1 life', 1000);
+          if(world.lives<=0){ world.best=Math.max(world.best, Math.floor(world.score)); localStorage.setItem('pm_best', String(world.best)); state=STATE.GAMEOVER; break; }
+          continue;
+        }
+        if(b.y > world.h()+80){ blocks.splice(i,1); }
+      }
+
+      // toasts
+      for(let i=toasts.length-1;i>=0;i--){ const t=toasts[i]; t.t+=dt*1000; if(t.t>t.duration) toasts.splice(i,1); }
+    }
+
+    function nowMs(){ return performance.now(); }
+
+    // --- VFX / Toasts -------------------------------------------------------
+    let flashT=0; function flash(t){ flashT=Math.max(flashT,t); }
+    const toasts=[]; function toast(text, duration=1800){ toasts.push({text, t:0, duration}); }
+
+    // --- Rendering ----------------------------------------------------------
+    function render(){
+      const W=world.w(), H=world.h(); ctx.clearRect(0,0,W,H);
+      // background vignette
+      const grd = ctx.createRadialGradient(W/2, H*0.2, 40, W/2, H*0.2, Math.max(W,H));
+      grd.addColorStop(0,'rgba(93,212,255,0.06)'); grd.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
+      // dots
+      ctx.globalAlpha=.25; ctx.fillStyle='#1b2344'; for(let i=0;i<40;i++) ctx.fillRect((i*73)%W, (i*131)%H, 2, 2); ctx.globalAlpha=1;
+
+      // Blocks
+      for(const b of blocks){
+        ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=b.shadow; ctx.shadowOffsetY=2; drawRoundRect(b.x,b.y,b.w,b.h,10);
+        ctx.fillStyle = b.agile ? 'var(--agile)' : 'var(--p2)'; ctx.fill();
+        // labels
+        ctx.fillStyle='#0a0f1d'; ctx.font='700 12px system-ui,-apple-system,Segoe UI,Roboto'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        const cx = b.x + b.w/2, cy = b.y + b.h/2 - 6; wrapText(b.text1, cx, cy, b.w-10, 2);
+        ctx.fillStyle='rgba(0,0,0,.6)'; ctx.font='600 11px system-ui,-apple-system,Segoe UI'; ctx.fillText(b.text2, cx, b.y + b.h/2 + 14);
+        ctx.restore();
+      }
+
+      // Player
+      ctx.save(); ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2; drawRoundRect(player.x,player.y,player.w,player.h,8); ctx.fillStyle='var(--accent)'; ctx.fill(); ctx.restore();
+
+      // HUD
+      drawHUD(14,14);
+
+      // Overlays
+      if(state!==STATE.PLAYING){ drawOverlay(); }
+
+      // Flash
+      if(flashT>0){ const a=Math.min(.35, flashT*1.4); ctx.fillStyle=`rgba(255,107,107,${a})`; ctx.fillRect(0,0,W,H); flashT -= 1/60; }
+
+      // Toasts
+      for(let i=0;i<toasts.length;i++) drawToast(toasts[i], i);
+    }
+
+    function drawHUD(x,y){
+      ctx.save(); ctx.textBaseline='top';
+      ctx.font='700 16px system-ui,-apple-system,Segoe UI,Roboto'; ctx.fillStyle='#c9d5e1'; ctx.fillText(`Value: ${Math.floor(world.score)}`, x, y);
+      ctx.font='600 14px system-ui,-apple-system,Segoe UI,Roboto'; ctx.fillStyle='#9eb1c4';
+      const hearts = `Lives: ${'❤'.repeat(world.lives)}${'♡'.repeat(Math.max(0,3-world.lives))}`; ctx.fillText(hearts, x, y+22);
+      const stage = PRINCE2_STAGES[world.stageIndex] || 'Sprints Continue'; ctx.fillText(`Stage: ${stage}`, x, y+42);
+      const level = Math.floor(world.time/18)+1; ctx.fillText(`Sprint: ${level}`, x, y+62);
+      ctx.fillText(`Best: ${world.best}`, x, y+82);
+      ctx.restore();
+    }
+
+    function drawOverlay(){
+      const W=world.w(), H=world.h(); ctx.save(); ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(0,0,W,H);
+      const cardW=Math.min(560,W-40), cardH= state===STATE.GAMEOVER? 260: 240, x=(W-cardW)/2, y=(H-cardH)/2;
+      ctx.save(); ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowBlur=16; ctx.shadowOffsetY=4; drawRoundRect(x,y,cardW,cardH,16); ctx.fillStyle='#101527'; ctx.fill(); ctx.restore();
+      ctx.fillStyle='#e6eef7'; ctx.font='700 24px system-ui,-apple-system,Segoe UI,Roboto'; const title = state===STATE.MENU? 'Agile × PRINCE2 — Project Manager' : state===STATE.GAMEOVER? 'Project Closed' : 'Paused'; centerText(title, y+22);
+      ctx.fillStyle='#9fb4c9'; ctx.font='16px system-ui,-apple-system,Segoe UI,Roboto';
+      const lines=[
+        'Deliver value by dodging tasks. Survive to finish stages.',
+        'Controls: ←/→ or A/D · Space/Click start · P pause',
+        'Touch: left/right half · Mouse: move to steer'
+      ]; lines.forEach((t,i)=> centerText(t, y+60 + i*22));
+      if(state===STATE.GAMEOVER){ ctx.fillStyle='#ffb4b4'; ctx.font='600 18px system-ui,-apple-system,Segoe UI,Roboto'; centerText(`Final Value: ${Math.floor(world.score)}`, y+136); }
+      ctx.fillStyle='#b6c7d8'; ctx.font='600 16px system-ui,-apple-system,Segoe UI,Roboto'; centerText('Press Space or Click to begin', y+cardH-32);
+      ctx.restore();
+    }
+
+    function centerText(t, y){ const W=world.w(); const w=ctx.measureText(t).width; ctx.fillText(t, (W-w)/2, y); }
+
+    function wrapText(text, x, y, maxWidth, maxLines){
+      const words = text.split(' '); let line=''; const lines=[]; for(const w of words){ const test=line? line+' '+w:w; if(ctx.measureText(test).width<=maxWidth){ line=test; } else { lines.push(line); line=w; if(lines.length>=maxLines-1) break; } }
+      if(line) lines.push(line); const startY = y - (lines.length-1)*8; for(let i=0;i<lines.length;i++){ ctx.fillText(lines[i], x, startY + i*16); }
+    }
+
+    function drawToast(t, i){
+      const W=world.w(); const alpha = Math.max(0, Math.min(1, (t.duration - t.t)/200, t.t/200));
+      ctx.save(); ctx.globalAlpha = alpha; const padX=16, padY=10; ctx.font='700 14px system-ui,-apple-system,Segoe UI,Roboto'; const w=ctx.measureText(t.text).width + padX*2; const h=34;
+      const x=(W-w)/2, y=18 + i*(h+8); drawRoundRect(x,y,w,h,10); ctx.fillStyle='#0f1530'; ctx.fill(); ctx.fillStyle='#d7e3f2'; ctx.fillText(t.text, x+padX, y+padY+4); ctx.restore();
+    }
+
+    // Init
+    player.reset(); requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
