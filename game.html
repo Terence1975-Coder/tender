@@ -42,9 +42,9 @@
   </div>
 
   <script>
-  (()=>{
+  (function(){
     'use strict';
-    const DEBUG = false; // set to true to run console tests
+    const DEBUG = false; // set true to run console tests
 
     // --- Canvas setup ------------------------------------------------------
     const canvas = document.getElementById('game');
@@ -67,7 +67,7 @@
       h: () => parseInt(canvas.style.height)||canvas.height/DPR,
       time: 0, score: 0, lives: 3,
       best: +(localStorage.getItem('pm_best')||0),
-      projects: +(localStorage.getItem('pm_projects')||0),
+      projects: 0, // session counter starting at zero
       difficulty: 1, spawnEvery: 700, lastSpawnAt: 0, level: 0,
       rngSeed: (Math.random()*1e9)|0,
     };
@@ -76,8 +76,17 @@
     function hudScale(){ return Math.max(0.95, Math.min(1.4, world.w()/620)); }
     function hudHeightPx(){ return Math.round(58 * hudScale()); }
 
-    // top completion line (just under HUD)
+    // top completion line (just under HUD panel)
     function completionLineY(){ return hudHeightPx() + 6; }
+
+    // --- LOGO --------------------------------------------------------------
+    const LOGO_URL = 'https://thinkbittraining.co.uk/wp-content/uploads/2023/03/BIT-Training-Full-Stack-resized-5.png';
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+    logoImg.src = LOGO_URL;
+    let logoReady = false, logoAspect = 2.5; // fallback aspect
+    logoImg.addEventListener('load', ()=>{ logoReady = true; if(logoImg.naturalHeight>0) logoAspect = logoImg.naturalWidth / logoImg.naturalHeight; });
+    logoImg.addEventListener('error', ()=>{ logoReady = false; });
 
     const AGILE_TASKS = ['Sprint Planning','Daily Scrum','Backlog Refinement','Sprint Review','Retrospective','User Story Mapping','Definition of Done','Release Planning','CI/CD Check','Demo Prep'];
     const P2_PRODUCTS = ['Business Case','PID','Stage Plan','RAID Log','Quality Register','Lessons Log','Risk Response','Change Request','Highlight Report','End Stage Report'];
@@ -151,7 +160,19 @@
     window.addEventListener('keyup', (e)=>{ if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.delete(e.code); });
 
     canvas.addEventListener('mousemove', (e)=>{ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0,Math.min(world.w()-player.w,x-player.w/2)); });
-    function handleTouch(e){ const r=canvas.getBoundingClientRect(); const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2)); const left=x<world.w()/2; if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); } else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); } e.preventDefault(); }
+    function handleTouch(e){
+      // Tap to start or restart
+      if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){
+        resetGame(); state=STATE.PLAYING;
+      }
+      const r=canvas.getBoundingClientRect();
+      const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left;
+      player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
+      const left = x < world.w()/2;
+      if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); }
+      else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); }
+      e.preventDefault();
+    }
     canvas.addEventListener('touchstart', handleTouch, {passive:false});
     canvas.addEventListener('touchmove',  handleTouch, {passive:false});
     canvas.addEventListener('touchend',  ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
@@ -208,6 +229,7 @@
           // SUCCESS strictly when tower hits the top line under HUD
           if((player.y - stackHeight()) <= compY){
             state = STATE.SUCCESS;
+            world.projects += 1;
           }
           continue;
         }
@@ -228,6 +250,20 @@
       // completion line just under HUD
       const compY = completionLineY();
       ctx.fillStyle='rgba(34,197,94,.7)'; ctx.fillRect(0, compY, W, 3);
+
+      // place logo above the completion line at top-right
+      const maxLogoW = Math.min(120, W*0.22);
+      const logoW = maxLogoW;
+      const logoH = Math.round(logoW / logoAspect);
+      const logoX = Math.max(6, W - logoW - 8);
+      const logoY = Math.max(6, compY - logoH - 6);
+      if(logoReady){ ctx.drawImage(logoImg, logoX, logoY, logoW, logoH); }
+      else {
+        // fallback placeholder box if the logo fails to load
+        ctx.save(); drawRoundRect(logoX, logoY, logoW, logoH, 8); ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fill(); ctx.strokeStyle='rgba(2,6,23,.15)'; ctx.stroke();
+        ctx.fillStyle='#0f172a'; ctx.font='700 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('BIT Training', logoX+logoW/2, logoY+logoH/2);
+        ctx.restore();
+      }
 
       // falling blocks
       for(const b of blocks){
@@ -276,14 +312,17 @@
       ctx.fillStyle='#0f172a'; ctx.font='800 22px system-ui';
       const title = state===STATE.MENU? 'Catch & Stack the Tasks' : state===STATE.GAMEOVER? 'Project Closed' : (state===STATE.SUCCESS? '🎉 Project Completed!' : 'Paused');
       centerText(title, y+28);
-      ctx.fillStyle='#334155'; ctx.font='15px system-ui';
+      ctx.fillStyle='#334155';
       if(state===STATE.SUCCESS){
+        ctx.font='800 18px system-ui'; // bold & slightly larger
         centerText('Well done! You delivered the project.', y+74);
         centerText('Why not enquire about our Project Management and IT Bootcamps', y+104);
         centerText('to upskill on a Government Subsidised Skills Bootcamp.', y+126);
       } else if(state===STATE.GAMEOVER){
+        ctx.font='15px system-ui';
         centerText('You ran out of lives — try again!', y+92);
       } else if(state===STATE.MENU){
+        ctx.font='15px system-ui';
         centerText('Catch and stack tasks until you touch the top line.', y+92);
         centerText('Controls: Touch · ←/→ · A/D · Mouse · Space to start', y+116);
       }
@@ -304,6 +343,8 @@
       const before = blocks.length; spawnBlock(); console.assert(blocks.length===before+1, 'spawnBlock pushes a block'); blocks.pop();
       console.assert(aabb({x:0,y:0,w:10,h:10},{x:5,y:5,w:10,h:10})===true, 'aabb overlap true');
       console.assert(aabb({x:0,y:0,w:10,h:10},{x:20,y:20,w:5,h:5})===false, 'aabb no overlap');
+      // completion line sanity
+      const cy = completionLineY(); console.assert(cy>0 && cy < canvas.clientHeight, 'completion line within canvas');
       console.log('[tests] OK');
     })();
 
@@ -313,4 +354,3 @@
   </script>
 </body>
 </html>
-
