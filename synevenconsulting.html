@@ -269,7 +269,31 @@ var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r);
 analytics._writeKey="HlRfG8ZdB1t0ThrcSJAw8fPWa2gG1IbH";analytics.SNIPPET_VERSION="5.2.0";
 analytics.load("HlRfG8ZdB1t0ThrcSJAw8fPWa2gG1IbH");analytics.page();}();
 </script>
+<script>
+  function handleSubmit(e) {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const subject = encodeURIComponent("Enquiry via Synevent Consulting site");
+    const body = encodeURIComponent(
+`Name: ${data.get("name")}
+Company: ${data.get("company")}
+Email: ${data.get("email")}
+Message: ${data.get("message")}`
+    );
 
-  </script>
+    // Optional: track the form submit in Segment
+    if (window.analytics && analytics.track) {
+      analytics.track("Contact Form Submitted", {
+        name: data.get("name"),
+        company: data.get("company"),
+        email_present: !!data.get("email")
+      });
+    }
+
+    window.location.href = `mailto:syneventconsult@gmail.com?subject=${subject}&body=${body}`;
+  }
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
 </body>
 </html>
