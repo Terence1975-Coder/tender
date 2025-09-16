@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Agile × PRINCE2 — Balancing Project Manager</title>
   <style>
     :root {
@@ -10,11 +12,11 @@
       --agile:#22c3aa; --p2:#7c5af5; --danger:#ef4444; --accent:#0ea5e9; --success:#22c55e;
     }
     html,body{height:100%}
-    body{margin:0; background: radial-gradient(1400px 800px at 50% -20%, var(--bg2) 0%, var(--bg1) 60%);
+    body{margin:0; min-height:100svh; background: radial-gradient(1400px 800px at 50% -20%, var(--bg2) 0%, var(--bg1) 60%);
       color:var(--text); font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
-      display:grid; place-items:center;}
-    .wrap{width:min(900px, 100vw)}
-    header{display:flex; align-items:center; justify-content:space-between; margin:10px 6px 6px}
+      display:flex; align-items:center; justify-content:center;}
+    .wrap{width:auto; max-width:100vw; margin:0 auto; display:flex; flex-direction:column; align-items:center; position:relative;}
+    header{display:flex; align-items:center; justify-content:center; margin:10px 6px 6px; width:100%; text-align:center;}
     h1{font-size:clamp(16px, 5vw, 22px); margin:0; letter-spacing:.3px}
     .hint{color:var(--muted); font-size:13px}
     canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg, #f1f5ff 0%, #e6efff 100%);
@@ -25,7 +27,12 @@
     .note{margin-left:auto}
     .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px;
       background:#eaf2ff; border:1px solid rgba(15,23,42,.15); border-bottom-width:2px; padding:1px 5px; border-radius:6px; color:#0f172a}
-  </style>
+    .fs-btn{position:fixed; z-index:10; right:calc(env(safe-area-inset-right) + 12px); bottom:calc(env(safe-area-inset-bottom) + 12px); display:none; padding:10px 14px; border-radius:12px; background:rgba(14,165,233,.16); border:1px solid rgba(14,165,233,.35); color:#0f172a; font-weight:700; box-shadow:0 8px 18px rgba(2,6,23,.18); backdrop-filter: blur(6px);} 
+    .fs-btn:active{transform:translateY(1px)}
+    @media (pointer:coarse){ .fs-btn{display:inline-flex; align-items:center; gap:8px;} }
+    body{overscroll-behavior:contain;}
+  .corner-logo{position:absolute; z-index:100; pointer-events:none; display:block; max-width:40vw; height:auto; image-rendering:auto;}
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -34,6 +41,8 @@
       <div class="hint">Mobile‑friendly • Single‑file • iframe‑safe</div>
     </header>
     <canvas id="game" width="900" height="600" aria-label="Game canvas"></canvas>
+    <img id="brandLogo" class="corner-logo" alt="BIT Training logo" src="https://trainingprovider.com/wp-content/uploads/2024/06/BIT-Training-logo-variants-14-1.png" />
+    <button id="fsBtn" class="fs-btn" aria-label="Enter fullscreen">⛶ Fullscreen</button>
     <div class="hud">
       <span class="badge">Controls: ←/→ or A/D · Touch left/right · Mouse move · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
       <span class="badge">Goal: stack tasks until your tower touches the top line</span>
@@ -50,14 +59,46 @@
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    function resize(){
-      const styleW = canvas.clientWidth; const styleH = Math.round(styleW * 2/3);
-      canvas.style.height = styleH + 'px';
-      canvas.width  = Math.floor(styleW * DPR);
-      canvas.height = Math.floor(styleH * DPR);
-      ctx.setTransform(DPR,0,0,DPR,0,0);
+
+    // Stable, debounced sizing (fixes ResizeObserver loop)
+    let lastCSSW = 0, lastCSSH = 0, resizeRAF = 0;
+    function viewportSize(){
+      const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0) || window.innerWidth;
+      const vh = (window.visualViewport && window.visualViewport.height) ? Math.round(window.visualViewport.height) : window.innerHeight;
+      return {vw, vh};
     }
-    new ResizeObserver(resize).observe(canvas); resize();
+    function computeSize(){
+      const {vw, vh} = viewportSize();
+      // Keep a consistent 9:16 aspect; fit within viewport
+      let cssH = Math.min(vh, Math.round(vw * 16/9));
+      let cssW = Math.min(vw, Math.round(cssH * 9/16));
+      if (cssW > vw) { cssW = vw; cssH = Math.round(cssW * 16/9); }
+      return {cssW, cssH};
+    }
+    function applySize(){
+      const {cssW, cssH} = computeSize();
+      // Only update if size actually changed (prevents resize loops)
+      if (Math.abs(cssW - lastCSSW) < 1 && Math.abs(cssH - lastCSSH) < 1) return;
+      lastCSSW = cssW; lastCSSH = cssH;
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      const pxW = Math.floor(cssW * DPR);
+      const pxH = Math.floor(cssH * DPR);
+      if (canvas.width !== pxW || canvas.height !== pxH){
+        canvas.width  = pxW;
+        canvas.height = pxH;
+        ctx.setTransform(DPR,0,0,DPR,0,0);
+      }
+    }
+    function scheduleResize(){
+      if (resizeRAF) return;
+      resizeRAF = requestAnimationFrame(()=>{ resizeRAF = 0; applySize(); });
+    }
+    window.addEventListener('resize', scheduleResize, {passive:true});
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleResize, {passive:true});
+    window.addEventListener('orientationchange', ()=> setTimeout(scheduleResize, 50));
+    // Initial measure
+    applySize();
 
     // --- World / State -----------------------------------------------------
     const STATE = { MENU:'menu', PLAYING:'playing', SUCCESS:'success', GAMEOVER:'gameover', PAUSED:'paused' };
@@ -161,9 +202,9 @@
 
     canvas.addEventListener('mousemove', (e)=>{ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0,Math.min(world.w()-player.w,x-player.w/2)); });
     function handleTouch(e){
-      // Tap to start or restart
+      // Tap to start/restart (also a valid user gesture to enter fullscreen)
       if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){
-        resetGame(); state=STATE.PLAYING;
+        resetGame(); state=STATE.PLAYING; goFullscreen();
       }
       const r=canvas.getBoundingClientRect();
       const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left;
@@ -178,6 +219,40 @@
     canvas.addEventListener('touchend',  ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
 
     canvas.addEventListener('click', ()=>{ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; } });
+
+    // Fullscreen handling (best-effort: Android Chrome supported; iOS uses standalone/A2HS)
+    async function goFullscreen(){
+      const el = document.documentElement;
+      try{
+        if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen({navigationUI:'hide'}); }
+        if(screen.orientation && screen.orientation.lock){ try{ await screen.orientation.lock('portrait'); }catch(e){} }
+      }catch(e){}
+    }
+    const fsBtn = document.getElementById('fsBtn');
+    if(fsBtn){
+      fsBtn.addEventListener('click', async (e)=>{ e.preventDefault(); await goFullscreen(); });
+    }
+
+    // DOM logo positioning (always on top)
+    const brandLogo = document.getElementById('brandLogo');
+    const wrapEl = document.querySelector('.wrap');
+    function positionBrandLogo(){
+      if(!brandLogo) return;
+      const rect = canvas.getBoundingClientRect();
+      const wrapRect = wrapEl.getBoundingClientRect();
+      const compY = completionLineY();
+      const width = Math.round(Math.min(rect.width*0.22, 160));
+      brandLogo.style.width = width + 'px';
+      const height = brandLogo.naturalWidth && brandLogo.naturalHeight ? Math.round(width * (brandLogo.naturalHeight/brandLogo.naturalWidth)) : Math.round(width/2.5);
+      const top = (rect.top - wrapRect.top) + Math.max(6, compY - height - 6);
+      const left = (rect.left - wrapRect.left) + rect.width - width - 8;
+      brandLogo.style.top = top + 'px';
+      brandLogo.style.left = left + 'px';
+    }
+    if(brandLogo){ brandLogo.addEventListener('load', positionBrandLogo); }
+    // Reposition on size changes as well
+    const _oldApply = applySize; applySize = function(){ _oldApply(); positionBrandLogo(); };
+
     window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; } });
     function togglePause(){ if(state===STATE.PLAYING) state=STATE.PAUSED; else if(state===STATE.PAUSED) state=STATE.PLAYING; }
 
@@ -251,20 +326,6 @@
       const compY = completionLineY();
       ctx.fillStyle='rgba(34,197,94,.7)'; ctx.fillRect(0, compY, W, 3);
 
-      // place logo above the completion line at top-right
-      const maxLogoW = Math.min(120, W*0.22);
-      const logoW = maxLogoW;
-      const logoH = Math.round(logoW / logoAspect);
-      const logoX = Math.max(6, W - logoW - 8);
-      const logoY = Math.max(6, compY - logoH - 6);
-      if(logoReady){ ctx.drawImage(logoImg, logoX, logoY, logoW, logoH); }
-      else {
-        // fallback placeholder box if the logo fails to load
-        ctx.save(); drawRoundRect(logoX, logoY, logoW, logoH, 8); ctx.fillStyle='rgba(255,255,255,.9)'; ctx.fill(); ctx.strokeStyle='rgba(2,6,23,.15)'; ctx.stroke();
-        ctx.fillStyle='#0f172a'; ctx.font='700 12px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('BIT Training', logoX+logoW/2, logoY+logoH/2);
-        ctx.restore();
-      }
-
       // falling blocks
       for(const b of blocks){
         drawTaskBlock(b.x,b.y,b.w,b.h,b.agile,b.lines,b.lh,b.labelFont,b.text2,b.dueFont);
@@ -281,6 +342,8 @@
 
       drawHUD(10,10);
       if(state!==STATE.PLAYING){ drawOverlay(); }
+      // ensure logo is always on top
+      positionBrandLogo();
     }
 
     function drawHUD(x,y){
@@ -345,6 +408,10 @@
       console.assert(aabb({x:0,y:0,w:10,h:10},{x:20,y:20,w:5,h:5})===false, 'aabb no overlap');
       // completion line sanity
       const cy = completionLineY(); console.assert(cy>0 && cy < canvas.clientHeight, 'completion line within canvas');
+      // extra: HUD vs completion line ordering
+      console.assert(completionLineY() > 0 && completionLineY() > (hudHeightPx()-1), 'completion line below HUD');
+      // NEW: resize idempotence test – calling twice shouldn't change canvas size
+      const cw1 = canvas.width, ch1 = canvas.height; applySize(); const cw2 = canvas.width, ch2 = canvas.height; console.assert(cw1===cw2 && ch1===ch2, 'applySize is idempotent');
       console.log('[tests] OK');
     })();
 
@@ -354,4 +421,3 @@
   </script>
 </body>
 </html>
-
