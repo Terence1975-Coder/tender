@@ -7,31 +7,28 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Agile × PRINCE2 — Balancing Project Manager</title>
   <style>
-    :root {
-      --bg1:#eef4ff; --bg2:#d9e4ff; --panel:#ffffff; --muted:#4b6078; --text:#0f172a;
-      --agile:#22c3aa; --p2:#7c5af5; --danger:#ef4444; --accent:#0ea5e9; --success:#22c55e;
-    }
+    :root { --bg1:#eef4ff; --bg2:#d9e4ff; --panel:#ffffff; --muted:#4b6078; --text:#0f172a; --agile:#22c3aa; --p2:#7c5af5; --danger:#ef4444; --accent:#0ea5e9; --success:#22c55e; }
     html,body{height:100%}
-    body{margin:0; min-height:100svh; background: radial-gradient(1400px 800px at 50% -20%, var(--bg2) 0%, var(--bg1) 60%);
-      color:var(--text); font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
-      display:flex; align-items:center; justify-content:center;}
+    body{margin:0; min-height:100svh; background: radial-gradient(1400px 800px at 50% -20%, var(--bg2) 0%, var(--bg1) 60%); color:var(--text); font: 15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial; display:flex; align-items:center; justify-content:center;}
     .wrap{width:auto; max-width:100vw; margin:0 auto; display:flex; flex-direction:column; align-items:center; position:relative;}
     header{display:flex; align-items:center; justify-content:center; margin:10px 6px 6px; width:100%; text-align:center;}
-    h1{font-size:clamp(16px, 5vw, 22px); margin:0; letter-spacing:.3px}
+    h1{font-size:clamp(16px,5vw,22px); margin:0; letter-spacing:.3px}
     .hint{color:var(--muted); font-size:13px}
-    canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg, #f1f5ff 0%, #e6efff 100%);
-      border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.7);
-      touch-action:none;}
+    canvas{width:100%; height:auto; display:block; background: linear-gradient(180deg,#f1f5ff 0%,#e6efff 100%); border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.7); touch-action:none;}
     .hud{position:relative; margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--muted); font-size:13px}
     .badge{background:var(--panel); border:1px solid rgba(15,23,42,.08); padding:4px 8px; border-radius:999px; box-shadow:0 1px 0 rgba(255,255,255,.6)}
     .note{margin-left:auto}
-    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px;
-      background:#eaf2ff; border:1px solid rgba(15,23,42,.15); border-bottom-width:2px; padding:1px 5px; border-radius:6px; color:#0f172a}
+    .kbd{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; font-size:12px; background:#eaf2ff; border:1px solid rgba(15,23,42,.15); border-bottom-width:2px; padding:1px 5px; border-radius:6px; color:#0f172a}
     .fs-btn{position:fixed; z-index:10; right:calc(env(safe-area-inset-right) + 12px); bottom:calc(env(safe-area-inset-bottom) + 12px); display:none; padding:10px 14px; border-radius:12px; background:rgba(14,165,233,.16); border:1px solid rgba(14,165,233,.35); color:#0f172a; font-weight:700; box-shadow:0 8px 18px rgba(2,6,23,.18); backdrop-filter: blur(6px);} 
     .fs-btn:active{transform:translateY(1px)}
     @media (pointer:coarse){ .fs-btn{display:inline-flex; align-items:center; gap:8px;} }
     body{overscroll-behavior:contain;}
     .corner-logo{position:absolute; z-index:100; pointer-events:none; display:block; max-width:40vw; height:auto; image-rendering:auto;}
+    .share-ui{position:absolute; z-index:150; display:none; pointer-events:auto; transform:translateX(-50%); background:rgba(255,255,255,.95); border:1px solid rgba(2,6,23,.08); border-radius:12px; box-shadow:0 10px 24px rgba(2,6,23,.18); padding:10px; gap:8px; align-items:center; justify-content:center; width:min(560px,86vw);}
+    .share-row{display:flex; gap:8px; align-items:center; justify-content:center;}
+    .share-ui input[type=text]{flex:1; min-width:120px; padding:10px 12px; border-radius:10px; border:1px solid rgba(2,6,23,.15); font:600 14px system-ui;}
+    .share-ui button{padding:10px 14px; border-radius:10px; border:1px solid rgba(14,165,233,.35); background:rgba(14,165,233,.16); font:700 14px system-ui; color:#0f172a}
+    .share-ui textarea{width:100%; min-height:80px; border:1px dashed rgba(2,6,23,.2); border-radius:10px; padding:8px; font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
   </style>
 </head>
 <body>
@@ -43,6 +40,14 @@
     <canvas id="game" width="900" height="600" aria-label="Game canvas"></canvas>
     <img id="brandLogo" class="corner-logo" alt="BIT Training logo" src="https://trainingprovider.com/wp-content/uploads/2024/06/BIT-Training-logo-variants-14-1.png" />
     <button id="fsBtn" class="fs-btn" aria-label="Enter fullscreen">⛶ Fullscreen</button>
+    <div id="shareUI" class="share-ui" hidden>
+      <div class="share-row">
+        <label for="shareName" style="font-weight:700; color:#0f172a">Name</label>
+        <input id="shareName" type="text" placeholder="Your name (optional)" maxlength="60"/>
+        <button id="copyBtn" type="button" aria-label="Copy report">📋 Copy report</button>
+      </div>
+      <textarea id="shareText" readonly placeholder="Your congratulations text will appear here."></textarea>
+    </div>
     <div class="hud">
       <span class="badge">Controls: ←/→ or A/D · Touch left/right · Mouse move · <span class="kbd">Space</span> start · <span class="kbd">P</span> pause</span>
       <span class="badge">Goal: stack tasks until your tower touches the top line</span>
@@ -53,409 +58,116 @@
   <script>
   (function(){
     'use strict';
-    const DEBUG = false; // set true to run console tests
-
-    // --- Canvas setup ------------------------------------------------------
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-
-    // Stable, debounced sizing (fixes ResizeObserver loop)
     let lastCSSW = 0, lastCSSH = 0, resizeRAF = 0;
-    function viewportSize(){
-      const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0) || window.innerWidth;
-      const vh = (window.visualViewport && window.visualViewport.height) ? Math.round(window.visualViewport.height) : window.innerHeight;
-      return {vw, vh};
-    }
-    function computeSize(){
-      const {vw, vh} = viewportSize();
-      // Keep a consistent 9:16 aspect; fit within viewport
-      let cssH = Math.min(vh, Math.round(vw * 16/9));
-      let cssW = Math.min(vw, Math.round(cssH * 9/16));
-      if (cssW > vw) { cssW = vw; cssH = Math.round(cssW * 16/9); }
-      return {cssW, cssH};
-    }
-    function applySize(){
-      const {cssW, cssH} = computeSize();
-      // Only update if size actually changed (prevents resize loops)
-      if (Math.abs(cssW - lastCSSW) < 1 && Math.abs(cssH - lastCSSH) < 1) return;
-      lastCSSW = cssW; lastCSSH = cssH;
-      canvas.style.width = cssW + 'px';
-      canvas.style.height = cssH + 'px';
-      const pxW = Math.floor(cssW * DPR);
-      const pxH = Math.floor(cssH * DPR);
-      if (canvas.width !== pxW || canvas.height !== pxH){
-        canvas.width  = pxW;
-        canvas.height = pxH;
-        ctx.setTransform(DPR,0,0,DPR,0,0);
-      }
-    }
-    function scheduleResize(){
-      if (resizeRAF) return;
-      resizeRAF = requestAnimationFrame(()=>{ resizeRAF = 0; applySize(); });
-    }
-    window.addEventListener('resize', scheduleResize, {passive:true});
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleResize, {passive:true});
-    window.addEventListener('orientationchange', ()=> setTimeout(scheduleResize, 50));
-    // Initial measure
-    applySize();
+    function viewportSize(){ const vw = Math.min(window.innerWidth || 0, document.documentElement.clientWidth || 0) || window.innerWidth; const vh = (window.visualViewport && window.visualViewport.height) ? Math.round(window.visualViewport.height) : window.innerHeight; return {vw, vh}; }
+    function computeSize(){ const {vw, vh} = viewportSize(); let cssH = Math.min(vh, Math.round(vw * 16/9)); let cssW = Math.min(vw, Math.round(cssH * 9/16)); if (cssW > vw) { cssW = vw; cssH = Math.round(cssW * 16/9); } return {cssW, cssH}; }
+    function applySize(){ const {cssW, cssH} = computeSize(); if (Math.abs(cssW - lastCSSW) < 1 && Math.abs(cssH - lastCSSH) < 1) return; lastCSSW = cssW; lastCSSH = cssH; canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px'; const pxW = Math.floor(cssW * DPR); const pxH = Math.floor(cssH * DPR); if (canvas.width !== pxW || canvas.height !== pxH){ canvas.width = pxW; canvas.height = pxH; ctx.setTransform(DPR,0,0,DPR,0,0); } }
+    function scheduleResize(){ if (resizeRAF) return; resizeRAF = requestAnimationFrame(()=>{ resizeRAF = 0; applySize(); }); }
+    window.addEventListener('resize', scheduleResize, {passive:true}); if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleResize, {passive:true}); window.addEventListener('orientationchange', ()=> setTimeout(scheduleResize, 50)); applySize();
 
-    // --- World / State -----------------------------------------------------
     const STATE = { MENU:'menu', PLAYING:'playing', SUCCESS:'success', GAMEOVER:'gameover', PAUSED:'paused' };
     let state = STATE.MENU;
-    const world = {
-      w: () => canvas.clientWidth,
-      h: () => parseInt(canvas.style.height)||canvas.height/DPR,
-      time: 0, score: 0, lives: 3,
-      best: +(localStorage.getItem('pm_best')||0),
-      projects: 0, // session counter starting at zero
-      difficulty: 1, spawnEvery: 700, lastSpawnAt: 0, level: 0,
-      rngSeed: (Math.random()*1e9)|0,
-    };
+    const world = { w: () => canvas.clientWidth, h: () => parseInt(canvas.style.height)||canvas.height/DPR, time: 0, score: 0, lives: 3, best: +(localStorage.getItem('pm_best')||0), projects: 0, difficulty: 1, spawnEvery: 700, lastSpawnAt: 0, level: 0, rngSeed: (Math.random()*1e9)|0 };
 
-    // HUD sizing (responsive for mobile)
     function hudScale(){ return Math.max(0.95, Math.min(1.4, world.w()/620)); }
     function hudHeightPx(){ return Math.round(58 * hudScale()); }
-
-    // top completion line (just under HUD panel)
     function completionLineY(){ return hudHeightPx() + 6; }
 
-    // --- LOGO (image also preloaded for aspect) ---------------------------
     const LOGO_URL = 'https://trainingprovider.com/wp-content/uploads/2024/06/BIT-Training-logo-variants-14-1.png';
     const logoImg = new Image();
     logoImg.crossOrigin = 'anonymous';
     logoImg.src = LOGO_URL;
-    let logoReady = false, logoAspect = 2.5; // fallback aspect
-    logoImg.addEventListener('load', ()=>{ logoReady = true; if(logoImg.naturalHeight>0) logoAspect = logoImg.naturalWidth / logoImg.naturalHeight; });
-    logoImg.addEventListener('error', ()=>{ logoReady = false; });
 
     const AGILE_TASKS = ['Sprint Planning','Daily Scrum','Backlog Refinement','Sprint Review','Retrospective','User Story Mapping','Definition of Done','Release Planning','CI/CD Check','Demo Prep'];
     const P2_PRODUCTS = ['Business Case','PID','Stage Plan','RAID Log','Quality Register','Lessons Log','Risk Response','Change Request','Highlight Report','End Stage Report'];
 
-    // --- RNG ---------------------------------------------------------------
     function rnd(){ world.rngSeed = (1664525*world.rngSeed + 1013904223)>>>0; return world.rngSeed/0xFFFFFFFF; }
     function rand(min,max){ return min + rnd()*(max-min); }
     function choice(arr){ return arr[(Math.random()*arr.length)|0]; }
 
-    // --- Entities ----------------------------------------------------------
     const player = { w: 120, h: 18, x: 0, y: 0, speed: 520, targetX: null, reset(){ this.x=(world.w()-this.w)/2; this.y=world.h()-this.h-18; this.targetX=null; } };
-    const blocks = [];   // falling tasks
-    const stack  = [];   // stacked on bar
+    const blocks = [];
+    const stack  = [];
     function stackHeight(){ return stack.reduce((a,b)=>a+b.h,0); }
 
-    // --- Text sizing to fit blocks (label + due) ---------------------------
-    function measureTask(label, due){
-      ctx.save();
-      const labelFont = '700 12px system-ui';
-      const dueFont   = '600 11px system-ui';
-      const maxW=160, padX=12, padY=10, lh=14, dueGap=12;
+    function measureTask(label, due){ ctx.save(); const labelFont = '700 12px system-ui'; const dueFont = '600 11px system-ui'; const maxW=160, padX=12, padY=10, lh=14, dueGap=12; ctx.font = labelFont; const words = label.split(' '); const lines=[]; let line=''; for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width<=maxW){ line=test; } else { if(line) lines.push(line); line=w; } } if(line) lines.push(line); const labelW = Math.max(...lines.map(t=>ctx.measureText(t).width)); ctx.font = dueFont; const dueW = ctx.measureText(due).width; const width  = Math.min(maxW, Math.max(60, Math.max(labelW, dueW) + padX*2)); const height = (lines.length*lh + padY*2) + dueGap; ctx.restore(); return {width,height,lines,lh,labelFont,dueFont}; }
 
-      ctx.font = labelFont;
-      const words = label.split(' ');
-      const lines=[]; let line='';
-      for(const w of words){ const test=line?line+' '+w:w; if(ctx.measureText(test).width<=maxW){ line=test; } else { if(line) lines.push(line); line=w; } }
-      if(line) lines.push(line);
-      const labelW = Math.max(...lines.map(t=>ctx.measureText(t).width));
+    function makeLabel(){ const agile = Math.random() < 0.55; const label = agile ? choice(AGILE_TASKS) : choice(P2_PRODUCTS); const days  = Math.floor(rand(-3, 8)); const due   = days>=0 ? `D+${days}` : `D${days}`; return { label, due, agile }; }
 
-      ctx.font = dueFont; const dueW = ctx.measureText(due).width;
+    function spawnBlock(){ const { label, due, agile } = makeLabel(); const m = measureTask(label, due); const x = rand(6, Math.max(6, world.w()-m.width-6)); blocks.push({ x, y:-m.height, w:m.width, h:m.height, vy:rand(160,240)*world.difficulty, agile, text1:label, text2:due, lines:m.lines, lh:m.lh, labelFont:m.labelFont, dueFont:m.dueFont, shadow:rand(2,6) }); }
 
-      const width  = Math.min(maxW, Math.max(60, Math.max(labelW, dueW) + padX*2));
-      const height = (lines.length*lh + padY*2) + dueGap; // room for due line
-      ctx.restore();
-      return {width,height,lines,lh,labelFont,dueFont};
-    }
+    function resetGame(){ world.time=0; world.score=0; world.lives=3; blocks.length=0; stack.length=0; player.reset(); }
 
-    function makeLabel(){
-      const agile = Math.random() < 0.55;
-      const label = agile ? choice(AGILE_TASKS) : choice(P2_PRODUCTS);
-      const days  = Math.floor(rand(-3, 8));
-      const due   = days>=0 ? `D+${days}` : `D${days}`;
-      return { label, due, agile };
-    }
-
-    function spawnBlock(){
-      const { label, due, agile } = makeLabel();
-      const m = measureTask(label, due);
-      const x = rand(6, Math.max(6, world.w()-m.width-6));
-      blocks.push({ x, y:-m.height, w:m.width, h:m.height, vy:rand(160,240)*world.difficulty, agile,
-        text1:label, text2:due, lines:m.lines, lh:m.lh, labelFont:m.labelFont, dueFont:m.dueFont, shadow:rand(2,6) });
-    }
-
-    function resetGame(){
-      world.time=0; world.score=0; world.lives=3;
-      blocks.length=0; stack.length=0; player.reset();
-    }
-
-    // --- Input -------------------------------------------------------------
     const keys = new Set();
-    window.addEventListener('keydown', (e)=>{
-      if(['ArrowLeft','ArrowRight','Space','KeyA','KeyD','KeyP'].includes(e.code)) e.preventDefault();
-      if(e.code==='Space'){
-        if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; }
-        else if(state===STATE.PLAYING){ togglePause(); }
-        return;
-      }
-      if(e.code==='KeyP'){ togglePause(); return; }
-      if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.add(e.code);
-    });
+    window.addEventListener('keydown', (e)=>{ if(['ArrowLeft','ArrowRight','Space','KeyA','KeyD','KeyP'].includes(e.code)) e.preventDefault(); if(e.code==='Space'){ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PLAYING){ togglePause(); } return; } if(e.code==='KeyP'){ togglePause(); return; } if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.add(e.code); });
     window.addEventListener('keyup', (e)=>{ if(['ArrowLeft','KeyA','ArrowRight','KeyD'].includes(e.code)) keys.delete(e.code); });
 
     canvas.addEventListener('mousemove', (e)=>{ const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; player.targetX=Math.max(0,Math.min(world.w()-player.w,x-player.w/2)); });
-    function handleTouch(e){
-      // Tap to start/restart (also a valid user gesture to enter fullscreen)
-      if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){
-        resetGame(); state=STATE.PLAYING; goFullscreen();
-      }
-      const r=canvas.getBoundingClientRect();
-      const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left;
-      player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2));
-      const left = x < world.w()/2;
-      if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); }
-      else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); }
-      e.preventDefault();
-    }
+    function handleTouch(e){ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; goFullscreen(); } const r=canvas.getBoundingClientRect(); const x=(e.touches[0]||e.changedTouches[0]).clientX-r.left; player.targetX=Math.max(0, Math.min(world.w()-player.w, x-player.w/2)); const left = x < world.w()/2; if(left){ keys.add('ArrowLeft'); keys.delete('ArrowRight'); } else { keys.add('ArrowRight'); keys.delete('ArrowLeft'); } e.preventDefault(); }
     canvas.addEventListener('touchstart', handleTouch, {passive:false});
     canvas.addEventListener('touchmove',  handleTouch, {passive:false});
     canvas.addEventListener('touchend',  ()=>{ keys.delete('ArrowLeft'); keys.delete('ArrowRight'); });
 
     canvas.addEventListener('click', ()=>{ if([STATE.MENU,STATE.GAMEOVER,STATE.SUCCESS].includes(state)){ resetGame(); state=STATE.PLAYING; } else if(state===STATE.PAUSED){ state=STATE.PLAYING; } });
 
-    // Fullscreen handling (best-effort: Android Chrome supported; iOS uses standalone/A2HS)
-    async function goFullscreen(){
-      const el = document.documentElement;
-      try{
-        if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen({navigationUI:'hide'}); }
-        if(screen.orientation && screen.orientation.lock){ try{ await screen.orientation.lock('portrait'); }catch(e){} }
-      }catch(e){}
-    }
-    const fsBtn = document.getElementById('fsBtn');
-    if(fsBtn){
-      fsBtn.addEventListener('click', async (e)=>{ e.preventDefault(); await goFullscreen(); });
-    }
+    async function goFullscreen(){ const el = document.documentElement; try{ if(!document.fullscreenElement && el.requestFullscreen){ await el.requestFullscreen({navigationUI:'hide'}); } if(screen.orientation && screen.orientation.lock){ try{ await screen.orientation.lock('portrait'); }catch(e){} } }catch(e){} }
+    const fsBtn = document.getElementById('fsBtn'); if(fsBtn){ fsBtn.addEventListener('click', async (e)=>{ e.preventDefault(); await goFullscreen(); }); }
 
-    // DOM logo positioning (always on top)
     const brandLogo = document.getElementById('brandLogo');
     const wrapEl = document.querySelector('.wrap');
-    function positionBrandLogo(){
-      if(!brandLogo) return;
-      const rect = canvas.getBoundingClientRect();
-      const wrapRect = wrapEl.getBoundingClientRect();
-      const compY = completionLineY();
-      const width = Math.round(Math.min(rect.width*0.22, 160));
-      brandLogo.style.width = width + 'px';
-      const height = brandLogo.naturalWidth && brandLogo.naturalHeight ? Math.round(width * (brandLogo.naturalHeight/brandLogo.naturalWidth)) : Math.round(width/2.5);
-      const top = (rect.top - wrapRect.top) + Math.max(6, compY - height - 6);
-      const left = (rect.left - wrapRect.left) + rect.width - width - 8;
-      brandLogo.style.top = top + 'px';
-      brandLogo.style.left = left + 'px';
-    }
+    function positionBrandLogo(){ if(!brandLogo) return; const rect = canvas.getBoundingClientRect(); const wrapRect = wrapEl.getBoundingClientRect(); const compY = completionLineY(); const width = Math.round(Math.min(rect.width*0.22, 160)); brandLogo.style.width = width + 'px'; const height = brandLogo.naturalWidth && brandLogo.naturalHeight ? Math.round(width * (brandLogo.naturalHeight/brandLogo.naturalWidth)) : Math.round(width/2.5); const top = (rect.top - wrapRect.top) + Math.max(6, compY - height - 6); const left = (rect.left - wrapRect.left) + rect.width - width - 8; brandLogo.style.top = top + 'px'; brandLogo.style.left = left + 'px'; }
     if(brandLogo){ brandLogo.addEventListener('load', positionBrandLogo); }
-    // Reposition on size changes as well
-    const _oldApply = applySize; applySize = function(){ _oldApply(); positionBrandLogo(); };
+
+    const shareUI = document.getElementById('shareUI');
+    const shareName = document.getElementById('shareName');
+    const shareText = document.getElementById('shareText');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function overlayMetrics(){ const W = world.w(), H = world.h(); const cardW = Math.min(600, W-30), cardH = 260; const x=(W-cardW)/2, y=(H-cardH)/2; return {W,H,cardW,cardH,x,y}; }
+    function positionShareUI(){ if(!shareUI) return; const rect = canvas.getBoundingClientRect(); const wrapRect = wrapEl.getBoundingClientRect(); const {cardW, cardH, x, y} = overlayMetrics(); const top = (rect.top - wrapRect.top) + y + cardH + 10; const centerX = (rect.left - wrapRect.left) + x + cardW/2; shareUI.style.top = top + 'px'; shareUI.style.left = centerX + 'px'; }
+    function showShareUI(){ if(shareUI){ shareUI.hidden=false; shareUI.style.display='flex'; positionShareUI(); } }
+    function hideShareUI(){ if(shareUI){ shareUI.hidden=true; shareUI.style.display='none'; } }
+
+    function formatTime(sec){ sec=Math.max(0,Math.floor(sec)); const m=String(Math.floor(sec/60)).padStart(2,'0'); const s=String(sec%60).padStart(2,'0'); return `${m}:${s}`; }
+    function generateReport(){ const name = (shareName && shareName.value.trim()) || 'Player'; const hearts = '❤'.repeat(world.lives) + '♡'.repeat(Math.max(0,3-world.lives)); return [ `🎉 Project Completed! — Agile × PRINCE2 Mini‑Game`, `Player: ${name}`, `Projects Completed: ${world.projects}`, `Final Score: ${Math.floor(world.score)}`, `Time: ${formatTime(world.time)}`, `Lives Left: ${hearts}`, `#ProjectManagement #Agile #PRINCE2 #SkillsBootcamp` ].join('\n'); }
+    function refreshShareText(){ if(shareText) shareText.value = generateReport(); }
+    if(copyBtn){ copyBtn.addEventListener('click', async ()=>{ refreshShareText(); try{ await navigator.clipboard.writeText(shareText.value); copyBtn.textContent='✅ Copied!'; setTimeout(()=>copyBtn.textContent='📋 Copy report', 1400);}catch(e){ shareText.select(); document.execCommand('copy'); copyBtn.textContent='✅ Copied!'; setTimeout(()=>copyBtn.textContent='📋 Copy report', 1400); } }); }
+
+    const _oldApply = applySize; applySize = function(){ _oldApply(); positionBrandLogo(); positionShareUI(); };
 
     window.addEventListener('blur', ()=>{ if(state===STATE.PLAYING){ state=STATE.PAUSED; } });
     function togglePause(){ if(state===STATE.PLAYING) state=STATE.PAUSED; else if(state===STATE.PAUSED) state=STATE.PLAYING; }
 
-    // --- Helpers -----------------------------------------------------------
     function aabb(a,b){ return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
     function drawRoundRect(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
     function nowMs(){ return performance.now(); }
 
-    function drawTaskBlock(x,y,w,h,agile,lines,lh,labelFont,dueText,dueFont){
-      // glow ring
-      ctx.save(); ctx.shadowColor='rgba(34,197,94,.85)'; ctx.shadowBlur=12; ctx.lineWidth=3; ctx.strokeStyle='#22c55e'; drawRoundRect(x,y,w,h,10); ctx.stroke(); ctx.restore();
-      // fill
-      ctx.save(); drawRoundRect(x,y,w,h,10); ctx.fillStyle = agile ? 'var(--agile)' : 'var(--p2)'; ctx.fill();
-      // label
-      ctx.fillStyle='#fff'; ctx.font=labelFont; ctx.textAlign='center'; ctx.textBaseline='middle';
-      const cx=x+w/2, cy=y+h/2 - 6;
-      for(let i=0;i<lines.length;i++){ const off=(i-(lines.length-1)/2)*lh; ctx.fillText(lines[i], cx, cy+off); }
-      // due under
-      ctx.font=dueFont; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fillText(dueText, cx, y + h/2 + 14);
-      ctx.restore();
-    }
+    const cssVars = getComputedStyle(document.documentElement);
+    const COLOR = { agile: (cssVars.getPropertyValue('--agile')||'#22c3aa').trim(), p2: (cssVars.getPropertyValue('--p2')||'#7c5af5').trim(), accent: (cssVars.getPropertyValue('--accent')||'#0ea5e9').trim() };
 
-    // --- Loop --------------------------------------------------------------
+    function drawTaskBlock(x,y,w,h,agile,lines,lh,labelFont,dueText,dueFont){ ctx.save(); ctx.shadowColor='rgba(34,197,94,.85)'; ctx.shadowBlur=12; ctx.lineWidth=3; ctx.strokeStyle='#22c55e'; drawRoundRect(x,y,w,h,10); ctx.stroke(); ctx.restore(); ctx.save(); drawRoundRect(x,y,w,h,10); ctx.fillStyle = agile ? COLOR.agile : COLOR.p2; ctx.fill(); ctx.fillStyle='#fff'; ctx.font=labelFont; ctx.textAlign='center'; ctx.textBaseline='middle'; const cx=x+w/2, cy=y+h/2 - 6; for(let i=0;i<lines.length;i++){ const off=(i-(lines.length-1)/2)*lh; ctx.fillText(lines[i], cx, cy+off); } ctx.font=dueFont; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.fillText(dueText, cx, y + h/2 + 14); ctx.restore(); }
+
     let last = performance.now();
     function loop(now){ const dt=Math.min(0.033,(now-last)/1000); last=now; if(state===STATE.PLAYING){ update(dt); } render(); requestAnimationFrame(loop); }
 
-    function update(dt){
-      world.time += dt;
-      world.difficulty = 1 + Math.min(2.5, world.time/32);
-      world.spawnEvery = Math.max(260, 700 - world.time*10);
+    function update(dt){ world.time += dt; world.difficulty = 1 + Math.min(2.5, world.time/32); world.spawnEvery = Math.max(260, 700 - world.time*10); const left = keys.has('ArrowLeft')||keys.has('KeyA'); const right= keys.has('ArrowRight')||keys.has('KeyD'); let vx = 0; if(left) vx -= player.speed; if(right) vx += player.speed; player.x += vx*dt; if(player.targetX!=null){ const diff = player.targetX - player.x; player.x += diff * Math.min(1, 12*dt); } player.x = Math.max(0, Math.min(world.w()-player.w, player.x)); player.y = world.h()-player.h-18; if(nowMs() - world.lastSpawnAt > world.spawnEvery){ world.lastSpawnAt = nowMs(); spawnBlock(); } const compY = completionLineY(); for(let i=blocks.length-1;i>=0;i--){ const b=blocks[i]; b.y += b.vy*dt; if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, b)){ blocks.splice(i,1); stack.push({ w:Math.round(b.w), h:Math.round(b.h), agile:b.agile, lines:b.lines, lh:b.lh, labelFont:b.labelFont, text2:b.text2, dueFont:b.dueFont }); if((player.y - stackHeight()) <= compY){ state = STATE.SUCCESS; world.projects += 1; } continue; } if(b.y > world.h()+80){ blocks.splice(i,1); world.lives--; if(world.lives<=0){ state=STATE.GAMEOVER; } } } }
 
-      // player movement
-      const left = keys.has('ArrowLeft')||keys.has('KeyA');
-      const right= keys.has('ArrowRight')||keys.has('KeyD');
-      let vx = 0; if(left) vx -= player.speed; if(right) vx += player.speed; player.x += vx*dt;
-      if(player.targetX!=null){ const diff = player.targetX - player.x; player.x += diff * Math.min(1, 12*dt); }
-      player.x = Math.max(0, Math.min(world.w()-player.w, player.x));
-      player.y = world.h()-player.h-18;
+    function render(){ const W=world.w(), H=world.h(); ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(15,23,42,.06)'; for(let i=0;i<W;i+=24) ctx.fillRect(i,0,1,H); for(let j=0;j<H;j+=24) ctx.fillRect(0,j,W,1); const compY = completionLineY(); ctx.fillStyle='rgba(34,197,94,.7)'; ctx.fillRect(0, compY, W, 3); for(const b of blocks){ drawTaskBlock(b.x,b.y,b.w,b.h,b.agile,b.lines,b.lh,b.labelFont,b.text2,b.dueFont); } ctx.save(); drawRoundRect(player.x,player.y,player.w,player.h,10); ctx.fillStyle=COLOR.accent; ctx.fill(); ctx.restore(); let yTop=player.y; for(const s of stack){ yTop -= s.h; const x = player.x + (player.w - s.w)/2; drawTaskBlock(x,yTop,s.w,s.h,s.agile,s.lines,s.lh,s.labelFont,s.text2,s.dueFont); } drawHUD(10,10); if(state!==STATE.PLAYING){ drawOverlay(); } if(state===STATE.SUCCESS){ showShareUI(); } else { hideShareUI(); } positionBrandLogo(); }
 
-      if(nowMs() - world.lastSpawnAt > world.spawnEvery){ world.lastSpawnAt = nowMs(); spawnBlock(); }
+    function drawHUD(x,y){ const s = hudScale(); const panelH = hudHeightPx(); const panelR = 10; ctx.save(); drawRoundRect(x-6, y-6, Math.min(world.w()-20, 360*s), panelH, panelR); ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(2,6,23,.08)'; ctx.lineWidth=1; ctx.stroke(); ctx.fillStyle='#0f172a'; ctx.font = `700 ${Math.round(14*s)}px system-ui`; ctx.fillText(`Value: ${Math.floor(world.score)}`, x+6, y+4); ctx.font = `600 ${Math.round(13*s)}px system-ui`; ctx.fillStyle='#334155'; ctx.fillText(`Lives: ${'❤'.repeat(world.lives)}${'♡'.repeat(Math.max(0,3-world.lives))}`, x+6, y+24*s); ctx.fillText(`Projects Completed: ${world.projects}`, x+6, y+44*s); ctx.restore(); }
 
-      // falling tasks
-      const compY = completionLineY();
-      for(let i=blocks.length-1;i>=0;i--){ const b=blocks[i]; b.y += b.vy*dt;
-        if(aabb({x:player.x,y:player.y,w:player.w,h:player.h}, b)){
-          // stick to stack keeping exact look
-          blocks.splice(i,1);
-          stack.push({ w:Math.round(b.w), h:Math.round(b.h), agile:b.agile, lines:b.lines, lh:b.lh, labelFont:b.labelFont, text2:b.text2, dueFont:b.dueFont });
-          // SUCCESS strictly when tower hits the top line under HUD
-          if((player.y - stackHeight()) <= compY){
-            state = STATE.SUCCESS;
-            world.projects += 1;
-          }
-          continue;
-        }
-        if(b.y > world.h()+80){ blocks.splice(i,1); world.lives--; if(world.lives<=0){ state=STATE.GAMEOVER; } }
-      }
-    }
-
-    // --- Render ------------------------------------------------------------
-    function render(){
-      const W=world.w(), H=world.h();
-      ctx.clearRect(0,0,W,H);
-
-      // soft grid background
-      ctx.fillStyle='rgba(15,23,42,.06)';
-      for(let i=0;i<W;i+=24) ctx.fillRect(i,0,1,H);
-      for(let j=0;j<H;j+=24) ctx.fillRect(0,j,W,1);
-
-      // completion line just under HUD
-      const compY = completionLineY();
-      ctx.fillStyle='rgba(34,197,94,.7)'; ctx.fillRect(0, compY, W, 3);
-
-      // falling blocks
-      for(const b of blocks){
-        drawTaskBlock(b.x,b.y,b.w,b.h,b.agile,b.lines,b.lh,b.labelFont,b.text2,b.dueFont);
-      }
-
-      // player bar
-      ctx.save(); drawRoundRect(player.x,player.y,player.w,player.h,10); ctx.fillStyle='var(--accent)'; ctx.fill(); ctx.restore();
-
-      // stacked tasks: identical look & layout as when falling
-      let yTop=player.y;
-      for(const s of stack){ yTop -= s.h; const x = player.x + (player.w - s.w)/2;
-        drawTaskBlock(x,yTop,s.w,s.h,s.agile,s.lines,s.lh,s.labelFont,s.text2,s.dueFont);
-      }
-
-      drawHUD(10,10);
-      if(state!==STATE.PLAYING){ drawOverlay(); }
-      // ensure logo is always on top
-      positionBrandLogo();
-    }
-
-    function drawHUD(x,y){
-      const s = hudScale();
-      const panelH = hudHeightPx();
-      const panelR = 10;
-      // panel background to improve visibility on phones
-      ctx.save();
-      drawRoundRect(x-6, y-6, Math.min(world.w()-20, 360*s), panelH, panelR);
-      ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(2,6,23,.08)'; ctx.lineWidth=1; ctx.stroke();
-
-      // text
-      ctx.fillStyle='#0f172a';
-      ctx.font = `700 ${Math.round(14*s)}px system-ui`;
-      ctx.fillText(`Value: ${Math.floor(world.score)}`, x+6, y+4);
-      ctx.font = `600 ${Math.round(13*s)}px system-ui`;
-      ctx.fillStyle='#334155';
-      ctx.fillText(`Lives: ${'❤'.repeat(world.lives)}${'♡'.repeat(Math.max(0,3-world.lives))}`, x+6, y+24*s);
-      ctx.fillText(`Projects Completed: ${world.projects}`, x+6, y+44*s);
-      ctx.restore();
-    }
-
-    function drawOverlay(){
-      const W=world.w(), H=world.h();
-      ctx.save(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(0,0,W,H);
-      let cardW = Math.min(600, W-30);
-      let cardH = 260; // base height; we'll keep text inside via fitting/wrapping
-      const x=(W-cardW)/2, y=(H-cardH)/2; // centered
-      drawRoundRect(x,y,cardW,cardH,14); ctx.fillStyle='#fff'; ctx.fill();
-
-      const contentW = cardW - 32; // inner width safety
-
-      // title
-      ctx.fillStyle='#0f172a'; ctx.font='800 22px system-ui';
-      const title = state===STATE.MENU? 'Catch & Stack the Tasks' : state===STATE.GAMEOVER? 'Project Closed' : (state===STATE.SUCCESS? '🎉 Project Completed!' : 'Paused');
-      centerText(title, y+28);
-
-      // body
-      ctx.fillStyle='#334155';
-      if(state===STATE.SUCCESS){
-        // Fit the congratulation line so it never runs off the card
-        const msg = 'Well done! You delivered the project.';
-        const size = fittedFontSizeForWidth(msg, 800, 18, 11, contentW);
-        ctx.font = `800 ${size}px system-ui`;
-        centerText(msg, y+74);
-
-        // Wrap the two bootcamp lines to the card width (for smaller phones)
-        const bodySize = Math.max(12, Math.min(15, Math.round(size*0.9)));
-        const fnt = `700 ${bodySize}px system-ui`;
-        const lines1 = wrapTextToWidth('Why not enquire about our Project Management and IT Bootcamps', fnt, contentW);
-        const lines2 = wrapTextToWidth('to upskill on a Government Subsidised Skills Bootcamp.', fnt, contentW);
-        ctx.font = fnt;
-        let yy = y+104; const lh = Math.round(bodySize * 1.2);
-        for(const l of lines1){ centerText(l, yy); yy += lh; }
-        for(const l of lines2){ centerText(l, yy); yy += lh; }
-      } else if(state===STATE.GAMEOVER){
-        ctx.font='15px system-ui';
-        centerText('You ran out of lives — try again!', y+92);
-      } else if(state===STATE.MENU){
-        ctx.font='15px system-ui';
-        const m1='Catch and stack tasks until you touch the top line.';
-        const lines = wrapTextToWidth(m1, '15px system-ui', contentW);
-        let yy = y+92; const lh = 18; for(const l of lines){ centerText(l, yy); yy += lh; }
-        const m2='Controls: Touch · ←/→ · A/D · Mouse · Space to start';
-        const lines2 = wrapTextToWidth(m2, '15px system-ui', contentW);
-        for(const l of lines2){ centerText(l, yy); yy += lh; }
-      }
-      ctx.fillStyle='var(--accent)'; ctx.font='700 15px system-ui';
-      centerText('Tap or Space to play', y+cardH-32);
-      ctx.restore();
-    }
+    function drawOverlay(){ const W=world.w(), H=world.h(); ctx.save(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(0,0,W,H); let cardW = Math.min(600, W-30); let cardH = 260; const x=(W-cardW)/2, y=(H-cardH)/2; drawRoundRect(x,y,cardW,cardH,14); ctx.fillStyle='#fff'; ctx.fill(); const contentW = cardW - 32; ctx.fillStyle='#0f172a'; ctx.font='800 22px system-ui'; const title = state===STATE.MENU? 'Catch & Stack the Tasks' : state===STATE.GAMEOVER? 'Project Closed' : (state===STATE.SUCCESS? '🎉 Project Completed!' : 'Paused'); centerText(title, y+28); ctx.fillStyle='#334155'; if(state===STATE.SUCCESS){ const msg = 'Well done! You delivered the project.'; const size = fittedFontSizeForWidth(msg, 800, 18, 11, contentW); ctx.font = `800 ${size}px system-ui`; centerText(msg, y+74); const bodySize = Math.max(12, Math.min(15, Math.round(size*0.9))); const fnt = `700 ${bodySize}px system-ui`; const lines1 = wrapTextToWidth('Why not enquire about our Project Management and IT Bootcamps', fnt, contentW); const lines2 = wrapTextToWidth('to upskill on a Government Subsidised Skills Bootcamp.', fnt, contentW); ctx.font = fnt; let yy = y+104; const lh = Math.round(bodySize * 1.2); for(const l of lines1){ centerText(l, yy); yy += lh; } for(const l of lines2){ centerText(l, yy); yy += lh; } } else if(state===STATE.GAMEOVER){ ctx.font='15px system-ui'; centerText('You ran out of lives — try again!', y+92); } else if(state===STATE.MENU){ ctx.font='15px system-ui'; const m1='Catch and stack tasks until you touch the top line.'; const lines = wrapTextToWidth(m1, '15px system-ui', contentW); let yy = y+92; const lh = 18; for(const l of lines){ centerText(l, yy); yy += lh; } const m2='Controls: Touch · ←/→ · A/D · Mouse · Space to start'; const lines2 = wrapTextToWidth(m2, '15px system-ui', contentW); for(const l of lines2){ centerText(l, yy); yy += lh; } } ctx.fillStyle='var(--accent)'; ctx.font='700 15px system-ui'; centerText('Tap or Space to play', y+cardH-32); ctx.restore(); }
 
     function centerText(t,y){ const W=world.w(); const w=ctx.measureText(t).width; ctx.fillText(t,(W-w)/2,y); }
-    function fittedFontSizeForWidth(text, weight, maxPx, minPx, maxWidth){
-      let s = maxPx; for(; s>minPx; s--){ ctx.font = `${weight} ${s}px system-ui`; if(ctx.measureText(text).width <= maxWidth) break; }
-      return Math.max(minPx, s);
-    }
-    function wrapTextToWidth(text, font, maxWidth){
-      ctx.save(); ctx.font = font; const words = text.split(' '); const out=[]; let line='';
-      for(const w of words){ const test = line? line + ' ' + w : w; if(ctx.measureText(test).width <= maxWidth){ line = test; } else { if(line) out.push(line); line = w; } }
-      if(line) out.push(line); ctx.restore(); return out;
-    }
+    function fittedFontSizeForWidth(text, weight, maxPx, minPx, maxWidth){ let s = maxPx; for(; s>minPx; s--){ ctx.font = `${weight} ${s}px system-ui`; if(ctx.measureText(text).width <= maxWidth) break; } return Math.max(minPx, s); }
+    function wrapTextToWidth(text, font, maxWidth){ ctx.save(); ctx.font = font; const words = text.split(' '); const out=[]; let line=''; for(const w of words){ const test = line? line + ' ' + w : w; if(ctx.measureText(test).width <= maxWidth){ line = test; } else { if(line) out.push(line); line = w; } } if(line) out.push(line); ctx.restore(); return out; }
 
-    // --- Tiny runtime tests (opt-in) --------------------------------------
-    (function runTests(){
-      if(!DEBUG) return;
-      console.log('[tests] start');
-      const m = measureTask('Do', 'D+123456');
-      ctx.save(); ctx.font='600 11px system-ui'; const dueW = ctx.measureText('D+123456').width; ctx.restore();
-      console.assert(m.width >= dueW, 'width covers due text');
-      const before = blocks.length; spawnBlock(); console.assert(blocks.length===before+1, 'spawnBlock pushes a block'); blocks.pop();
-      console.assert(aabb({x:0,y:0,w:10,h:10},{x:5,y:5,w:10,h:10})===true, 'aabb overlap true');
-      console.assert(aabb({x:0,y:0,w:10,h:10},{x:20,y:20,w:5,h:5})===false, 'aabb no overlap');
-      // completion line sanity
-      const cy = completionLineY(); console.assert(cy>0 && cy < canvas.clientHeight, 'completion line within canvas');
-      // extra: HUD vs completion line ordering
-      console.assert(completionLineY() > 0 && completionLineY() > (hudHeightPx()-1), 'completion line below HUD');
-      // NEW: resize idempotence test – calling twice shouldn't change canvas size
-      const cw1 = canvas.width, ch1 = canvas.height; applySize(); const cw2 = canvas.width, ch2 = canvas.height; console.assert(cw1===cw2 && ch1===ch2, 'applySize is idempotent');
-      // NEW: fitted font should not exceed container
-      const testMsg = 'Well done! You delivered the project.'; const innerW = 400; const s = fittedFontSizeForWidth(testMsg, 800, 22, 10, innerW); ctx.font = `800 ${s}px system-ui`; console.assert(ctx.measureText(testMsg).width <= innerW, 'fitted font within bounds');
-      // NEW: wrap respects max width
-      const lines = wrapTextToWidth('Controls: Touch ←/→ A/D Mouse Space to start', '15px system-ui', 240); ctx.font='15px system-ui'; console.assert(lines.every(l=>ctx.measureText(l).width<=240), 'wrapTextToWidth respects width');
-      // NEW: brandLogo exists
-      console.assert(!!document.getElementById('brandLogo'), 'brandLogo present');
-      console.log('[tests] OK');
-    })();
-
-    // --- Kick off ----------------------------------------------------------
     player.reset(); requestAnimationFrame(loop);
   })();
   </script>
 </body>
 </html>
+
