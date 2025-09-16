@@ -31,8 +31,8 @@
     .fs-btn:active{transform:translateY(1px)}
     @media (pointer:coarse){ .fs-btn{display:inline-flex; align-items:center; gap:8px;} }
     body{overscroll-behavior:contain;}
-  .corner-logo{position:absolute; z-index:100; pointer-events:none; display:block; max-width:40vw; height:auto; image-rendering:auto;}
-</style>
+    .corner-logo{position:absolute; z-index:100; pointer-events:none; display:block; max-width:40vw; height:auto; image-rendering:auto;}
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -120,7 +120,7 @@
     // top completion line (just under HUD panel)
     function completionLineY(){ return hudHeightPx() + 6; }
 
-    // --- LOGO --------------------------------------------------------------
+    // --- LOGO (image also preloaded for aspect) ---------------------------
     const LOGO_URL = 'https://trainingprovider.com/wp-content/uploads/2024/06/BIT-Training-logo-variants-14-1.png';
     const logoImg = new Image();
     logoImg.crossOrigin = 'anonymous';
@@ -370,24 +370,47 @@
     function drawOverlay(){
       const W=world.w(), H=world.h();
       ctx.save(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fillRect(0,0,W,H);
-      const cardW=Math.min(600,W-30), cardH= 260, x=(W-cardW)/2, y=(H-cardH)/2; // centered
+      let cardW = Math.min(600, W-30);
+      let cardH = 260; // base height; we'll keep text inside via fitting/wrapping
+      const x=(W-cardW)/2, y=(H-cardH)/2; // centered
       drawRoundRect(x,y,cardW,cardH,14); ctx.fillStyle='#fff'; ctx.fill();
+
+      const contentW = cardW - 32; // inner width safety
+
+      // title
       ctx.fillStyle='#0f172a'; ctx.font='800 22px system-ui';
       const title = state===STATE.MENU? 'Catch & Stack the Tasks' : state===STATE.GAMEOVER? 'Project Closed' : (state===STATE.SUCCESS? '🎉 Project Completed!' : 'Paused');
       centerText(title, y+28);
+
+      // body
       ctx.fillStyle='#334155';
       if(state===STATE.SUCCESS){
-        ctx.font='800 18px system-ui'; // bold & slightly larger
-        centerText('Well done! You delivered the project.', y+74);
-        centerText('Why not enquire about our Project Management and IT Bootcamps', y+104);
-        centerText('to upskill on a Government Subsidised Skills Bootcamp.', y+126);
+        // Fit the congratulation line so it never runs off the card
+        const msg = 'Well done! You delivered the project.';
+        const size = fittedFontSizeForWidth(msg, 800, 18, 11, contentW);
+        ctx.font = `800 ${size}px system-ui`;
+        centerText(msg, y+74);
+
+        // Wrap the two bootcamp lines to the card width (for smaller phones)
+        const bodySize = Math.max(12, Math.min(15, Math.round(size*0.9)));
+        const fnt = `700 ${bodySize}px system-ui`;
+        const lines1 = wrapTextToWidth('Why not enquire about our Project Management and IT Bootcamps', fnt, contentW);
+        const lines2 = wrapTextToWidth('to upskill on a Government Subsidised Skills Bootcamp.', fnt, contentW);
+        ctx.font = fnt;
+        let yy = y+104; const lh = Math.round(bodySize * 1.2);
+        for(const l of lines1){ centerText(l, yy); yy += lh; }
+        for(const l of lines2){ centerText(l, yy); yy += lh; }
       } else if(state===STATE.GAMEOVER){
         ctx.font='15px system-ui';
         centerText('You ran out of lives — try again!', y+92);
       } else if(state===STATE.MENU){
         ctx.font='15px system-ui';
-        centerText('Catch and stack tasks until you touch the top line.', y+92);
-        centerText('Controls: Touch · ←/→ · A/D · Mouse · Space to start', y+116);
+        const m1='Catch and stack tasks until you touch the top line.';
+        const lines = wrapTextToWidth(m1, '15px system-ui', contentW);
+        let yy = y+92; const lh = 18; for(const l of lines){ centerText(l, yy); yy += lh; }
+        const m2='Controls: Touch · ←/→ · A/D · Mouse · Space to start';
+        const lines2 = wrapTextToWidth(m2, '15px system-ui', contentW);
+        for(const l of lines2){ centerText(l, yy); yy += lh; }
       }
       ctx.fillStyle='var(--accent)'; ctx.font='700 15px system-ui';
       centerText('Tap or Space to play', y+cardH-32);
@@ -395,6 +418,15 @@
     }
 
     function centerText(t,y){ const W=world.w(); const w=ctx.measureText(t).width; ctx.fillText(t,(W-w)/2,y); }
+    function fittedFontSizeForWidth(text, weight, maxPx, minPx, maxWidth){
+      let s = maxPx; for(; s>minPx; s--){ ctx.font = `${weight} ${s}px system-ui`; if(ctx.measureText(text).width <= maxWidth) break; }
+      return Math.max(minPx, s);
+    }
+    function wrapTextToWidth(text, font, maxWidth){
+      ctx.save(); ctx.font = font; const words = text.split(' '); const out=[]; let line='';
+      for(const w of words){ const test = line? line + ' ' + w : w; if(ctx.measureText(test).width <= maxWidth){ line = test; } else { if(line) out.push(line); line = w; } }
+      if(line) out.push(line); ctx.restore(); return out;
+    }
 
     // --- Tiny runtime tests (opt-in) --------------------------------------
     (function runTests(){
@@ -412,6 +444,12 @@
       console.assert(completionLineY() > 0 && completionLineY() > (hudHeightPx()-1), 'completion line below HUD');
       // NEW: resize idempotence test – calling twice shouldn't change canvas size
       const cw1 = canvas.width, ch1 = canvas.height; applySize(); const cw2 = canvas.width, ch2 = canvas.height; console.assert(cw1===cw2 && ch1===ch2, 'applySize is idempotent');
+      // NEW: fitted font should not exceed container
+      const testMsg = 'Well done! You delivered the project.'; const innerW = 400; const s = fittedFontSizeForWidth(testMsg, 800, 22, 10, innerW); ctx.font = `800 ${s}px system-ui`; console.assert(ctx.measureText(testMsg).width <= innerW, 'fitted font within bounds');
+      // NEW: wrap respects max width
+      const lines = wrapTextToWidth('Controls: Touch ←/→ A/D Mouse Space to start', '15px system-ui', 240); ctx.font='15px system-ui'; console.assert(lines.every(l=>ctx.measureText(l).width<=240), 'wrapTextToWidth respects width');
+      // NEW: brandLogo exists
+      console.assert(!!document.getElementById('brandLogo'), 'brandLogo present');
       console.log('[tests] OK');
     })();
 
