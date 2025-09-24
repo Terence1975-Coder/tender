@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ThinkBit Bootcamp Evidence Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="dark">
+  <style>
+    .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+    .input { @apply bg-slate-800/60 text-sky-100 rounded-xl px-3 py-2 outline-none border border-slate-700 focus:border-sky-400 w-full; }
+    .btn-primary { @apply bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold px-4 py-2 rounded-xl; }
+    .btn-outline { @apply border border-sky-500/40 text-sky-200 px-4 py-2 rounded-xl hover:bg-sky-500/10; }
+    .link-chip { @apply bg-slate-800/70 px-3 py-2 rounded-lg border border-slate-700; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-sky-200">
+  <!-- Top Nav -->
+  <nav class="p-4 text-center text-sky-300 flex items-center justify-center gap-6">
+    <a href="#" id="navUpload" class="hover:underline">Upload</a>
+    <a href="#" id="navAdmin" class="hover:underline">Admin</a>
+  </nav>
+
+  <!-- Upload Page -->
+  <main id="page-upload" class="flex items-center justify-center p-6">
+    <form id="uploadForm" class="w-full max-w-2xl glass rounded-2xl p-6 shadow-xl border border-sky-500/20" novalidate>
+      <h1 class="text-3xl font-bold text-sky-300 mb-4">Submit Your Work</h1>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <label class="sr-only" for="firstName">First name</label>
+        <input id="firstName" name="firstName" class="input" placeholder="First name" autocomplete="given-name" required />
+        <label class="sr-only" for="surname">Surname</label>
+        <input id="surname" name="surname" class="input" placeholder="Surname" autocomplete="family-name" required />
+        <label class="sr-only" for="email">Email</label>
+        <input id="email" name="email" type="email" class="input" placeholder="Your email" autocomplete="email" required />
+      </div>
+
+      <div id="projects" class="space-y-3" aria-live="polite"></div>
+
+      <div class="flex items-center gap-3 mt-2 mb-4">
+        <button type="button" id="addBtn" class="btn-outline">+ Add Project</button>
+        <span class="text-xs text-slate-400">Attach files (PDF/Word/PNG/JPG/WebP) and/or paste links</span>
+      </div>
+
+      <p id="err" class="text-rose-400 mb-3" role="alert"></p>
+      <button class="btn-primary w-full" id="submitBtn">
+        <span id="submitText">Submit</span>
+        <span id="spinner" class="hidden animate-pulse"> …</span>
+      </button>
+
+      <p class="text-xs text-slate-400 mt-3">
+        By submitting, you agree we’ll email your evidence to
+        <strong>terence.herbert@thinkbitgroup.co.uk</strong> &amp;
+        <strong>bootcamps@bluescreenit.co.uk</strong> and send you a receipt.
+      </p>
+    </form>
+  </main>
+
+  <!-- Success Page -->
+  <section id="page-success" class="hidden flex items-center justify-center p-6">
+    <div class="w-full max-w-2xl glass rounded-2xl p-6 shadow-xl border border-emerald-500/20 text-center">
+      <div class="text-6xl mb-2">✓</div>
+      <h1 class="text-3xl font-bold text-sky-300 mb-4">Submission received</h1>
+      <h2 class="text-xl mb-3">Next Week's Session Links</h2>
+      <ul id="success-links" class="text-left space-y-2 mb-4"></ul>
+      <div class="flex items-center justify-center gap-3">
+        <button id="copyAll" class="btn-primary">Copy All</button>
+        <button id="backHome" class="btn-outline">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin Page (client-side only) -->
+  <section id="page-admin" class="hidden p-6 flex justify-center">
+    <div class="max-w-3xl w-full space-y-6">
+      <div class="glass rounded-2xl p-6 border border-sky-500/20">
+        <h1 class="text-3xl font-bold mb-2">Admin</h1>
+        <div class="flex items-end gap-3">
+          <div class="grow">
+            <label class="block text-sm mb-1" for="adminPin">Enter PIN</label>
+            <input id="adminPin" class="input w-40" inputmode="numeric" placeholder="1975" />
+          </div>
+          <button id="adminUnlock" class="btn-primary">Unlock</button>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Client-side only. Do not store secrets here.</p>
+      </div>
+
+      <div id="adminPanels" class="hidden space-y-6">
+        <div class="glass rounded-2xl p-6 border border-sky-500/20">
+          <h2 class="text-xl mb-3">Next Week's Session Links</h2>
+          <p class="text-xs text-slate-400 mb-2">One link per line. Saved locally in your browser.</p>
+          <textarea id="linksText" class="input min-h-[160px]" placeholder="https://example.com..."></textarea>
+          <div class="mt-3 flex gap-3">
+            <button id="saveLinks" class="btn-primary">Save</button>
+            <span id="adminMsg" class="text-emerald-400"></span>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-6 border border-sky-500/20">
+          <h2 class="text-xl mb-3">Email / API Settings (Display Only)</h2>
+          <p class="text-xs text-slate-400 mb-2">
+            This static page can’t send emails itself. It POSTs to <code>API_BASE</code>.
+            Change <code>API_BASE</code> in the script below to your backend endpoint.
+          </p>
+          <div class="grid md:grid-cols-2 gap-3">
+            <input id="sender" class="input" placeholder="Sender (display only)" />
+            <input id="cc" class="input" placeholder="CC (comma-separated, display only)" />
+          </div>
+          <p class="text-xs text-slate-400 mt-2">These values are stored locally for your reference only.</p>
+          <div class="mt-3">
+            <button id="saveEmailLocals" class="btn-outline">Save locally</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    /***************************
+     * CONFIG – EDIT THIS
+     ***************************/
+    // TODO: Point this at your backend. For the Node single-file server, this would be the same origin: ''
+    // Example: const API_BASE = 'https://your-domain.example/api';
+    const API_BASE = ''; // empty = same origin. For static hosting, set to your API URL.
+    const SUBMIT_ENDPOINT = (API_BASE || '') + '/api/submit';     // POST (multipart/form-data)
+    const ADMIN_LINKS_ENDPOINT = (API_BASE || '') + '/api/admin/config/links'; // optional if you have a server
+
+    const ADMIN_PIN_CODE = '1975';
+
+    /***************************
+     * STATE / STORAGE
+     ***************************/
+    const LS_KEYS = {
+      links: 'tb_next_week_links',
+      sender: 'tb_sender',
+      cc: 'tb_cc'
+    };
+
+    const getLinks = () => {
+      const raw = localStorage.getItem(LS_KEYS.links);
+      if (raw) return JSON.parse(raw);
+      // defaults
+      return [
+        'https://example.com/prep',
+        'https://example.com/slides',
+        'https://example.com/resources'
+      ];
+    };
+    const setLinks = (arr) => localStorage.setItem(LS_KEYS.links, JSON.stringify(arr));
+
+    const setLocal = (k,v)=>localStorage.setItem(k, v);
+    const getLocal = (k)=>localStorage.getItem(k) || '';
+
+    /***************************
+     * NAV
+     ***************************/
+    const pageUpload = document.getElementById('page-upload');
+    const pageSuccess = document.getElementById('page-success');
+    const pageAdmin = document.getElementById('page-admin');
+    const show = (el) => { [pageUpload,pageSuccess,pageAdmin].forEach(e=>e.classList.add('hidden')); el.classList.remove('hidden'); };
+
+    document.getElementById('navUpload').addEventListener('click', e => { e.preventDefault(); show(pageUpload); });
+    document.getElementById('navAdmin').addEventListener('click', e => { e.preventDefault(); show(pageAdmin); });
+
+    /***************************
+     * UPLOAD FORM
+     ***************************/
+    const projects = document.getElementById('projects');
+    const addBtn = document.getElementById('addBtn');
+    const errEl = document.getElementById('err');
+    const spinner = document.getElementById('spinner');
+    const submitText = document.getElementById('submitText');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function addProject(){
+      const idx = projects.children.length + 1;
+      const wrap = document.createElement('div');
+      wrap.className = 'p-3 rounded-xl border border-sky-500/10';
+      wrap.innerHTML = `
+        <label class="block text-sm mb-1">Project ${idx}</label>
+        <input type="file" name="files" class="block w-full mb-2" aria-label="Upload file for project ${idx}" />
+        <input class="input w-full" name="link" placeholder="Paste link (optional)" aria-label="Link for project ${idx}" />`;
+      projects.appendChild(wrap);
+    }
+    addBtn.addEventListener('click', addProject);
+    addProject(); // at least one
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      submitBtn.disabled = true; spinner.classList.remove('hidden'); submitText.classList.add('hidden');
+
+      const form = new FormData(e.target);
+      const linkEls = projects.querySelectorAll('input[name="link"]');
+      const links = Array.from(linkEls).map(i => i.value.trim()).filter(Boolean);
+      form.append('links', JSON.stringify(links));
+
+      try {
+        // If you host this HTML on a static site, SUBMIT_ENDPOINT must be a full URL to your backend.
+        const res = await fetch(SUBMIT_ENDPOINT, { method: 'POST', body: form });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        // Show success with links (from local storage admin panel)
+        renderSuccess(getLinks());
+        show(pageSuccess);
+      } catch (err) {
+        errEl.textContent = err.message || 'Failed to submit';
+      } finally {
+        submitBtn.disabled = false; spinner.classList.add('hidden'); submitText.classList.remove('hidden');
+      }
+    });
+
+    /***************************
+     * SUCCESS
+     ***************************/
+    const successList = document.getElementById('success-links');
+    function renderSuccess(links) {
+      successList.innerHTML = links.map(l => `
+        <li class="truncate"><a class="underline" href="${l}" target="_blank" rel="noopener">${l}</a></li>
+      `).join('');
+    }
+    document.getElementById('copyAll').addEventListener('click', async () => {
+      const links = getLinks();
+      await navigator.clipboard.writeText(links.join('\n'));
+      alert('Links copied');
+    });
+    document.getElementById('backHome').addEventListener('click', () => show(pageUpload));
+
+    /***************************
+     * ADMIN (client-side only)
+     ***************************/
+    const adminUnlock = document.getElementById('adminUnlock');
+    const adminPanels = document.getElementById('adminPanels');
+    const adminMsg = document.getElementById('adminMsg');
+    const linksText = document.getElementById('linksText');
+    const saveLinksBtn = document.getElementById('saveLinks');
+
+    const senderEl = document.getElementById('sender');
+    const ccEl = document.getElementById('cc');
+    const saveEmailLocals = document.getElementById('saveEmailLocals');
+
+    function loadAdminLocals(){
+      linksText.value = getLinks().join('\n');
+      senderEl.value = getLocal(LS_KEYS.sender);
+      ccEl.value = getLocal(LS_KEYS.cc);
+    }
+    loadAdminLocals();
+
+    adminUnlock.addEventListener('click', () => {
+      const pin = document.getElementById('adminPin').value.trim();
+      if (pin === ADMIN_PIN_CODE) {
+        adminPanels.classList.remove('hidden');
+        adminMsg.textContent = '';
+      } else {
+        adminPanels.classList.add('hidden');
+        adminMsg.textContent = 'Invalid PIN';
+      }
+    });
+
+    saveLinksBtn.addEventListener('click', async () => {
+      const list = linksText.value.split('\n').map(s => s.trim()).filter(Boolean);
+      setLinks(list);
+      adminMsg.textContent = 'Links saved locally';
+
+      // If you have a real backend admin endpoint and want to persist server-side too:
+      // try {
+      //   const r = await fetch(ADMIN_LINKS_ENDPOINT, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': ADMIN_PIN_CODE },
+      //     body: JSON.stringify({ links: list })
+      //   });
+      //   if (r.ok) adminMsg.textContent = 'Links saved (server + local)';
+      // } catch (_) {}
+    });
+
+    saveEmailLocals.addEventListener('click', () => {
+      setLocal(LS_KEYS.sender, senderEl.value.trim());
+      setLocal(LS_KEYS.cc, ccEl.value.trim());
+      alert('Saved locally.');
+    });
+  </script>
+</body>
+</html>
+
