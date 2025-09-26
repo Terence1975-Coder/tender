@@ -5,39 +5,37 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Launch Control — 14-Day AI Business</title>
-<meta name="description" content="14-Day Launch Control checklist app with Firebase sync and built-in playbook."/>
+<meta name="description" content="Multi-project 14-Day Launch Control with Firebase sync and per-day tabs."/>
 <style>
-  :root{
-    --bg:#0b1020; --card:#0f172a; --text:#e6f0ff; --dim:#a9b6d3; --border:#1f2a44;
-    --blue:#3b82f6; --green:#10b981; --purple:#8b5cf6; --red:#ef4444;
-    --grad:linear-gradient(135deg,var(--blue),var(--green),var(--purple)); --shadow:0 10px 30px rgba(0,0,0,.35);
-  }
+  :root{--bg:#0b1020;--card:#0f172a;--text:#e6f0ff;--dim:#a9b6d3;--border:#1f2a44;
+    --blue:#3b82f6;--green:#10b981;--purple:#8b5cf6;--red:#ef4444;
+    --grad:linear-gradient(135deg,var(--blue),var(--green),var(--purple));--shadow:0 10px 30px rgba(0,0,0,.35)}
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:
     radial-gradient(1200px 800px at 15% -10%,rgba(59,130,246,.18),transparent),
     radial-gradient(1200px 800px at 85% 110%,rgba(139,92,246,.16),transparent), #0b1020;
     color:var(--text); font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  a{color:var(--blue)}
-  .wrap{max-width:1150px;margin:0 auto;padding:24px}
+  a{color:var(--blue)} .wrap{max-width:1200px;margin:0 auto;padding:24px}
   .header{display:flex;align-items:center;gap:16px;padding:16px 20px;background:
     linear-gradient(0deg,rgba(16,22,42,.65),rgba(16,22,42,.65)),var(--grad);
     border-radius:18px; box-shadow:var(--shadow)}
-  .title{font-weight:700;font-size:20px}
-  .subtitle{opacity:.9;font-size:12px}
-  .tabs{margin-left:auto;display:flex;gap:8px}
-  .tab{all:unset;padding:8px 10px;border-radius:10px;background:#0e162b;border:1px solid var(--border);cursor:pointer}
-  .tab.active{background:var(--grad);color:#fff;border:none}
-  .bar{margin:16px 0 22px;background:
+  .title{font-weight:700;font-size:20px} .subtitle{opacity:.9;font-size:12px}
+  .project{margin-left:auto; display:flex; gap:8px; align-items:center}
+  select, .input{background:#0e162b;border:1px solid var(--border);color:#e6f0ff;border-radius:10px;padding:8px}
+  .btn{all:unset;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;background:#0f172a;border:1px solid var(--border);border-radius:10px;cursor:pointer}
+  .btn:hover{background:#111a30} .btn.primary{background:var(--grad);border:none;color:#fff}
+  .bar{margin:14px 0 12px;background:
     linear-gradient(135deg,rgba(59,130,246,.15),rgba(16,185,129,.15),rgba(139,92,246,.15));
-    border:1px solid var(--border); padding:14px; border-radius:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    border:1px solid var(--border); padding:10px 12px; border-radius:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;background:#0e162b;border:1px solid var(--border);color:#a9b6d3;font-size:12px}
   .pill.ok{background:rgba(16,185,129,.1); color:#b8f8dd; border-color:rgba(16,185,129,.35)}
   .pill.warn{background:rgba(59,130,246,.1); color:#cfe1ff; border-color:rgba(59,130,246,.35)}
   .pill.err{background:rgba(239,68,68,.1); color:#ffd0d0; border-color:rgba(239,68,68,.35)}
   .actions{margin-left:auto; display:flex; gap:8px}
-  button{all:unset; display:inline-flex; align-items:center; gap:8px; padding:10px 12px; background:#0f172a; border:1px solid var(--border); border-radius:12px; cursor:pointer}
-  button:hover{background:#121a31} .btn-primary{background:var(--grad); color:white; border:none}
-  .grid{display:grid; grid-template-columns: 320px 1fr; gap:16px}
+  .tabs{display:flex; gap:8px; overflow:auto; padding-bottom:6px; margin-bottom:12px}
+  .tab{all:unset;padding:8px 12px;background:#0e162b;border:1px solid var(--border);color:#cfe1ff;border-radius:999px;white-space:nowrap;cursor:pointer}
+  .tab.active{background:var(--grad);border:none;color:#fff}
+  .grid{display:grid; grid-template-columns: 330px 1fr; gap:16px}
   .card{background:linear-gradient(180deg,rgba(16,22,42,.65),rgba(16,22,42,.75)); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:var(--shadow)}
   .sticky{position:sticky; top:14px}
   .h{margin:0 0 10px; font-size:13px; color:#cfe1ff; letter-spacing:.3px; text-transform:uppercase}
@@ -45,52 +43,64 @@
   .progress>span{display:block; height:100%; background:var(--grad)}
   input[type="text"],input[type="email"],textarea,.search{width:100%; background:#0b1429; border:1px solid var(--border); border-radius:10px; color:#e6f0ff; padding:10px}
   .day{border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:12px}
-  .day summary{list-style:none; cursor:pointer; padding:14px 14px; background:rgba(11,20,41,.55); display:flex; align-items:center; gap:10px}
-  .day summary::-webkit-details-marker{display:none}
-  .k{display:inline-flex; width:20px; height:20px; align-items:center; justify-content:center; border-radius:6px;background:rgba(59,130,246,.18); border:1px solid rgba(59,130,246,.4); color:#cfe1ff; font-weight:700}
   .task{display:flex; gap:12px; align-items:flex-start; padding:12px; border-top:1px solid var(--border); background:rgba(10,16,32,.35)}
   .check{width:18px;height:18px;border-radius:5px;border:1px solid var(--border); background:#0d1530; display:inline-flex; align-items:center; justify-content:center; cursor:pointer}
   .check.done{background:linear-gradient(135deg,rgba(16,185,129,.7),rgba(59,130,246,.7))}
   .task-title{font-weight:600} .muted{color:#a9b6d3; font-size:12px}
-  .list{display:grid; gap:6px}
-  .sub{display:flex; gap:8px; align-items:center} .sub input{accent-color:#10b981; width:16px; height:16px}
-  .section{padding:12px 12px 14px 38px; display:grid; gap:10px; background:rgba(12,18,34,.5); border-top:1px dashed #253253}
+  .section{padding:12px; display:grid; gap:10px; background:rgba(12,18,34,.5); border-top:1px dashed #253253; border-radius:12px}
+  .list{display:grid; gap:6px} .sub{display:flex; gap:8px; align-items:center}
+  .sub input{accent-color:#10b981; width:16px; height:16px}
   .badge{font-size:10px; padding:2px 6px; border-radius:999px; background:#0c1530; border:1px solid var(--border); color:#cfe1ff}
   .link{display:flex; gap:8px; align-items:center}
   .code{background:#0a1328; border:1px solid var(--border); border-radius:10px; padding:10px; overflow:auto; white-space:pre-wrap}
   .playbook{white-space:pre-wrap; background:#0a1328; border:1px solid var(--border); border-radius:12px; padding:14px; line-height:1.55}
   .error-overlay{position:fixed;bottom:12px;left:12px;max-width:560px;background:#2b0b13;border:1px solid rgba(239,68,68,.45);color:#ffd0d0;
     padding:10px 12px;border-radius:10px;font:12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.4);display:none}
-  @media (max-width: 980px){ .grid{grid-template-columns:1fr} .sticky{position:static} .tabs{margin:10px 0 0 0} }
+  @media (max-width: 980px){ .grid{grid-template-columns:1fr} .sticky{position:static} }
 </style>
-<!-- React (UMD) -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<!-- Firebase compat (UMD) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="root"></div>
 <div id="err" class="error-overlay"></div>
 
 <script>
-/* Minimal “why” comments only. */
+/* errors overlay (why: GH Pages hides console) */
 window.addEventListener("error", e=>{
   const el=document.getElementById("err"); el.textContent="Error: "+(e.error?.message||e.message); el.style.display="block";
 });
 const deepClone=v=>JSON.parse(JSON.stringify(v));
 const debounce=(fn,ms=500)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}};
 const nowIso=()=>new Date().toISOString();
+const slugify=(s,used=new Set())=>{
+  let x=(s||"project").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||"project";
+  let i=2,base=x; while(used.has(x)) x=`${base}-${i++}`; return x;
+};
 
-/* === Playbook body (personalised at runtime) === */
+/* ===== Playbook (personalised at runtime) ===== */
 const PLAYBOOK_MD = `
 14-Day Zero-Capex AI Business — E-commerce Micro-Brands (Global)
-…(trimmed for brevity in UI; copy includes Exec Summary, Stack, Offers, ICP, Landing copy, SOPs, Emails, Social, Automations, Metrics, Legal, Finance, 14-Day rollout, Risks)…
+
+Target: Shopify/Woo micro-brands (1–10 employees). Tools: Notion/Carrd, Tally, Buttondown/Gmail, Stripe/Payhip, Calendly, Google Workspace, Apps Script, GitHub, LinkedIn/X/YouTube.
+
+1) Executive Summary
+Launch **{{brand}}** — a zero-capex enablement service that installs an AI Growth Stack in 14 days. Deliver: hub + lead magnet + nurture + checkout + automations + dashboard + legal. Offers: DWY £149/£49mo, DFY £350–£650/mo, Sprint £1,500. Guarantee: “100 targeted visitors + 5 leads in 14 days or we keep working free (scope-capped).”
+
+2) Stack Diagram
+Visitor → Landing → Form → Buttondown → Nurture → Checkout
+                  ↓                              ↓
+              Calendly                       Apps Script
+                  ↓                              ↓
+            DWY Call (Meet)        Run Log + Dashboard (Google Sheet)
+
+3) Value Prop / Offers / ICP / Landing copy / SOPs / Emails / Social / Automations / Metrics / Legal / Finance / 14-Day rollout / Risks — included below in your Checklist and templates.
 `;
 
-/* === FULL 14-DAY CHECKLIST — detailed actions, prompts, links === */
+/* ===== Full 14-day breakdown ===== */
 const DAYS = [
   { day:1, title:"Niche & Foundations", tasks:[
     {id:"d1t1",title:"Confirm niche + 3 competitor teardowns",desc:"Pick DTC micro-brands; document gaps → hooks.",
@@ -99,8 +109,7 @@ const DAYS = [
         {id:"d1t1s2",t:"Find 3 competitors (Shopify/Woo)"},
         {id:"d1t1s3",t:"Screenshot home/product/checkout"},
         {id:"d1t1s4",t:"List 5 copy gaps & 3 friction points"},
-        {id:"d1t1s5",t:"Draft hooks from gaps"}
-      ],
+        {id:"d1t1s5",t:"Draft hooks from gaps"}],
       prompts:[
         "Give me an ICP for {{brand}} targeting {{niche}}: pains, triggers, objections, buying committee, messages.",
         "Tear down {{url}} with 5 copy fixes, 3 friction removals, 3 social proof ideas."
@@ -113,13 +122,11 @@ const DAYS = [
         {id:"d1t2s2",t:"Add Dashboard tab + charts"},
         {id:"d1t2s3",t:"Add UTM/source columns"},
         {id:"d1t2s4",t:"Add metrics: MQLs, CVR, MRR, churn"},
-        {id:"d1t2s5",t:"Share to yourself (owner)"}
-      ],
+        {id:"d1t2s5",t:"Share to yourself (owner)"}],
       prompts:["Design a minimal metrics schema for K-factor, MRR, churn, signups."],
       links:[{label:"Dashboard schema (see footer)",url:"#dashboard-spec"}]
     }
   ]},
-
   { day:2, title:"Brand & Hub", tasks:[
     {id:"d2t1",title:"Name, tagline, logo",desc:"Text-logo + palette (blue/green/purple).",
       subtasks:[
@@ -127,33 +134,27 @@ const DAYS = [
         {id:"d2t1s2",t:"Check .notion.site/.carrd availability"},
         {id:"d2t1s3",t:"Pick tagline"},
         {id:"d2t1s4",t:"Export SVG logo + favicon"},
-        {id:"d2t1s5",t:"Create brand doc (palette/usage)"}
-      ],
-      prompts:["Create 10 brand names + taglines for {{niche}}; tone: technical, trustworthy."],
-      links:[{label:"Brand check tips",url:"#"}]
-    },
+        {id:"d2t1s5",t:"Create brand doc (palette/usage)"}],
+      prompts:["Create 10 brand names + taglines for {{niche}}; tone: technical, trustworthy."]},
     {id:"d2t2",title:"Publish hub (Notion/Carrd)",desc:"One-scroll landing with CTAs.",
       subtasks:[
         {id:"d2t2s1",t:"Hero + sub-hero + CTA"},
         {id:"d2t2s2",t:"Features/value bullets"},
         {id:"d2t2s3",t:"Pricing block"},
         {id:"d2t2s4",t:"FAQ + guarantee"},
-        {id:"d2t2s5",t:"Legal footer (ToS/Privacy/Cookie/DPA)"}
-      ],
+        {id:"d2t2s5",t:"Legal footer (ToS/Privacy/Cookie/DPA)"}],
       prompts:["Write a 1-liner value prop for {{brand}} in British English."],
       links:[{label:"Landing copy anchor",url:"#landing"}]
     }
   ]},
-
   { day:3, title:"Offer & Pricing", tasks:[
     {id:"d3t1",title:"Offer ladder & guarantee",desc:"Free → DWY → DFY → Sprint.",
       subtasks:[
         {id:"d3t1s1",t:"Define deliverables per tier"},
-        {id:"d3t1s2",t:"Set prices (£149/£49/mo; £350–£650; £1,500)"},
+        {id:"d3t1s2",t:"Set prices (£149/£49mo; £350–£650; £1,500)"},
         {id:"d3t1s3",t:"Write measurable guarantee"},
         {id:"d3t1s4",t:"Build pricing table"},
-        {id:"d3t1s5",t:"Publish to hub"}
-      ],
+        {id:"d3t1s5",t:"Publish to hub"}],
       prompts:["Draft guarantee: '100 targeted visitors + 5 leads in 14 days' with scope limits."],
       links:[{label:"Pricing model sheet",url:"#finance"}]
     },
@@ -163,21 +164,18 @@ const DAYS = [
         {id:"d3t2s2",t:"Add lawful bases (contract, LI, consent)"},
         {id:"d3t2s3",t:"Add sub-processors (Stripe/Buttondown/Tally)"},
         {id:"d3t2s4",t:"Publish ToS/Privacy/Cookie/DPA"},
-        {id:"d3t2s5",t:"Link in footer"}
-      ],
+        {id:"d3t2s5",t:"Link in footer"}],
       prompts:["Summarise UK GDPR bases of processing for leads and clients."],
       links:[{label:"Privacy draft",url:"#legal"}]
     }
   ]},
-
   { day:4, title:"Lead Magnet (plan)", tasks:[
     {id:"d4t1",title:"Outline 'AI SOP Pack'",desc:"6 SOPs aligned to quick wins.",
       subtasks:[
         {id:"d4t1s1",t:"Choose 6 SOP topics"},
         {id:"d4t1s2",t:"Define inputs/outputs per SOP"},
         {id:"d4t1s3",t:"Design cover + section layout"},
-        {id:"d4t1s4",t:"Create Google Doc master"}
-      ],
+        {id:"d4t1s4",t:"Create Google Doc master"}],
       prompts:["Propose 6 SOPs with outcomes, inputs, steps, QA."],
       links:[{label:"SOP template",url:"#sops"}]
     },
@@ -187,13 +185,9 @@ const DAYS = [
         {id:"d4t2s2",t:"Product Copy & A/B"},
         {id:"d4t2s3",t:"List Capture + 5-email Welcome"},
         {id:"d4t2s4",t:"QA pass + screenshots"},
-        {id:"d4t2s5",t:"Insert prompt blocks"}
-      ],
-      prompts:["Write a <200 char DM for micro-creators in {{niche}}."],
-      links:[{label:"Example DM",url:"#"}]
-    }
+        {id:"d4t2s5",t:"Insert prompt blocks"}],
+      prompts:["Write a <200 char DM for micro-creators in {{niche}}."]}
   ]},
-
   { day:5, title:"Lead Magnet (finish)", tasks:[
     {id:"d5t1",title:"Draft SOPs 4–6",desc:"Reviews, cadence, abandoned cart.",
       subtasks:[
@@ -201,21 +195,17 @@ const DAYS = [
         {id:"d5t1s2",t:"Organic posting cadence"},
         {id:"d5t1s3",t:"Abandoned-cart nudges"},
         {id:"d5t1s4",t:"Insert templates/prompts"},
-        {id:"d5t1s5",t:"Final QA"}
-      ],
-      prompts:["Write two friendly plain-text abandoned-cart emails."]
-    },
+        {id:"d5t1s5",t:"Final QA"}],
+      prompts:["Write two friendly plain-text abandoned-cart emails."]},
     {id:"d5t2",title:"Export PDF + delivery page",desc:"Deliverable ready.",
       subtasks:[
         {id:"d5t2s1",t:"Export to PDF"},
         {id:"d5t2s2",t:"Upload to Drive"},
         {id:"d5t2s3",t:"Create delivery page"},
         {id:"d5t2s4",t:"Add to welcome email"},
-        {id:"d5t2s5",t:"Test access with alt email"}
-      ]
+        {id:"d5t2s5",t:"Test access with alt email"}]
     }
   ]},
-
   { day:6, title:"Capture & Email", tasks:[
     {id:"d6t1",title:"Form → Buttondown",desc:"Lead capture + consent.",
       subtasks:[
@@ -223,21 +213,17 @@ const DAYS = [
         {id:"d6t1s2",t:"Add consent + PP link"},
         {id:"d6t1s3",t:"Hook to Buttondown (webhook/Apps Script)"},
         {id:"d6t1s4",t:"Test submission"},
-        {id:"d6t1s5",t:"Log to Run Log"}
-      ],
-      prompts:["Write succinct UK-compliant consent for marketing."]
-    },
+        {id:"d6t1s5",t:"Log to Run Log"}],
+      prompts:["Write succinct UK-compliant consent for marketing."]},
     {id:"d6t2",title:"5-email welcome",desc:"Deliver pack + nurture → DWY.",
       subtasks:[
         {id:"d6t2s1",t:"Write E1–E5"},
         {id:"d6t2s2",t:"Schedule in Buttondown"},
         {id:"d6t2s3",t:"Link assets/Calendly"},
         {id:"d6t2s4",t:"Test with 2 inboxes"},
-        {id:"d6t2s5",t:"Check click tracking"}
-      ]
+        {id:"d6t2s5",t:"Check click tracking"}]
     }
   ]},
-
   { day:7, title:"Payments & Webhook", tasks:[
     {id:"d7t1",title:"Stripe/Payhip setup + VAT",desc:"No fixed fees.",
       subtasks:[
@@ -245,20 +231,16 @@ const DAYS = [
         {id:"d7t1s2",t:"Enable UK VAT collection"},
         {id:"d7t1s3",t:"Create payment links"},
         {id:"d7t1s4",t:"Enable email receipts"},
-        {id:"d7t1s5",t:"Test mode checkout"}
-      ]
-    },
+        {id:"d7t1s5",t:"Test mode checkout"}]},
     {id:"d7t2",title:"Payment → onboarding",desc:"Folder + welcome + log.",
       subtasks:[
         {id:"d7t2s1",t:"Apps Script endpoint for Stripe webhook"},
         {id:"d7t2s2",t:"Create Drive client folder"},
         {id:"d7t2s3",t:"Copy Notion client template link"},
         {id:"d7t2s4",t:"Send welcome email"},
-        {id:"d7t2s5",t:"Append Run Log entry"}
-      ]
+        {id:"d7t2s5",t:"Append Run Log entry"}]
     }
   ]},
-
   { day:8, title:"Automations", tasks:[
     {id:"d8t1",title:"Run Log events + errors",desc:"Everything logs.",
       subtasks:[
@@ -266,20 +248,16 @@ const DAYS = [
         {id:"d8t1s2",t:"Capture error messages"},
         {id:"d8t1s3",t:"Use ISO timestamps"},
         {id:"d8t1s4",t:"Add actor/source columns"},
-        {id:"d8t1s5",t:"Weekly export job"}
-      ]
-    },
+        {id:"d8t1s5",t:"Weekly export job"}]},
     {id:"d8t2",title:"Abandoned-cart nudges",desc:"Daily pull → 2 nudges.",
       subtasks:[
         {id:"d8t2s1",t:"Shopify export/Private app creds"},
         {id:"d8t2s2",t:"+2h email (help tone)"},
         {id:"d8t2s3",t:"+24h email (small incentive)"},
         {id:"d8t2s4",t:"Log outcomes"},
-        {id:"d8t2s5",t:"Review weekly"}
-      ]
+        {id:"d8t2s5",t:"Review weekly"}]
     }
   ]},
-
   { day:9, title:"Launch Hub", tasks:[
     {id:"d9t1",title:"Landing v1 live",desc:"Hero, proof, features, pricing, FAQ.",
       subtasks:[
@@ -287,19 +265,15 @@ const DAYS = [
         {id:"d9t1s2",t:"Add CTAs + links"},
         {id:"d9t1s3",t:"Proof/guarantee section"},
         {id:"d9t1s4",t:"Legal footer"},
-        {id:"d9t1s5",t:"Mobile QA"}
-      ]
-    },
+        {id:"d9t1s5",t:"Mobile QA"}]},
     {id:"d9t2",title:"Analytics lite",desc:"UTM → Sheet; view counts.",
       subtasks:[
         {id:"d9t2s1",t:"Add view counter/script"},
         {id:"d9t2s2",t:"UTM to Run Log"},
         {id:"d9t2s3",t:"Test entries"},
-        {id:"d9t2s4",t:"Set daily review slot"}
-      ]
+        {id:"d9t2s4",t:"Set daily review slot"}]
     }
   ]},
-
   { day:10, title:"Content Pack", tasks:[
     {id:"d10t1",title:"20 posts (LinkedIn/X)",desc:"Teardowns + CTAs.",
       subtasks:[
@@ -307,20 +281,16 @@ const DAYS = [
         {id:"d10t1s2",t:"Add value bullets"},
         {id:"d10t1s3",t:"Attach assets"},
         {id:"d10t1s4",t:"Schedule 14 days"},
-        {id:"d10t1s5",t:"Add CTA to Pack"}
-      ]
-    },
+        {id:"d10t1s5",t:"Add CTA to Pack"}]},
     {id:"d10t2",title:"6 YouTube Shorts scripts",desc:"≤45s; outcomes.",
       subtasks:[
         {id:"d10t2s1",t:"Storyboard 6 clips"},
         {id:"d10t2s2",t:"Write scripts/captions"},
         {id:"d10t2s3",t:"Record 1 demo"},
         {id:"d10t2s4",t:"Upload plan"},
-        {id:"d10t2s5",t:"CTA to Pack"}
-      ]
+        {id:"d10t2s5",t:"CTA to Pack"}]
     }
   ]},
-
   { day:11, title:"Outreach (warm)", tasks:[
     {id:"d11t1",title:"100 warm targets",desc:"DM template + teardown offer.",
       subtasks:[
@@ -328,20 +298,16 @@ const DAYS = [
         {id:"d11t1s2",t:"Send 30 DMs today"},
         {id:"d11t1s3",t:"Offer mini-teardown"},
         {id:"d11t1s4",t:"Book calls"},
-        {id:"d11t1s5",t:"Log responses"}
-      ]
-    },
+        {id:"d11t1s5",t:"Log responses"}]},
     {id:"d11t2",title:"Creator DMs (10)",desc:"Gift content loop.",
       subtasks:[
         {id:"d11t2s1",t:"Select 10 <20k"},
         {id:"d11t2s2",t:"Send DMs"},
         {id:"d11t2s3",t:"Collect addresses"},
         {id:"d11t2s4",t:"Track assets"},
-        {id:"d11t2s5",t:"Save best clips"}
-      ]
+        {id:"d11t2s5",t:"Save best clips"}]
     }
   ]},
-
   { day:12, title:"Outreach (cold)", tasks:[
     {id:"d12t1",title:"100 cold emails",desc:"PECR-aware, opt-out, relevant.",
       subtasks:[
@@ -349,39 +315,31 @@ const DAYS = [
         {id:"d12t1s2",t:"Send 30/day x3 days"},
         {id:"d12t1s3",t:"Track opens/replies"},
         {id:"d12t1s4",t:"Book consults"},
-        {id:"d12t1s5",t:"Respect opt-outs"}
-      ],
-      prompts:["Write a 90-word plain-text cold email for {{brand}} with opt-out line."]
-    },
+        {id:"d12t1s5",t:"Respect opt-outs"}],
+      prompts:["Write a 90-word plain-text cold email for {{brand}} with opt-out line."]},
     {id:"d12t2",title:"Community value posts",desc:"Reddit/Slack/FB.",
       subtasks:[
         {id:"d12t2s1",t:"Post teardown offer"},
         {id:"d12t2s2",t:"DM links on request"},
         {id:"d12t2s3",t:"Answer 5 comments"},
-        {id:"d12t2s4",t:"Log outcomes"}
-      ]
+        {id:"d12t2s4",t:"Log outcomes"}]
     }
   ]},
-
   { day:13, title:"Soft Launch", tasks:[
     {id:"d13t1",title:"Friction fixes",desc:"Collect 3 feedback items.",
       subtasks:[
         {id:"d13t1s1",t:"Run 3 user tests"},
         {id:"d13t1s2",t:"Patch copy/forms"},
         {id:"d13t1s3",t:"Retest flows"},
-        {id:"d13t1s4",t:"Update Run Log"}
-      ]
-    },
+        {id:"d13t1s4",t:"Update Run Log"}]},
     {id:"d13t2",title:"DFY upsell pack",desc:"Scope, pricing, CTA.",
       subtasks:[
         {id:"d13t2s1",t:"One-pager deck"},
         {id:"d13t2s2",t:"Case sketch + KPI"},
         {id:"d13t2s3",t:"Add CTA to hub"},
-        {id:"d13t2s4",t:"Prepare reply templates"}
-      ]
+        {id:"d13t2s4",t:"Prepare reply templates"}]
     }
   ]},
-
   { day:14, title:"Public Launch", tasks:[
     {id:"d14t1",title:"Launch thread + follow-ups",desc:"Announce + reply.",
       subtasks:[
@@ -389,21 +347,18 @@ const DAYS = [
         {id:"d14t1s2",t:"Publish on LinkedIn/X"},
         {id:"d14t1s3",t:"DM warm replies"},
         {id:"d14t1s4",t:"Book calls"},
-        {id:"d14t1s5",t:"Log outcomes"}
-      ]
-    },
+        {id:"d14t1s5",t:"Log outcomes"}]},
     {id:"d14t2",title:"Referral unlocks",desc:"Prompt Pack v1.1 with 2 referrals.",
       subtasks:[
         {id:"d14t2s1",t:"Explain unlock in email"},
         {id:"d14t2s2",t:"Track referrals"},
         {id:"d14t2s3",t:"Send updates"},
-        {id:"d14t2s4",t:"Plan v1.2 topics"}
-      ]
+        {id:"d14t2s4",t:"Plan v1.2 topics"}]
     }
   ]}
 ];
 
-/* === Firebase (your project) === */
+/* ===== Firebase (your project) ===== */
 const FIREBASE_CONFIG = {
   apiKey:"AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
   authDomain:"prospecting-f2f42.firebaseapp.com",
@@ -414,8 +369,9 @@ const FIREBASE_CONFIG = {
   appId:"1:292034226428:web:878b867e3eb4d3e0098f79",
   measurementId:"G-WWB0JTX2L2"
 };
-const LS_KEY="lc-data", LS_PROFILE="lc-profile", LS_TAB="lc-tab";
+const LS_INDEX="lc-index", LS_ACTIVE="lc-active", LS_PROJECT_PREFIX="lc-project:", LS_PROFILE="lc-profile", LS_VIEW="lc-view";
 
+/* SDK init */
 function ensureFirebase(){
   if(!window.firebase) return {available:false, auth:null, db:null};
   if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
@@ -423,22 +379,136 @@ function ensureFirebase(){
 }
 function explainAuthError(e){
   const c=e?.code||"";
-  if(c.includes("admin-restricted")||c.includes("operation-not-allowed")) return "Anonymous Sign-in is disabled. Enable it in Authentication → Sign-in method → Anonymous → Enable.";
-  if(c.includes("unauthorized-domain")) return `Domain not authorised. Authentication → Settings → Authorized domains → Add **${location.hostname}**.`;
+  if(c.includes("admin-restricted")||c.includes("operation-not-allowed")) return "Anonymous Sign-in disabled. Firebase Console → Authentication → Sign-in method → **Anonymous → Enable**.";
+  if(c.includes("unauthorized-domain")) return `Domain not authorised. Authentication → Settings → Authorized domains → add **${location.hostname}**.`;
   return e?.message||String(e);
 }
 
-/* === App === */
+/* ===== App ===== */
 function App(){
   const {useEffect,useMemo,useState,createElement:h} = React;
-  const [view,setView]=useState(localStorage.getItem(LS_TAB)||"checklist");
-  const [profile,setProfile]=useState(()=>JSON.parse(localStorage.getItem(LS_PROFILE)||"{}")||{});
-  const [data,setData]=useState(()=>({days: JSON.parse(localStorage.getItem(LS_KEY)||"null")?.days || deepClone(DAYS)}));
+
+  /* identity + connection */
   const [uid,setUid]=useState(null);
-  const [saveState,setSaveState]=useState({status:"idle",ts:null,msg:""});
   const [conn,setConn]=useState({online:navigator.onLine,firebase:"init",hint:"",mode:"cloud"});
-  const [q,setQ]=useState("");
-  const dbPath = React.useMemo(()=> uid ? `users/${uid}/projects/default` : null, [uid]);
+  useEffect(()=>{ const on=()=>setConn(s=>({...s,online:true})); const off=()=>setConn(s=>({...s,online:false}));
+    addEventListener("online",on); addEventListener("offline",off);
+    return ()=>{ removeEventListener("online",on); removeEventListener("offline",off); };
+  },[]);
+
+  /* profile + view */
+  const [profile,setProfile]=useState(()=>JSON.parse(localStorage.getItem(LS_PROFILE)||"{}")||{});
+  const [view,setView]=useState(localStorage.getItem(LS_VIEW)||"Day 1");
+
+  /* projects index and active project */
+  const [index,setIndex]=useState(()=>JSON.parse(localStorage.getItem(LS_INDEX)||"{}"));
+  const [active,setActive]=useState(()=>localStorage.getItem(LS_ACTIVE)||"default");
+  const [project,setProject]=useState(()=>JSON.parse(localStorage.getItem(LS_PROJECT_PREFIX+(localStorage.getItem(LS_ACTIVE)||"default"))||"null")||{slug:"default",name:"Default Project",days:deepClone(DAYS)});
+
+  const usedSlugs = useMemo(()=>new Set(Object.keys(index)),[index]);
+  const db = useMemo(()=>ensureFirebase(),[]);
+
+  /* auth + initial sync */
+  useEffect(()=>{
+    if(!db.available){ setConn(s=>({...s,firebase:"no-sdk",mode:"local"})); return; }
+    setConn(s=>({...s,firebase:"init"}));
+    db.auth.onAuthStateChanged(async u=>{
+      if(u){
+        setUid(u.uid); setConn(s=>({...s,firebase:"authed"}));
+        try{
+          const idxSnap=await db.db.ref(`users/${u.uid}/index`).get();
+          if(idxSnap.exists()) setIndex(idxSnap.val());
+          else { /* seed index */ const seed={default:"Default Project"}; setIndex(seed); await db.db.ref(`users/${u.uid}/index`).set(seed); }
+          const act = localStorage.getItem(LS_ACTIVE)||"default";
+          const pSnap=await db.db.ref(`users/${u.uid}/projects/${act}`).get();
+          if(pSnap.exists()) setProject(pSnap.val());
+          else { const seedProj={slug:act,name:(idxSnap.val()||{default:"Default Project"})[act]||"Default Project",days:deepClone(DAYS)}; setProject(seedProj); await db.db.ref(`users/${u.uid}/projects/${act}`).set(seedProj); }
+          setConn(s=>({...s,firebase:"ok",mode:"cloud"}));
+        }catch(err){ setConn(s=>({...s,firebase:"error",hint:err.message,mode:"local"})); }
+      }else{
+        db.auth.signInAnonymously().catch(err=>{
+          const msg=explainAuthError(err);
+          setConn(s=>({...s,firebase:"error",hint:msg,mode:"local"}));
+          const el=document.getElementById("err"); el.textContent="Auth error: "+msg; el.style.display="block";
+        });
+      }
+    });
+  },[]);
+
+  /* local persistence */
+  useEffect(()=>{ localStorage.setItem(LS_PROFILE, JSON.stringify(profile)); },[profile]);
+  useEffect(()=>{ localStorage.setItem(LS_VIEW, view); },[view]);
+  useEffect(()=>{ localStorage.setItem(LS_INDEX, JSON.stringify(index)); },[index]);
+  useEffect(()=>{ localStorage.setItem(LS_ACTIVE, active); },[active]);
+  useEffect(()=>{ localStorage.setItem(LS_PROJECT_PREFIX+active, JSON.stringify(project)); },[project,active]);
+
+  /* saving to cloud (debounced) */
+  const saveProjectDebounced = useMemo(()=>debounce(async (payload)=>{
+    if(!uid||!db.available) return;
+    try{ await db.db.ref(`users/${uid}/projects/${active}`).set(payload); setConn(s=>({...s,firebase:"ok"})); }
+    catch(e){ setConn(s=>({...s,firebase:"error",hint:e.message,mode:"local"})); }
+  },500),[uid,db,active]);
+  useEffect(()=>{ saveProjectDebounced(project); },[project,saveProjectDebounced]);
+  const saveIndexDebounced = useMemo(()=>debounce(async (idx)=>{
+    if(!uid||!db.available) return;
+    try{ await db.db.ref(`users/${uid}/index`).set(idx); setConn(s=>({...s,firebase:"ok"})); }
+    catch(e){ setConn(s=>({...s,firebase:"error",hint:e.message,mode:"local"})); }
+  },500),[uid,db]);
+  useEffect(()=>{ saveIndexDebounced(index); },[index,saveIndexDebounced]);
+
+  /* project ops */
+  function createProject(){
+    const name = prompt("Project name?");
+    if(!name) return;
+    const slug = slugify(name, usedSlugs);
+    const idx = {...index, [slug]: name}; setIndex(idx);
+    const p = {slug, name, days:deepClone(DAYS)}; setProject(p); setActive(slug);
+  }
+  function renameProject(){
+    const name = prompt("New project name:", index[active]||project.name); if(!name) return;
+    const idx = {...index}; idx[active]=name; setIndex(idx);
+    setProject({...project, name});
+  }
+  async function deleteProject(){
+    if(!confirm(`Delete project "${index[active]||project.name}"? This removes it from cloud and local.`)) return;
+    const idx = {...index}; delete idx[active]; setIndex(idx);
+    if(uid&&db.available){ db.db.ref(`users/${uid}/projects/${active}`).remove().catch(()=>{}); }
+    localStorage.removeItem(LS_PROJECT_PREFIX+active);
+    const nextSlug = Object.keys(idx)[0] || "default";
+    if(!idx[nextSlug]){ idx[nextSlug]="Default Project"; setIndex(idx); }
+    setActive(nextSlug);
+    if(uid&&db.available){
+      const snap=await db.db.ref(`users/${uid}/projects/${nextSlug}`).get();
+      if(snap.exists()) setProject(snap.val());
+      else { const np={slug:nextSlug,name:idx[nextSlug],days:deepClone(DAYS)}; setProject(np); db.db.ref(`users/${uid}/projects/${nextSlug}`).set(np); }
+    }else{
+      const local = JSON.parse(localStorage.getItem(LS_PROJECT_PREFIX+nextSlug)||"null")||{slug:nextSlug,name:idx[nextSlug],days:deepClone(DAYS)};
+      setProject(local);
+    }
+  }
+  async function switchProject(slug){
+    setActive(slug);
+    if(uid&&db.available){
+      const snap=await db.db.ref(`users/${uid}/projects/${slug}`).get();
+      if(snap.exists()) setProject(snap.val());
+      else { const np={slug, name:index[slug]||"Project", days:deepClone(DAYS)}; setProject(np); db.db.ref(`users/${uid}/projects/${slug}`).set(np); }
+    }else{
+      const local = JSON.parse(localStorage.getItem(LS_PROJECT_PREFIX+slug)||"null")||{slug, name:index[slug]||"Project", days:deepClone(DAYS)};
+      setProject(local);
+    }
+  }
+
+  /* checklist ops */
+  function toggleSub(dayIdx,taskIdx,subIdx){
+    const next=deepClone(project); const s=next.days[dayIdx].tasks[taskIdx].subtasks[subIdx]; s.done=!s.done; setProject(next);
+  }
+  function setNote(dayIdx,taskIdx,text){
+    const next=deepClone(project); next.days[dayIdx].tasks[taskIdx].note=text; setProject(next);
+  }
+  const total = React.useMemo(()=>{
+    let sub=0,done=0; for(const d of project.days){ for(const t of d.tasks){ for(const s of t.subtasks){ sub++; if(s.done) done++; } } }
+    return {sub,done,pct: sub? Math.round(done*100/sub):0};
+  },[project]);
 
   const LOGO = "data:image/svg+xml;utf8,"+encodeURIComponent(
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 48'>
@@ -449,99 +519,103 @@ function App(){
       <text x='58' y='31' font-family='Inter, Arial' font-size='18' font-weight='700' fill='white'>Launch Control</text>
     </svg>`);
 
-  useEffect(()=>{ const on=()=>setConn(s=>({...s,online:true})); const off=()=>setConn(s=>({...s,online:false}));
-    addEventListener("online",on); addEventListener("offline",off);
-    return ()=>{ removeEventListener("online",on); removeEventListener("offline",off); };
-  },[]);
+  const dayTabs = ["All", ...project.days.map((d)=>`Day ${d.day}`), "Playbook"];
+  const currentDayIdx = view.startsWith("Day ") ? (parseInt(view.split(" ")[1],10)-1) : null;
 
-  // Firebase init + anon auth (with local-only fallback)
-  useEffect(()=>{
-    const f=ensureFirebase();
-    if(!f.available){ setConn(s=>({...s,firebase:"no-sdk",mode:"local"})); return; }
-    setConn(s=>({...s,firebase:"init"}));
-    try{
-      f.auth.onAuthStateChanged(async u=>{
-        if(u){
-          setUid(u.uid); setConn(s=>({...s,firebase:"authed"}));
-          try{
-            const snap=await f.db.ref(`users/${u.uid}/projects/default`).get();
-            if(snap.exists()) setData(snap.val());
-            setConn(s=>({...s,firebase:"ok",mode:"cloud"}));
-          }catch(err){ setConn(s=>({...s,firebase:"error",hint:err.message,mode:"local"})); setSaveState({status:"error",ts:nowIso(),msg:err.message}); }
-        }else{
-          f.auth.signInAnonymously().catch(err=>{
-            const msg=explainAuthError(err);
-            setConn(s=>({...s,firebase:"error",hint:msg,mode:"local"}));
-            const el=document.getElementById("err"); el.textContent="Auth error: "+msg; el.style.display="block";
-          });
-        }
-      });
-    }catch(err){
-      setConn(s=>({...s,firebase:"error",hint:err.message,mode:"local"}));
-    }
-  },[]);
-
-  useEffect(()=>{ localStorage.setItem(LS_KEY, JSON.stringify(data)); },[data]);
-  useEffect(()=>{ localStorage.setItem(LS_PROFILE, JSON.stringify(profile)); },[profile]);
-  useEffect(()=>{ localStorage.setItem(LS_TAB, view); },[view]);
-
-  const total = useMemo(()=>{
-    let sub=0,done=0; for(const d of data.days){ for(const t of d.tasks){ for(const s of t.subtasks){ sub++; if(s.done) done++; } } }
-    return {sub,done,pct: sub? Math.round(done*100/sub):0};
-  },[data]);
-
-  const requestSave = useMemo(()=> debounce(async (payload)=>{
-    if(!uid) return; const f=ensureFirebase(); if(!f.available) return;
-    setSaveState({status:"saving",ts:nowIso(),msg:""});
-    try{ await f.db.ref(dbPath).set(payload); setSaveState({status:"saved",ts:nowIso(),msg:""}); setConn(s=>({...s,firebase:"ok",mode:"cloud"})); }
-    catch(e){ setSaveState({status:"error",ts:nowIso(),msg:e.message}); setConn(s=>({...s,mode:"local"})); }
-  },500),[uid,dbPath]);
-
-  useEffect(()=>{ requestSave(data); },[data,requestSave]);
-
-  function toggleSub(di,ti,si){ const next=deepClone(data); const s=next.days[di].tasks[ti].subtasks[si]; s.done=!s.done; setData(next); }
-  function setNote(di,ti,text){ const next=deepClone(data); next.days[di].tasks[ti].note=text; setData(next); }
-  function copyText(t){ navigator.clipboard.writeText(t).catch(()=>{}); }
-  function exportJson(){ const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
-    a.download="launch-control-export.json"; a.click();
+  function exportProject(){
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(project,null,2)],{type:"application/json"}));
+    a.download=`${project.slug}-launch-control.json`; a.click();
   }
-  function importJson(file){ const r=new FileReader(); r.onload=()=>{ try{const pkg=JSON.parse(r.result); if(pkg.days) setData(pkg);}catch{alert("Invalid JSON.");} }; r.readAsText(file); }
-  async function runDiagnostics(){
-    const f=ensureFirebase(); if(!f.available || !uid){ alert("Firebase not ready. Enable Anonymous sign-in and authorise domain."); return; }
-    const path=`users/${uid}/projects/default/_diag`;
-    try{ await f.db.ref(path).set({ping:nowIso()}); const s=await f.db.ref(path).get();
-      alert(s.exists()?"DB write/read: PASS":"DB write/read: FAIL — check Realtime DB **Rules**.");
-    }catch(e){ alert("DB error: "+e.message+"\nLikely cause: rules block writes."); }
+  function importProject(){
+    const i=document.createElement("input"); i.type="file"; i.accept="application/json";
+    i.onchange=e=>{ const f=e.target.files[0]; const r=new FileReader(); r.onload=()=>{ try{const j=JSON.parse(r.result); if(j.days){ j.slug=project.slug; j.name=project.name; setProject(j);} }catch{alert("Invalid JSON");} }; r.readAsText(f); };
+    i.click();
   }
-  function resetAll(){ if(confirm("Reset all local + remote data?")){
-    setData({days:deepClone(DAYS)}); setProfile({});
-    const f=ensureFirebase(); if(f.available && uid){ f.db.ref(dbPath).remove().catch(()=>{}); }
-  } }
+  async function health(){
+    if(!uid||!db.available){ alert("Firebase not ready. Enable Anonymous sign-in and authorise domain."); return; }
+    const path=`users/${uid}/projects/${active}/_diag`;
+    try{ await db.db.ref(path).set({ping:nowIso()}); const s=await db.db.ref(path).get();
+      alert(s.exists()?"DB write/read: PASS":"DB write/read: FAIL — check Realtime DB Rules.");
+    }catch(e){ alert("DB error: "+e.message); }
+  }
+  function resetLocal(){
+    if(!confirm("Reset local project state to seed (keeps cloud copy)?")) return;
+    setProject({slug:project.slug,name:project.name,days:deepClone(DAYS)});
+  }
 
-  const filteredDays = useMemo(()=>{
-    if(!q.trim()) return data.days;
-    const qq=q.toLowerCase();
-    return data.days.map(d=>({...d,tasks:d.tasks.filter(t=> t.title.toLowerCase().includes(qq) ||
-      (t.desc||"").toLowerCase().includes(qq) || (t.prompts||[]).some(p=>p.toLowerCase().includes(qq)))})).filter(d=>d.tasks.length);
-  },[q,data]);
+  /* render helpers */
+  function renderDay(d,di){
+    return React.createElement("div",{key:d.day,className:"day"},
+      React.createElement("div",{style:{padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        React.createElement("div",null,
+          React.createElement("div",{className:"h"},`Day ${d.day} — ${d.title}`),
+          React.createElement("div",{className:"muted"},"Work through tasks; tick subtasks.")
+        )
+      ),
+      d.tasks.map((t,ti)=>React.createElement("div",{key:t.id,className:"task"},
+        React.createElement("div",{className:`check ${ (t.subtasks||[]).every(s=>s.done)?'done':'' }`,title:"Toggle all",onClick:()=>{
+          const next=deepClone(project); const all=next.days[di].tasks[ti].subtasks; const setTo=!(all||[]).every(s=>s.done); (all||[]).forEach(s=>s.done=setTo); setProject(next);
+        }},"✓"),
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("div",{className:"task-title"},t.title),
+          React.createElement("div",{className:"muted"},t.desc||""),
+          React.createElement("div",{className:"section"},
+            React.createElement("div",{className:"list"}, (t.subtasks||[]).map((s,si)=>React.createElement("label",{className:"sub",key:s.id},
+              React.createElement("input",{type:"checkbox",checked:!!s.done,onChange:()=>toggleSub(di,ti,si)}),
+              React.createElement("span",null,s.t)
+            )))
+          ),
+          (t.prompts && t.prompts.length>0) && React.createElement("div",{className:"section"},
+            React.createElement("div",{className:"h"},"Prompts"),
+            t.prompts.map((p,idx)=>React.createElement("div",{key:idx,className:"card"},
+              React.createElement("div",{className:"muted"},"Prompt ",idx+1),
+              React.createElement("div",{className:"code"}, p
+                .replaceAll("{{brand}}", profile.brand||"your brand")
+                .replaceAll("{{niche}}", profile.niche||"your niche")
+                .replaceAll("{{url}}", profile.site||"https://")),
+              React.createElement("div",null,
+                React.createElement("button",{className:"btn primary",onClick:()=>navigator.clipboard.writeText(
+                  p.replaceAll("{{brand}}", profile.brand||"your brand")
+                   .replaceAll("{{niche}}", profile.niche||"your niche")
+                   .replaceAll("{{url}}", profile.site||"https://")
+                )},"Copy"),
+                React.createElement("button",{className:"btn",onClick:()=>open("https://chat.openai.com","_blank")},"Open AI")
+              )
+            ))
+          ),
+          (t.links && t.links.length>0) && React.createElement("div",{className:"section"},
+            React.createElement("div",{className:"h"},"Links"),
+            t.links.map((l,i)=>React.createElement("div",{className:"link",key:i},
+              React.createElement("span",{className:"badge"},"Link"),
+              React.createElement("a",{href:l.url,target:"_blank",rel:"noreferrer"},l.label)
+            ))
+          ),
+          React.createElement("div",{className:"section"},
+            React.createElement("div",{className:"h"},"Notes"),
+            React.createElement("textarea",{value:t.note||"",onChange:e=>setNote(di,ti,e.target.value),placeholder:"Decisions, URLs, status…"})
+          )
+        )
+      ))
+    );
+  }
 
-  const playbookFilled = PLAYBOOK_MD
-    .replaceAll("{{brand}}", profile.brand||"FlowForge.AI")
-    .replaceAll("{{niche}}", profile.niche||"micro e-commerce brands");
-
-  // UI
+  /* UI */
   return React.createElement(React.Fragment,null,
     React.createElement("div",{className:"wrap"},
       React.createElement("div",{className:"header"},
         React.createElement("img",{src:LOGO,alt:"Launch Control",style:{width:"240px",maxWidth:"100%"}}),
         React.createElement("div",null,
           React.createElement("div",{className:"title"},"14-Day AI Business — Launch Control"),
-          React.createElement("div",{className:"subtitle"},"Technical checklist • Playbook • Blue/Green/Purple • Firebase sync")
+          React.createElement("div",{className:"subtitle"},"Multi-project • Per-day tabs • Firebase sync • Blue/Green/Purple")
         ),
-        React.createElement("div",{className:"tabs"},
-          React.createElement("button",{className:`tab ${view==='checklist'?'active':''}`,onClick:()=>setView('checklist')},"Checklist"),
-          React.createElement("button",{className:`tab ${view==='playbook'?'active':''}`,onClick:()=>setView('playbook')},"Playbook")
+        React.createElement("div",{className:"project"},
+          React.createElement("select",{value:active,onChange:e=>switchProject(e.target.value)},
+            Object.keys(index).map(s=>React.createElement("option",{key:s,value:s},index[s]))
+          ),
+          React.createElement("button",{className:"btn primary",onClick:createProject},"New"),
+          React.createElement("button",{className:"btn",onClick:renameProject},"Rename"),
+          React.createElement("button",{className:"btn",onClick:deleteProject,style:{borderColor:"rgba(239,68,68,.35)",color:"#ffd0d0"}},"Delete")
         )
       ),
       React.createElement("div",{className:"bar"},
@@ -549,126 +623,53 @@ function App(){
         React.createElement("div",{className:`pill ${['ok','authed'].includes(conn.firebase)?'ok':(conn.firebase==='error'?'err':'warn')}`},
           "Firebase: ",conn.firebase, conn.hint?` • ${conn.hint}`:"", conn.mode==='local'?" • Local-only":"", uid?` • uid:${uid.slice(0,8)}…`:""
         ),
-        React.createElement("div",{className:`pill ${saveState.status==='saved'?'ok':(saveState.status==='error'?'err':'warn')}`},
-          "Save: ",saveState.status, saveState.ts?` • ${new Date(saveState.ts).toLocaleTimeString()}`:""
-        ),
+        React.createElement("div",{className:"pill"},"Project: ",(index[active]||project.name)),
+        React.createElement("div",{className:"pill"},`${total.done}/${total.sub} • ${total.pct}%`),
         React.createElement("div",{className:"actions"},
-          React.createElement("button",{className:"btn-primary",onClick:exportJson},"Export"),
-          React.createElement("label",{className:"pill",style:{cursor:"pointer"}},"Import",
-            React.createElement("input",{type:"file",accept:"application/json",style:{display:"none"},onChange:e=>e.target.files[0]&&importJson(e.target.files[0])})
-          ),
-          React.createElement("button",{onClick:runDiagnostics},"Health checks"),
-          React.createElement("button",{onClick:resetAll,style:{color:"#ffd0d0",borderColor:"rgba(239,68,68,.35)"}},"Reset")
+          React.createElement("button",{className:"btn primary",onClick:exportProject},"Export"),
+          React.createElement("button",{className:"btn",onClick:importProject},"Import"),
+          React.createElement("button",{className:"btn",onClick:health},"Health checks"),
+          React.createElement("button",{className:"btn",onClick:resetLocal,style:{borderColor:"rgba(59,130,246,.35)",color:"#cfe1ff"}},"Reset local")
         )
       ),
 
-      (view==='checklist') ? (
-        React.createElement("div",{className:"grid"},
-          // Sidebar
-          React.createElement("aside",{className:"card sticky"},
-            React.createElement("div",{className:"h"},"Settings"),
-            React.createElement("div",{className:"row"},
-              React.createElement("input",{type:"text",placeholder:"Brand (e.g., FlowForge.AI)",value:profile.brand||"",onChange:e=>setProfile({...profile,brand:e.target.value})}),
-              React.createElement("input",{type:"text",placeholder:"Niche (e.g., DTC micro-brands)",value:profile.niche||"",onChange:e=>setProfile({...profile,niche:e.target.value})}),
-              React.createElement("input",{type:"text",placeholder:"Site URL",value:profile.site||"",onChange:e=>setProfile({...profile,site:e.target.value})}),
-              React.createElement("input",{type:"email",placeholder:"Email",value:profile.email||"",onChange:e=>setProfile({...profile,email:e.target.value})})
-            ),
-            React.createElement("div",{className:"h",style:{marginTop:12}},"Progress"),
-            React.createElement("div",{className:"progress",title: total.pct+"%"}, React.createElement("span",{style:{width: total.pct+"%"}})),
-            React.createElement("div",{className:"muted",style:{marginTop:6}},`${total.done}/${total.sub} subtasks • ${total.pct}%`),
-            React.createElement("div",{className:"h",style:{marginTop:14}},"Search"),
-            React.createElement("input",{className:"search",placeholder:"Find task or prompt…",value:q,onChange:e=>setQ(e.target.value)}),
+      React.createElement("div",{className:"tabs"},
+        dayTabs.map(t=>React.createElement("button",{key:t,className:`tab ${view===t?'active':''}`,onClick:()=>setView(t)},t))
+      ),
 
-            React.createElement("div",{className:"h",style:{marginTop:14}},"Firebase Setup"),
-            React.createElement("div",{className:"list"},
-              React.createElement("div",{className:"code"},"1) Auth → Sign-in method → enable **Anonymous**."),
-              React.createElement("div",{className:"code"},`2) Auth → Settings → Authorized domains → add **${location.hostname}**.`),
-              React.createElement("div",{className:"code"},`3) Realtime DB → Rules:\n{\n  "rules": {\n    ".read": false,\n    ".write": false,\n    "users": { "$uid": { ".read": "auth != null && auth.uid === $uid", ".write": "auth != null && auth.uid === $uid" } }\n  }\n}`)
-            )
-          ),
+      React.createElement("div",{className:"grid"},
+        React.createElement("aside",{className:"card sticky"},
+          React.createElement("div",{className:"h"},"Settings"),
+          React.createElement("input",{type:"text",className:"input",placeholder:"Brand (e.g., FlowForge.AI)",value:profile.brand||"",onChange:e=>setProfile({...profile,brand:e.target.value})}),
+          React.createElement("input",{type:"text",className:"input",placeholder:"Niche (e.g., DTC micro-brands)",style:{marginTop:8},value:profile.niche||"",onChange:e=>setProfile({...profile,niche:e.target.value})}),
+          React.createElement("input",{type:"text",className:"input",placeholder:"Site URL",style:{marginTop:8},value:profile.site||"",onChange:e=>setProfile({...profile,site:e.target.value})}),
+          React.createElement("input",{type:"email",className:"input",placeholder:"Email",style:{marginTop:8},value:profile.email||"",onChange:e=>setProfile({...profile,email:e.target.value})}),
+          React.createElement("div",{className:"h",style:{marginTop:12}},"Firebase Setup"),
+          React.createElement("div",{className:"code"},"1) Auth → Sign-in method → enable **Anonymous**.\n2) Auth → Settings → Authorized domains → add **"+location.hostname+"**.\n3) Realtime DB → Rules:\n{\n  \"rules\": {\n    \".read\": false,\n    \".write\": false,\n    \"users\": { \"$uid\": { \".read\": \"auth != null && auth.uid === $uid\", \".write\": \"auth != null && auth.uid === $uid\" } }\n  }\n}"),
+          React.createElement("div",{className:"h",style:{marginTop:12}},"Notes"),
+          React.createElement("div",{className:"code"},"Anon auth + user-scoped rules isolate data. Keep PII minimal (UK GDPR).")
+        ),
 
-          // Main checklist
-          React.createElement("main",null,
-            filteredDays.map((d,di)=>React.createElement("details",{key:d.day,className:"day",open:true},
-              React.createElement("summary",null,
-                React.createElement("span",{className:"k"},d.day),
-                React.createElement("div",null,
-                  React.createElement("div",{className:"task-title"},`Day ${d.day} — ${d.title}`),
-                  React.createElement("div",{className:"muted"},"Click to expand tasks")
-                )
-              ),
-              d.tasks.map((t,ti)=>React.createElement("div",{key:t.id,className:"task"},
-                React.createElement("div",{className:`check ${ (t.subtasks||[]).every(s=>s.done)?'done':'' }`,onClick:()=>{
-                  const next=deepClone(data); const all=next.days[di].tasks[ti].subtasks;
-                  const setTo = !(all||[]).every(s=>s.done); (all||[]).forEach(s=> s.done=setTo); setData(next);
-                }},"✓"),
-                React.createElement("div",{style:{flex:1}},
-                  React.createElement("div",{className:"task-title"},t.title),
-                  React.createElement("div",{className:"muted"},t.desc||""),
-                  React.createElement("div",{className:"section"},
-                    React.createElement("div",{className:"list"}, (t.subtasks||[]).map((s,si)=>React.createElement("label",{className:"sub",key:s.id},
-                      React.createElement("input",{type:"checkbox",checked:!!s.done,onChange:()=>toggleSub(di,ti,si)}), React.createElement("span",null,s.t)
-                    )))
-                  ),
-                  (t.prompts && t.prompts.length>0) && React.createElement("div",{className:"section"},
-                    React.createElement("div",{className:"h"},"Prompts"),
-                    t.prompts.map((p,idx)=>React.createElement("div",{key:idx,className:"card"},
-                      React.createElement("div",{className:"muted"},"Prompt ",idx+1),
-                      React.createElement("div",{className:"code"}, p
-                        .replaceAll("{{brand}}", profile.brand||"your brand")
-                        .replaceAll("{{niche}}", profile.niche||"your niche")
-                        .replaceAll("{{url}}", profile.site||"https://")),
-                      React.createElement("div",null,
-                        React.createElement("button",{className:"btn-primary",onClick:()=>copyText(
-                          p.replaceAll("{{brand}}", profile.brand||"your brand")
-                           .replaceAll("{{niche}}", profile.niche||"your niche")
-                           .replaceAll("{{url}}", profile.site||"https://")
-                        )},"Copy"),
-                        React.createElement("button",{onClick:()=>open("https://chat.openai.com","_blank")},"Open AI")
-                      )
-                    ))
-                  ),
-                  (t.links && t.links.length>0) && React.createElement("div",{className:"section"},
-                    React.createElement("div",{className:"h"},"Links"),
-                    t.links.map((l,i)=>React.createElement("div",{className:"link",key:i},
-                      React.createElement("span",{className:"badge"},"Link"),
-                      React.createElement("a",{href:l.url,target:"_blank",rel:"noreferrer"},l.label)
-                    ))
-                  ),
-                  React.createElement("div",{className:"section"},
-                    React.createElement("div",{className:"h"},"Notes"),
-                    React.createElement("textarea",{value:t.note||"",onChange:e=>setNote(di,ti,e.target.value),placeholder:"Decisions, URLs, status…"})
-                  )
-                )
-              ))
-            ))
-          )
-        )
-      ) : (
-        // Playbook view
-        React.createElement("div",{className:"grid"},
-          React.createElement("aside",{className:"card sticky"},
-            React.createElement("div",{className:"h"},"Personalise"),
-            React.createElement("div",null,
-              React.createElement("input",{type:"text",placeholder:"Brand (e.g., FlowForge.AI)",value:profile.brand||"",onChange:e=>setProfile({...profile,brand:e.target.value})}),
-              React.createElement("input",{type:"text",placeholder:"Niche (e.g., DTC micro-brands)",style:{marginTop:8},value:profile.niche||"",onChange:e=>setProfile({...profile,niche:e.target.value})})
-            ),
-            React.createElement("div",{className:"h",style:{marginTop:12}},"Export"),
-            React.createElement("button",{className:"btn-primary",onClick:()=>navigator.clipboard.writeText(
-              PLAYBOOK_MD.replaceAll("{{brand}}",profile.brand||"FlowForge.AI").replaceAll("{{niche}}",profile.niche||"micro e-commerce brands")
-            )},"Copy Playbook (MD)"),
-            React.createElement("div",{className:"h",style:{marginTop:12}},"Included Sections"),
-            React.createElement("div",{className:"code"},"Exec Summary • Stack • Offers • ICP • Landing copy • SOPs • Emails • Social • Automations • Metrics • Legal • Finance • 14-Day rollout • Risks")
-          ),
-          React.createElement("main",null,
+        (view==="Playbook")
+        ? React.createElement("main",null,
             React.createElement("div",{className:"card"},
-              React.createElement("div",{className:"h"},"Playbook (Markdown)"),
+              React.createElement("div",{className:"h"},"Playbook (Markdown) — personalised"),
               React.createElement("div",{className:"playbook"}, PLAYBOOK_MD
                 .replaceAll("{{brand}}", profile.brand||"FlowForge.AI")
-                .replaceAll("{{niche}}", profile.niche||"micro e-commerce brands"))
+                .replaceAll("{{niche}}", profile.niche||"micro e-commerce brands")
+              ),
+              React.createElement("div",{style:{marginTop:8}},
+                React.createElement("button",{className:"btn primary",onClick:()=>navigator.clipboard.writeText(
+                  PLAYBOOK_MD.replaceAll("{{brand}}", profile.brand||"FlowForge.AI").replaceAll("{{niche}}", profile.niche||"micro e-commerce brands")
+                )},"Copy Playbook")
+              )
             )
           )
-        )
+        : React.createElement("main",null,
+            (view==="All")
+              ? project.days.map((d,di)=>renderDay(d,di))
+              : renderDay(project.days[currentDayIdx], currentDayIdx)
+          )
       ),
 
       React.createElement("div",{id:"dashboard-spec",className:"footer"},"Dashboard schema: Date | Sessions | Leads | CVR | Checkouts | MRR | Churn | K-factor | List size | UGC | Reviews")
@@ -677,9 +678,9 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-
-// Cache-bust once for GH Pages
+/* GH Pages cache-bust once */
 (function(){ if(!location.search.includes("v=")){ const v=Date.now(); history.replaceState(null,"",location.pathname+"?v="+v); }})();
 </script>
 </body>
 </html>
+
