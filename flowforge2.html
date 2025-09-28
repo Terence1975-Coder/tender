@@ -1,11 +1,11 @@
-<!-- file: flowforge.html -->
+<!-- file: flowforge.html (single-file app with WebLLM + tests) -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Launch Control — Business Launch Companion</title>
-<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync and offline fallback."/>
+<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync, WebLLM (WebGPU) local model, and offline fallback."/>
 
 <!-- React 18 UMD + Firebase compat -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -117,6 +117,8 @@
 
   .footer{margin:24px 0 16px;color:#a9b6d3;text-align:center}
   .error-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);color:#fff;z-index:99999;padding:18px;overflow:auto}
+  .tests{font-family:ui-monospace,Consolas,Menlo,monospace;background:#0b1429;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .pass{color:#10b981}.fail{color:#ef4444}
 </style>
 </head>
 <body>
@@ -132,14 +134,14 @@
 <div id="err" class="error-overlay"></div>
 
 <script>
-/* ---------------- error overlay (why: fast diagnostics) ---------------- */
+/* ---------- error overlay ---------- */
 addEventListener("error", e=>{
   const el=document.getElementById("err");
   el.innerHTML=`<h2>Script error</h2><pre>${(e.error?.stack||"")}</pre><div>${e.message||""}</div>`;
   el.style.display="block";
 });
 
-/* ---------------- utils ---------------- */
+/* ---------- utils ---------- */
 const h = React.createElement;
 const {useState,useEffect,useMemo,useRef} = React;
 const deepClone = (v)=>JSON.parse(JSON.stringify(v));
@@ -150,7 +152,7 @@ const slugify=(s,used=new Set())=>{
   let i=2,base=x; while(used.has(x)) x=`${base}-${i++}`; return x;
 };
 
-/* ---------------- seed data ---------------- */
+/* ---------- seed data ---------- */
 const PLAYBOOK_MD = `# 14-Day Zero-Capex AI Business (Concise)
 - Stack: Notion/Carrd • Tally • Buttondown • Stripe/Payhip • Zapier • GA • Spreadsheet CRM
 - Guarantees: 1 mini-offer + 5 leads in 14 days (scope-capped)
@@ -191,7 +193,7 @@ function makeSeedDays(){
   ];
 }
 
-/* ---------------- firebase ---------------- */
+/* ---------- firebase ---------- */
 const FIREBASE_CONFIG = {
   apiKey:"AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
   authDomain:"prospecting-f2f42.firebaseapp.com",
@@ -202,14 +204,17 @@ const FIREBASE_CONFIG = {
   appId:"1:292034226428:web:878b867e3eb4d3e0098f79",
   measurementId:"G-WWB0JTX2L2"
 };
-const LS_INDEX="lc-index", LS_ACTIVE="lc-active", LS_PROJECT_PREFIX="lc-project:", LS_PROFILE="lc-profile", LS_MODE="lc-mode";
+const LS_INDEX="lc-index", LS_ACTIVE="lc-active", LS_PROJECT_PREFIX="lc-project:", LS_MODE="lc-mode";
+const LS_WEBLLM="lc-webllm"; // {modelId, enabled}
+
+/* ---------- firebase helpers ---------- */
 function ensureFirebase(){
   if(!window.firebase) return {available:false,auth:null,db:null,st:null};
   if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   return {available:true,auth:firebase.auth(),db:firebase.database(),st:firebase.storage()};
 }
 
-/* ---------------- Info popover ---------------- */
+/* ---------- Info popover ---------- */
 function InfoIcon({label="Info", text}){
   const [open,setOpen]=useState(false);
   const ref=useRef(null);
@@ -224,7 +229,7 @@ function InfoIcon({label="Info", text}){
   );
 }
 
-/* ---------------- Plan model ---------------- */
+/* ---------- Plan model ---------- */
 const PLAN_FIELDS_KEYS = [
   "businessName","problem","solution","targetCustomer","marketSize","competitors",
   "differentiation","pricingModel","goToMarket","channels","legalConsiderations",
@@ -248,10 +253,59 @@ function ensurePlanShape(p){
   return next;
 }
 
-/* ---------------- Local mini-model (heuristics) ---------------- */
+/* ---------- Local LLM (heuristics + WebLLM) ---------- */
 class LocalLLMProvider{
-  id(){return "local-mini";}
+  constructor(){
+    this.mode="heuristic"; // 'heuristic' | 'webllm'
+    this.state="idle";     // 'idle' | 'loading' | 'ready' | 'error'
+    this.modelId=(JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}").modelId)||"qwen2-1_5b-instruct-q4f16_1-MLC";
+    this.engine=null; this.webllm=null; this.lastError="";
+  }
+  setMode(m){ this.mode=m; }
+  setModelId(id){ this.modelId=id; localStorage.setItem(LS_WEBLLM,JSON.stringify({...(JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}")),modelId:id})); }
+  async load(){
+    if(this.state==="loading"||this.state==="ready") return;
+    this.state="loading";
+    try{
+      // Dynamic ESM import; safe fallback if blocked.
+      const mod = await import("https://esm.run/@mlc-ai/web-llm");
+      this.webllm = mod;
+      // Create engine (names vary; this path is best-effort, with fallback).
+      if(mod.CreateMLCEngine){
+        this.engine = await mod.CreateMLCEngine(this.modelId);
+      }else if(mod.CreateWebWorkerMLCEngine){
+        this.engine = await mod.CreateWebWorkerMLCEngine(this.modelId);
+      }else{
+        throw new Error("Unsupported WebLLM API");
+      }
+      this.state="ready";
+    }catch(e){
+      this.lastError=(e&&e.message)||"Load failed";
+      this.state="error"; this.mode="heuristic"; // fallback
+    }
+  }
+  async chat(messages){
+    if(this.mode==="webllm" && this.state==="ready" && this.engine){
+      try{
+        const out = await this.engine.chat.completions.create({
+          messages, temperature:0.3, max_tokens:256
+        });
+        const txt = out?.choices?.[0]?.message?.content || "";
+        return txt || "…";
+      }catch(e){
+        this.lastError=(e&&e.message)||"Chat failed";
+        return "Local WebLLM chat failed; falling back to heuristic prompts.";
+      }
+    }
+    // Heuristic follow-up: ask for first missing field, or echo guidance.
+    const text = (messages[messages.length-1]?.content||"").toLowerCase();
+    if(text.includes("summary")||text.includes("summarize")) return "Please upload text/markdown for best local summary.";
+    return "Thanks! If this answers a specific field, click “Save Answer”. Use “Ask About Missing Fields” for the next prompt.";
+  }
   summarize(text="", max=5){
+    if(this.mode==="webllm" && this.state==="ready" && this.engine){
+      // quick sync path triggers async chat; keep heuristic for speed
+    }
     const s=(text||"").split(/[\.\n]+/).map(x=>x.trim()).filter(Boolean);
     return s.slice(0,max).join(". ") || "No textual content to summarize.";
   }
@@ -292,7 +346,7 @@ class LocalLLMProvider{
   }
 }
 
-/* ---------------- Cloud LLM (OpenAI-style, opt-in) ---------------- */
+/* ---------- Cloud LLM (OpenAI-style, opt-in) ---------- */
 class CloudLLMProvider{
   id(){return "cloud-generic";}
   getSettings(){ try{ return JSON.parse(localStorage.getItem("lc-llm-cloud")||"{}"); }catch{return{};} }
@@ -308,7 +362,7 @@ class CloudLLMProvider{
   }
 }
 
-/* ---------------- Rollout generator ---------------- */
+/* ---------- Rollout generator ---------- */
 function generateRolloutFromPlan(plan){
   const f=plan.fields;
   const v=(k)=> (f[k]?.value||"TBD").slice(0,140);
@@ -352,11 +406,12 @@ function generateRolloutFromPlan(plan){
   };
 }
 
-/* ---------------- Plan & Rollout mode ---------------- */
+/* ---------- Plan & Rollout mode ---------- */
 function PlanRolloutMode({project,setProject,uid,fb,active}){
   const [preview,setPreview]=useState(null);
   const [useLocal,setUseLocal]=useState(true);
   const [useCloud,setUseCloud]=useState(false);
+  const [useWebLLM,setUseWebLLM]=useState(()=> (JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}").enabled)||false);
   const [awaitingField,setAwaitingField]=useState(null);
   const [input,setInput]=useState("");
   const localLLM=React.useMemo(()=>new LocalLLMProvider(),[]);
@@ -368,11 +423,16 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
   const progress = {done: PLAN_FIELDS_KEYS.length - missingKeys.length, total: PLAN_FIELDS_KEYS.length};
   const percent = Math.round(progress.done*100/Math.max(1,progress.total));
 
-  /* Progress pill update must be an effect (no side-effects in render) */
   useEffect(()=>{
     const pillEl=document.getElementById("progress-pill");
     if(pillEl) pillEl.textContent=`Plan: ${percent}%`;
   },[percent]);
+
+  useEffect(()=>{
+    // keep provider mode in sync
+    localLLM.setMode(useWebLLM ? "webllm" : "heuristic");
+    localStorage.setItem(LS_WEBLLM, JSON.stringify({enabled:useWebLLM, modelId:localLLM.modelId}));
+  },[useWebLLM]);
 
   function updateField(key, value, complete){
     const next=deepClone(project);
@@ -428,12 +488,24 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
         try{ const res=await fetch(s.downloadURL); textBody=await res.text(); break; }catch{}
       }
     }
-    const summary = useLocal ? localLLM.summarize(textBody) : "Enable Local Mini-Model or Cloud LLM to summarize.";
+    if(useLocal && useWebLLM && localLLM.state==="ready"){
+      const reply = await localLLM.chat([{role:"user",content:`Summarize briefly:\n${textBody.slice(0,4000)}`}]);
+      addChat("assistant", reply || "Summary generated.");
+      return;
+    }
+    const summary = localLLM.summarize(textBody);
     addChat("assistant", summary);
   }
 
   async function askNextMissing(){
     if(missingKeys.length===0){ addChat("assistant","All required fields are complete. Ready to generate the rollout plan."); return; }
+    if(useLocal && useWebLLM && localLLM.state==="ready"){
+      const q = "Ask one concise question for a missing business plan field from this list: "+missingKeys.join(", ")+". Return only the question.";
+      const reply = await localLLM.chat([{role:"user",content:q}]);
+      setAwaitingField(missingKeys[0]);
+      addChat("assistant", (reply||"Please provide: "+missingKeys[0]) + " (Reply then click “Save Answer”.)");
+      return;
+    }
     const q = localLLM.followups(fields)[0];
     if(!q){ addChat("assistant","No follow-ups needed."); return; }
     setAwaitingField(q.field);
@@ -442,14 +514,20 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
 
   async function sendMessage(){
     const text=input.trim(); if(!text) return;
-    addChat("user",text); setInput("");
-    if(awaitingField) return; // wait explicit save
+    addChat("user",text);
+    setInput("");
+    if(awaitingField) return;
 
     if(useCloud){
       try{
         const reply = await cloudLLM.invoke(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
         addChat("assistant", reply);
       }catch(e){ addChat("assistant","Cloud LLM unavailable: "+e.message); }
+      return;
+    }
+    if(useLocal && useWebLLM && localLLM.state==="ready"){
+      const reply = await localLLM.chat(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
+      addChat("assistant", reply);
       return;
     }
     const hints=localLLM.extract(text);
@@ -496,6 +574,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
   }
 
   const cloudSettings = new CloudLLMProvider().getSettings();
+  const webllmSettings = JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}");
 
   return h("div",{className:"split2"},
     /* Left */
@@ -542,15 +621,20 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
       h("div",{className:"panel"},
         h("div",{className:"row"},
           h("h3",null,"Chat to Complete Plan"),
-          h(InfoIcon,{text:"Asks for missing fields only. Local Mini-Model runs in your browser. Cloud LLM uses your endpoint & key (opt-in). Default: nothing is sent to the cloud."})
+          h(InfoIcon,{text:"Local mode keeps data on-device. WebLLM runs a small model in your browser using WebGPU. Cloud LLM sends prompts to your provider (opt-in)."})
         ),
         h("div",{className:"row"},
-          h("label",null, h("input",{type:"checkbox",checked:useLocal,onChange:()=>setUseLocal(v=>!v)})," Use Local Mini-Model (beta)"),
-          h("label",null, h("input",{type:"checkbox",checked:useCloud,onChange:()=>setUseCloud(v=>!v)})," Use Cloud LLM"),
-          h(InfoIcon,{text:"Cloud LLM is OpenAI-compatible. Configure below. When enabled, your chat messages will be sent to that provider."})
+          h("label",null, h("input",{type:"checkbox",checked:useLocal,onChange:()=>setUseLocal(v=>!v)})," Use Local Mini-Model"),
+          h("label",null, h("input",{type:"checkbox",checked:useWebLLM,onChange:()=>setUseWebLLM(v=>!v),disabled:!useLocal})," Use WebLLM (local, WebGPU)"),
+          h(InfoIcon,{text:"WebLLM loads a compact model (~hundreds MB). First load can take time; content stays on-device. Requires a modern browser + GPU."})
+        ),
+        useLocal && useWebLLM && h("div",{className:"row",style:{marginTop:4,alignItems:"flex-end"}},
+          h("input",{className:"input-sm",style:{maxWidth:360},defaultValue:localLLM.modelId,placeholder:"Model ID (e.g., qwen2-1_5b-instruct-q4f16_1-MLC)",onChange:e=>localLLM.setModelId(e.target.value.trim())}),
+          h("button",{className:"btn",onClick:()=>localLLM.load()},"Load Local Model"),
+          h("span",{className:"mini"},"State: ",localLLM.state, localLLM.lastError?` • ${localLLM.lastError}`:"")
         ),
         h("div",{className:"row",style:{margin:"6px 0"}},
-          h("button",{className:"btn",onClick:summarizePlan},"Summarize Plan"),
+          h("button",{className:"btn",onClick:summarizePlan,disabled:!useLocal && !useCloud},"Summarize Plan"),
           h("button",{className:"btn",onClick:askNextMissing},"Ask About Missing Fields"),
           missingKeys.length===0 && h("button",{className:"btn primary",onClick:openConfirm},"Confirm & Generate")
         ),
@@ -570,10 +654,10 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
       ),
       h("div",{className:"panel"},
         h("h3",null,"LLM Settings (Cloud, optional)"),
-        h("form",{onSubmit:(e)=>{e.preventDefault(); const f=e.target; new CloudLLMProvider().setSettings({endpoint:f.endpoint.value.trim(), apiKey:f.apikey.value.trim(), model:f.model.value.trim()||"gpt-4o-mini"}); alert("Saved.");}},
-          h("input",{name:"endpoint",className:"input-sm",placeholder:"API endpoint (OpenAI-compatible)",defaultValue:cloudSettings.endpoint||""}),
-          h("input",{name:"apikey",className:"input-sm",placeholder:"API key",defaultValue:cloudSettings.apiKey||""}),
-          h("input",{name:"model",className:"input-sm",placeholder:"Model (e.g., gpt-4o-mini)",defaultValue:cloudSettings.model||"gpt-4o-mini"}),
+        h("form",{onSubmit:(e)=>{e.preventDefault(); const f=e.target; localStorage.setItem("lc-llm-cloud", JSON.stringify({endpoint:f.endpoint.value.trim(), apiKey:f.apikey.value.trim(), model:f.model.value.trim()||"gpt-4o-mini"})); alert("Saved.");}},
+          h("input",{name:"endpoint",className:"input-sm",placeholder:"API endpoint (OpenAI-compatible)"}),
+          h("input",{name:"apikey",className:"input-sm",placeholder:"API key"}),
+          h("input",{name:"model",className:"input-sm",placeholder:"Model (e.g., gpt-4o-mini)",defaultValue:"gpt-4o-mini"}),
           h("div",{className:"row"}, h("button",{className:"btn primary",type:"submit"},"Save"),
             h(InfoIcon,{text:"Stored only in your browser (localStorage)."})
           )
@@ -604,19 +688,16 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
   );
 }
 
-/* ---------------- Nav & Progress portals ---------------- */
+/* ---------- Nav & Progress portals ---------- */
 function PortalNav({mode,setMode}){
   const Modes=["Checklist","Playbook","Repository","Plan & Rollout"];
   const navNode = h("div",null, Modes.map(m=>h("button",{key:m,className:`btn ${mode===m?'active':''}`,onClick:()=>setMode(m)},m)));
   const mount=document.getElementById("nav");
   return mount? ReactDOM.createPortal(navNode, mount) : null;
 }
-function PortalProgress({percent}){
-  const node = h("span",null); // placeholder (progress text set by PlanRolloutMode effect too)
-  return ReactDOM.createPortal(node, document.getElementById("progress-pill")||document.body);
-}
+function PortalProgress(){ return null; }
 
-/* ---------------- App ---------------- */
+/* ---------- App ---------- */
 function App(){
   const fb = ensureFirebase();
   const [uid,setUid]=useState(null);
@@ -741,18 +822,16 @@ function App(){
     );
   }
 
-  const [dragRef,setDragRef]=useState(null);
-  function onDragStart(e,meta){ e.dataTransfer.setData("text/plain",JSON.stringify(meta)); setDragRef(meta); }
   function onDrop(e,newStatus){
     e.preventDefault(); let meta; try{ meta=JSON.parse(e.dataTransfer.getData("text/plain")||"null"); }catch{ return; }
-    const next=deepClone(project); const s=next.days[meta.di].tasks[meta.ti].subtasks[meta.si]; s.status=newStatus; s.done=(newStatus==="done"); setProject(next); setDragRef(null);
+    const next=deepClone(project); const s=next.days[meta.di].tasks[meta.ti].subtasks[meta.si]; s.status=newStatus; s.done=(newStatus==="done"); setProject(next);
   }
   function renderDayKanban(d,di){
     const cards=[]; d.tasks.forEach((t,ti)=> (t.subtasks||[]).forEach((s,si)=>cards.push({di,ti,si,s,taskTitle:t.title})));
     const cols={backlog:[],doing:[],done:[]}; cards.forEach(c=>cols[c.s.status|| (c.s.done?'done':'backlog')].push(c));
     function Col({status,label}){ return h("div",{className:"col",onDragOver:(e)=>e.preventDefault(),onDrop:(e)=>onDrop(e,status)},
       h("h4",null,`${label} (${cols[status].length})`),
-      cols[status].map(c=>h("div",{key:c.s.id,className:"card-k",draggable:true,onDragStart:(e)=>onDragStart(e,{di:c.di,ti:c.ti,si:c.si})},
+      cols[status].map(c=>h("div",{key:c.s.id,className:"card-k",draggable:true,onDragStart:(e)=>e.dataTransfer.setData("text/plain",JSON.stringify({di:c.di,ti:c.ti,si:c.si}))},
         h("div",{style:{fontWeight:600}},c.s.t),
         h("div",{className:"muted",style:{fontSize:"11px"}},d.title," — ",c.taskTitle),
         h("div",{style:{marginTop:6,display:"flex",gap:6}},
@@ -771,7 +850,6 @@ function App(){
     );
   }
 
-  /* Repo view */
   function RepoView(){
     return h("div",{className:"grid"},
       h("aside",{className:"card sticky"},
@@ -836,7 +914,7 @@ function App(){
   /* Main */
   return h("div",null,
     h(PortalNav,{mode,setMode}),
-    h(PortalProgress,{percent:0}),
+    h(PortalProgress,null),
     h("div",{className:"row",style:{marginBottom:10}},
       h("span",{className:"pill ok"},"Progress: ", total.done,"/",total.sub," • ",total.pct,"%"),
       h("span",{className:"muted"},"Project: ", project.name),
@@ -866,14 +944,64 @@ function App(){
 
     mode==="Plan & Rollout" && h(PlanRolloutMode,{project,setProject,uid,fb,active}),
 
+    /* Tests */
+    h("div",{className:"card",style:{marginTop:16}},
+      h("div",{className:"h"},"Tests"),
+      h(TestRunner,null)
+    ),
+
     h("div",{className:"footer"},"Dashboard (v0): KPI tiles later — Leads | Checkouts | MRR | Churn | List size | UGC | Reviews")
   );
 }
 
-/* ---------------- mount ---------------- */
+/* ---------- Tests ---------- */
+function TestRunner(){
+  const [res,setRes]=useState(null);
+  useEffect(()=>{
+    const r=[]; const log=(ok,msg)=>r.push({ok,msg});
+    const assertEqual=(a,b,msg)=>log(a===b, msg+` [${JSON.stringify(a)}===${JSON.stringify(b)}]`);
+    const assertTrue=(cond,msg)=>log(!!cond,msg);
+
+    // Fixture
+    const plan=defaultPlan();
+    const vals={
+      businessName:"Acme Widgets",
+      targetCustomer:"SMB retailers",
+      legalConsiderations:"VAT, GDPR",
+      budget:"£10k setup, £2k/mo",
+      timeline:"8 weeks",
+      goToMarket:"Content + Partners",
+      channels:"SEO, LinkedIn",
+      pricingModel:"Tiered SaaS",
+      successMetrics:"MRR, CAC, Activation"
+    };
+    Object.entries(vals).forEach(([k,v])=>{ plan.fields[k].value=v; plan.fields[k].complete=true; });
+    plan.sources.push({id:"s1",name:"plan.md"});
+
+    const d0=generateRolloutFromPlan(plan);
+    assertEqual(d0.day,0,"Day 0 exists");
+    assertEqual(d0.tasks.length,7,"Seven milestones created");
+    d0.tasks.forEach((t,i)=>{
+      assertTrue(Array.isArray(t.subtasks)&&t.subtasks.length>0,`Milestone ${i+1} has subtasks`);
+      assertTrue(/Source\(s\):/.test(t.note||""),"Task note cites sources");
+    });
+    const brand = d0.tasks.find(t=>t.title==="Brand");
+    assertTrue((brand?.subtasks||[]).some(s=>/Acme Widgets/.test(s.t)),"Field values threaded into tasks");
+
+    setRes({r});
+  },[]);
+  if(!res) return h("div",{className:"tests"},"Running…");
+  const pass=res.r.filter(x=>x.ok).length, fail=res.r.length-pass;
+  return h("div",{className:"tests"},
+    h("div",null, "Assertions: ", res.r.length, " • ", h("span",{className:"pass"},"Pass: ",pass)," • ", h("span",{className:"fail"},"Fail: ",fail)),
+    h("ul",null, res.r.map((x,i)=>h("li",{key:i,className:x.ok?'pass':'fail'}, x.ok?"✓ ":"✗ ", x.msg)))
+  );
+}
+
+/* ---------- mount ---------- */
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 
-/* ---------------- cache-bust for GH Pages ---------------- */
+/* ---------- cache-bust for GH Pages ---------- */
 (function(){ if(!location.search.includes("v=")){ const v=Date.now().toString(36); history.replaceState(null,"",location.pathname+"?v="+v); } })();
 </script>
 </body>
