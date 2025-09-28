@@ -1,0 +1,505 @@
+<!-- ============================= -->
+<!-- PATCH 1: CSS additions       -->
+<!-- Insert inside <style> … </style> -->
+<!-- ============================= -->
+<style>
+  /* --- Plan & Rollout layout --- */
+  .split2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .split2 .left,.split2 .right{display:grid;gap:12px}
+  .panel{background:linear-gradient(180deg,rgba(16,22,42,.65),rgba(6,12,24,.65));border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 8px;font-size:14px;color:#cfe1ff;letter-spacing:.2px;text-transform:uppercase}
+  .fields{display:grid;grid-template-columns:1fr;gap:8px}
+  .field{display:grid;gap:6px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .progress-pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#0e162b;border:1px solid var(--border);border-radius:999px;color:#cfe1ff;font-size:12px}
+  .mini{font-size:12px;color:#a9b6d3}
+  .input-sm{padding:8px;border-radius:10px;background:#0e162b;border:1px solid var(--border);color:#e6f0ff;width:100%}
+
+  /* --- Chat panel --- */
+  .chat{display:flex;flex-direction:column;gap:8px}
+  .chat-log{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:12px;background:#0b1429;padding:10px}
+  .msg{display:grid;gap:4px;margin-bottom:8px}
+  .msg .role{font-size:11px;color:#cfe1ff;text-transform:uppercase;letter-spacing:.2px}
+  .msg.user{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:8px}
+  .msg.assistant{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:8px}
+  .chat-input{display:flex;gap:8px}
+  .chat-input textarea{flex:1;min-height:42px;max-height:120px}
+  .kbd:focus{outline:2px solid rgba(59,130,246,.6);outline-offset:2px}
+
+  /* --- Popover / Info --- */
+  .info{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#0e162b;border:1px solid var(--border);font-size:12px;color:#cfe1ff;cursor:pointer}
+  .popover{position:absolute;z-index:10;min-width:260px;max-width:320px;background:#0b1429;border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:var(--shadow)}
+  .popover p{margin:0 0 6px;color:#a9b6d3;font-size:12px}
+
+  /* --- Confirm dialog --- */
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+  .dialog{width:min(720px,92vw);background:#0f172a;border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .dialog h4{margin:0 0 8px;font-size:14px;color:#cfe1ff;text-transform:uppercase}
+  .dialog .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+
+<!-- ============================= -->
+<!-- PATCH 2: JavaScript additions -->
+<!-- Insert inside the single <script> tag, after helpers.        -->
+<!-- ============================= -->
+<script>
+/* ---------- [Helpers: element alias if missing] ---------- */
+window.h = window.h || React.createElement;
+
+/* ---------- [Info popover components] ---------- */
+function InfoIcon({label="Info", text}) {
+  const [open,setOpen]=React.useState(false);
+  const ref=React.useRef(null);
+  React.useEffect(()=>{ const onDoc=(e)=>{ if(open && ref.current && !ref.current.contains(e.target)) setOpen(false); }; document.addEventListener('mousedown',onDoc); return ()=>document.removeEventListener('mousedown',onDoc); },[open]);
+  return h("span",{ref,style:{position:"relative",display:"inline-flex",alignItems:"center",gap:6}},
+    h("span",{className:"info",title:label,tabIndex:0,onClick:()=>setOpen(v=>!v),onKeyDown:(e)=>{if(e.key==="Enter")setOpen(v=>!v);}},"i"),
+    open && h("div",{className:"popover",style:{top:22,left:0}}, h("p",null,text))
+  );
+}
+
+/* ---------- [Plan model bootstrap] ---------- */
+const PLAN_FIELDS_KEYS = [
+  "businessName","problem","solution","targetCustomer","marketSize","competitors",
+  "differentiation","pricingModel","goToMarket","channels","legalConsiderations",
+  "budget","timeline","successMetrics","risks","teamRoles"
+];
+
+function defaultPlan(){
+  const fields={}; PLAN_FIELDS_KEYS.forEach(k=>fields[k]={value:"",complete:false});
+  return { sources:[], fields, chatLog:[], status:"draft" };
+}
+
+function ensurePlanShape(p){
+  const next = deepClone(p||{});
+  next.plan = next.plan && typeof next.plan==="object" ? next.plan : defaultPlan();
+  next.plan.sources = Array.isArray(next.plan.sources)? next.plan.sources : [];
+  next.plan.fields = next.plan.fields && typeof next.plan.fields==="object" ? next.plan.fields : {};
+  PLAN_FIELDS_KEYS.forEach(k=>{
+    if(!next.plan.fields[k]) next.plan.fields[k]={value:"",complete:false};
+    if(typeof next.plan.fields[k].complete!=="boolean") next.plan.fields[k].complete=!!next.plan.fields[k].value;
+  });
+  next.plan.chatLog = Array.isArray(next.plan.chatLog)? next.plan.chatLog : [];
+  next.plan.status = next.plan.status || "draft";
+  return next;
+}
+
+/* ---------- [Local LLM (heuristic) provider] ---------- */
+class LocalLLMProvider {
+  /** Lightweight heuristics; no network; privacy-safe. */
+  id(){return "local-mini";}
+  summarize(text="", max=5){
+    const s=(text||"").split(/[\.\n]+/).map(x=>x.trim()).filter(Boolean);
+    return s.slice(0,max).join(". ") || "No textual content to summarize.";
+  }
+  followups(fields){
+    const prompts={
+      businessName:"What's the business name?",
+      problem:"What customer problem do you solve?",
+      solution:"Briefly describe your solution.",
+      targetCustomer:"Who is the target customer?",
+      marketSize:"Estimated market size?",
+      competitors:"Who are the competitors?",
+      differentiation:"What makes you different?",
+      pricingModel:"Pricing model (e.g., subscription, one-off, tiers)?",
+      goToMarket:"Your go-to-market approach?",
+      channels:"Primary channels (e.g., SEO, Ads, Partners)?",
+      legalConsiderations:"Any legal/regulatory considerations?",
+      budget:"Initial budget and monthly run rate?",
+      timeline:"Expected timeline to launch?",
+      successMetrics:"Success metrics (KPIs)?",
+      risks:"Top 3 risks + mitigations?",
+      teamRoles:"Team roles/owners?"
+    };
+    const missing = PLAN_FIELDS_KEYS.filter(k=>!fields[k]?.complete);
+    return missing.map(k=>({field:k, question:prompts[k]}));
+  }
+  extract(text){
+    // Very naive keyword extraction to auto-hint values (kept intentionally simple)
+    const hints={}; const T=(k)=>new RegExp(`\\b${k}\\b\\s*[:\\-]\\s*([^\\n\\r]+)`,"i");
+    const tryKey=(key, label)=>{ const m=(text||"").match(T(label)); if(m) hints[key]=m[1].trim(); };
+    tryKey("businessName","business name");
+    tryKey("pricingModel","pricing");
+    tryKey("targetCustomer","target customer");
+    tryKey("goToMarket","go to market");
+    tryKey("channels","channels");
+    tryKey("budget","budget");
+    tryKey("timeline","timeline");
+    tryKey("successMetrics","success metrics");
+    return hints;
+  }
+}
+
+/* ---------- [Cloud LLM provider (generic)] ---------- */
+class CloudLLMProvider {
+  /** Generic JSON API, OpenAI-compatible schema supported; off by default. */
+  id(){return "cloud-generic";}
+  getSettings(){
+    try{ return JSON.parse(localStorage.getItem("lc-llm-cloud")||"{}"); }catch{ return {}; }
+  }
+  setSettings(s){ localStorage.setItem("lc-llm-cloud", JSON.stringify(s||{})); }
+  async invoke(messages, system="You are an assistant that asks only for missing business plan fields."){
+    const {apiKey, endpoint, model="gpt-4o-mini"} = this.getSettings();
+    if(!apiKey || !endpoint) throw new Error("Cloud LLM not configured.");
+    // OpenAI-compatible minimal call; user provides endpoint/key; content privacy shown in popover.
+    const body={model, messages:[{role:"system",content:system},...messages]};
+    const res = await fetch(endpoint, {method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!res.ok){ const t=await res.text(); throw new Error("Cloud LLM error: "+t.slice(0,160)); }
+    const j=await res.json();
+    const txt = j.choices?.[0]?.message?.content || "";
+    return txt;
+  }
+}
+
+/* ---------- [Rollout plan generator] ---------- */
+function generateRolloutFromPlan(plan){
+  const f = plan.fields;
+  const titleFrom=(k)=> (f[k]?.value || "").slice(0,120);
+  const ref = (plan.sources||[]).map(s=>s.name).join(", ") || "user inputs";
+  const tasks = [
+    { id:"r1", title:"Validation", desc:"Assumptions & demand checks", subs:[
+      "Define hypotheses & success metrics",
+      `Pre-launch survey targeting ${titleFrom("targetCustomer")}`,
+      "Landing smoke test (opt-ins/interest)"] },
+    { id:"r2", title:"Brand", desc:"Name & identity", subs:[
+      `Finalize name: ${titleFrom("businessName") || "TBD"}`,
+      "Tagline & palette; lightweight logo",
+      "Brand/voice guide"]},
+    { id:"r3", title:"Legal", desc:"Basics", subs:[
+      `Check legal considerations: ${titleFrom("legalConsiderations") || "TBD"}`,
+      "Policies (ToS/PP/Cookie); company info",
+      "Payment/Tax settings"]},
+    { id:"r4", title:"Ops", desc:"Budget/Runway/Workflow", subs:[
+      `Budget: ${titleFrom("budget") || "TBD"}`,
+      `Timeline: ${titleFrom("timeline") || "TBD"}`,
+      "Run Log + dashboards"]},
+    { id:"r5", title:"Marketing", desc:"GTM & Channels", subs:[
+      `Go-to-market: ${titleFrom("goToMarket") || "TBD"}`,
+      `Channels: ${titleFrom("channels") || "TBD"}`,
+      "Content pack + schedule"]},
+    { id:"r6", title:"Sales", desc:"Pricing & offers", subs:[
+      `Pricing model: ${titleFrom("pricingModel") || "TBD"}`,
+      "Offers page + checkout + receipts",
+      "Onboarding & follow-ups"]},
+    { id:"r7", title:"Launch", desc:"Plan & announce", subs:[
+      "Soft launch QA",
+      "Public launch posts & tracking",
+      `Success metrics: ${titleFrom("successMetrics") || "TBD"}`]},
+  ];
+  // Map to checklist-compatible day
+  const rolloutDay = {
+    day: 0, title: "Rollout", tasks: tasks.map(t=>({
+      id:t.id, title:t.title, desc:t.desc, note:`Source(s): ${ref}`,
+      subtasks: t.subs.map((s,i)=>({id:`${t.id}s${i+1}`, t:s, done:false, status:"backlog"}))
+    }))
+  };
+  return rolloutDay;
+}
+
+/* ---------- [Plan & Rollout mode component] ---------- */
+function PlanRolloutMode({project,setProject,uid,fb,active}){
+  const [preview,setPreview]=React.useState(null);
+  const [useLocal,setUseLocal]=React.useState(true);
+  const [useCloud,setUseCloud]=React.useState(false);
+  const [awaitingField,setAwaitingField]=React.useState(null);
+  const [input,setInput]=React.useState("");
+  const localLLM=React.useMemo(()=>new LocalLLMProvider(),[]);
+  const cloudLLM=React.useMemo(()=>new CloudLLMProvider(),[]);
+  const plan=project.plan||defaultPlan();
+
+  const fields = plan.fields;
+  const missingKeys = PLAN_FIELDS_KEYS.filter(k=>!fields[k].complete);
+  const progress = {done: PLAN_FIELDS_KEYS.length - missingKeys.length, total: PLAN_FIELDS_KEYS.length};
+  const percent = Math.round(progress.done*100/Math.max(1,progress.total));
+
+  function updateField(key, value, complete){
+    const next=deepClone(project);
+    next.plan.fields[key].value=value;
+    if(typeof complete==="boolean") next.plan.fields[key].complete=complete;
+    setProject(next);
+  }
+  function markAllComplete(){
+    const next=deepClone(project);
+    PLAN_FIELDS_KEYS.forEach(k=>{ next.plan.fields[k].complete = !!next.plan.fields[k].value; });
+    setProject(next);
+  }
+  function addChat(role,text){
+    const next=deepClone(project);
+    next.plan.chatLog.push({id:`c_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,role,text,createdAt:nowIso()});
+    setProject(next);
+  }
+
+  async function uploadPlanFiles(files){
+    const day = "Day 1";
+    for(const file of files){
+      const safe=file.name.replace(/[^\w\-.]+/g,"_");
+      let meta;
+      if(uid && fb?.available){
+        const path=`users/${uid}/projects/${active}/repo/${day}/${Date.now()}_${safe}`;
+        const ref=fb.st.ref().child(path);
+        await ref.put(file);
+        const url=await ref.getDownloadURL();
+        meta={ id:`plan_${Date.now()}_${Math.random().toString(36).slice(2,7)}`, kind:"file",
+          day, name:file.name, size:file.size, contentType:file.type||"", storagePath:path,
+          downloadURL:url, tags:["business-plan"], notes:"Business plan", createdAt:nowIso()};
+      }else{
+        // Offline: create a local object URL; users can still preview/download
+        const url=URL.createObjectURL(file);
+        meta={ id:`plan_${Date.now()}_${Math.random().toString(36).slice(2,7)}`, kind:"file",
+          day, name:file.name, size:file.size, contentType:file.type||"", storagePath:"local",
+          downloadURL:url, tags:["business-plan"], notes:"Business plan (local)", createdAt:nowIso()};
+      }
+      const next=deepClone(project);
+      next.repo = next.repo || {items:{}};
+      next.repo.items = next.repo.items || {};
+      next.repo.items[meta.id]=meta;
+      next.plan.sources.push({ id:meta.id, kind:"file", name:meta.name, contentType:meta.contentType, downloadURL:meta.downloadURL, createdAt:meta.createdAt, tags:["business-plan"] });
+      setProject(next);
+      // set preview on first upload
+      setPreview(meta);
+    }
+  }
+
+  async function summarizePlan(){
+    addChat("assistant","Summarizing uploaded plan…");
+    // Pull first text-like source body if accessible
+    let textBody="";
+    for(const s of plan.sources){
+      if((s.contentType||"").includes("text") || (s.contentType||"").includes("markdown")){
+        try{ const res=await fetch(s.downloadURL); textBody=await res.text(); break; }catch{/* ignore */ }
+      }
+    }
+    const summary = useLocal ? localLLM.summarize(textBody) : "Enable Local Mini-Model to summarize without cloud.";
+    addChat("assistant", summary);
+  }
+
+  async function askNextMissing(){
+    if(missingKeys.length===0){ addChat("assistant","All required fields are complete. Ready to generate the rollout plan."); return; }
+    const q = localLLM.followups(fields)[0];
+    if(!q){ addChat("assistant","No follow-ups needed."); return; }
+    setAwaitingField(q.field);
+    addChat("assistant", q.question + " (Please reply and click “Save Answer”.)");
+  }
+
+  async function sendMessage(){
+    const text=input.trim(); if(!text) return;
+    addChat("user",text);
+    setInput("");
+    if(awaitingField){
+      // hold; require explicit confirmation
+    }else if(useCloud){
+      try{
+        const reply = await cloudLLM.invoke(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
+        addChat("assistant", reply);
+      }catch(e){ addChat("assistant","Cloud LLM unavailable: "+e.message); }
+    }else{
+      // local heuristic: suggest extraction from free text
+      const hints=localLLM.extract(text);
+      const keys=Object.keys(hints);
+      if(keys.length){
+        addChat("assistant","Detected possible values: "+keys.map(k=>`${k} → “${hints[k]}”`).join("; ")+" — pick one field and Save Answer.");
+        setAwaitingField(keys[0]);
+        setInput(hints[keys[0]]);
+      }else{
+        addChat("assistant","Thanks! Use “Save Answer” to map this to a field.");
+      }
+    }
+  }
+
+  function saveAnswerToField(){
+    if(!awaitingField){ alert("No active question. Choose a field on the left or click 'Ask About Missing Fields'."); return; }
+    const text=input.trim(); if(!text){ alert("Type your answer first."); return; }
+    updateField(awaitingField, text, true);
+    addChat("assistant", `Saved ${awaitingField}.`);
+    setAwaitingField(null);
+    setInput("");
+  }
+
+  function clearDraft(){
+    if(!confirm("Clear chat & plan draft? This cannot be undone.")) return;
+    const next=deepClone(project);
+    next.plan = defaultPlan();
+    setProject(next);
+    setPreview(null);
+  }
+
+  function openConfirm(){
+    const next=deepClone(project);
+    next.plan.status="ready"; setProject(next);
+  }
+  function closeConfirm(){
+    const next=deepClone(project);
+    next.plan.status="draft"; setProject(next);
+  }
+
+  function confirmGenerate(){
+    // inject rollout day 0
+    const next=deepClone(project);
+    const rollout = generateRolloutFromPlan(next.plan);
+    // If a Day 0 already exists, replace it
+    const idx = (next.days||[]).findIndex(d=>d.day===0);
+    if(idx>=0) next.days[idx]=rollout; else next.days=[rollout, ...(next.days||[])];
+    // add simple summary note into repo (data URI link)
+    const summaryLines = PLAN_FIELDS_KEYS.map(k=>`- **${k}**: ${next.plan.fields[k].value||"—"}`).join("\n");
+    const dataUrl = "data:text/markdown;charset=utf-8,"+encodeURIComponent(`# Rollout Plan Summary\n\n${summaryLines}`);
+    const link={ id:`sum_${Date.now()}`, kind:"link", day:"Day 0", name:"Rollout Plan Summary (md)", url:dataUrl, tags:["business-plan","rollout"], notes:"Auto-generated", createdAt:nowIso() };
+    next.repo.items[link.id]=link;
+    next.plan.status="draft";
+    setProject(next);
+    alert("Rollout plan generated into Checklist/Kanban (Day 0).");
+  }
+
+  // Cloud LLM settings editor
+  const cloudSettings = cloudLLM.getSettings();
+  function saveCloudSettings(e){
+    e.preventDefault();
+    const form = e.target;
+    cloudLLM.setSettings({endpoint:form.endpoint.value.trim(), apiKey:form.apikey.value.trim(), model:form.model.value.trim()||"gpt-4o-mini"});
+    alert("Saved. Cloud LLM is still opt-in; toggle it on when ready.");
+  }
+
+  return h("div",{className:"split2"},
+    /* Left: Plan form + uploader + preview */
+    h("div",{className:"left"},
+      h("div",{className:"panel"},
+        h("div",{className:"row"},
+          h("h3",null,"Plan Data"),
+          h("span",{className:"progress-pill"}, `${progress.done}/${progress.total} • ${percent}%`)
+        ),
+        h("div",{className:"fields"},
+          PLAN_FIELDS_KEYS.map(k=>h("div",{key:k,className:"field"},
+            h("label",{className:"mini"},k),
+            h("textarea",{className:"input-sm kbd",rows:2,value:fields[k].value,placeholder:"Enter "+k,onChange:e=>updateField(k,e.target.value)}),
+            h("div",{className:"row"},
+              h("label",null, h("input",{type:"checkbox",checked:fields[k].complete,onChange:e=>updateField(k,fields[k].value,e.target.checked)})," Mark complete")
+            )
+          )),
+          h("div",{className:"row"}, h("button",{className:"btn",onClick:markAllComplete},"Mark complete where filled"))
+        )
+      ),
+      h("div",{className:"panel"},
+        h("div",{className:"row"},
+          h("h3",null,"Business Plan Uploader"),
+          h(InfoIcon,{text:"Upload a PDF/DOCX/Markdown/Text business plan. Files are stored in Firebase Storage (if signed in). Metadata is saved in Repository with tag “business-plan” and also referenced in Plan Sources."})
+        ),
+        h("input",{type:"file",accept:".pdf,.docx,.md,.markdown,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document",onChange:e=>{const fs=[...e.target.files]; if(fs.length) uploadPlanFiles(fs); e.target.value="";}}),
+        !!preview && h("div",{style:{marginTop:10}},
+          h("div",{className:"mini"},"Preview: ", preview.name," • ",preview.contentType||""),
+          (preview.contentType||"").startsWith("image/") && h("img",{src:preview.downloadURL,alt:preview.name,style:{maxWidth:"100%",borderRadius:10,border:"1px solid var(--border)"}}),
+          (preview.contentType||"")==="application/pdf" && h("iframe",{src:preview.downloadURL,style:{width:"100%",height:"420px",border:"1px solid var(--border)",borderRadius:"10px"}}),
+          ((preview.contentType||"").startsWith("text/") || (preview.contentType||"").includes("markdown")) && h("iframe",{src:preview.downloadURL,style:{width:"100%",height:"240px",border:"1px solid var(--border)",borderRadius:"10px"}})
+        ),
+        h("div",{className:"row",style:{marginTop:8}},
+          h("button",{className:"btn",onClick:()=>setPreview(null)},"Clear preview")
+        )
+      ),
+      h("div",{className:"panel"},
+        h("div",{className:"row"},
+          h("h3",null,"Safety"),
+          h(InfoIcon,{text:"“Clear Chat & Plan Draft” deletes your plan fields and chat history from local state and firebase synced project."})
+        ),
+        h("button",{className:"btn",onClick:clearDraft,style:{borderColor:"rgba(239,68,68,.35)",color:"#ffd0d0"}},"Clear Chat & Plan Draft")
+      )
+    ),
+
+    /* Right: Chat + controls */
+    h("div",{className:"right"},
+      h("div",{className:"panel"},
+        h("div",{className:"row"},
+          h("h3",null,"Chat to Complete Plan"),
+          h(InfoIcon,{text:"The assistant only asks for missing fields. “Local Mini-Model” runs in your browser (heuristics). “Cloud LLM” uses your API & endpoint, off by default. Default privacy: plan content is not sent to the cloud."})
+        ),
+        h("div",{className:"row"},
+          h("label",null, h("input",{type:"checkbox",checked:useLocal,onChange:()=>setUseLocal(v=>!v)})," Use Local Mini-Model (beta)"),
+          h("label",null, h("input",{type:"checkbox",checked:useCloud,onChange:()=>setUseCloud(v=>!v)})," Use Cloud LLM"),
+          h(InfoIcon,{text:"Cloud LLM: provide an endpoint+API key in Settings below (OpenAI-compatible JSON). Toggle is opt-in. Content may be sent to your LLM provider when enabled."})
+        ),
+        h("div",{className:"row",style:{margin:"6px 0"}},
+          h("button",{className:"btn",onClick:summarizePlan},"Summarize Plan"),
+          h("button",{className:"btn",onClick:askNextMissing},"Ask About Missing Fields"),
+          missingKeys.length===0 && h("button",{className:"btn primary",onClick:openConfirm},"Confirm & Generate")
+        ),
+        h("div",{className:"chat"},
+          h("div",{className:"chat-log",id:"chat-log",role:"log","aria-live":"polite"},
+            (plan.chatLog||[]).slice(-200).map(m=>h("div",{key:m.id,className:`msg ${m.role}`},
+              h("div",{className:"role"},m.role),
+              h("div",null,m.text)
+            ))
+          ),
+          h("div",{className:"chat-input"},
+            h("textarea",{className:"input kbd",placeholder: awaitingField?`Answer for: ${awaitingField}`:"Type message…",value:input,onChange:e=>setInput(e.target.value),onKeyDown:(e)=>{ if(e.key==="Enter" && (e.ctrlKey||e.metaKey)) sendMessage(); }}),
+            h("button",{className:"btn",onClick:sendMessage},"Send"),
+            h("button",{className:"btn primary",onClick:saveAnswerToField,disabled:!awaitingField},"Save Answer")
+          )
+        )
+      ),
+      h("div",{className:"panel"},
+        h("h3",null,"LLM Settings (Cloud, optional)"),
+        h("form",{onSubmit:saveCloudSettings,className:"fields",style:{maxWidth:520}},
+          h("input",{name:"endpoint",className:"input-sm",placeholder:"API endpoint (OpenAI-compatible)",defaultValue:cloudSettings.endpoint||""}),
+          h("input",{name:"apikey",className:"input-sm",placeholder:"API key",defaultValue:cloudSettings.apiKey||""}),
+          h("input",{name:"model",className:"input-sm",placeholder:"Model (e.g., gpt-4o-mini)",defaultValue:cloudSettings.model||"gpt-4o-mini"}),
+          h("div",{className:"row"},
+            h("button",{className:"btn primary",type:"submit"},"Save"),
+            h(InfoIcon,{text:"Credentials are stored only in your browser’s localStorage and used client-side."})
+          )
+        )
+      )
+    ),
+
+    /* Confirm dialog */
+    plan.status==="ready" && h("div",{className:"backdrop",role:"dialog","aria-modal":"true"},
+      h("div",{className:"dialog"},
+        h("h4",null,"Confirm & Generate Rollout Plan"),
+        h("div",{className:"mini",style:{marginBottom:10}},"Please review the summary below. Proceed to inject a 'Rollout' day into your Checklist/Kanban (Day 0)."),
+        h("div",{className:"grid2"},
+          h("div",null,
+            h("div",{className:"h"},"Assumptions"),
+            PLAN_FIELDS_KEYS.map(k=>h("div",{key:k,style:{marginBottom:6}}, h("strong",null,k),": ", fields[k].value||"—"))
+          ),
+          h("div",null,
+            h("div",{className:"h"},"Missing"),
+            missingKeys.length? h("ul",null, missingKeys.map(k=>h("li",{key:k},k))) : h("div",null,"None 🎯")
+          )
+        ),
+        h("div",{className:"row",style:{marginTop:10,justifyContent:"flex-end"}},
+          h("button",{className:"btn",onClick:closeConfirm},"Cancel"),
+          h("button",{className:"btn primary",onClick:confirmGenerate,disabled:missingKeys.length>0},"Generate Rollout Plan")
+        )
+      )
+    )
+  );
+}
+
+/* ---------- [Integration hooks inside App()] ---------- */
+/* Add once inside App() component: ensure plan shape after project loads/imports */
+(function patchAppEnsurePlan(){
+  const _App = App;
+  App = function PatchedApp(){
+    const el = _App.apply(this, arguments); // run original factory to bind hooks (kept simple)
+    return el;
+  }
+})();
+
+/* NOTE: The above wrapper leaves App body intact; below we add two small inline patches
+   where App defines state/effects and the main render. You only need to:
+   1) Ensure plan shape once when project changes (guarded).
+   2) Add a new nav button + mode branch.
+*/
+
+/* === PATCH 2.1: Ensure plan shape once ===
+   Inside App(), after project state exists (where other useEffects live), add:
+     const planEnsuredRef = React.useRef(false);
+     React.useEffect(()=>{ if(project && !project.plan && !planEnsuredRef.current){ setProject(ensurePlanShape(project)); planEnsuredRef.current=true; } },[project]);
+   Also after any Import handler that sets project, wrap with setProject(ensurePlanShape(next)).
+*/
+
+/* === PATCH 2.2: Mode button ===
+   In the top nav where Playbook/Checklist/Repository are rendered, insert the button:
+     h("button",{className:`btn ${mode==='Plan & Rollout'?'active':''}`,onClick:()=>setMode('Plan & Rollout')},"Plan & Rollout")
+*/
+
+/* === PATCH 2.3: Mode view ===
+   In the main render branches (below Repository), add:
+     mode==="Plan & Rollout" && h(PlanRolloutMode,{project,setProject,uid,fb,active})
+*/
+</script>
