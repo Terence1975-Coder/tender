@@ -1,15 +1,22 @@
-<!-- file: flowforge.html (single-file app with WebLLM + tests) -->
+<!-- file: flowforge2.html -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Launch Control — Business Launch Companion</title>
-<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync, WebLLM (WebGPU) local model, and offline fallback."/>
+<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync and offline fallback."/>
 
-<!-- React 18 UMD + Firebase compat -->
+<!-- PRODUCTION UMD (use these in prod). For debugging, temporarily swap to the dev UMDs below. -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<!-- DEBUG (uncomment when you need detailed stacks; then re-enable production above) -->
+<!--
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+-->
+
+<!-- Firebase compat UMD -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -40,13 +47,11 @@
     backdrop-filter: blur(6px);
     border-bottom:1px solid rgba(255,255,255,.06);
   }
-  .brand{display:flex;gap:10px;align-items:center}
   .logo{width:28px;height:28px;border-radius:8px;background:var(--grad)}
   .title{font-weight:700}
   .nav{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
   .btn{
-    all:unset;cursor:pointer;
-    padding:8px 12px;border-radius:10px;border:1px solid var(--border);
+    all:unset;cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid var(--border);
     background:#0e162b;color:#cfe1ff;display:inline-flex;align-items:center;gap:6px
   }
   .btn.primary{background:var(--grad);border:none;color:#fff}
@@ -62,11 +67,7 @@
   .sticky{position:sticky;top:14px}
   .h{margin:0 0 10px;font-size:13px;color:#cfe1ff;letter-spacing:.3px;text-transform:uppercase}
   .muted{color:#a9b6d3;font-size:12px}
-  input[type="text"],input[type="email"],textarea,.input,.search{
-    width:100%;background:#0e162b;border:1px solid var(--border);border-radius:10px;color:#e6f0ff;padding:10px
-  }
-
-  /* Checklist / Kanban */
+  input[type="text"],textarea,.input{width:100%;background:#0e162b;border:1px solid var(--border);border-radius:10px;color:#e6f0ff;padding:10px}
   .day{border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px}
   .task{display:flex;gap:12px;align-items:flex-start;padding:12px;border-top:1px solid var(--border);background:rgba(10,16,32,.35)}
   .task-title{font-weight:600}
@@ -78,16 +79,8 @@
   .col{flex:1;min-height:240px;padding:10px;border-radius:12px;background:#0b1429;border:1px dashed #2a3b63}
   .card-k{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;background:#0e162b}
 
-  /* Repo */
-  .repo-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .repo-list{display:grid;gap:8px}
-  .link{display:flex;gap:8px;align-items:center}
-  .code{background:#0a1328;border:1px solid var(--border);border-radius:10px;padding:10px;overflow:auto;white-space:pre-wrap}
-
-  /* --- Plan & Rollout (new) --- */
+  /* Plan & Rollout */
   .split2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .split2 .left,.split2 .right{display:grid;gap:12px}
   .panel{background:linear-gradient(180deg,rgba(16,22,42,.65),rgba(6,12,24,.65));border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
   .panel h3{margin:0 0 8px;font-size:14px;color:#cfe1ff;letter-spacing:.2px;text-transform:uppercase}
   .fields{display:grid;grid-template-columns:1fr;gap:8px}
@@ -95,7 +88,6 @@
   .progress-pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;background:#0e162b;border:1px solid var(--border);border-radius:999px;color:#cfe1ff;font-size:12px}
   .mini{font-size:12px;color:#a9b6d3}
   .input-sm{padding:8px;border-radius:10px;background:#0e162b;border:1px solid var(--border);color:#e6f0ff;width:100%}
-
   .chat{display:flex;flex-direction:column;gap:8px}
   .chat-log{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:12px;background:#0b1429;padding:10px}
   .msg{display:grid;gap:4px;margin-bottom:8px}
@@ -104,8 +96,6 @@
   .msg.assistant{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:8px}
   .chat-input{display:flex;gap:8px}
   .chat-input textarea{flex:1;min-height:42px;max-height:120px}
-  .kbd:focus{outline:2px solid rgba(59,130,246,.6);outline-offset:2px}
-
   .info{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#0e162b;border:1px solid var(--border);font-size:12px;color:#cfe1ff;cursor:pointer}
   .popover{position:absolute;z-index:10;min-width:260px;max-width:320px;background:#0b1429;border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:var(--shadow)}
   .popover p{margin:0 0 6px;color:#a9b6d3;font-size:12px}
@@ -114,11 +104,8 @@
   .dialog{width:min(720px,92vw);background:#0f172a;border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
   .dialog h4{margin:0 0 8px;font-size:14px;color:#cfe1ff;text-transform:uppercase}
   .dialog .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
   .footer{margin:24px 0 16px;color:#a9b6d3;text-align:center}
   .error-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);color:#fff;z-index:99999;padding:18px;overflow:auto}
-  .tests{font-family:ui-monospace,Consolas,Menlo,monospace;background:#0b1429;border:1px solid var(--border);border-radius:12px;padding:10px}
-  .pass{color:#10b981}.fail{color:#ef4444}
 </style>
 </head>
 <body>
@@ -134,14 +121,14 @@
 <div id="err" class="error-overlay"></div>
 
 <script>
-/* ---------- error overlay ---------- */
+/* ---------------- error overlay ---------------- */
 addEventListener("error", e=>{
   const el=document.getElementById("err");
   el.innerHTML=`<h2>Script error</h2><pre>${(e.error?.stack||"")}</pre><div>${e.message||""}</div>`;
   el.style.display="block";
 });
 
-/* ---------- utils ---------- */
+/* ---------------- utils ---------------- */
 const h = React.createElement;
 const {useState,useEffect,useMemo,useRef} = React;
 const deepClone = (v)=>JSON.parse(JSON.stringify(v));
@@ -152,7 +139,7 @@ const slugify=(s,used=new Set())=>{
   let i=2,base=x; while(used.has(x)) x=`${base}-${i++}`; return x;
 };
 
-/* ---------- seed data ---------- */
+/* ---------------- seed data ---------------- */
 const PLAYBOOK_MD = `# 14-Day Zero-Capex AI Business (Concise)
 - Stack: Notion/Carrd • Tally • Buttondown • Stripe/Payhip • Zapier • GA • Spreadsheet CRM
 - Guarantees: 1 mini-offer + 5 leads in 14 days (scope-capped)
@@ -187,13 +174,13 @@ function makeSeedDays(){
       st("d6t2","DFY Upsell",["Scope doc","CTA on hub","Reply templates"])
     ]),
     mk(7,"Public Launch",[
-      st("d7t1","Launch Day",["Post threads","Emails","DMs & replies"]),
+      st("d7t1","Launch Day",["Launch posts","Emails","DMs & replies"]),
       st("d7t2","Referral Loop",["2 referrals","Thank-you notes","Plan v1.2"])
     ])
   ];
 }
 
-/* ---------- firebase ---------- */
+/* ---------------- firebase ---------------- */
 const FIREBASE_CONFIG = {
   apiKey:"AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
   authDomain:"prospecting-f2f42.firebaseapp.com",
@@ -205,16 +192,15 @@ const FIREBASE_CONFIG = {
   measurementId:"G-WWB0JTX2L2"
 };
 const LS_INDEX="lc-index", LS_ACTIVE="lc-active", LS_PROJECT_PREFIX="lc-project:", LS_MODE="lc-mode";
-const LS_WEBLLM="lc-webllm"; // {modelId, enabled}
 
-/* ---------- firebase helpers ---------- */
+/* ---------------- firebase helpers ---------------- */
 function ensureFirebase(){
   if(!window.firebase) return {available:false,auth:null,db:null,st:null};
   if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
   return {available:true,auth:firebase.auth(),db:firebase.database(),st:firebase.storage()};
 }
 
-/* ---------- Info popover ---------- */
+/* ---------------- Info popover ---------------- */
 function InfoIcon({label="Info", text}){
   const [open,setOpen]=useState(false);
   const ref=useRef(null);
@@ -229,7 +215,7 @@ function InfoIcon({label="Info", text}){
   );
 }
 
-/* ---------- Plan model ---------- */
+/* ---------------- Plan model ---------------- */
 const PLAN_FIELDS_KEYS = [
   "businessName","problem","solution","targetCustomer","marketSize","competitors",
   "differentiation","pricingModel","goToMarket","channels","legalConsiderations",
@@ -253,59 +239,10 @@ function ensurePlanShape(p){
   return next;
 }
 
-/* ---------- Local LLM (heuristics + WebLLM) ---------- */
+/* ---------------- Local Mini-Model (heuristic) ---------------- */
 class LocalLLMProvider{
-  constructor(){
-    this.mode="heuristic"; // 'heuristic' | 'webllm'
-    this.state="idle";     // 'idle' | 'loading' | 'ready' | 'error'
-    this.modelId=(JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}").modelId)||"qwen2-1_5b-instruct-q4f16_1-MLC";
-    this.engine=null; this.webllm=null; this.lastError="";
-  }
-  setMode(m){ this.mode=m; }
-  setModelId(id){ this.modelId=id; localStorage.setItem(LS_WEBLLM,JSON.stringify({...(JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}")),modelId:id})); }
-  async load(){
-    if(this.state==="loading"||this.state==="ready") return;
-    this.state="loading";
-    try{
-      // Dynamic ESM import; safe fallback if blocked.
-      const mod = await import("https://esm.run/@mlc-ai/web-llm");
-      this.webllm = mod;
-      // Create engine (names vary; this path is best-effort, with fallback).
-      if(mod.CreateMLCEngine){
-        this.engine = await mod.CreateMLCEngine(this.modelId);
-      }else if(mod.CreateWebWorkerMLCEngine){
-        this.engine = await mod.CreateWebWorkerMLCEngine(this.modelId);
-      }else{
-        throw new Error("Unsupported WebLLM API");
-      }
-      this.state="ready";
-    }catch(e){
-      this.lastError=(e&&e.message)||"Load failed";
-      this.state="error"; this.mode="heuristic"; // fallback
-    }
-  }
-  async chat(messages){
-    if(this.mode==="webllm" && this.state==="ready" && this.engine){
-      try{
-        const out = await this.engine.chat.completions.create({
-          messages, temperature:0.3, max_tokens:256
-        });
-        const txt = out?.choices?.[0]?.message?.content || "";
-        return txt || "…";
-      }catch(e){
-        this.lastError=(e&&e.message)||"Chat failed";
-        return "Local WebLLM chat failed; falling back to heuristic prompts.";
-      }
-    }
-    // Heuristic follow-up: ask for first missing field, or echo guidance.
-    const text = (messages[messages.length-1]?.content||"").toLowerCase();
-    if(text.includes("summary")||text.includes("summarize")) return "Please upload text/markdown for best local summary.";
-    return "Thanks! If this answers a specific field, click “Save Answer”. Use “Ask About Missing Fields” for the next prompt.";
-  }
+  id(){return "local-mini";}
   summarize(text="", max=5){
-    if(this.mode==="webllm" && this.state==="ready" && this.engine){
-      // quick sync path triggers async chat; keep heuristic for speed
-    }
     const s=(text||"").split(/[\.\n]+/).map(x=>x.trim()).filter(Boolean);
     return s.slice(0,max).join(". ") || "No textual content to summarize.";
   }
@@ -346,7 +283,7 @@ class LocalLLMProvider{
   }
 }
 
-/* ---------- Cloud LLM (OpenAI-style, opt-in) ---------- */
+/* ---------------- Cloud LLM (OpenAI-compatible, optional) ---------------- */
 class CloudLLMProvider{
   id(){return "cloud-generic";}
   getSettings(){ try{ return JSON.parse(localStorage.getItem("lc-llm-cloud")||"{}"); }catch{return{};} }
@@ -362,7 +299,7 @@ class CloudLLMProvider{
   }
 }
 
-/* ---------- Rollout generator ---------- */
+/* ---------------- Rollout generator ---------------- */
 function generateRolloutFromPlan(plan){
   const f=plan.fields;
   const v=(k)=> (f[k]?.value||"TBD").slice(0,140);
@@ -406,16 +343,15 @@ function generateRolloutFromPlan(plan){
   };
 }
 
-/* ---------- Plan & Rollout mode ---------- */
+/* ---------------- Plan & Rollout Mode ---------------- */
 function PlanRolloutMode({project,setProject,uid,fb,active}){
   const [preview,setPreview]=useState(null);
   const [useLocal,setUseLocal]=useState(true);
   const [useCloud,setUseCloud]=useState(false);
-  const [useWebLLM,setUseWebLLM]=useState(()=> (JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}").enabled)||false);
   const [awaitingField,setAwaitingField]=useState(null);
   const [input,setInput]=useState("");
-  const localLLM=React.useMemo(()=>new LocalLLMProvider(),[]);
-  const cloudLLM=React.useMemo(()=>new CloudLLMProvider(),[]);
+  const localLLM=useMemo(()=>new LocalLLMProvider(),[]);
+  const cloudLLM=useMemo(()=>new CloudLLMProvider(),[]);
   const plan=project.plan||defaultPlan();
 
   const fields = plan.fields;
@@ -427,12 +363,6 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const pillEl=document.getElementById("progress-pill");
     if(pillEl) pillEl.textContent=`Plan: ${percent}%`;
   },[percent]);
-
-  useEffect(()=>{
-    // keep provider mode in sync
-    localLLM.setMode(useWebLLM ? "webllm" : "heuristic");
-    localStorage.setItem(LS_WEBLLM, JSON.stringify({enabled:useWebLLM, modelId:localLLM.modelId}));
-  },[useWebLLM]);
 
   function updateField(key, value, complete){
     const next=deepClone(project);
@@ -488,24 +418,12 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
         try{ const res=await fetch(s.downloadURL); textBody=await res.text(); break; }catch{}
       }
     }
-    if(useLocal && useWebLLM && localLLM.state==="ready"){
-      const reply = await localLLM.chat([{role:"user",content:`Summarize briefly:\n${textBody.slice(0,4000)}`}]);
-      addChat("assistant", reply || "Summary generated.");
-      return;
-    }
-    const summary = localLLM.summarize(textBody);
+    const summary = useLocal ? localLLM.summarize(textBody) : "Enable Local Mini-Model or Cloud LLM to summarize.";
     addChat("assistant", summary);
   }
 
   async function askNextMissing(){
     if(missingKeys.length===0){ addChat("assistant","All required fields are complete. Ready to generate the rollout plan."); return; }
-    if(useLocal && useWebLLM && localLLM.state==="ready"){
-      const q = "Ask one concise question for a missing business plan field from this list: "+missingKeys.join(", ")+". Return only the question.";
-      const reply = await localLLM.chat([{role:"user",content:q}]);
-      setAwaitingField(missingKeys[0]);
-      addChat("assistant", (reply||"Please provide: "+missingKeys[0]) + " (Reply then click “Save Answer”.)");
-      return;
-    }
     const q = localLLM.followups(fields)[0];
     if(!q){ addChat("assistant","No follow-ups needed."); return; }
     setAwaitingField(q.field);
@@ -516,8 +434,9 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const text=input.trim(); if(!text) return;
     addChat("user",text);
     setInput("");
-    if(awaitingField) return;
-
+    if(awaitingField){
+      return; // wait for explicit Save Answer
+    }
     if(useCloud){
       try{
         const reply = await cloudLLM.invoke(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
@@ -525,16 +444,12 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
       }catch(e){ addChat("assistant","Cloud LLM unavailable: "+e.message); }
       return;
     }
-    if(useLocal && useWebLLM && localLLM.state==="ready"){
-      const reply = await localLLM.chat(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
-      addChat("assistant", reply);
-      return;
-    }
     const hints=localLLM.extract(text);
     const keys=Object.keys(hints);
     if(keys.length){
       addChat("assistant","Detected possible values: "+keys.map(k=>`${k} → “${hints[k]}”`).join("; ")+" — pick a field and Save Answer.");
-      setAwaitingField(keys[0]); setInput(hints[keys[0]]);
+      setAwaitingField(keys[0]);
+      setInput(hints[keys[0]]);
     }else{
       addChat("assistant","Thanks! Use “Save Answer” to map this to a field.");
     }
@@ -545,7 +460,8 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const text=input.trim(); if(!text){ alert("Type your answer first."); return; }
     updateField(awaitingField, text, true);
     addChat("assistant", `Saved ${awaitingField}.`);
-    setAwaitingField(null); setInput("");
+    setAwaitingField(null);
+    setInput("");
   }
 
   function clearDraft(){
@@ -574,28 +490,25 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
   }
 
   const cloudSettings = new CloudLLMProvider().getSettings();
-  const webllmSettings = JSON.parse(localStorage.getItem(LS_WEBLLM)||"{}");
 
   return h("div",{className:"split2"},
     /* Left */
-    h("div",{className:"left"},
+    h("div",null,
       h("div",{className:"panel"},
-        h("div",{className:"row"}, h("h3",null,"Plan Data"), h("span",{className:"progress-pill"}, `${progress.done}/${progress.total} • ${percent}%`) ),
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}}, h("h3",null,"Plan Data"), h("span",{className:"progress-pill"}, `${progress.done}/${progress.total} • ${percent}%`) ),
         h("div",{className:"fields"},
           PLAN_FIELDS_KEYS.map(k=>h("div",{key:k,className:"field"},
             h("label",{className:"mini"},k),
-            h("textarea",{className:"input-sm kbd",rows:2,value:fields[k].value,placeholder:"Enter "+k,onChange:e=>updateField(k,e.target.value)}),
-            h("div",{className:"row"},
-              h("label",null, h("input",{type:"checkbox",checked:fields[k].complete,onChange:e=>updateField(k,fields[k].value,e.target.checked)})," Mark complete")
-            )
+            h("textarea",{className:"input",rows:2,value:fields[k].value,placeholder:"Enter "+k,onChange:e=>updateField(k,e.target.value)}),
+            h("label",null, h("input",{type:"checkbox",checked:fields[k].complete,onChange:e=>updateField(k,fields[k].value,e.target.checked)})," Mark complete")
           )),
-          h("div",{className:"row"}, h("button",{className:"btn",onClick:markAllComplete},"Mark complete where filled"))
+          h("div",{style:{display:"flex",gap:8}}, h("button",{className:"btn",onClick:markAllComplete},"Mark complete where filled"))
         )
       ),
       h("div",{className:"panel"},
-        h("div",{className:"row"},
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           h("h3",null,"Business Plan Uploader"),
-          h(InfoIcon,{text:"Upload .pdf, .docx, .md, or .txt. Stored in Firebase Storage when signed in; otherwise kept locally. Metadata goes into Repository (tag 'business-plan') and Plan Sources."})
+          h(InfoIcon,{text:"Upload .pdf, .docx, .md, or .txt. Stored in Firebase (if signed in) or locally. Metadata goes into Repository (tag 'business-plan') and Plan Sources."})
         ),
         h("input",{type:"file",accept:".pdf,.docx,.md,.markdown,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document",onChange:e=>{const fs=[...e.target.files]; if(fs.length) uploadPlanFiles(fs); e.target.value="";}}),
         !!preview && h("div",{style:{marginTop:10}},
@@ -604,12 +517,12 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
           (preview.contentType||"").includes("pdf") && h("iframe",{src:preview.downloadURL,style:{width:"100%",height:"420px",border:"1px solid var(--border)",borderRadius:"10px"}}),
           ((preview.contentType||"").startsWith("text/") || (preview.contentType||"").includes("markdown")) && h("iframe",{src:preview.downloadURL,style:{width:"100%",height:"240px",border:"1px solid var(--border)",borderRadius:"10px"}})
         ),
-        h("div",{className:"row",style:{marginTop:8}},
+        h("div",{style:{display:"flex",gap:8,marginTop:8}},
           h("button",{className:"btn",onClick:()=>setPreview(null)},"Clear preview")
         )
       ),
       h("div",{className:"panel"},
-        h("div",{className:"row"},
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           h("h3",null,"Safety"),
           h(InfoIcon,{text:"“Clear Chat & Plan Draft” deletes plan fields and chat history from the current project (and remote if syncing)."})
         ),
@@ -617,24 +530,19 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
       )
     ),
     /* Right */
-    h("div",{className:"right"},
+    h("div",null,
       h("div",{className:"panel"},
-        h("div",{className:"row"},
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           h("h3",null,"Chat to Complete Plan"),
-          h(InfoIcon,{text:"Local mode keeps data on-device. WebLLM runs a small model in your browser using WebGPU. Cloud LLM sends prompts to your provider (opt-in)."})
+          h(InfoIcon,{text:"Local mode keeps data on-device. Cloud LLM sends prompts to your provider (opt-in)."})
         ),
-        h("div",{className:"row"},
+        h("div",{style:{display:"flex",gap:10,flexWrap:"wrap"}},
           h("label",null, h("input",{type:"checkbox",checked:useLocal,onChange:()=>setUseLocal(v=>!v)})," Use Local Mini-Model"),
-          h("label",null, h("input",{type:"checkbox",checked:useWebLLM,onChange:()=>setUseWebLLM(v=>!v),disabled:!useLocal})," Use WebLLM (local, WebGPU)"),
-          h(InfoIcon,{text:"WebLLM loads a compact model (~hundreds MB). First load can take time; content stays on-device. Requires a modern browser + GPU."})
+          h("label",null, h("input",{type:"checkbox",checked:useCloud,onChange:()=>setUseCloud(v=>!v)})," Use Cloud LLM"),
+          h(InfoIcon,{text:"Cloud: add your endpoint & API key below. Default = local only."})
         ),
-        useLocal && useWebLLM && h("div",{className:"row",style:{marginTop:4,alignItems:"flex-end"}},
-          h("input",{className:"input-sm",style:{maxWidth:360},defaultValue:localLLM.modelId,placeholder:"Model ID (e.g., qwen2-1_5b-instruct-q4f16_1-MLC)",onChange:e=>localLLM.setModelId(e.target.value.trim())}),
-          h("button",{className:"btn",onClick:()=>localLLM.load()},"Load Local Model"),
-          h("span",{className:"mini"},"State: ",localLLM.state, localLLM.lastError?` • ${localLLM.lastError}`:"")
-        ),
-        h("div",{className:"row",style:{margin:"6px 0"}},
-          h("button",{className:"btn",onClick:summarizePlan,disabled:!useLocal && !useCloud},"Summarize Plan"),
+        h("div",{style:{display:"flex",gap:8,margin:"6px 0"}},
+          h("button",{className:"btn",onClick:summarizePlan},"Summarize Plan"),
           h("button",{className:"btn",onClick:askNextMissing},"Ask About Missing Fields"),
           missingKeys.length===0 && h("button",{className:"btn primary",onClick:openConfirm},"Confirm & Generate")
         ),
@@ -646,7 +554,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
             ))
           ),
           h("div",{className:"chat-input"},
-            h("textarea",{className:"input kbd",placeholder: awaitingField?`Answer for: ${awaitingField}`:"Type message…",value:input,onChange:e=>setInput(e.target.value),onKeyDown:(e)=>{ if(e.key==="Enter" && (e.ctrlKey||e.metaKey)) sendMessage(); }}),
+            h("textarea",{className:"input",placeholder: awaitingField?`Answer for: ${awaitingField}`:"Type message…",value:input,onChange:e=>setInput(e.target.value),onKeyDown:(e)=>{ if(e.key==="Enter" && (e.ctrlKey||e.metaKey)) sendMessage(); }}),
             h("button",{className:"btn",onClick:sendMessage},"Send"),
             h("button",{className:"btn primary",onClick:saveAnswerToField,disabled:!awaitingField},"Save Answer")
           )
@@ -654,17 +562,16 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
       ),
       h("div",{className:"panel"},
         h("h3",null,"LLM Settings (Cloud, optional)"),
-        h("form",{onSubmit:(e)=>{e.preventDefault(); const f=e.target; localStorage.setItem("lc-llm-cloud", JSON.stringify({endpoint:f.endpoint.value.trim(), apiKey:f.apikey.value.trim(), model:f.model.value.trim()||"gpt-4o-mini"})); alert("Saved.");}},
+        h("form",{onSubmit:(e)=>{e.preventDefault(); const f=e.target; new CloudLLMProvider().setSettings({endpoint:f.endpoint.value.trim(), apiKey:f.apikey.value.trim(), model:f.model.value.trim()||"gpt-4o-mini"}); alert("Saved.");}},
           h("input",{name:"endpoint",className:"input-sm",placeholder:"API endpoint (OpenAI-compatible)"}),
           h("input",{name:"apikey",className:"input-sm",placeholder:"API key"}),
           h("input",{name:"model",className:"input-sm",placeholder:"Model (e.g., gpt-4o-mini)",defaultValue:"gpt-4o-mini"}),
-          h("div",{className:"row"}, h("button",{className:"btn primary",type:"submit"},"Save"),
+          h("div",{style:{display:"flex",gap:8}}, h("button",{className:"btn primary",type:"submit"},"Save"),
             h(InfoIcon,{text:"Stored only in your browser (localStorage)."})
           )
         )
       )
     ),
-    /* Confirm dialog */
     plan.status==="ready" && h("div",{className:"backdrop",role:"dialog","aria-modal":"true"},
       h("div",{className:"dialog"},
         h("h4",null,"Confirm & Generate Rollout Plan"),
@@ -679,7 +586,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
             missingKeys.length? h("ul",null, missingKeys.map(k=>h("li",{key:k},k))) : h("div",null,"None 🎯")
           )
         ),
-        h("div",{className:"row",style:{marginTop:10,justifyContent:"flex-end"}},
+        h("div",{style:{display:"flex",gap:8,justifyContent:"flex-end",marginTop:10}},
           h("button",{className:"btn",onClick:closeConfirm},"Cancel"),
           h("button",{className:"btn primary",onClick:confirmGenerate,disabled:missingKeys.length>0},"Generate Rollout Plan")
         )
@@ -688,33 +595,38 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
   );
 }
 
-/* ---------- Nav & Progress portals ---------- */
+/* ---------------- Nav via Portal (no render-time DOM writes) ---------------- */
 function PortalNav({mode,setMode}){
   const Modes=["Checklist","Playbook","Repository","Plan & Rollout"];
-  const navNode = h("div",null, Modes.map(m=>h("button",{key:m,className:`btn ${mode===m?'active':''}`,onClick:()=>setMode(m)},m)));
+  const navNode = h(React.Fragment,null, Modes.map(m=>h("button",{key:m,className:`btn ${mode===m?'active':''}`,onClick:()=>setMode(m)},m)));
   const mount=document.getElementById("nav");
   return mount? ReactDOM.createPortal(navNode, mount) : null;
 }
-function PortalProgress(){ return null; }
 
-/* ---------- App ---------- */
+/* ---------------- App ---------------- */
 function App(){
+  // HOOKS — declare in fixed order, unconditionally
   const fb = ensureFirebase();
   const [uid,setUid]=useState(null);
   const [authErr,setAuthErr]=useState("");
-  useEffect(()=>{
-    if(!fb.available) return;
-    fb.auth.signInAnonymously().then(cred=>setUid(cred.user.uid)).catch(e=>setAuthErr(e.message||"Auth error"));
-  },[]);
-
   const [index,setIndex]=useState(()=> JSON.parse(localStorage.getItem(LS_INDEX)||"{}") || {});
   const [active,setActive]=useState(()=> localStorage.getItem(LS_ACTIVE) || "");
   const [project,setProject]=useState(null);
   const [mode,setMode]=useState(()=> localStorage.getItem(LS_MODE) || "Checklist");
 
-  useEffect(()=>localStorage.setItem(LS_INDEX,JSON.stringify(index||{})),[index]);
-  useEffect(()=>localStorage.setItem(LS_ACTIVE,active||""),[active]);
-  useEffect(()=>localStorage.setItem(LS_MODE,mode||"Checklist"),[mode]);
+  const [repoDay,setRepoDay]=useState("All");
+  const [repoFilter,setRepoFilter]=useState("All");
+  const [repoSearch,setRepoSearch]=useState("");
+  const [repoPreview,setRepoPreview]=useState(null);
+
+  const [dayView,setDayView]=useState("List");
+  const [currentDayIdx,setCurrentDayIdx]=useState(0);
+
+  // Effects — always declared
+  useEffect(()=>{
+    if(!fb.available) return;
+    fb.auth.signInAnonymously().then(cred=>setUid(cred.user.uid)).catch(e=>setAuthErr(e.message||"Auth error"));
+  },[]);
 
   useEffect(()=>{
     (async function init(){
@@ -746,22 +658,22 @@ function App(){
   // eslint-disable-next-line
   },[uid,active]);
 
-  const saveRemote = React.useMemo(()=>debounce(async (uid,slug,proj)=>{
+  useEffect(()=>localStorage.setItem(LS_INDEX,JSON.stringify(index||{})),[index]);
+  useEffect(()=>localStorage.setItem(LS_ACTIVE,active||""),[active]);
+  useEffect(()=>localStorage.setItem(LS_MODE,mode||"Checklist"),[mode]);
+
+  const saveRemote = useMemo(()=>debounce(async (uid,slug,proj)=>{
     if(!uid || !fb.available) return;
     await fb.db.ref(`users/${uid}/projects/${slug}`).set(proj);
   },600),[]);
+
   useEffect(()=>{
     if(!project || !active) return;
     localStorage.setItem(LS_PROJECT_PREFIX+active, JSON.stringify(project));
     if(uid&&fb.available) saveRemote(uid,active,project);
   },[project,active,uid]);
 
-  /* Repository UI state */
-  const [repoDay,setRepoDay]=useState("All");
-  const [repoFilter,setRepoFilter]=useState("All");
-  const [repoSearch,setRepoSearch]=useState("");
-  const [repoPreview,setRepoPreview]=useState(null);
-
+  // Repo upload (no hooks inside)
   async function uploadFiles(files){
     if(!project) return;
     const day = repoDay==="All" ? "Unsorted" : repoDay;
@@ -786,7 +698,7 @@ function App(){
     }
   }
 
-  /* Checklist helpers */
+  // Checklist helpers (no hooks here)
   function toggleSub(di,ti,si){
     const next=deepClone(project); const s=next.days[di].tasks[ti].subtasks[si];
     s.done=!s.done; s.status = s.done ? "done" : (s.status==="done"?"backlog":s.status||"backlog"); setProject(next);
@@ -797,10 +709,6 @@ function App(){
 
   if(!project) return h("div",null,"Loading project…");
   if(authErr) return h("div",{className:"pill err"},"Auth: ",authErr);
-
-  /* local UI states for Checklist */
-  const [dayView,setDayView]=useState("List");
-  const [currentDayIdx,setCurrentDayIdx]=useState(0);
 
   function renderDayList(d,di){
     return h("div",{className:"day"},
@@ -871,17 +779,17 @@ function App(){
           ["All","Docs","Images","Links"].map(x=>h("button",{key:x,className:`btn ${repoFilter===x?'active':''}`,onClick:()=>setRepoFilter(x)},x))
         ),
         h("div",{className:"h",style:{marginTop:12}},"Firebase Setup"),
-        h("div",{className:"code"},"Auth → enable Anonymous.\nDB Rules → per-user read/write on /users/{uid}/…\nStorage Rules → per-user folders.\nOffline fallback: localStorage/Object URLs.")
+        h("div",{className:"muted"},"Auth → Anonymous; DB/Storage rules per-user. Offline fallback uses localStorage/Object URLs.")
       ),
       h("main",null,
-        h("div",{className:"repo-toolbar"},
+        h("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:10}},
           h("span",{className:"muted"},"Filter by day:"),
           h("select",{className:"input",style:{width:180},value:repoDay,onChange:e=>{setRepoDay(e.target.value); setRepoPreview(null);}},
             ["All",...new Set(Object.values(project.repo.items||{}).map(i=>i.day||"Unsorted"))].map(d=>h("option",{key:d,value:d},d))
           ),
           h("div",{style:{marginLeft:"auto"}}, repoPreview && h("span",{className:"badge"},"Preview: ",repoPreview.name))
         ),
-        h("div",{className:"repo-list"},
+        h("div",{style:{display:"grid",gap:8}},
           Object.values(project.repo.items||{})
             .filter(i=>repoDay==="All"||i.day===repoDay)
             .filter(i=>{
@@ -893,7 +801,7 @@ function App(){
             .filter(i=>(i.name||"").toLowerCase().includes(repoSearch.toLowerCase()))
             .sort((a,b)=> (a.createdAt>b.createdAt?-1:1))
             .map(i=>h("div",{key:i.id,className:"card"},
-              h("div",{className:"link"},
+              h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
                 h("div",{className:"badge"}, i.kind==="file"?"File":"Link"),
                 h("div",{style:{fontWeight:600}}, i.name),
                 h("div",{className:"muted"},"• ", i.day||"Unsorted"," • ", (i.contentType||i.url||"").slice(0,60))
@@ -901,7 +809,7 @@ function App(){
               i.kind==="file" && ((i.contentType||"").startsWith("image/") ? h("img",{src:i.downloadURL,alt:i.name,style:{maxWidth:"100%",borderRadius:10,border:"1px solid var(--border)",marginTop:8}})
                   : (i.contentType||"").includes("pdf") ? h("iframe",{src:i.downloadURL,style:{width:"100%",height:"320px",border:"1px solid var(--border)",borderRadius:"10px",marginTop:8}})
                   : ((i.contentType||"").startsWith("text/") || (i.contentType||"").includes("markdown")) ? h("iframe",{src:i.downloadURL,style:{width:"100%",height:"200px",border:"1px solid var(--border)",borderRadius:"10px",marginTop:8}}) : null),
-              i.kind==="link" && h("div",{className:"row",style:{marginTop:8}},
+              i.kind==="link" && h("div",{style:{display:"flex",gap:8,marginTop:8}},
                 h("a",{href:i.url,target:"_blank",rel:"noopener",className:"btn"},"Open"),
                 h("button",{className:"btn",onClick:()=>setRepoPreview(i)},"Preview (if embeddable)")
               )
@@ -911,11 +819,9 @@ function App(){
     );
   }
 
-  /* Main */
   return h("div",null,
     h(PortalNav,{mode,setMode}),
-    h(PortalProgress,null),
-    h("div",{className:"row",style:{marginBottom:10}},
+    h("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:10}},
       h("span",{className:"pill ok"},"Progress: ", total.done,"/",total.sub," • ",total.pct,"%"),
       h("span",{className:"muted"},"Project: ", project.name),
       h("span",{className:"muted"}," | Mode: ", mode),
@@ -923,11 +829,11 @@ function App(){
     ),
 
     mode==="Checklist" && h("div",null,
-      h("div",{className:"row",style:{marginBottom:8}},
+      h("div",{style:{display:"flex",gap:8,marginBottom:8}},
         ["List","Kanban"].map(v=>h("button",{key:v,className:`btn ${dayView===v?'active':''}`,onClick:()=>setDayView(v)},v)),
         h("div",{style:{marginLeft:"auto"}}, h("span",{className:"muted"},"View: "), dayView)
       ),
-      h("div",{className:"row",style:{marginBottom:8}},
+      h("div",{style:{display:"flex",gap:8,marginBottom:8}},
         project.days.map((d,i)=>h("button",{key:d.day,className:`btn ${currentDayIdx===i?'active':''}`,onClick:()=>setCurrentDayIdx(i)},`Day ${d.day}`))
       ),
       dayView==='List' ? renderDayList(project.days[currentDayIdx], currentDayIdx)
@@ -944,65 +850,16 @@ function App(){
 
     mode==="Plan & Rollout" && h(PlanRolloutMode,{project,setProject,uid,fb,active}),
 
-    /* Tests */
-    h("div",{className:"card",style:{marginTop:16}},
-      h("div",{className:"h"},"Tests"),
-      h(TestRunner,null)
-    ),
-
     h("div",{className:"footer"},"Dashboard (v0): KPI tiles later — Leads | Checkouts | MRR | Churn | List size | UGC | Reviews")
   );
 }
 
-/* ---------- Tests ---------- */
-function TestRunner(){
-  const [res,setRes]=useState(null);
-  useEffect(()=>{
-    const r=[]; const log=(ok,msg)=>r.push({ok,msg});
-    const assertEqual=(a,b,msg)=>log(a===b, msg+` [${JSON.stringify(a)}===${JSON.stringify(b)}]`);
-    const assertTrue=(cond,msg)=>log(!!cond,msg);
-
-    // Fixture
-    const plan=defaultPlan();
-    const vals={
-      businessName:"Acme Widgets",
-      targetCustomer:"SMB retailers",
-      legalConsiderations:"VAT, GDPR",
-      budget:"£10k setup, £2k/mo",
-      timeline:"8 weeks",
-      goToMarket:"Content + Partners",
-      channels:"SEO, LinkedIn",
-      pricingModel:"Tiered SaaS",
-      successMetrics:"MRR, CAC, Activation"
-    };
-    Object.entries(vals).forEach(([k,v])=>{ plan.fields[k].value=v; plan.fields[k].complete=true; });
-    plan.sources.push({id:"s1",name:"plan.md"});
-
-    const d0=generateRolloutFromPlan(plan);
-    assertEqual(d0.day,0,"Day 0 exists");
-    assertEqual(d0.tasks.length,7,"Seven milestones created");
-    d0.tasks.forEach((t,i)=>{
-      assertTrue(Array.isArray(t.subtasks)&&t.subtasks.length>0,`Milestone ${i+1} has subtasks`);
-      assertTrue(/Source\(s\):/.test(t.note||""),"Task note cites sources");
-    });
-    const brand = d0.tasks.find(t=>t.title==="Brand");
-    assertTrue((brand?.subtasks||[]).some(s=>/Acme Widgets/.test(s.t)),"Field values threaded into tasks");
-
-    setRes({r});
-  },[]);
-  if(!res) return h("div",{className:"tests"},"Running…");
-  const pass=res.r.filter(x=>x.ok).length, fail=res.r.length-pass;
-  return h("div",{className:"tests"},
-    h("div",null, "Assertions: ", res.r.length, " • ", h("span",{className:"pass"},"Pass: ",pass)," • ", h("span",{className:"fail"},"Fail: ",fail)),
-    h("ul",null, res.r.map((x,i)=>h("li",{key:i,className:x.ok?'pass':'fail'}, x.ok?"✓ ":"✗ ", x.msg)))
-  );
-}
-
-/* ---------- mount ---------- */
+/* ---------------- mount ---------------- */
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 
-/* ---------- cache-bust for GH Pages ---------- */
+/* ---------------- cache-bust for GH Pages ---------------- */
 (function(){ if(!location.search.includes("v=")){ const v=Date.now().toString(36); history.replaceState(null,"",location.pathname+"?v="+v); } })();
 </script>
 </body>
 </html>
+
