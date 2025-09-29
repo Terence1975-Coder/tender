@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cornwall AI — 4-Stage Challenge</title>
+<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, and admin dashboard." />
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg1:#050316;
+    --bg2:#0b0630;
+    --glow:#7f5af0;
+    --cyan:#2cb67d;
+    --blue:#5de4ff;
+    --purple:#a78bfa;
+    --green:#22c55e;
+    --danger:#ef4444;
+    --muted:#a3a3a3;
+    --card:#0f0a3a80;
+    --card2:#110a4a99;
+    --star:radial-gradient(circle, rgba(255,255,255,.9) 0, rgba(255,255,255,.2) 40%, transparent 60%);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:#eef; background: radial-gradient(1200px 700px at 20% 10%, #140b55 0%, #090530 40%, #050316 80%),
+                         radial-gradient(900px 500px at 80% 30%, #0b2455 0%, #060321 60%, #050316 90%);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+    overflow-x:hidden;
+  }
+
+  /* Starfield */
+  .stars, .stars2, .stars3{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-repeat:repeat; background-size:contain; opacity:.5;
+    animation: drift 120s linear infinite;
+  }
+  .stars { background-image: radial-gradient(2px 2px at 20% 30%, #fff, transparent 60%),
+                              radial-gradient(1px 1px at 70% 60%, #ddf, transparent 60%),
+                              radial-gradient(1.5px 1.5px at 40% 80%, #adf, transparent 60%); }
+  .stars2{ background-image: radial-gradient(1.5px 1.5px at 10% 50%, #fff, transparent 60%),
+                              radial-gradient(2px 2px at 80% 20%, #cdf, transparent 60%); opacity:.35; animation-duration: 160s;}
+  .stars3{ background-image: radial-gradient(1px 1px at 50% 50%, #fff, transparent 60%); opacity:.2; animation-duration: 220s;}
+
+  @keyframes drift { from {transform: translateY(0)} to { transform: translateY(-400px)} }
+
+  header{
+    position:relative; z-index:1; padding:32px 20px 8px; text-align:center;
+  }
+  .brand{
+    font-family: Orbitron, Inter, sans-serif; letter-spacing:.06em; font-weight:800; font-size: clamp(24px, 3vw, 44px);
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--cyan));
+    -webkit-background-clip:text; background-clip:text; color: transparent;
+    text-shadow: 0 0 20px rgba(127,90,240,.25);
+  }
+  .subtitle{margin-top:6px; color:#bcd; font-weight:500}
+  .container{
+    position:relative; z-index:1; max-width:1100px; margin: 20px auto 120px; padding: 0 16px;
+  }
+
+  .notice{
+    background: linear-gradient(180deg, #0e0b3f88, #0b083388);
+    border:1px solid #3b2ab8; color:#dfe9ff; padding:12px 14px; border-radius:14px; margin:14px 0;
+    display:flex; align-items:center; gap:10px;
+  }
+  .pill{
+    display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
+    background:#1b1655; border:1px solid #34307a; color:#bbf; font-size:12px; letter-spacing:.04em;
+  }
+
+  .grid{
+    display:grid; grid-template-columns: 1fr; gap:18px; margin-top:18px;
+  }
+  @media (min-width:900px){ .grid{ grid-template-columns: 1.35fr .65fr; }}
+
+  .card{
+    background: linear-gradient(180deg, var(--card), var(--card2));
+    border:1px solid #2b216f; border-radius:20px; padding:16px; box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 0 40px rgba(94,234,255,.06);
+  }
+  .card h2{ margin: 6px 0 10px; font-family: Orbitron, Inter; letter-spacing:.04em; color:#e8ecff }
+  .muted{ color: var(--muted); font-size: 14px }
+  label{ display:block; font-weight:600; margin:10px 0 6px; color:#dfe }
+  input[type="text"], textarea, select{
+    width:100%; background:#0e0a3d; color:#e7f2ff; border:1px solid #352a89; border-radius:12px; padding:10px 12px; outline:none;
+    box-shadow: inset 0 0 0 1px rgba(94,234,255,.05);
+  }
+  textarea{ min-height: 110px; resize:vertical }
+  input[type="file"]{ color:#bbd; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap }
+  .row > *{ flex:1 }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:14px;
+    font-weight:700; border:1px solid #344; cursor:pointer; background: linear-gradient(180deg, #1f1a66, #1b134d);
+    color:#e9f3ff; text-decoration:none; transition: transform .05s ease, box-shadow .2s ease;
+    box-shadow: 0 8px 20px rgba(127,90,240,.25), inset 0 0 0 1px rgba(94,234,255,.08);
+  }
+  .btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(127,90,240,.35), inset 0 0 0 1px rgba(94,234,255,.14); }
+  .btn.primary{ background: linear-gradient(180deg, #1b7c65, #125e4c); border-color:#247f6a }
+  .btn.ghost{ background:transparent; border-color:#344; }
+  .btn.danger{ background: linear-gradient(180deg, #7a1b3a, #5a1230); border-color:#7a2a3a }
+  .tiny{ font-size:12px; color:#aac; margin-left:6px }
+
+  .tabs{
+    display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 6px;
+  }
+  .tab{
+    padding:8px 12px; border-radius:14px; border:1px solid #2d2b6a; background:#0e0a3d; color:#cfe;
+    font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .tab.active{ background: linear-gradient(180deg, #1b1450, #171042); border-color:#4a3fb6; box-shadow: 0 0 0 2px rgba(94,234,255,.12) inset; }
+  .lock{ font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #3a2a8c; background:#140c4c; color:#9bf; }
+
+  .gallery{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; margin-top:12px;
+  }
+  .tile{
+    background:#0d0935; border:1px solid #2a2170; border-radius:14px; padding:10px; position:relative;
+  }
+  .tile img{ width:100%; border-radius:10px; display:block; object-fit:cover; aspect-ratio: 4 / 3; background:#070426 }
+  .tile .caption{ margin-top:8px; font-size:13px; color:#cde }
+  .vote-select{ display:flex; gap:8px; margin-top:8px; align-items:center; }
+  .badge{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:#13205a; border:1px solid #2b3a8c; font-size:12px; color:#cbe }
+  .winner{ outline: 2px solid #2cb67d; box-shadow: 0 0 0 3px rgba(44,182,125,.2) }
+
+  .admin-grid{ display:grid; grid-template-columns: 1fr; gap:12px }
+  @media (min-width:900px){ .admin-grid{ grid-template-columns: .8fr 1.2fr } }
+  .kv{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 12px; border:1px dashed #355; border-radius:12px; }
+  .switch{ appearance:none; width:48px; height:28px; border-radius:999px; background:#2a235a; position:relative; border:1px solid #3a2b7a; cursor:pointer; }
+  .switch:checked{ background:#1f7a65; border-color:#2a9b80 }
+  .switch::after{ content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#e7f2ff; transition: transform .2s ease; }
+  .switch:checked::after{ transform: translateX(20px); }
+
+  footer{ position:fixed; bottom:0; left:0; right:0; z-index:1; padding:8px 12px; display:flex; align-items:center; justify-content:center; gap:10px; background: linear-gradient(180deg, transparent, #050316bb 30%, #050316ee); }
+  .credit{ color:#8da; font-size:12px }
+</style>
+</head>
+<body>
+<div class="stars"></div><div class="stars2"></div><div class="stars3"></div>
+
+<header>
+  <div class="brand">Cornwall AI — Prompt Gauntlet</div>
+  <div class="subtitle">Quick-fire stages: <strong>Slogan</strong> → <strong>Logo</strong> → <strong>Flyer</strong> → <strong>Sparkle</strong>. Upload. Vote. Win. 🚀</div>
+</header>
+
+<div class="container">
+  <div class="notice">
+    <span class="pill">Futuristic Mode ✨</span>
+    <div>Enter your <strong>Name</strong> once below; it’s saved locally for submissions. Voting is anonymous and names are hidden in the gallery.</div>
+  </div>
+
+  <div class="grid">
+    <!-- Left: Stages & Gallery -->
+    <div class="card">
+      <h2>Stages</h2>
+      <div class="tabs" id="stageTabs"></div>
+      <div id="stageContent"></div>
+
+      <div class="notice" style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>Gallery & Voting</strong> — opens when the facilitator unlocks it. Winners are ranked by 3/2/1 points.</div>
+        <button class="btn ghost" id="openGalleryBtn">Open Gallery</button>
+      </div>
+      <div id="galleryWrap" class="card" style="margin-top:12px; display:none;">
+        <h2 id="galleryTitle">Gallery</h2>
+        <div class="muted" id="galleryHint">Names are hidden during voting.</div>
+        <div class="gallery" id="gallery"></div>
+        <div id="votingPanel" style="margin-top:14px; display:none;">
+          <div class="pill" style="margin-bottom:10px;">Select your 1st, 2nd, and 3rd</div>
+          <div class="row">
+            <select id="firstVote"><option value="">— First —</option></select>
+            <select id="secondVote"><option value="">— Second —</option></select>
+            <select id="thirdVote"><option value="">— Third —</option></select>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button class="btn primary" id="submitVoteBtn">Submit Votes</button>
+            <div class="tiny">Voting is one-time per device per stage.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Identity & Admin -->
+    <div class="card">
+      <h2>Identity & Admin</h2>
+      <div class="row">
+        <div>
+          <label>Your Name</label>
+          <input id="participantName" type="text" placeholder="e.g., Alex Tremayne" />
+          <div class="tiny">Stored only on your device and attached to your own uploads.</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn" id="saveNameBtn">Save Name</button>
+        <span class="tiny" id="nameStatus"></span>
+      </div>
+
+      <hr style="border: none; border-top:1px solid #2a2769; margin:16px 0">
+
+      <div id="adminPanelLocked">
+        <label>Facilitator Code</label>
+        <div class="row">
+          <input id="adminCode" type="text" placeholder="Enter code" />
+          <button class="btn" id="adminLoginBtn">Unlock</button>
+        </div>
+        <div class="tiny">Facilitator can open stages, unlock voting, and view results. (Code is hidden server-side by behavior; value used here is for workshop use.)</div>
+      </div>
+
+      <div id="adminPanel" style="display:none;">
+        <div class="pill" style="margin-bottom:10px;">Admin Dashboard</div>
+        <div class="admin-grid">
+          <div class="card" style="padding:12px;">
+            <h3>Controls</h3>
+            <div id="controlList"></div>
+            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn ghost" id="lockAllBtn">Lock All</button>
+              <button class="btn" id="openNextBtn">Open Next Stage</button>
+              <button class="btn danger" id="closeVotingBtn">Close Voting</button>
+            </div>
+          </div>
+          <div class="card" style="padding:12px;">
+            <h3>Live Results</h3>
+            <div id="resultsWrap"></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /right card -->
+  </div>
+</div>
+
+<footer>
+  <span class="credit">© Cornwall AI — “Best AI group in Cornwall” workshop</span>
+</footer>
+
+<!-- Firebase (Compat SDKs for simpler namespaced usage) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+<script>
+/* ===============================
+   Firebase Config (provided)
+================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+  authDomain: "prospecting-f2f42.firebaseapp.com",
+  databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "prospecting-f2f42",
+  storageBucket: "prospecting-f2f42.firebasestorage.app",
+  messagingSenderId: "292034226428",
+  appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+  measurementId: "G-WWB0JTX2L2"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let storage = null;
+try { storage = firebase.storage(); } catch(e){ console.warn("Storage not available:", e); }
+
+/* ===============================
+   App State
+================================== */
+const STAGES = [
+  { key: "stage1", label: "Stage 1 • Slogan" },
+  { key: "stage2", label: "Stage 2 • Logo" },
+  { key: "stage3", label: "Stage 3 • Flyer" },
+  { key: "stage4", label: "Stage 4 • Sparkle" },
+];
+const DEFAULT_SETTINGS = {
+  currentIndex: 0,
+  stage1: { open: true,  votingOpen: false },
+  stage2: { open: false, votingOpen: false },
+  stage3: { open: false, votingOpen: false },
+  stage4: { open: false, votingOpen: false },
+};
+
+const els = {
+  tabs: document.getElementById('stageTabs'),
+  content: document.getElementById('stageContent'),
+  openGalleryBtn: document.getElementById('openGalleryBtn'),
+  galleryWrap: document.getElementById('galleryWrap'),
+  galleryTitle: document.getElementById('galleryTitle'),
+  galleryHint: document.getElementById('galleryHint'),
+  gallery: document.getElementById('gallery'),
+  firstVote: document.getElementById('firstVote'),
+  secondVote: document.getElementById('secondVote'),
+  thirdVote: document.getElementById('thirdVote'),
+  submitVoteBtn: document.getElementById('submitVoteBtn'),
+  participantName: document.getElementById('participantName'),
+  saveNameBtn: document.getElementById('saveNameBtn'),
+  nameStatus: document.getElementById('nameStatus'),
+  adminPanelLocked: document.getElementById('adminPanelLocked'),
+  adminPanel: document.getElementById('adminPanel'),
+  adminCode: document.getElementById('adminCode'),
+  adminLoginBtn: document.getElementById('adminLoginBtn'),
+  controlList: document.getElementById('controlList'),
+  resultsWrap: document.getElementById('resultsWrap'),
+  lockAllBtn: document.getElementById('lockAllBtn'),
+  openNextBtn: document.getElementById('openNextBtn'),
+  closeVotingBtn: document.getElementById('closeVotingBtn'),
+};
+let settings = { ...DEFAULT_SETTINGS };
+let admin = false;
+let currentStageIndex = 0;
+
+/* ===============================
+   Helpers
+================================== */
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const getDeviceId = () => {
+  const key = 'gauntlet_device';
+  let v = localStorage.getItem(key);
+  if(!v){ v = uid(); localStorage.setItem(key, v); }
+  return v;
+};
+const getName = () => localStorage.getItem('gauntlet_name') || "";
+const setName = (name) => localStorage.setItem('gauntlet_name', name.trim());
+
+const stageRef = (stageKey) => db.ref(`submissions/${stageKey}`);
+const votesRef = (stageKey) => db.ref(`votes/${stageKey}`);
+const adminRef = db.ref('admin/settings');
+
+/* ===============================
+   UI Builders
+================================== */
+function renderTabs(){
+  els.tabs.innerHTML = "";
+  STAGES.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (i === currentStageIndex ? ' active' : '');
+    b.innerHTML = `${s.label} <span class="lock">${settings[s.key]?.open ? 'Open' : 'Locked'}</span>`;
+    b.disabled = !settings[s.key]?.open;
+    b.onclick = () => { currentStageIndex = i; renderTabs(); renderStage(); };
+    els.tabs.appendChild(b);
+  });
+}
+
+function renderStage(){
+  const s = STAGES[currentStageIndex];
+  const wrap = document.createElement('div');
+  wrap.innerHTML = getStageHTML(s.key);
+  els.content.innerHTML = "";
+  els.content.appendChild(wrap);
+
+  // Hook handlers per stage
+  if(s.key === 'stage1'){
+    document.getElementById('s1Submit').onclick = submitSlogan;
+  } else if(s.key==='stage2'){
+    document.getElementById('s2Submit').onclick = submitLogo;
+  } else if(s.key==='stage3'){
+    document.getElementById('s3Submit').onclick = submitFlyer;
+  } else if(s.key==='stage4'){
+    document.getElementById('s4Submit').onclick = submitSparkle;
+  }
+}
+
+function getStageHTML(key){
+  const name = getName();
+  const nameWarn = name ? '' : `<div class="tiny" style="color:#ffd9a8">Please set your name in the right panel before submitting.</div>`;
+  if(key === 'stage1'){
+    return `
+      <h2>Stage 1 — Slogan</h2>
+      <div class="muted">Create a punchy slogan for our AI group in Cornwall. Be nice 😄</div>
+      ${nameWarn}
+      <label>Your Slogan</label>
+      <input id="s1Slogan" type="text" maxlength="120" placeholder="e.g., &quot;Cornwall AI: Clever minds, kinder futures&quot;" />
+      <button class="btn primary" id="s1Submit" style="margin-top:10px;">Submit Slogan</button>
+    `;
+  }
+  if(key === 'stage2'){
+    return `
+      <h2>Stage 2 — Logo</h2>
+      <div class="muted">Upload a logo image (PNG/JPG). Tip: square looks best.</div>
+      ${nameWarn}
+      <label>Logo File</label>
+      <input id="s2File" type="file" accept="image/*" />
+      <button class="btn primary" id="s2Submit" style="margin-top:10px;">Upload Logo</button>
+    `;
+  }
+  if(key === 'stage3'){
+    return `
+      <h2>Stage 3 — Flyer</h2>
+      <div class="muted">Make a flyer that includes your <strong>Slogan</strong>, your <strong>Logo</strong>, and a short description: “Why we are the best AI group in Cornwall”.</div>
+      ${nameWarn}
+      <label>Short Description</label>
+      <textarea id="s3Desc" placeholder="Why we are the best AI group in Cornwall..."></textarea>
+      <label>Flyer Image</label>
+      <input id="s3File" type="file" accept="image/*" />
+      <button class="btn primary" id="s3Submit" style="margin-top:10px;">Upload Flyer</button>
+    `;
+  }
+  // Stage 4
+  return `
+    <h2>Stage 4 — Sparkle</h2>
+    <div class="muted">Add interactive "sparkle" to your idea: choose an effect (we'll showcase it in the gallery ✨).</div>
+    ${nameWarn}
+    <label>Pick a Sparkle Effect</label>
+    <select id="s4Effect">
+      <option value="starlight">Starlight</option>
+      <option value="pulse">Neon Pulse</option>
+      <option value="comet">Comet Trail</option>
+      <option value="aurora">Aurora Sweep</option>
+    </select>
+    <label>Optional: Upload a demo image/gif</label>
+    <input id="s4File" type="file" accept="image/*,video/*" />
+    <button class="btn primary" id="s4Submit" style="margin-top:10px;">Submit Sparkle</button>
+  `;
+}
+
+/* ===============================
+   Submissions
+================================== */
+async function submitSlogan(){
+  const name = getName();
+  if(!name){ alert("Please set your name on the right first."); return; }
+  const slogan = (document.getElementById('s1Slogan').value || "").trim();
+  if(!slogan){ alert("Please write your slogan."); return; }
+  const id = uid();
+  await stageRef('stage1').child(id).set({
+    id, name, slogan, createdAt: Date.now()
+  });
+  alert("Slogan submitted! 🎉");
+  document.getElementById('s1Slogan').value = "";
+}
+
+async function submitLogo(){
+  const name = getName();
+  if(!name){ alert("Please set your name on the right first."); return; }
+  const file = document.getElementById('s2File').files[0];
+  if(!file){ alert("Please choose a logo file."); return; }
+  const id = uid();
+  let url = "";
+  if(storage){
+    const ref = storage.ref().child(`uploads/stage2/${id}-${file.name}`);
+    await ref.put(file);
+    url = await ref.getDownloadURL();
+  }
+  await stageRef('stage2').child(id).set({
+    id, name, imageUrl: url, fileName: file.name, createdAt: Date.now()
+  });
+  alert("Logo uploaded! 🚀");
+  document.getElementById('s2File').value = "";
+}
+
+async function submitFlyer(){
+  const name = getName();
+  if(!name){ alert("Please set your name on the right first."); return; }
+  const desc = (document.getElementById('s3Desc').value || "").trim();
+  const file = document.getElementById('s3File').files[0];
+  if(!desc){ alert("Please add a short description."); return; }
+  if(!file){ alert("Please choose a flyer image file."); return; }
+  const id = uid();
+  let url = "";
+  if(storage){
+    const ref = storage.ref().child(`uploads/stage3/${id}-${file.name}`);
+    await ref.put(file);
+    url = await ref.getDownloadURL();
+  }
+  await stageRef('stage3').child(id).set({
+    id, name, description: desc, imageUrl: url, fileName: file.name, createdAt: Date.now()
+  });
+  alert("Flyer uploaded! 🌟");
+  document.getElementById('s3Desc').value = "";
+  document.getElementById('s3File').value = "";
+}
+
+async function submitSparkle(){
+  const name = getName();
+  if(!name){ alert("Please set your name on the right first."); return; }
+  const effect = document.getElementById('s4Effect').value;
+  const file = document.getElementById('s4File').files[0];
+  const id = uid();
+  let url = "";
+  if(file && storage){
+    const ref = storage.ref().child(`uploads/stage4/${id}-${file.name}`);
+    await ref.put(file);
+    url = await ref.getDownloadURL();
+  }
+  await stageRef('stage4').child(id).set({
+    id, name, effect, demoUrl: url || "", fileName: file?.name || "", createdAt: Date.now()
+  });
+  alert("Sparkle submitted! ✨");
+  document.getElementById('s4File').value = "";
+}
+
+/* ===============================
+   Gallery & Voting
+================================== */
+let galleryStageKey = STAGES[0].key;
+els.openGalleryBtn.onclick = openGallery;
+
+function openGallery(){
+  galleryStageKey = STAGES[currentStageIndex].key;
+  els.galleryWrap.style.display = 'block';
+  els.galleryTitle.textContent = `Gallery — ${STAGES[currentStageIndex].label}`;
+  loadGallery(galleryStageKey);
+}
+
+async function loadGallery(stageKey){
+  // Listen once to settings to see if voting is open
+  const s = settings[stageKey] || {};
+  const votingOpen = !!s.votingOpen;
+  const showNames = false; // names hidden during voting
+  els.votingPanel.style.display = votingOpen ? 'block' : 'none';
+  els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.";
+
+  // Fetch submissions once
+  const snap = await stageRef(stageKey).get();
+  const data = snap.val() || {};
+  const items = Object.values(data).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+
+  els.gallery.innerHTML = "";
+  const voteOptions = [{value:"",label:"— choose —"}];
+
+  items.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'tile';
+    let media = '';
+    if(stageKey==='stage1'){
+      media = `<div class="caption" style="font-weight:800; font-size:16px;">“${escapeHtml(it.slogan || '')}”</div>`;
+    } else {
+      const src = it.imageUrl || it.demoUrl || '';
+      media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption">No media uploaded</div>`;
+    }
+    const caption = showNames ? `<div class="caption">${escapeHtml(it.name||'')}</div>` : '';
+    div.innerHTML = `${media}${caption}`;
+    els.gallery.appendChild(div);
+    voteOptions.push({value: it.id, label: stageLabel(it)});
+  });
+
+  fillSelect(els.firstVote, voteOptions);
+  fillSelect(els.secondVote, voteOptions);
+  fillSelect(els.thirdVote, voteOptions);
+
+  // voting handler
+  els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
+}
+
+function stageLabel(it){
+  // label without revealing names; short hash of id
+  return `#${(it.id||'').slice(-6)}`;
+}
+
+function fillSelect(sel, opts){
+  sel.innerHTML = "";
+  opts.forEach(o=>{
+    const op=document.createElement('option');
+    op.value=o.value; op.textContent=o.label; sel.appendChild(op);
+  });
+}
+
+async function submitVotes(stageKey, validIds){
+  const v1 = els.firstVote.value; const v2 = els.secondVote.value; const v3 = els.thirdVote.value;
+  if(!(v1 && v2 && v3)){ alert("Please choose all three places."); return; }
+  if(new Set([v1,v2,v3]).size !== 3){ alert("Each place must be a different entry."); return; }
+  if(!validIds.includes(v1) || !validIds.includes(v2) || !validIds.includes(v3)){ alert("Invalid vote selection."); return; }
+
+  const voter = getDeviceId();
+  // prevent multiple votes per device per stage
+  const votedKey = `voted_${stageKey}`;
+  if(localStorage.getItem(votedKey)){ alert("You have already voted on this stage from this device."); return; }
+
+  await votesRef(stageKey).child(voter).set({
+    first: v1, second: v2, third: v3, createdAt: Date.now()
+  });
+  localStorage.setItem(votedKey, '1');
+  alert("Thanks — your vote is in! 🗳️");
+
+  // Auto-advance if next stage is open
+  const nextIdx = Math.min(currentStageIndex+1, STAGES.length-1);
+  if(settings[STAGES[nextIdx].key]?.open){
+    currentStageIndex = nextIdx; renderTabs(); renderStage();
+    els.galleryWrap.style.display = 'none';
+  }
+}
+
+/* ===============================
+   Admin
+================================== */
+const ADMIN_CODE = "1975"; // Workshop code as requested
+
+function setAdminMode(on){
+  admin = on;
+  els.adminPanel.style.display = on ? 'block' : 'none';
+  els.adminPanelLocked.style.display = on ? 'none' : 'block';
+}
+
+els.adminLoginBtn.onclick = ()=>{
+  const code = (els.adminCode.value||"").trim();
+  if(code === ADMIN_CODE){ setAdminMode(true); alert("Admin unlocked."); }
+  else { alert("Incorrect code."); }
+};
+
+els.lockAllBtn.onclick = async ()=>{
+  const newSet = {...settings};
+  STAGES.forEach(s=>{ newSet[s.key].open=false; newSet[s.key].votingOpen=false; });
+  await adminRef.update(newSet);
+};
+
+els.openNextBtn.onclick = async ()=>{
+  const idx = settings.currentIndex || 0;
+  const next = Math.min(idx+1, STAGES.length-1);
+  const newSet = {...settings, currentIndex: next};
+  newSet[STAGES[next].key].open = true;
+  await adminRef.update(newSet);
+};
+
+els.closeVotingBtn.onclick = async ()=>{
+  const k = STAGES[settings.currentIndex||0].key;
+  const newSet = {...settings};
+  newSet[k].votingOpen = false;
+  await adminRef.update(newSet);
+};
+
+function renderAdminControls(){
+  if(!admin) return;
+  els.controlList.innerHTML = "";
+
+  STAGES.forEach((s, i)=>{
+    const row = document.createElement('div');
+    row.className = 'kv';
+    row.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <strong>${s.label}</strong>
+        <span class="tiny">Open controls & voting toggles</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <label class="tiny">Open</label>
+        <input type="checkbox" data-k="${s.key}" data-t="open" class="switch" ${settings[s.key]?.open?'checked':''} />
+        <label class="tiny">Voting</label>
+        <input type="checkbox" data-k="${s.key}" data-t="votingOpen" class="switch" ${settings[s.key]?.votingOpen?'checked':''} />
+        <button class="btn ghost" data-goto="${i}">Go To</button>
+      </div>
+    `;
+    els.controlList.appendChild(row);
+  });
+
+  // handlers
+  els.controlList.querySelectorAll('.switch').forEach(sw=>{
+    sw.onchange = async (e)=>{
+      const k=e.target.dataset.k, t=e.target.dataset.t, val=e.target.checked;
+      const newSet = { ...settings };
+      newSet[k][t] = val;
+      if(t==='open' && val && STAGES.findIndex(x=>x.key===k) > settings.currentIndex){
+        newSet.currentIndex = STAGES.findIndex(x=>x.key===k);
+      }
+      await adminRef.update(newSet);
+    };
+  });
+  els.controlList.querySelectorAll('button[data-goto]').forEach(btn=>{
+    btn.onclick = ()=>{
+      currentStageIndex = parseInt(btn.dataset.goto,10)||0; renderTabs(); renderStage();
+    };
+  });
+
+  // Live results for currentIndex
+  renderResults();
+}
+
+async function renderResults(){
+  if(!admin) return;
+  const idx = settings.currentIndex || 0;
+  const sKey = STAGES[idx].key;
+
+  // gather all votes
+  const vs = (await votesRef(sKey).get()).val() || {};
+  const tally = {};
+  Object.values(vs).forEach(v=>{
+    if(!v) return;
+    tally[v.first] = (tally[v.first]||0)+3;
+    tally[v.second] = (tally[v.second]||0)+2;
+    tally[v.third] = (tally[v.third]||0)+1;
+  });
+
+  // submissions to lookup labels and winners
+  const subs = (await stageRef(sKey).get()).val() || {};
+  const arr = Object.values(subs).map(it=>({
+    id: it.id, label: stageLabel(it), name: it.name || '', score: tally[it.id]||0
+  })).sort((a,b)=> b.score-a.score);
+
+  const totalVotes = Object.keys(vs).length;
+  const top = arr.slice(0,3);
+
+  els.resultsWrap.innerHTML = `
+    <div class="pill" style="margin-bottom:8px;">Current: ${STAGES[idx].label}</div>
+    <div class="tiny">Total ballots: ${totalVotes}</div>
+    <div class="gallery" style="grid-template-columns: 1fr;">
+      ${arr.map((r,i)=>`
+        <div class="tile ${i<3?'winner':''}" style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div class="caption" style="font-size:14px;"><strong>${i+1}.</strong> ${r.label} <span class="tiny" style="color:#8fb">(${r.score} pts)</span></div>
+            <div class="tiny" style="color:#9ab">Name: ${escapeHtml(r.name)}</div>
+          </div>
+          <span class="badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'⭐'}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ===============================
+   Settings Sync (Realtime)
+================================== */
+function applySettings(newSet){
+  // Merge + defaults
+  settings = { ...DEFAULT_SETTINGS, ...newSet };
+  STAGES.forEach(s=>{
+    settings[s.key] = { ...DEFAULT_SETTINGS[s.key], ...(newSet?.[s.key]||{}) };
+  });
+  if(typeof settings.currentIndex !== 'number') settings.currentIndex = 0;
+  currentStageIndex = Math.min(settings.currentIndex, STAGES.length-1);
+  renderTabs(); renderStage();
+  // if gallery is open, refresh it to reflect voting toggles
+  if(els.galleryWrap.style.display === 'block'){
+    openGallery();
+  }
+  renderAdminControls();
+}
+
+adminRef.on('value', (snap)=>{
+  const val = snap.val();
+  if(!val){
+    // Initialize defaults if empty
+    adminRef.update(DEFAULT_SETTINGS);
+    applySettings(DEFAULT_SETTINGS);
+  } else {
+    applySettings(val);
+  }
+});
+
+/* ===============================
+   Identity
+================================== */
+function loadName(){
+  const n = getName();
+  if(n) els.participantName.value = n;
+  els.nameStatus.textContent = n ? `Saved: ${n}` : '';
+}
+els.saveNameBtn.onclick = ()=>{
+  const n = (els.participantName.value||"").trim();
+  if(!n){ alert("Enter your name."); return; }
+  setName(n); loadName(); alert("Name saved.");
+};
+
+/* ===============================
+   Utils
+================================== */
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+/* ===============================
+   Boot
+================================== */
+window.addEventListener('load', ()=>{
+  loadName();
+  renderTabs();
+  renderStage();
+});
+</script>
+</body>
+</html>
