@@ -1,21 +1,14 @@
-<!-- file: flowforge2.html -->
+<!-- file: flowforge.html -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Launch Control — Business Launch Companion</title>
-<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync and offline fallback."/>
-
-<!-- PRODUCTION UMD (use these in prod). For debugging, temporarily swap to the dev UMDs below. -->
+<meta name="description" content="Checklist/Kanban + Playbook + Repository + Plan & Rollout wizard with Firebase sync, offline fallback, and local WebLLM."/>
+<!-- React 18 UMD (production) -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<!-- DEBUG (uncomment when you need detailed stacks; then re-enable production above) -->
-<!--
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
--->
-
 <!-- Firebase compat UMD -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -58,6 +51,7 @@
   .btn.active{background:var(--grad);border:none;color:#fff}
   .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;font-size:12px;border-radius:999px;border:1px solid var(--border);background:#0e162b;color:#cfe1ff}
   .pill.ok{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35)}
+  .pill.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:#ffe6b3}
   .pill.err{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#ffd0d0}
   .grid{display:grid;grid-template-columns:330px 1fr;gap:16px}
   .card{
@@ -121,7 +115,7 @@
 <div id="err" class="error-overlay"></div>
 
 <script>
-/* ---------------- error overlay ---------------- */
+/* ---------------- error overlay (debug safety) ---------------- */
 addEventListener("error", e=>{
   const el=document.getElementById("err");
   el.innerHTML=`<h2>Script error</h2><pre>${(e.error?.stack||"")}</pre><div>${e.message||""}</div>`;
@@ -239,7 +233,7 @@ function ensurePlanShape(p){
   return next;
 }
 
-/* ---------------- Local Mini-Model (heuristic) ---------------- */
+/* ---------------- Local LLM (heuristic) ---------------- */
 class LocalLLMProvider{
   id(){return "local-mini";}
   summarize(text="", max=5){
@@ -434,9 +428,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const text=input.trim(); if(!text) return;
     addChat("user",text);
     setInput("");
-    if(awaitingField){
-      return; // wait for explicit Save Answer
-    }
+    if(awaitingField){ return; }
     if(useCloud){
       try{
         const reply = await cloudLLM.invoke(plan.chatLog.map(m=>({role:m.role,content:m.text})).concat([{role:"user",content:text}]));
@@ -448,8 +440,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const keys=Object.keys(hints);
     if(keys.length){
       addChat("assistant","Detected possible values: "+keys.map(k=>`${k} → “${hints[k]}”`).join("; ")+" — pick a field and Save Answer.");
-      setAwaitingField(keys[0]);
-      setInput(hints[keys[0]]);
+      setAwaitingField(keys[0]); setInput(hints[keys[0]]);
     }else{
       addChat("assistant","Thanks! Use “Save Answer” to map this to a field.");
     }
@@ -460,8 +451,7 @@ function PlanRolloutMode({project,setProject,uid,fb,active}){
     const text=input.trim(); if(!text){ alert("Type your answer first."); return; }
     updateField(awaitingField, text, true);
     addChat("assistant", `Saved ${awaitingField}.`);
-    setAwaitingField(null);
-    setInput("");
+    setAwaitingField(null); setInput("");
   }
 
   function clearDraft(){
@@ -609,6 +599,7 @@ function App(){
   const fb = ensureFirebase();
   const [uid,setUid]=useState(null);
   const [authErr,setAuthErr]=useState("");
+  const [sync,setSync]=useState("checking"); // checking|online|offline:file|offline:error|offline
   const [index,setIndex]=useState(()=> JSON.parse(localStorage.getItem(LS_INDEX)||"{}") || {});
   const [active,setActive]=useState(()=> localStorage.getItem(LS_ACTIVE) || "");
   const [project,setProject]=useState(null);
@@ -622,12 +613,38 @@ function App(){
   const [dayView,setDayView]=useState("List");
   const [currentDayIdx,setCurrentDayIdx]=useState(0);
 
-  // Effects — always declared
+  // Auth effect: guard by origin, graceful offline fallback
   useEffect(()=>{
-    if(!fb.available) return;
-    fb.auth.signInAnonymously().then(cred=>setUid(cred.user.uid)).catch(e=>setAuthErr(e.message||"Auth error"));
+    const isFile = location.protocol === "file:";
+    const isHttps = location.protocol === "https:";
+    const host = location.hostname;
+    const likelyAllowed = new Set([
+      "localhost","127.0.0.1",
+      FIREBASE_CONFIG.authDomain.replace(/^https?:\/\//,""),
+      `${FIREBASE_CONFIG.projectId}.web.app`,
+      `${FIREBASE_CONFIG.projectId}.firebaseapp.com`,
+      host // allow current host for attempt; server enforces allowlist
+    ]);
+    if(!fb.available){ setSync("offline"); return; }
+    if(isFile){ setAuthErr("Running from file:// — Firebase blocks this origin. Using Offline Mode."); setSync("offline:file"); return; }
+
+    fb.auth.signInAnonymously()
+      .then(cred=>{ setUid(cred.user.uid); setSync("online"); })
+      .catch(e=>{
+        console.warn("Auth error:", e);
+        const code = e?.code || "";
+        // Common blocked referer error → offline fallback
+        if(code.includes("auth/requests-from-referer-null-are-blocked") || code.includes("blocked")){
+          setAuthErr(`Firebase blocked this origin (${host}). Add it in Firebase Console → Authentication → Settings → Authorized domains. Falling back to Offline Mode.`);
+          setSync("offline:error");
+        }else{
+          setAuthErr(e.message||"Auth error; using Offline Mode.");
+          setSync("offline");
+        }
+      });
   },[]);
 
+  // Init or load project
   useEffect(()=>{
     (async function init(){
       if(!active){
@@ -635,9 +652,12 @@ function App(){
         const idx={...index,[slug]:"My Project"}; setIndex(idx); setActive(slug);
         const proj={slug,name:"My Project",days:makeSeedDays(),repo:{items:{}}};
         setProject(ensurePlanShape(proj));
-        if(uid&&fb.available){ await fb.db.ref(`users/${uid}/projects/${slug}`).set(proj); await fb.db.ref(`users/${uid}/index`).set(idx); }
+        if(uid&&fb.available&&sync==="online"){
+          await fb.db.ref(`users/${uid}/projects/${slug}`).set(proj);
+          await fb.db.ref(`users/${uid}/index`).set(idx);
+        }
       }else{
-        if(uid&&fb.available){
+        if(uid&&fb.available&&sync==="online"){
           const snap=await fb.db.ref(`users/${uid}/projects/${active}`).get();
           if(snap.exists()) setProject(ensurePlanShape(snap.val()));
           else{
@@ -656,31 +676,32 @@ function App(){
       }
     })();
   // eslint-disable-next-line
-  },[uid,active]);
+  },[uid,active,sync]);
 
+  // Persist small prefs
   useEffect(()=>localStorage.setItem(LS_INDEX,JSON.stringify(index||{})),[index]);
   useEffect(()=>localStorage.setItem(LS_ACTIVE,active||""),[active]);
   useEffect(()=>localStorage.setItem(LS_MODE,mode||"Checklist"),[mode]);
 
   const saveRemote = useMemo(()=>debounce(async (uid,slug,proj)=>{
-    if(!uid || !fb.available) return;
+    if(!uid || !fb.available || sync!=="online") return;
     await fb.db.ref(`users/${uid}/projects/${slug}`).set(proj);
-  },600),[]);
+  },600),[sync]);
 
   useEffect(()=>{
     if(!project || !active) return;
     localStorage.setItem(LS_PROJECT_PREFIX+active, JSON.stringify(project));
-    if(uid&&fb.available) saveRemote(uid,active,project);
-  },[project,active,uid]);
+    if(uid&&fb.available&&sync==="online") saveRemote(uid,active,project);
+  },[project,active,uid,sync]);
 
-  // Repo upload (no hooks inside)
+  // Repository upload (gated)
   async function uploadFiles(files){
     if(!project) return;
     const day = repoDay==="All" ? "Unsorted" : repoDay;
     for(const file of files){
       const safe=file.name.replace(/[^\w\-.]+/g,"_");
       let meta;
-      if(uid && fb.available){
+      if(uid && fb.available && sync==="online"){
         const path=`users/${uid}/projects/${active}/repo/${day}/${Date.now()}_${safe}`;
         const ref=fb.st.ref().child(path);
         await ref.put(file);
@@ -698,7 +719,7 @@ function App(){
     }
   }
 
-  // Checklist helpers (no hooks here)
+  // Checklist helpers
   function toggleSub(di,ti,si){
     const next=deepClone(project); const s=next.days[di].tasks[ti].subtasks[si];
     s.done=!s.done; s.status = s.done ? "done" : (s.status==="done"?"backlog":s.status||"backlog"); setProject(next);
@@ -708,7 +729,9 @@ function App(){
   const total=useMemo(()=>{ let sub=0,done=0; for(const d of project?.days||[]){ for(const t of d.tasks){ for(const s of t.subtasks){ sub++; if(s.done) done++; }}} return {sub,done,pct: sub? Math.round(done*100/sub):0}; },[project]);
 
   if(!project) return h("div",null,"Loading project…");
-  if(authErr) return h("div",{className:"pill err"},"Auth: ",authErr);
+  if(authErr && sync!=="online"){
+    // non-blocking; show advisory only
+  }
 
   function renderDayList(d,di){
     return h("div",{className:"day"},
@@ -779,7 +802,7 @@ function App(){
           ["All","Docs","Images","Links"].map(x=>h("button",{key:x,className:`btn ${repoFilter===x?'active':''}`,onClick:()=>setRepoFilter(x)},x))
         ),
         h("div",{className:"h",style:{marginTop:12}},"Firebase Setup"),
-        h("div",{className:"muted"},"Auth → Anonymous; DB/Storage rules per-user. Offline fallback uses localStorage/Object URLs.")
+        h("div",{className:"muted"},"To sync, serve over https and add your domain to Authentication → Authorized domains.")
       ),
       h("main",null,
         h("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:10}},
@@ -821,11 +844,15 @@ function App(){
 
   return h("div",null,
     h(PortalNav,{mode,setMode}),
-    h("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:10}},
+    h("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:10,flexWrap:"wrap"}},
       h("span",{className:"pill ok"},"Progress: ", total.done,"/",total.sub," • ",total.pct,"%"),
       h("span",{className:"muted"},"Project: ", project.name),
       h("span",{className:"muted"}," | Mode: ", mode),
-      h("span",null, h(InfoIcon,{text:"Modes: Checklist (List/Kanban), Playbook (notes), Repository (files & links), Plan & Rollout (wizard+chat+generator)."}))
+      // Sync status pill
+      sync==="online"
+        ? h("span",{className:"pill ok"},"Sync: Online")
+        : h("span",{className: sync.startsWith("offline")?"pill warn":"pill"},"Sync: Offline"),
+      authErr && h("span",null, h(InfoIcon,{text: authErr + " Tip: add '"+location.hostname+"' under Auth → Authorized domains, then reload."}))
     ),
 
     mode==="Checklist" && h("div",null,
@@ -850,7 +877,7 @@ function App(){
 
     mode==="Plan & Rollout" && h(PlanRolloutMode,{project,setProject,uid,fb,active}),
 
-    h("div",{className:"footer"},"Dashboard (v0): KPI tiles later — Leads | Checkouts | MRR | Churn | List size | UGC | Reviews")
+    h("div",{className:"footer"},"Tip: For Firebase sync on GitHub Pages, add ‘",location.hostname,"’ under Authentication → Authorized domains.")
   );
 }
 
@@ -862,4 +889,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(
 </script>
 </body>
 </html>
-
