@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cornwall AI — 4-Stage Challenge</title>
-<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, and admin dashboard." />
+<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, admin tools, and collage export." />
 
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +24,6 @@
     --muted:#a3a3a3;
     --card:#0f0a3a80;
     --card2:#110a4a99;
-    --star:radial-gradient(circle, rgba(255,255,255,.9) 0, rgba(255,255,255,.2) 40%, transparent 60%);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -34,8 +33,6 @@
     font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
     overflow-x:hidden;
   }
-
-  /* Starfield */
   .stars, .stars2, .stars3{
     position:fixed; inset:0; pointer-events:none; z-index:0;
     background-repeat:repeat; background-size:contain; opacity:.5;
@@ -47,12 +44,9 @@
   .stars2{ background-image: radial-gradient(1.5px 1.5px at 10% 50%, #fff, transparent 60%),
                               radial-gradient(2px 2px at 80% 20%, #cdf, transparent 60%); opacity:.35; animation-duration: 160s;}
   .stars3{ background-image: radial-gradient(1px 1px at 50% 50%, #fff, transparent 60%); opacity:.2; animation-duration: 220s;}
-
   @keyframes drift { from {transform: translateY(0)} to { transform: translateY(-400px)} }
 
-  header{
-    position:relative; z-index:1; padding:32px 20px 8px; text-align:center;
-  }
+  header{ position:relative; z-index:1; padding:32px 20px 8px; text-align:center; }
   .brand{
     font-family: Orbitron, Inter, sans-serif; letter-spacing:.06em; font-weight:800; font-size: clamp(24px, 3vw, 44px);
     background: linear-gradient(90deg, var(--blue), var(--purple), var(--cyan));
@@ -60,9 +54,7 @@
     text-shadow: 0 0 20px rgba(127,90,240,.25);
   }
   .subtitle{margin-top:6px; color:#bcd; font-weight:500}
-  .container{
-    position:relative; z-index:1; max-width:1100px; margin: 20px auto 120px; padding: 0 16px;
-  }
+  .container{ position:relative; z-index:1; max-width:1100px; margin: 20px auto 120px; padding: 0 16px; }
 
   .notice{
     background: linear-gradient(180deg, #0e0b3f88, #0b083388);
@@ -73,10 +65,7 @@
     display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
     background:#1b1655; border:1px solid #34307a; color:#bbf; font-size:12px; letter-spacing:.04em;
   }
-
-  .grid{
-    display:grid; grid-template-columns: 1fr; gap:18px; margin-top:18px;
-  }
+  .grid{ display:grid; grid-template-columns: 1fr; gap:18px; margin-top:18px; }
   @media (min-width:900px){ .grid{ grid-template-columns: 1.35fr .65fr; }}
 
   .card{
@@ -107,9 +96,7 @@
   .btn.danger{ background: linear-gradient(180deg, #7a1b3a, #5a1230); border-color:#7a2a3a }
   .tiny{ font-size:12px; color:#aac; margin-left:6px }
 
-  .tabs{
-    display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 6px;
-  }
+  .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 6px; }
   .tab{
     padding:8px 12px; border-radius:14px; border:1px solid #2d2b6a; background:#0e0a3d; color:#cfe;
     font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px;
@@ -130,7 +117,7 @@
   .winner{ outline: 2px solid #2cb67d; box-shadow: 0 0 0 3px rgba(44,182,125,.2) }
 
   .admin-grid{ display:grid; grid-template-columns: 1fr; gap:12px }
-  @media (min-width:900px){ .admin-grid{ grid-template-columns: .8fr 1.2fr } }
+  @media (min-width:900px){ .admin-grid{ grid-template-columns: .9fr 1.1fr } }
   .kv{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 12px; border:1px dashed #355; border-radius:12px; }
   .switch{ appearance:none; width:48px; height:28px; border-radius:999px; background:#2a235a; position:relative; border:1px solid #3a2b7a; cursor:pointer; }
   .switch:checked{ background:#1f7a65; border-color:#2a9b80 }
@@ -192,11 +179,12 @@
         <div>
           <label>Your Name</label>
           <input id="participantName" type="text" placeholder="e.g., Alex Tremayne" />
-          <div class="tiny">Stored only on your device and attached to your own uploads.</div>
+          <div class="tiny">Stored only on your device and attached to your uploads.</div>
         </div>
       </div>
-      <div style="margin-top:12px;">
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="saveNameBtn">Save Name</button>
+        <button class="btn ghost" id="downloadMyCollageBtn" title="Build a poster image with your slogan, logo, flyer & sparkle">Download My Collage</button>
         <span class="tiny" id="nameStatus"></span>
       </div>
 
@@ -208,7 +196,7 @@
           <input id="adminCode" type="text" placeholder="Enter code" />
           <button class="btn" id="adminLoginBtn">Unlock</button>
         </div>
-        <div class="tiny">Facilitator can open stages, unlock voting, and view results. (Code is hidden server-side by behavior; value used here is for workshop use.)</div>
+        <div class="tiny">Facilitator can open stages, unlock voting, view results, build any collage, and archive/clear.</div>
       </div>
 
       <div id="adminPanel" style="display:none;">
@@ -222,7 +210,25 @@
               <button class="btn" id="openNextBtn">Open Next Stage</button>
               <button class="btn danger" id="closeVotingBtn">Close Voting</button>
             </div>
+
+            <hr style="border:none; border-top:1px solid #2a2769; margin:14px 0">
+
+            <h3>Collages</h3>
+            <div class="row">
+              <select id="adminParticipantPicker"><option value="">— Select participant —</option></select>
+              <button class="btn" id="adminDownloadCollageBtn">Download Collage</button>
+            </div>
+
+            <hr style="border:none; border-top:1px solid #2a2769; margin:14px 0">
+
+            <h3>Archive & Clear</h3>
+            <div class="row">
+              <button class="btn ghost" id="downloadArchiveBtn">Download Archive (JSON)</button>
+              <button class="btn danger" id="archiveAndClearBtn" title="Uploads archive JSON to Firebase Storage, then clears all votes/submissions and resets settings">Archive to Firebase & Clear All</button>
+            </div>
+            <div class="tiny" style="margin-top:6px;">Archive is saved to Storage: <code>backups/session-&lt;timestamp&gt;.json</code></div>
           </div>
+
           <div class="card" style="padding:12px;">
             <h3>Live Results</h3>
             <div id="resultsWrap"></div>
@@ -288,6 +294,7 @@ const els = {
   galleryTitle: document.getElementById('galleryTitle'),
   galleryHint: document.getElementById('galleryHint'),
   gallery: document.getElementById('gallery'),
+  votingPanel: document.getElementById('votingPanel'),
   firstVote: document.getElementById('firstVote'),
   secondVote: document.getElementById('secondVote'),
   thirdVote: document.getElementById('thirdVote'),
@@ -304,6 +311,12 @@ const els = {
   lockAllBtn: document.getElementById('lockAllBtn'),
   openNextBtn: document.getElementById('openNextBtn'),
   closeVotingBtn: document.getElementById('closeVotingBtn'),
+  // new collage & archive elements
+  downloadMyCollageBtn: document.getElementById('downloadMyCollageBtn'),
+  adminParticipantPicker: document.getElementById('adminParticipantPicker'),
+  adminDownloadCollageBtn: document.getElementById('adminDownloadCollageBtn'),
+  downloadArchiveBtn: document.getElementById('downloadArchiveBtn'),
+  archiveAndClearBtn: document.getElementById('archiveAndClearBtn'),
 };
 let settings = { ...DEFAULT_SETTINGS };
 let admin = false;
@@ -330,6 +343,7 @@ const adminRef = db.ref('admin/settings');
    UI Builders
 ================================== */
 function renderTabs(){
+  if(!els.tabs) return;
   els.tabs.innerHTML = "";
   STAGES.forEach((s, i) => {
     const b = document.createElement('button');
@@ -342,6 +356,7 @@ function renderTabs(){
 }
 
 function renderStage(){
+  if(!els.content) return;
   const s = STAGES[currentStageIndex];
   const wrap = document.createElement('div');
   wrap.innerHTML = getStageHTML(s.key);
@@ -350,13 +365,13 @@ function renderStage(){
 
   // Hook handlers per stage
   if(s.key === 'stage1'){
-    document.getElementById('s1Submit').onclick = submitSlogan;
+    const btn = document.getElementById('s1Submit'); if(btn) btn.onclick = submitSlogan;
   } else if(s.key==='stage2'){
-    document.getElementById('s2Submit').onclick = submitLogo;
+    const btn = document.getElementById('s2Submit'); if(btn) btn.onclick = submitLogo;
   } else if(s.key==='stage3'){
-    document.getElementById('s3Submit').onclick = submitFlyer;
+    const btn = document.getElementById('s3Submit'); if(btn) btn.onclick = submitFlyer;
   } else if(s.key==='stage4'){
-    document.getElementById('s4Submit').onclick = submitSparkle;
+    const btn = document.getElementById('s4Submit'); if(btn) btn.onclick = submitSparkle;
   }
 }
 
@@ -419,20 +434,18 @@ function getStageHTML(key){
 async function submitSlogan(){
   const name = getName();
   if(!name){ alert("Please set your name on the right first."); return; }
-  const slogan = (document.getElementById('s1Slogan').value || "").trim();
+  const slogan = (document.getElementById('s1Slogan')?.value || "").trim();
   if(!slogan){ alert("Please write your slogan."); return; }
   const id = uid();
-  await stageRef('stage1').child(id).set({
-    id, name, slogan, createdAt: Date.now()
-  });
+  await stageRef('stage1').child(id).set({ id, name, slogan, createdAt: Date.now() });
   alert("Slogan submitted! 🎉");
-  document.getElementById('s1Slogan').value = "";
+  const input = document.getElementById('s1Slogan'); if(input) input.value = "";
 }
 
 async function submitLogo(){
   const name = getName();
   if(!name){ alert("Please set your name on the right first."); return; }
-  const file = document.getElementById('s2File').files[0];
+  const file = document.getElementById('s2File')?.files?.[0];
   if(!file){ alert("Please choose a logo file."); return; }
   const id = uid();
   let url = "";
@@ -441,18 +454,16 @@ async function submitLogo(){
     await ref.put(file);
     url = await ref.getDownloadURL();
   }
-  await stageRef('stage2').child(id).set({
-    id, name, imageUrl: url, fileName: file.name, createdAt: Date.now()
-  });
+  await stageRef('stage2').child(id).set({ id, name, imageUrl: url, fileName: file.name, createdAt: Date.now() });
   alert("Logo uploaded! 🚀");
-  document.getElementById('s2File').value = "";
+  const input = document.getElementById('s2File'); if(input) input.value = "";
 }
 
 async function submitFlyer(){
   const name = getName();
   if(!name){ alert("Please set your name on the right first."); return; }
-  const desc = (document.getElementById('s3Desc').value || "").trim();
-  const file = document.getElementById('s3File').files[0];
+  const desc = (document.getElementById('s3Desc')?.value || "").trim();
+  const file = document.getElementById('s3File')?.files?.[0];
   if(!desc){ alert("Please add a short description."); return; }
   if(!file){ alert("Please choose a flyer image file."); return; }
   const id = uid();
@@ -462,19 +473,17 @@ async function submitFlyer(){
     await ref.put(file);
     url = await ref.getDownloadURL();
   }
-  await stageRef('stage3').child(id).set({
-    id, name, description: desc, imageUrl: url, fileName: file.name, createdAt: Date.now()
-  });
+  await stageRef('stage3').child(id).set({ id, name, description: desc, imageUrl: url, fileName: file.name, createdAt: Date.now() });
   alert("Flyer uploaded! 🌟");
-  document.getElementById('s3Desc').value = "";
-  document.getElementById('s3File').value = "";
+  const t = document.getElementById('s3Desc'); if(t) t.value = "";
+  const f = document.getElementById('s3File'); if(f) f.value = "";
 }
 
 async function submitSparkle(){
   const name = getName();
   if(!name){ alert("Please set your name on the right first."); return; }
-  const effect = document.getElementById('s4Effect').value;
-  const file = document.getElementById('s4File').files[0];
+  const effect = document.getElementById('s4Effect')?.value || 'starlight';
+  const file = document.getElementById('s4File')?.files?.[0];
   const id = uid();
   let url = "";
   if(file && storage){
@@ -482,40 +491,40 @@ async function submitSparkle(){
     await ref.put(file);
     url = await ref.getDownloadURL();
   }
-  await stageRef('stage4').child(id).set({
-    id, name, effect, demoUrl: url || "", fileName: file?.name || "", createdAt: Date.now()
-  });
+  await stageRef('stage4').child(id).set({ id, name, effect, demoUrl: url || "", fileName: file?.name || "", createdAt: Date.now() });
   alert("Sparkle submitted! ✨");
-  document.getElementById('s4File').value = "";
+  const f = document.getElementById('s4File'); if(f) f.value = "";
 }
 
 /* ===============================
-   Gallery & Voting
+   Gallery & Voting (bug-fixed)
 ================================== */
 let galleryStageKey = STAGES[0].key;
-els.openGalleryBtn.onclick = openGallery;
+if(els.openGalleryBtn){
+  els.openGalleryBtn.onclick = openGallery;
+}
 
 function openGallery(){
   galleryStageKey = STAGES[currentStageIndex].key;
-  els.galleryWrap.style.display = 'block';
-  els.galleryTitle.textContent = `Gallery — ${STAGES[currentStageIndex].label}`;
+  if(els.galleryWrap) els.galleryWrap.style.display = 'block';
+  if(els.galleryTitle) els.galleryTitle.textContent = `Gallery — ${STAGES[currentStageIndex].label}`;
   loadGallery(galleryStageKey);
 }
 
 async function loadGallery(stageKey){
-  // Listen once to settings to see if voting is open
   const s = settings[stageKey] || {};
   const votingOpen = !!s.votingOpen;
-  const showNames = false; // names hidden during voting
-  els.votingPanel.style.display = votingOpen ? 'block' : 'none';
-  els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.";
+  const showNames = false;
+
+  if(els.votingPanel) els.votingPanel.style.display = votingOpen ? 'block' : 'none';
+  if(els.galleryHint) els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.";
 
   // Fetch submissions once
   const snap = await stageRef(stageKey).get();
   const data = snap.val() || {};
   const items = Object.values(data).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
 
-  els.gallery.innerHTML = "";
+  if(els.gallery) els.gallery.innerHTML = "";
   const voteOptions = [{value:"",label:"— choose —"}];
 
   items.forEach(it => {
@@ -530,22 +539,20 @@ async function loadGallery(stageKey){
     }
     const caption = showNames ? `<div class="caption">${escapeHtml(it.name||'')}</div>` : '';
     div.innerHTML = `${media}${caption}`;
-    els.gallery.appendChild(div);
+    if(els.gallery) els.gallery.appendChild(div);
     voteOptions.push({value: it.id, label: stageLabel(it)});
   });
 
-  fillSelect(els.firstVote, voteOptions);
-  fillSelect(els.secondVote, voteOptions);
-  fillSelect(els.thirdVote, voteOptions);
+  if(els.firstVote) fillSelect(els.firstVote, voteOptions);
+  if(els.secondVote) fillSelect(els.secondVote, voteOptions);
+  if(els.thirdVote) fillSelect(els.thirdVote, voteOptions);
 
-  // voting handler
-  els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
+  if(els.submitVoteBtn){
+    els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
+  }
 }
 
-function stageLabel(it){
-  // label without revealing names; short hash of id
-  return `#${(it.id||'').slice(-6)}`;
-}
+function stageLabel(it){ return `#${(it.id||'').slice(-6)}`; }
 
 function fillSelect(sel, opts){
   sel.innerHTML = "";
@@ -556,70 +563,75 @@ function fillSelect(sel, opts){
 }
 
 async function submitVotes(stageKey, validIds){
-  const v1 = els.firstVote.value; const v2 = els.secondVote.value; const v3 = els.thirdVote.value;
+  const v1 = els.firstVote?.value; const v2 = els.secondVote?.value; const v3 = els.thirdVote?.value;
   if(!(v1 && v2 && v3)){ alert("Please choose all three places."); return; }
   if(new Set([v1,v2,v3]).size !== 3){ alert("Each place must be a different entry."); return; }
   if(!validIds.includes(v1) || !validIds.includes(v2) || !validIds.includes(v3)){ alert("Invalid vote selection."); return; }
 
   const voter = getDeviceId();
-  // prevent multiple votes per device per stage
   const votedKey = `voted_${stageKey}`;
   if(localStorage.getItem(votedKey)){ alert("You have already voted on this stage from this device."); return; }
 
-  await votesRef(stageKey).child(voter).set({
-    first: v1, second: v2, third: v3, createdAt: Date.now()
-  });
+  await votesRef(stageKey).child(voter).set({ first: v1, second: v2, third: v3, createdAt: Date.now() });
   localStorage.setItem(votedKey, '1');
   alert("Thanks — your vote is in! 🗳️");
 
-  // Auto-advance if next stage is open
   const nextIdx = Math.min(currentStageIndex+1, STAGES.length-1);
   if(settings[STAGES[nextIdx].key]?.open){
     currentStageIndex = nextIdx; renderTabs(); renderStage();
-    els.galleryWrap.style.display = 'none';
+    if(els.galleryWrap) els.galleryWrap.style.display = 'none';
   }
 }
 
 /* ===============================
    Admin
 ================================== */
-const ADMIN_CODE = "1975"; // Workshop code as requested
+const ADMIN_CODE = "1975";
 
 function setAdminMode(on){
   admin = on;
-  els.adminPanel.style.display = on ? 'block' : 'none';
-  els.adminPanelLocked.style.display = on ? 'none' : 'block';
+  if(els.adminPanel) els.adminPanel.style.display = on ? 'block' : 'none';
+  if(els.adminPanelLocked) els.adminPanelLocked.style.display = on ? 'none' : 'block';
+  if(on) refreshParticipantPicker();
 }
 
-els.adminLoginBtn.onclick = ()=>{
-  const code = (els.adminCode.value||"").trim();
-  if(code === ADMIN_CODE){ setAdminMode(true); alert("Admin unlocked."); }
-  else { alert("Incorrect code."); }
-};
+if(els.adminLoginBtn){
+  els.adminLoginBtn.onclick = ()=>{
+    const code = (els.adminCode?.value||"").trim();
+    if(code === ADMIN_CODE){ setAdminMode(true); alert("Admin unlocked."); }
+    else { alert("Incorrect code."); }
+  };
+}
 
-els.lockAllBtn.onclick = async ()=>{
-  const newSet = {...settings};
-  STAGES.forEach(s=>{ newSet[s.key].open=false; newSet[s.key].votingOpen=false; });
-  await adminRef.update(newSet);
-};
+if(els.lockAllBtn){
+  els.lockAllBtn.onclick = async ()=>{
+    const newSet = {...settings};
+    STAGES.forEach(s=>{ newSet[s.key].open=false; newSet[s.key].votingOpen=false; });
+    await adminRef.update(newSet);
+  };
+}
 
-els.openNextBtn.onclick = async ()=>{
-  const idx = settings.currentIndex || 0;
-  const next = Math.min(idx+1, STAGES.length-1);
-  const newSet = {...settings, currentIndex: next};
-  newSet[STAGES[next].key].open = true;
-  await adminRef.update(newSet);
-};
+if(els.openNextBtn){
+  els.openNextBtn.onclick = async ()=>{
+    const idx = settings.currentIndex || 0;
+    const next = Math.min(idx+1, STAGES.length-1);
+    const newSet = {...settings, currentIndex: next};
+    newSet[STAGES[next].key].open = true;
+    await adminRef.update(newSet);
+  };
+}
 
-els.closeVotingBtn.onclick = async ()=>{
-  const k = STAGES[settings.currentIndex||0].key;
-  const newSet = {...settings};
-  newSet[k].votingOpen = false;
-  await adminRef.update(newSet);
-};
+if(els.closeVotingBtn){
+  els.closeVotingBtn.onclick = async ()=>{
+    const k = STAGES[settings.currentIndex||0].key;
+    const newSet = {...settings};
+    newSet[k].votingOpen = false;
+    await adminRef.update(newSet);
+  };
+}
 
 function renderAdminControls(){
-  if(!admin) return;
+  if(!admin || !els.controlList) return;
   els.controlList.innerHTML = "";
 
   STAGES.forEach((s, i)=>{
@@ -641,7 +653,6 @@ function renderAdminControls(){
     els.controlList.appendChild(row);
   });
 
-  // handlers
   els.controlList.querySelectorAll('.switch').forEach(sw=>{
     sw.onchange = async (e)=>{
       const k=e.target.dataset.k, t=e.target.dataset.t, val=e.target.checked;
@@ -659,56 +670,13 @@ function renderAdminControls(){
     };
   });
 
-  // Live results for currentIndex
   renderResults();
-}
-
-async function renderResults(){
-  if(!admin) return;
-  const idx = settings.currentIndex || 0;
-  const sKey = STAGES[idx].key;
-
-  // gather all votes
-  const vs = (await votesRef(sKey).get()).val() || {};
-  const tally = {};
-  Object.values(vs).forEach(v=>{
-    if(!v) return;
-    tally[v.first] = (tally[v.first]||0)+3;
-    tally[v.second] = (tally[v.second]||0)+2;
-    tally[v.third] = (tally[v.third]||0)+1;
-  });
-
-  // submissions to lookup labels and winners
-  const subs = (await stageRef(sKey).get()).val() || {};
-  const arr = Object.values(subs).map(it=>({
-    id: it.id, label: stageLabel(it), name: it.name || '', score: tally[it.id]||0
-  })).sort((a,b)=> b.score-a.score);
-
-  const totalVotes = Object.keys(vs).length;
-  const top = arr.slice(0,3);
-
-  els.resultsWrap.innerHTML = `
-    <div class="pill" style="margin-bottom:8px;">Current: ${STAGES[idx].label}</div>
-    <div class="tiny">Total ballots: ${totalVotes}</div>
-    <div class="gallery" style="grid-template-columns: 1fr;">
-      ${arr.map((r,i)=>`
-        <div class="tile ${i<3?'winner':''}" style="display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div class="caption" style="font-size:14px;"><strong>${i+1}.</strong> ${r.label} <span class="tiny" style="color:#8fb">(${r.score} pts)</span></div>
-            <div class="tiny" style="color:#9ab">Name: ${escapeHtml(r.name)}</div>
-          </div>
-          <span class="badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'⭐'}</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
 }
 
 /* ===============================
    Settings Sync (Realtime)
 ================================== */
 function applySettings(newSet){
-  // Merge + defaults
   settings = { ...DEFAULT_SETTINGS, ...newSet };
   STAGES.forEach(s=>{
     settings[s.key] = { ...DEFAULT_SETTINGS[s.key], ...(newSet?.[s.key]||{}) };
@@ -716,22 +684,14 @@ function applySettings(newSet){
   if(typeof settings.currentIndex !== 'number') settings.currentIndex = 0;
   currentStageIndex = Math.min(settings.currentIndex, STAGES.length-1);
   renderTabs(); renderStage();
-  // if gallery is open, refresh it to reflect voting toggles
-  if(els.galleryWrap.style.display === 'block'){
-    openGallery();
-  }
+  if(els.galleryWrap && els.galleryWrap.style.display === 'block'){ openGallery(); }
   renderAdminControls();
 }
 
 adminRef.on('value', (snap)=>{
   const val = snap.val();
-  if(!val){
-    // Initialize defaults if empty
-    adminRef.update(DEFAULT_SETTINGS);
-    applySettings(DEFAULT_SETTINGS);
-  } else {
-    applySettings(val);
-  }
+  if(!val){ adminRef.update(DEFAULT_SETTINGS); applySettings(DEFAULT_SETTINGS); }
+  else { applySettings(val); }
 });
 
 /* ===============================
@@ -739,14 +699,262 @@ adminRef.on('value', (snap)=>{
 ================================== */
 function loadName(){
   const n = getName();
-  if(n) els.participantName.value = n;
-  els.nameStatus.textContent = n ? `Saved: ${n}` : '';
+  if(els.participantName) els.participantName.value = n || "";
+  if(els.nameStatus) els.nameStatus.textContent = n ? `Saved: ${n}` : '';
 }
-els.saveNameBtn.onclick = ()=>{
-  const n = (els.participantName.value||"").trim();
-  if(!n){ alert("Enter your name."); return; }
-  setName(n); loadName(); alert("Name saved.");
-};
+if(els.saveNameBtn){
+  els.saveNameBtn.onclick = ()=>{
+    const n = (els.participantName?.value||"").trim();
+    if(!n){ alert("Enter your name."); return; }
+    setName(n); loadName(); alert("Name saved.");
+  };
+}
+
+/* ===============================
+   Participants (for admin collage picker)
+================================== */
+async function refreshParticipantPicker(){
+  if(!els.adminParticipantPicker) return;
+  const names = new Set();
+  for(const s of STAGES){
+    const snap = await stageRef(s.key).get();
+    const data = snap.val() || {};
+    Object.values(data).forEach(it=> { if(it?.name) names.add(it.name); });
+  }
+  const curr = els.adminParticipantPicker.value;
+  els.adminParticipantPicker.innerHTML = `<option value="">— Select participant —</option>`;
+  Array.from(names).sort().forEach(n=>{
+    const op = document.createElement('option');
+    op.value = n; op.textContent = n;
+    els.adminParticipantPicker.appendChild(op);
+  });
+  // keep previous selection if possible
+  if(curr && names.has(curr)) els.adminParticipantPicker.value = curr;
+}
+
+/* ===============================
+   Collage Builder
+================================== */
+if(els.downloadMyCollageBtn){
+  els.downloadMyCollageBtn.onclick = async ()=>{
+    const name = getName();
+    if(!name){ alert("Save your name first."); return; }
+    await buildAndDownloadCollageForName(name);
+  };
+}
+if(els.adminDownloadCollageBtn){
+  els.adminDownloadCollageBtn.onclick = async ()=>{
+    const n = els.adminParticipantPicker?.value || "";
+    if(!n){ alert("Select a participant first."); return; }
+    await buildAndDownloadCollageForName(n);
+  };
+}
+
+async function buildAndDownloadCollageForName(name){
+  const data = await gatherUserStageData(name);
+  if(!data){ alert("No submissions found for this participant yet."); return; }
+  const url = await renderCollage(data);
+  triggerDownload(url, safeFileName(`${name}-CornwallAI-Collage.png`));
+}
+
+function safeFileName(s){ return s.replace(/[^\w\-]+/g,'_'); }
+
+async function gatherUserStageData(name){
+  // get latest per stage for this name
+  const out = { name, slogan:"", logoUrl:"", flyerUrl:"", description:"", sparkle: "" };
+  // Stage 1
+  let snap = await stageRef('stage1').orderByChild('name').equalTo(name).get();
+  let items = snap.exists() ? Object.values(snap.val()) : [];
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.slogan = items[0].slogan||""; }
+  // Stage 2
+  snap = await stageRef('stage2').orderByChild('name').equalTo(name).get();
+  items = snap.exists() ? Object.values(snap.val()) : [];
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.logoUrl = items[0].imageUrl||""; }
+  // Stage 3
+  snap = await stageRef('stage3').orderByChild('name').equalTo(name).get();
+  items = snap.exists() ? Object.values(snap.val()) : [];
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.flyerUrl = items[0].imageUrl||""; out.description = items[0].description||""; }
+  // Stage 4
+  snap = await stageRef('stage4').orderByChild('name').equalTo(name).get();
+  items = snap.exists() ? Object.values(snap.val()) : [];
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.sparkle = items[0].effect||""; }
+  return out;
+}
+
+function loadImage(url){
+  return new Promise((resolve,reject)=>{
+    if(!url) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = ()=> resolve(img);
+    img.onerror = ()=> resolve(null); // don't block if missing
+    img.src = url;
+  });
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = (text||"").split(/\s+/); let line = ""; let yy = y;
+  for(let n=0; n<words.length; n++){
+    const testLine = line + words[n] + " ";
+    const metrics = ctx.measureText(testLine);
+    if(metrics.width > maxWidth && n>0){
+      ctx.fillText(line, x, yy);
+      line = words[n] + " ";
+      yy += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  ctx.fillText(line, x, yy);
+  return yy;
+}
+
+async function renderCollage({name, slogan, logoUrl, flyerUrl, description, sparkle}){
+  const W = 1200, H = 1600;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background: deep space gradient
+  const g = ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0, '#0a0838'); g.addColorStop(.5, '#0a1b44'); g.addColorStop(1, '#050316');
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.globalAlpha = 0.35;
+  for(let i=0;i<180;i++){
+    const x = Math.random()*W, y = Math.random()*H, r = Math.random()*1.6+0.4;
+    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Header
+  ctx.fillStyle = '#5de4ff';
+  ctx.font = 'bold 44px Orbitron, sans-serif';
+  ctx.fillText('Cornwall AI — Prompt Gauntlet', 48, 80);
+
+  // Name
+  ctx.fillStyle = '#a78bfa';
+  ctx.font = 'bold 36px Inter, sans-serif';
+  ctx.fillText(name || 'Participant', 48, 130);
+
+  // Slogan box
+  ctx.strokeStyle = '#2cb67d';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(44, 160, W-88, 160);
+  ctx.fillStyle = '#e6f3ff';
+  ctx.font = 'bold 38px Inter, sans-serif';
+  const sl = `"${slogan || 'Your brilliant slogan'}"`;
+  wrapText(ctx, sl, 60, 205, W-120, 44);
+
+  // Logo
+  const logo = await loadImage(logoUrl);
+  if(logo){
+    const L = 360; // box
+    ctx.drawImage(logo, 60, 340, L, L);
+  } else {
+    ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(60, 340, 360, 360);
+    ctx.fillStyle = '#8aa5ff'; ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('Logo not uploaded', 80, 540);
+  }
+
+  // Flyer
+  const flyer = await loadImage(flyerUrl);
+  if(flyer){
+    const FW = 640, FH = 480;
+    ctx.drawImage(flyer, 480, 340, FW, FH);
+  } else {
+    ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(480, 340, 640, 480);
+    ctx.fillStyle = '#8aa5ff'; ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('Flyer not uploaded', 500, 580);
+  }
+
+  // Description
+  ctx.fillStyle = '#9fe7ff';
+  ctx.font = 'bold 28px Inter, sans-serif';
+  ctx.fillText('Why we are the best AI group in Cornwall', 48, 860);
+  ctx.fillStyle = '#dfe9ff';
+  ctx.font = '24px Inter, sans-serif';
+  const lastY = wrapText(ctx, description || '—', 48, 900, W-96, 34);
+
+  // Sparkle
+  ctx.fillStyle = '#2cb67d';
+  ctx.font = 'bold 28px Inter, sans-serif';
+  const spark = sparkle ? `Sparkle: ${sparkle}` : 'Sparkle: —';
+  ctx.fillText(spark, 48, Math.min(lastY+50, 1120));
+
+  // Footer ribbon
+  const grad = ctx.createLinearGradient(0, H-120, W, H-60);
+  grad.addColorStop(0,'#5de4ff'); grad.addColorStop(0.5,'#a78bfa'); grad.addColorStop(1,'#2cb67d');
+  ctx.fillStyle = grad; ctx.fillRect(0, H-80, W, 80);
+  ctx.fillStyle = '#040319';
+  ctx.font = 'bold 28px Orbitron, sans-serif';
+  ctx.fillText('Made at the Cornwall AI Creation Challenge', 48, H-30);
+
+  return canvas.toDataURL('image/png');
+}
+
+function triggerDownload(dataUrl, filename){
+  const a = document.createElement('a');
+  a.href = dataUrl; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ===============================
+   Archive & Clear
+================================== */
+if(els.downloadArchiveBtn){
+  els.downloadArchiveBtn.onclick = async ()=>{
+    const archive = await buildArchive();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(archive,null,2));
+    triggerDownload(dataStr, `CornwallAI-archive-${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
+  };
+}
+
+if(els.archiveAndClearBtn){
+  els.archiveAndClearBtn.onclick = async ()=>{
+    if(!confirm("Archive to Firebase Storage and then CLEAR ALL submissions/votes? This cannot be undone.")) return;
+    const archive = await buildArchive();
+    const blob = new Blob([JSON.stringify(archive)], {type: 'application/json'});
+    const path = `backups/session-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+
+    try{
+      if(storage){
+        const ref = storage.ref().child(path);
+        await ref.put(blob);
+      }
+      // Clear DB sections
+      await db.ref('submissions').remove();
+      await db.ref('votes').remove();
+      // Reset settings
+      await adminRef.set(DEFAULT_SETTINGS);
+      alert("Archived to Firebase Storage and cleared.");
+    }catch(e){
+      console.error(e);
+      alert("Archive/Clear failed. Check console.");
+    }
+  };
+}
+
+async function buildArchive(){
+  const submissions = {};
+  for(const s of STAGES){
+    const snap = await stageRef(s.key).get();
+    submissions[s.key] = snap.val() || {};
+  }
+  const votes = {};
+  for(const s of STAGES){
+    const snap = await votesRef(s.key).get();
+    votes[s.key] = snap.val() || {};
+  }
+  const snapshot = {
+    exportedAt: new Date().toISOString(),
+    settings,
+    submissions,
+    votes
+  };
+  return snapshot;
+}
 
 /* ===============================
    Utils
@@ -762,6 +970,8 @@ window.addEventListener('load', ()=>{
   loadName();
   renderTabs();
   renderStage();
+  // optional: pre-load participant picker shortly after
+  setTimeout(()=>{ if(admin) refreshParticipantPicker(); }, 1000);
 });
 </script>
 </body>
