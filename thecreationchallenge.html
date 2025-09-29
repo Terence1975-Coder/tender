@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cornwall AI — 4-Stage Challenge</title>
-<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, admin tools, collage export, and archiving." />
+<meta name="description" content="Futuristic 4-stage prompt challenge with Firebase uploads, numbered voting, admin results, archive gallery, and collage export to PNG/PDF." />
 
 <!--
 IMPORTANT WORKSHOP SETUP
 
-1) Realtime Database RULES (add and Publish):
+1) Realtime Database RULES (works even WITHOUT indexes now, but this is better):
 {
   "rules": {
     "submissions": {
@@ -19,12 +19,12 @@ IMPORTANT WORKSHOP SETUP
       "stage4": { ".read": true, ".write": true, ".indexOn": ["name"] }
     },
     "votes": { ".read": true, ".write": true },
-    "admin": { ".read": true, ".write": true }
+    "admin": { ".read": true, ".write": true },
+    "archive": { ".read": true, ".write": true }
   }
 }
 
-2) Firebase Storage CORS (for collage export with images):
-Set this CORS on your bucket (via gsutil or Cloud Console):
+2) Storage CORS (needed so the collage canvas can export with images):
 [
   {
     "origin": ["*"],
@@ -33,6 +33,7 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
     "maxAgeSeconds": 3600
   }
 ]
+Apply via gsutil or Cloud Console on your Storage bucket.
 -->
 
 <!-- Fonts -->
@@ -83,7 +84,7 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
     text-shadow: 0 0 20px rgba(127,90,240,.25);
   }
   .subtitle{margin-top:6px; color:#bcd; font-weight:500}
-  .container{ position:relative; z-index:1; max-width:1100px; margin: 20px auto 120px; padding: 0 16px; }
+  .container{ position:relative; z-index:1; max-width:1200px; margin: 20px auto 140px; padding: 0 16px; }
 
   .notice{
     background: linear-gradient(180deg, #0e0b3f88, #0b083388);
@@ -95,7 +96,7 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
     background:#1b1655; border:1px solid #34307a; color:#bbf; font-size:12px; letter-spacing:.04em;
   }
   .grid{ display:grid; grid-template-columns: 1fr; gap:18px; margin-top:18px; }
-  @media (min-width:900px){ .grid{ grid-template-columns: 1.35fr .65fr; }}
+  @media (min-width:1024px){ .grid{ grid-template-columns: 1.35fr .65fr; }}
 
   .card{
     background: linear-gradient(180deg, var(--card), var(--card2));
@@ -151,7 +152,7 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
   }
 
   .admin-grid{ display:grid; grid-template-columns: 1fr; gap:12px }
-  @media (min-width:900px){ .admin-grid{ grid-template-columns: .9fr 1.1fr } }
+  @media (min-width:1024px){ .admin-grid{ grid-template-columns: .9fr 1.1fr } }
   .kv{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 12px; border:1px dashed #355; border-radius:12px; }
   .switch{ appearance:none; width:48px; height:28px; border-radius:999px; background:#2a235a; position:relative; border:1px solid #3a2b7a; cursor:pointer; }
   .switch:checked{ background:#1f7a65; border-color:#2a9b80 }
@@ -177,7 +178,7 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
   </div>
 
   <div class="grid">
-    <!-- Left: Stages & Gallery -->
+    <!-- Left: Stages & Galleries -->
     <div class="card">
       <h2>Stages</h2>
       <div class="tabs" id="stageTabs"></div>
@@ -205,6 +206,36 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
           </div>
         </div>
       </div>
+
+      <!-- Archive Gallery Controls -->
+      <div class="notice" style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>Archive Gallery</strong> — browse sessions saved when admin archived & cleared.</div>
+        <button class="btn ghost" id="openArchiveBtn">Open Archive Gallery</button>
+      </div>
+
+      <div id="archiveWrap" class="card" style="margin-top:12px; display:none;">
+        <h2>Archive Gallery</h2>
+        <div class="row" style="align-items:flex-end;">
+          <div>
+            <label>Session</label>
+            <select id="archiveSession"><option value="">— Select Session —</option></select>
+          </div>
+          <div>
+            <label>Stage</label>
+            <select id="archiveStage">
+              <option value="stage1">Stage 1 — Slogan</option>
+              <option value="stage2">Stage 2 — Logo</option>
+              <option value="stage3">Stage 3 — Flyer</option>
+              <option value="stage4">Stage 4 — Sparkle</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn" id="loadArchiveBtn">Load</button>
+          </div>
+        </div>
+        <div class="muted" id="archiveHint">Names are visible in archive.</div>
+        <div class="gallery" id="archiveGallery" style="margin-top:10px;"></div>
+      </div>
     </div>
 
     <!-- Right: Identity & Admin -->
@@ -219,7 +250,8 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="saveNameBtn">Save Name</button>
-        <button class="btn ghost" id="downloadMyCollageBtn" title="Poster image with your slogan, logo, flyer & sparkle">Download My Collage</button>
+        <button class="btn ghost" id="downloadMyCollageBtn" title="PNG poster with your slogan, logo, flyer & sparkle">My Collage (PNG)</button>
+        <button class="btn ghost" id="downloadMyCollagePdfBtn" title="PDF poster with your slogan, logo, flyer & sparkle">My Collage (PDF)</button>
         <span class="tiny" id="nameStatus"></span>
       </div>
 
@@ -251,7 +283,8 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
             <h3>Collages</h3>
             <div class="row">
               <select id="adminParticipantPicker"><option value="">— Select participant —</option></select>
-              <button class="btn" id="adminDownloadCollageBtn">Download Collage</button>
+              <button class="btn" id="adminDownloadCollageBtn">Collage (PNG)</button>
+              <button class="btn" id="adminDownloadCollagePdfBtn">Collage (PDF)</button>
             </div>
 
             <hr style="border:none; border-top:1px solid #2a2769; margin:14px 0">
@@ -259,9 +292,9 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
             <h3>Archive & Clear</h3>
             <div class="row">
               <button class="btn ghost" id="downloadArchiveBtn">Download Archive (JSON)</button>
-              <button class="btn danger" id="archiveAndClearBtn" title="Uploads archive JSON to Firebase Storage, then clears all votes/submissions and resets settings">Archive to Firebase & Clear All</button>
+              <button class="btn danger" id="archiveAndClearBtn" title="Copies to DB archive + uploads JSON to Storage, then clears live data">Archive to Firebase & Clear All</button>
             </div>
-            <div class="tiny" style="margin-top:6px;">Storage path: <code>backups/session-&lt;timestamp&gt;.json</code></div>
+            <div class="tiny" style="margin-top:6px;">DB path: <code>archive/</code>, Storage path: <code>backups/session-&lt;timestamp&gt;.json</code></div>
           </div>
 
           <div class="card" style="padding:12px;">
@@ -278,11 +311,13 @@ Set this CORS on your bucket (via gsutil or Cloud Console):
   <span class="credit">© Cornwall AI — “Best AI group in Cornwall” workshop</span>
 </footer>
 
-<!-- Firebase (Compat SDKs for simpler namespaced usage) -->
+<!-- Firebase (Compat SDKs) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-YkG3cB9rQ4lZJGu0qgA/ojJkVnHq8z2Ck6dnqg8hG7P/b7gFfRcTaT+W7o2P1xXWMyX7uxbF1Nbh1yS+zN05Vg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
 /* ===============================
@@ -334,9 +369,11 @@ const els = {
   secondVote: document.getElementById('secondVote'),
   thirdVote: document.getElementById('thirdVote'),
   submitVoteBtn: document.getElementById('submitVoteBtn'),
+
   participantName: document.getElementById('participantName'),
   saveNameBtn: document.getElementById('saveNameBtn'),
   nameStatus: document.getElementById('nameStatus'),
+
   adminPanelLocked: document.getElementById('adminPanelLocked'),
   adminPanel: document.getElementById('adminPanel'),
   adminCode: document.getElementById('adminCode'),
@@ -346,11 +383,23 @@ const els = {
   lockAllBtn: document.getElementById('lockAllBtn'),
   openNextBtn: document.getElementById('openNextBtn'),
   closeVotingBtn: document.getElementById('closeVotingBtn'),
+
   downloadMyCollageBtn: document.getElementById('downloadMyCollageBtn'),
+  downloadMyCollagePdfBtn: document.getElementById('downloadMyCollagePdfBtn'),
   adminParticipantPicker: document.getElementById('adminParticipantPicker'),
   adminDownloadCollageBtn: document.getElementById('adminDownloadCollageBtn'),
+  adminDownloadCollagePdfBtn: document.getElementById('adminDownloadCollagePdfBtn'),
+
   downloadArchiveBtn: document.getElementById('downloadArchiveBtn'),
   archiveAndClearBtn: document.getElementById('archiveAndClearBtn'),
+
+  openArchiveBtn: document.getElementById('openArchiveBtn'),
+  archiveWrap: document.getElementById('archiveWrap'),
+  archiveSession: document.getElementById('archiveSession'),
+  archiveStage: document.getElementById('archiveStage'),
+  loadArchiveBtn: document.getElementById('loadArchiveBtn'),
+  archiveGallery: document.getElementById('archiveGallery'),
+  archiveHint: document.getElementById('archiveHint'),
 };
 let settings = { ...DEFAULT_SETTINGS };
 let admin = false;
@@ -366,28 +415,26 @@ const setName = (name) => localStorage.setItem('gauntlet_name', name.trim());
 const stageRef = (stageKey) => db.ref(`submissions/${stageKey}`);
 const votesRef = (stageKey) => db.ref(`votes/${stageKey}`);
 const adminRef = db.ref('admin/settings');
+const archiveSessionsRef = db.ref('archive/sessions');
+const archiveDataRef = (sessionId) => db.ref(`archive/data/${sessionId}`);
+
 function escapeHtml(str){ return (str||"").replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 function stageLabel(it){ return `#${(it.id||'').slice(-6)}`; }
 function fillSelect(sel, opts){ sel.innerHTML=""; opts.forEach(o=>{ const op=document.createElement('option'); op.value=o.value; op.textContent=o.label; sel.appendChild(op); }); }
 function safeFileName(s){ return (s||'file').replace(/[^\w\-]+/g,'_'); }
-function triggerDownload(dataUrlOrHref, filename){
-  const a=document.createElement('a'); a.href=dataUrlOrHref; a.download=filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
+function triggerDownload(href, filename){ const a=document.createElement('a'); a.href=href; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
 
 /* ===============================
    RESULTS (define FIRST to avoid hoist issues)
 ================================== */
 async function renderResults(){
-  const resultsWrap = els.resultsWrap;
-  if(!resultsWrap) return;
+  const wrap = els.resultsWrap;
+  if(!wrap) return;
 
   const idx = (settings?.currentIndex) || 0;
   const sKey = STAGES[idx].key;
 
-  // gather all votes
-  const vsSnap = await votesRef(sKey).get();
-  const vs = vsSnap.val() || {};
+  const vs = (await votesRef(sKey).get()).val() || {};
   const tally = {};
   Object.values(vs).forEach(v=>{
     if(!v) return;
@@ -396,16 +443,14 @@ async function renderResults(){
     tally[v.third] = (tally[v.third]||0)+1;
   });
 
-  // submissions to lookup labels and winners
-  const subsSnap = await stageRef(sKey).get();
-  const subs = subsSnap.val() || {};
+  const subs = (await stageRef(sKey).get()).val() || {};
   const arr = Object.values(subs).map(it=>({
     id: it.id, short: stageLabel(it), name: it.name || '', score: tally[it.id]||0
   })).sort((a,b)=> b.score-a.score);
 
   const totalVotes = Object.keys(vs).length;
 
-  resultsWrap.innerHTML = `
+  wrap.innerHTML = `
     <div class="pill" style="margin-bottom:8px;">Current: ${STAGES[idx].label}</div>
     <div class="tiny">Total ballots: ${totalVotes}</div>
     <div class="gallery" style="grid-template-columns: 1fr;">
@@ -499,16 +544,10 @@ function renderStage(){
   els.content.innerHTML = "";
   els.content.appendChild(wrap);
 
-  // Hook handlers per stage
-  if(s.key === 'stage1'){
-    const btn = document.getElementById('s1Submit'); if(btn) btn.onclick = submitSlogan;
-  } else if(s.key==='stage2'){
-    const btn = document.getElementById('s2Submit'); if(btn) btn.onclick = submitLogo;
-  } else if(s.key==='stage3'){
-    const btn = document.getElementById('s3Submit'); if(btn) btn.onclick = submitFlyer;
-  } else if(s.key==='stage4'){
-    const btn = document.getElementById('s4Submit'); if(btn) btn.onclick = submitSparkle;
-  }
+  if(s.key === 'stage1'){ document.getElementById('s1Submit')?.addEventListener('click', submitSlogan); }
+  if(s.key === 'stage2'){ document.getElementById('s2Submit')?.addEventListener('click', submitLogo); }
+  if(s.key === 'stage3'){ document.getElementById('s3Submit')?.addEventListener('click', submitFlyer); }
+  if(s.key === 'stage4'){ document.getElementById('s4Submit')?.addEventListener('click', submitSparkle); }
 }
 
 /* ===============================
@@ -558,8 +597,8 @@ async function submitFlyer(){
   }
   await stageRef('stage3').child(id).set({ id, name, description: desc, imageUrl: url, fileName: file.name, createdAt: Date.now() });
   alert("Flyer uploaded! 🌟");
-  const t = document.getElementById('s3Desc'); if(t) t.value = "";
-  const f = document.getElementById('s3File'); if(f) f.value = "";
+  document.getElementById('s3Desc').value = "";
+  document.getElementById('s3File').value = "";
 }
 
 async function submitSparkle(){
@@ -583,9 +622,7 @@ async function submitSparkle(){
    Gallery & Voting (numbered)
 ================================== */
 let galleryStageKey = STAGES[0].key;
-if(els.openGalleryBtn){
-  els.openGalleryBtn.onclick = openGallery;
-}
+els.openGalleryBtn?.addEventListener('click', openGallery);
 
 function openGallery(){
   galleryStageKey = STAGES[currentStageIndex].key;
@@ -609,7 +646,7 @@ async function loadGallery(stageKey){
   const voteOptions = [{value:"",label:"— choose —"}];
 
   items.forEach((it, idx) => {
-    const number = idx + 1; // sequential number
+    const number = idx + 1;
     const div = document.createElement('div');
     div.className = 'tile';
     div.style.position = 'relative';
@@ -623,22 +660,17 @@ async function loadGallery(stageKey){
     }
 
     const caption = showNames ? `<div class="caption">${escapeHtml(it.name||'')}</div>` : '';
-    div.innerHTML = `
-      <div class="num-badge">${number}</div>
-      ${media}${caption}
-    `;
-    if(els.gallery) els.gallery.appendChild(div);
+    div.innerHTML = `<div class="num-badge">${number}</div>${media}${caption}`;
+    els.gallery.appendChild(div);
 
     voteOptions.push({ value: it.id, label: `${number}` });
   });
 
-  if(els.firstVote) fillSelect(els.firstVote, voteOptions);
-  if(els.secondVote) fillSelect(els.secondVote, voteOptions);
-  if(els.thirdVote) fillSelect(els.thirdVote, voteOptions);
+  els.firstVote && fillSelect(els.firstVote, voteOptions);
+  els.secondVote && fillSelect(els.secondVote, voteOptions);
+  els.thirdVote && fillSelect(els.thirdVote, voteOptions);
 
-  if(els.submitVoteBtn){
-    els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
-  }
+  els.submitVoteBtn && (els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value)));
 }
 
 async function submitVotes(stageKey, validIds){
@@ -669,43 +701,35 @@ const ADMIN_CODE = "1975";
 
 function setAdminMode(on){
   admin = on;
-  if(els.adminPanel) els.adminPanel.style.display = on ? 'block' : 'none';
-  if(els.adminPanelLocked) els.adminPanelLocked.style.display = on ? 'none' : 'block';
+  els.adminPanel.style.display = on ? 'block' : 'none';
+  els.adminPanelLocked.style.display = on ? 'none' : 'block';
   if(on) refreshParticipantPicker();
 }
 
-if(els.adminLoginBtn){
-  els.adminLoginBtn.onclick = ()=>{
-    const code = (els.adminCode?.value||"").trim();
-    if(code === ADMIN_CODE){ setAdminMode(true); alert("Admin unlocked."); }
-    else { alert("Incorrect code."); }
-  };
-}
+els.adminLoginBtn?.addEventListener('click', ()=>{
+  const code = (els.adminCode?.value||"").trim();
+  if(code === ADMIN_CODE){ setAdminMode(true); alert("Admin unlocked."); }
+  else { alert("Incorrect code."); }
+});
 
-if(els.lockAllBtn){
-  els.lockAllBtn.onclick = async ()=>{
-    const newSet = {...settings};
-    STAGES.forEach(s=>{ newSet[s.key].open=false; newSet[s.key].votingOpen=false; });
-    await adminRef.update(newSet);
-  };
-}
-if(els.openNextBtn){
-  els.openNextBtn.onclick = async ()=>{
-    const idx = settings.currentIndex || 0;
-    const next = Math.min(idx+1, STAGES.length-1);
-    const newSet = {...settings, currentIndex: next};
-    newSet[STAGES[next].key].open = true;
-    await adminRef.update(newSet);
-  };
-}
-if(els.closeVotingBtn){
-  els.closeVotingBtn.onclick = async ()=>{
-    const k = STAGES[settings.currentIndex||0].key;
-    const newSet = {...settings};
-    newSet[k].votingOpen = false;
-    await adminRef.update(newSet);
-  };
-}
+els.lockAllBtn?.addEventListener('click', async ()=>{
+  const newSet = {...settings};
+  STAGES.forEach(s=>{ newSet[s.key].open=false; newSet[s.key].votingOpen=false; });
+  await adminRef.update(newSet);
+});
+els.openNextBtn?.addEventListener('click', async ()=>{
+  const idx = settings.currentIndex || 0;
+  const next = Math.min(idx+1, STAGES.length-1);
+  const newSet = {...settings, currentIndex: next};
+  newSet[STAGES[next].key].open = true;
+  await adminRef.update(newSet);
+});
+els.closeVotingBtn?.addEventListener('click', async ()=>{
+  const k = STAGES[settings.currentIndex||0].key;
+  const newSet = {...settings};
+  newSet[k].votingOpen = false;
+  await adminRef.update(newSet);
+});
 
 function renderAdminControls(){
   if(!admin || !els.controlList) return;
@@ -793,47 +817,57 @@ async function refreshParticipantPicker(){
 }
 
 /* ===============================
-   Collage Builder
+   Collage Builder (PNG + PDF)
 ================================== */
-if(els.downloadMyCollageBtn){
-  els.downloadMyCollageBtn.onclick = async ()=>{
-    const name = getName();
-    if(!name){ alert("Save your name first."); return; }
-    const data = await gatherUserStageData(name);
-    if(!data){ alert("No submissions yet."); return; }
-    const url = await renderCollage(data);
-    triggerDownload(url, `${safeFileName(name)}-CornwallAI-Collage.png`);
-  };
-}
-if(els.adminDownloadCollageBtn){
-  els.adminDownloadCollageBtn.onclick = async ()=>{
-    const n = els.adminParticipantPicker?.value || "";
-    if(!n){ alert("Select a participant first."); return; }
-    const data = await gatherUserStageData(n);
-    if(!data){ alert("No submissions yet for this participant."); return; }
-    const url = await renderCollage(data);
-    triggerDownload(url, `${safeFileName(n)}-CornwallAI-Collage.png`);
-  };
-}
+els.downloadMyCollageBtn?.addEventListener('click', async ()=>{
+  const name = getName();
+  if(!name){ alert("Save your name first."); return; }
+  const data = await gatherUserStageData(name);
+  if(!data){ alert("No submissions yet."); return; }
+  await exportCollagePNG(data, `${safeFileName(name)}-CornwallAI-Collage.png`);
+});
+els.downloadMyCollagePdfBtn?.addEventListener('click', async ()=>{
+  const name = getName();
+  if(!name){ alert("Save your name first."); return; }
+  const data = await gatherUserStageData(name);
+  if(!data){ alert("No submissions yet."); return; }
+  await exportCollagePDF(data, `${safeFileName(name)}-CornwallAI-Collage.pdf`);
+});
+els.adminDownloadCollageBtn?.addEventListener('click', async ()=>{
+  const n = els.adminParticipantPicker?.value || "";
+  if(!n){ alert("Select a participant first."); return; }
+  const data = await gatherUserStageData(n);
+  if(!data){ alert("No submissions yet for this participant."); return; }
+  await exportCollagePNG(data, `${safeFileName(n)}-CornwallAI-Collage.png`);
+});
+els.adminDownloadCollagePdfBtn?.addEventListener('click', async ()=>{
+  const n = els.adminParticipantPicker?.value || "";
+  if(!n){ alert("Select a participant first."); return; }
+  const data = await gatherUserStageData(n);
+  if(!data){ alert("No submissions yet for this participant."); return; }
+  await exportCollagePDF(data, `${safeFileName(n)}-CornwallAI-Collage.pdf`);
+});
 
 async function gatherUserStageData(name){
+  // Client-side filter (no index required)
   const out = { name, slogan:"", logoUrl:"", flyerUrl:"", description:"", sparkle: "" };
-  // Stage 1
-  let snap = await stageRef('stage1').orderByChild('name').equalTo(name).get();
-  let items = snap.exists() ? Object.values(snap.val()) : [];
+
+  let snap = await stageRef('stage1').get();
+  let items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
   if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.slogan = items[0].slogan||""; }
-  // Stage 2
-  snap = await stageRef('stage2').orderByChild('name').equalTo(name).get();
-  items = snap.exists() ? Object.values(snap.val()) : [];
+
+  snap = await stageRef('stage2').get();
+  items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
   if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.logoUrl = items[0].imageUrl||""; }
-  // Stage 3
-  snap = await stageRef('stage3').orderByChild('name').equalTo(name).get();
-  items = snap.exists() ? Object.values(snap.val()) : [];
+
+  snap = await stageRef('stage3').get();
+  items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
   if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.flyerUrl = items[0].imageUrl||""; out.description = items[0].description||""; }
-  // Stage 4
-  snap = await stageRef('stage4').orderByChild('name').equalTo(name).get();
-  items = snap.exists() ? Object.values(snap.val()) : [];
+
+  snap = await stageRef('stage4').get();
+  items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
   if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.sparkle = items[0].effect||""; }
+
   return out;
 }
 
@@ -865,7 +899,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight){
   return yy;
 }
 
-async function renderCollage({name, slogan, logoUrl, flyerUrl, description, sparkle}){
+async function renderCollageCanvas({name, slogan, logoUrl, flyerUrl, description, sparkle}){
   const W = 1200, H = 1600;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
@@ -936,52 +970,159 @@ async function renderCollage({name, slogan, logoUrl, flyerUrl, description, spar
   ctx.font = 'bold 28px Orbitron, sans-serif';
   ctx.fillText('Made at the Cornwall AI Creation Challenge', 48, H-30);
 
-  return canvas.toDataURL('image/png');
+  return canvas;
+}
+
+function canvasToDataURL(canvas){
+  try { return canvas.toDataURL('image/png'); }
+  catch(e){ console.warn('Canvas toDataURL blocked (CORS). Set Storage CORS.'); return null; }
+}
+
+async function exportCollagePNG(data, filename){
+  const canvas = await renderCollageCanvas(data);
+  const dataUrl = canvasToDataURL(canvas);
+  if(!dataUrl){ alert('PNG export blocked by browser due to image CORS.\nSet Firebase Storage CORS (see file header).'); return; }
+  triggerDownload(dataUrl, filename);
+}
+
+async function exportCollagePDF(data, filename){
+  const canvas = await renderCollageCanvas(data);
+  const dataUrl = canvasToDataURL(canvas);
+  if(!dataUrl){ alert('PDF export blocked by browser due to image CORS.\nSet Firebase Storage CORS (see file header).'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+
+  // Page background
+  pdf.setFillColor(5,3,22); // deep space
+  pdf.rect(0,0,pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), 'F');
+
+  // Add image with margin
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 24;
+  const maxW = pageW - margin*2;
+  const maxH = pageH - margin*2;
+
+  // Original canvas is 1200x1600 (portrait). Fit into A4 nicely.
+  const imgW = 1200, imgH = 1600;
+  const ratio = Math.min(maxW/imgW, maxH/imgH);
+  const w = imgW * ratio;
+  const h = imgH * ratio;
+  const x = (pageW - w)/2;
+  const y = (pageH - h)/2;
+
+  // Decorative top bar
+  pdf.setDrawColor(93,228,255);
+  pdf.setLineWidth(3);
+  pdf.line(margin, margin, pageW - margin, margin);
+
+  pdf.addImage(dataUrl, 'PNG', x, y, w, h, undefined, 'FAST');
+
+  // Footer bar
+  pdf.setDrawColor(167,139,250);
+  pdf.setLineWidth(2);
+  pdf.line(margin, pageH - margin, pageW - margin, pageH - margin);
+
+  pdf.save(filename);
 }
 
 /* ===============================
-   Archive & Clear
+   Archive (JSON + DB + Gallery)
 ================================== */
-if(els.downloadArchiveBtn){
-  els.downloadArchiveBtn.onclick = async ()=>{
-    const archive = await buildArchive();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(archive,null,2));
-    triggerDownload(dataStr, `CornwallAI-archive-${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
-  };
-}
-if(els.archiveAndClearBtn){
-  els.archiveAndClearBtn.onclick = async ()=>{
-    if(!confirm("Archive to Firebase Storage and then CLEAR ALL submissions/votes? This cannot be undone.")) return;
-    const archive = await buildArchive();
-    const blob = new Blob([JSON.stringify(archive)], {type: 'application/json'});
-    const path = `backups/session-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
-    try{
-      if(storage){
-        const ref = storage.ref().child(path);
-        await ref.put(blob);
-      }
-      await db.ref('submissions').remove();
-      await db.ref('votes').remove();
-      await adminRef.set(DEFAULT_SETTINGS);
-      alert("Archived to Firebase Storage and cleared.");
-    }catch(e){
-      console.error(e);
-      alert("Archive/Clear failed. Check console.");
+els.downloadArchiveBtn?.addEventListener('click', async ()=>{
+  const archive = await buildArchive();
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(archive,null,2));
+  triggerDownload(dataStr, `CornwallAI-archive-${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
+});
+
+els.archiveAndClearBtn?.addEventListener('click', async ()=>{
+  if(!confirm("Archive to DB + Storage, then CLEAR ALL submissions/votes? This cannot be undone.")) return;
+
+  // snapshot current data
+  const submissions = {};
+  for(const s of STAGES){ submissions[s.key] = (await stageRef(s.key).get()).val() || {}; }
+  const votes = {};
+  for(const s of STAGES){ votes[s.key] = (await votesRef(s.key).get()).val() || {}; }
+  const sessionId = new Date().toISOString().replace(/[:.]/g,'-');
+
+  // write to DB archive
+  const counts = {};
+  for(const s of STAGES){ counts[s.key] = Object.keys(submissions[s.key]||{}).length; }
+  await archiveDataRef(sessionId).set({ submissions, votes, settings });
+  await archiveSessionsRef.child(sessionId).set({ createdAt: Date.now(), counts });
+
+  // also upload a JSON blob to Storage for offline records
+  try{
+    if(storage){
+      const blob = new Blob([JSON.stringify({ submissions, votes, settings, createdAt: new Date().toISOString() },null,2)], {type:'application/json'});
+      await storage.ref().child(`backups/session-${sessionId}.json`).put(blob);
     }
-  };
-}
+  }catch(e){ console.warn('Storage archive failed:', e); }
+
+  // clear live DB and reset settings
+  await db.ref('submissions').remove();
+  await db.ref('votes').remove();
+  await adminRef.set(DEFAULT_SETTINGS);
+
+  alert("Archived to DB (archive/) + Storage, and cleared live data.");
+  // refresh archive session list if archive UI is open
+  if(els.archiveWrap && els.archiveWrap.style.display==='block'){ loadArchiveSessions(); }
+});
+
 async function buildArchive(){
   const submissions = {};
-  for(const s of STAGES){
-    const snap = await stageRef(s.key).get();
-    submissions[s.key] = snap.val() || {};
-  }
+  for(const s of STAGES){ submissions[s.key] = (await stageRef(s.key).get()).val() || {}; }
   const votes = {};
-  for(const s of STAGES){
-    const snap = await votesRef(s.key).get();
-    votes[s.key] = snap.val() || {};
-  }
+  for(const s of STAGES){ votes[s.key] = (await votesRef(s.key).get()).val() || {}; }
   return { exportedAt: new Date().toISOString(), settings, submissions, votes };
+}
+
+/* ---------- Archive Gallery UI ---------- */
+els.openArchiveBtn?.addEventListener('click', ()=>{
+  els.archiveWrap.style.display = 'block';
+  loadArchiveSessions();
+});
+els.loadArchiveBtn?.addEventListener('click', ()=>{
+  const sessionId = els.archiveSession.value;
+  const stageKey = els.archiveStage.value;
+  if(!sessionId){ alert('Pick a session first.'); return; }
+  loadArchiveGallery(sessionId, stageKey);
+});
+
+async function loadArchiveSessions(){
+  const snap = await archiveSessionsRef.get();
+  const data = snap.val() || {};
+  const entries = Object.entries(data).sort((a,b)=> (b[1]?.createdAt||0)-(a[1]?.createdAt||0));
+  const opts = [{value:'', label:'— Select Session —'}].concat(entries.map(([id,meta])=>{
+    const date = new Date(meta.createdAt||Date.now()).toLocaleString();
+    const count = Object.values(meta.counts||{}).reduce((a,b)=>a+(b||0),0);
+    return { value:id, label:`${id} (${count} items) — ${date}` };
+  }));
+  fillSelect(els.archiveSession, opts);
+}
+
+async function loadArchiveGallery(sessionId, stageKey){
+  const node = await archiveDataRef(sessionId).child(`submissions/${stageKey}`).get();
+  const items = Object.values(node.val()||{}).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  els.archiveGallery.innerHTML = "";
+  items.forEach((it, idx)=>{
+    const number = idx+1;
+    const div = document.createElement('div');
+    div.className = 'tile';
+    div.style.position = 'relative';
+    let media = '';
+    if(stageKey==='stage1'){
+      media = `<div class="caption" style="font-weight:800; font-size:16px; min-height:130px; display:flex; align-items:center;">“${escapeHtml(it.slogan || '')}”</div>`;
+    } else {
+      const src = it.imageUrl || it.demoUrl || '';
+      media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption" style="min-height:130px; display:flex; align-items:center;">No media</div>`;
+    }
+    const name = `<div class="caption">By: ${escapeHtml(it.name||'-')}</div>`;
+    div.innerHTML = `<div class="num-badge">${number}</div>${media}${name}`;
+    els.archiveGallery.appendChild(div);
+  });
+  els.archiveHint.textContent = items.length ? `Loaded ${items.length} item(s) from ${sessionId} — ${STAGES.find(s=>s.key===stageKey).label}` : 'No items in that session/stage.';
 }
 
 /* ===============================
@@ -989,16 +1130,14 @@ async function buildArchive(){
 ================================== */
 function loadName(){
   const n = getName();
-  if(els.participantName) els.participantName.value = n || "";
-  if(els.nameStatus) els.nameStatus.textContent = n ? `Saved: ${n}` : '';
+  els.participantName.value = n || "";
+  els.nameStatus.textContent = n ? `Saved: ${n}` : '';
 }
-if(els.saveNameBtn){
-  els.saveNameBtn.onclick = ()=>{
-    const n = (els.participantName?.value||"").trim();
-    if(!n){ alert("Enter your name."); return; }
-    setName(n); loadName(); alert("Name saved.");
-  };
-}
+els.saveNameBtn?.addEventListener('click', ()=>{
+  const n = (els.participantName?.value||"").trim();
+  if(!n){ alert("Enter your name."); return; }
+  setName(n); loadName(); alert("Name saved.");
+});
 
 /* ===============================
    Boot
@@ -1011,3 +1150,4 @@ window.addEventListener('load', ()=>{
 </script>
 </body>
 </html>
+
