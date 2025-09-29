@@ -4,7 +4,36 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cornwall AI — 4-Stage Challenge</title>
-<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, admin tools, and collage export." />
+<meta name="description" content="Futuristic 4-stage prompt challenge: Slogan, Logo, Flyer, Sparkle with Firebase uploads, voting, admin tools, collage export, and archiving." />
+
+<!--
+IMPORTANT WORKSHOP SETUP
+
+1) Realtime Database RULES (add and Publish):
+{
+  "rules": {
+    "submissions": {
+      "stage1": { ".read": true, ".write": true, ".indexOn": ["name"] },
+      "stage2": { ".read": true, ".write": true, ".indexOn": ["name"] },
+      "stage3": { ".read": true, ".write": true, ".indexOn": ["name"] },
+      "stage4": { ".read": true, ".write": true, ".indexOn": ["name"] }
+    },
+    "votes": { ".read": true, ".write": true },
+    "admin": { ".read": true, ".write": true }
+  }
+}
+
+2) Firebase Storage CORS (for collage export with images):
+Set this CORS on your bucket (via gsutil or Cloud Console):
+[
+  {
+    "origin": ["*"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "maxAgeSeconds": 3600
+  }
+]
+-->
 
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -112,9 +141,14 @@
   }
   .tile img{ width:100%; border-radius:10px; display:block; object-fit:cover; aspect-ratio: 4 / 3; background:#070426 }
   .tile .caption{ margin-top:8px; font-size:13px; color:#cde }
-  .vote-select{ display:flex; gap:8px; margin-top:8px; align-items:center; }
   .badge{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:#13205a; border:1px solid #2b3a8c; font-size:12px; color:#cbe }
   .winner{ outline: 2px solid #2cb67d; box-shadow: 0 0 0 3px rgba(44,182,125,.2) }
+  .num-badge{
+    position:absolute; top:8px; left:8px;
+    background:#1b1655; border:1px solid #4a3fb6; color:#e6ecff;
+    border-radius:12px; padding:4px 10px; font-weight:800;
+    box-shadow: 0 0 10px rgba(127,90,240,.25);
+  }
 
   .admin-grid{ display:grid; grid-template-columns: 1fr; gap:12px }
   @media (min-width:900px){ .admin-grid{ grid-template-columns: .9fr 1.1fr } }
@@ -153,6 +187,7 @@
         <div><strong>Gallery & Voting</strong> — opens when the facilitator unlocks it. Winners are ranked by 3/2/1 points.</div>
         <button class="btn ghost" id="openGalleryBtn">Open Gallery</button>
       </div>
+
       <div id="galleryWrap" class="card" style="margin-top:12px; display:none;">
         <h2 id="galleryTitle">Gallery</h2>
         <div class="muted" id="galleryHint">Names are hidden during voting.</div>
@@ -184,7 +219,7 @@
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="saveNameBtn">Save Name</button>
-        <button class="btn ghost" id="downloadMyCollageBtn" title="Build a poster image with your slogan, logo, flyer & sparkle">Download My Collage</button>
+        <button class="btn ghost" id="downloadMyCollageBtn" title="Poster image with your slogan, logo, flyer & sparkle">Download My Collage</button>
         <span class="tiny" id="nameStatus"></span>
       </div>
 
@@ -226,7 +261,7 @@
               <button class="btn ghost" id="downloadArchiveBtn">Download Archive (JSON)</button>
               <button class="btn danger" id="archiveAndClearBtn" title="Uploads archive JSON to Firebase Storage, then clears all votes/submissions and resets settings">Archive to Firebase & Clear All</button>
             </div>
-            <div class="tiny" style="margin-top:6px;">Archive is saved to Storage: <code>backups/session-&lt;timestamp&gt;.json</code></div>
+            <div class="tiny" style="margin-top:6px;">Storage path: <code>backups/session-&lt;timestamp&gt;.json</code></div>
           </div>
 
           <div class="card" style="padding:12px;">
@@ -311,7 +346,6 @@ const els = {
   lockAllBtn: document.getElementById('lockAllBtn'),
   openNextBtn: document.getElementById('openNextBtn'),
   closeVotingBtn: document.getElementById('closeVotingBtn'),
-  // new collage & archive elements
   downloadMyCollageBtn: document.getElementById('downloadMyCollageBtn'),
   adminParticipantPicker: document.getElementById('adminParticipantPicker'),
   adminDownloadCollageBtn: document.getElementById('adminDownloadCollageBtn'),
@@ -323,24 +357,73 @@ let admin = false;
 let currentStageIndex = 0;
 
 /* ===============================
-   Helpers
+   Utils
 ================================== */
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-const getDeviceId = () => {
-  const key = 'gauntlet_device';
-  let v = localStorage.getItem(key);
-  if(!v){ v = uid(); localStorage.setItem(key, v); }
-  return v;
-};
+const getDeviceId = () => { const k='gauntlet_device'; let v=localStorage.getItem(k); if(!v){ v=uid(); localStorage.setItem(k,v);} return v; };
 const getName = () => localStorage.getItem('gauntlet_name') || "";
 const setName = (name) => localStorage.setItem('gauntlet_name', name.trim());
-
 const stageRef = (stageKey) => db.ref(`submissions/${stageKey}`);
 const votesRef = (stageKey) => db.ref(`votes/${stageKey}`);
 const adminRef = db.ref('admin/settings');
+function escapeHtml(str){ return (str||"").replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+function stageLabel(it){ return `#${(it.id||'').slice(-6)}`; }
+function fillSelect(sel, opts){ sel.innerHTML=""; opts.forEach(o=>{ const op=document.createElement('option'); op.value=o.value; op.textContent=o.label; sel.appendChild(op); }); }
+function safeFileName(s){ return (s||'file').replace(/[^\w\-]+/g,'_'); }
+function triggerDownload(dataUrlOrHref, filename){
+  const a=document.createElement('a'); a.href=dataUrlOrHref; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
 
 /* ===============================
-   UI Builders
+   RESULTS (define FIRST to avoid hoist issues)
+================================== */
+async function renderResults(){
+  const resultsWrap = els.resultsWrap;
+  if(!resultsWrap) return;
+
+  const idx = (settings?.currentIndex) || 0;
+  const sKey = STAGES[idx].key;
+
+  // gather all votes
+  const vsSnap = await votesRef(sKey).get();
+  const vs = vsSnap.val() || {};
+  const tally = {};
+  Object.values(vs).forEach(v=>{
+    if(!v) return;
+    tally[v.first] = (tally[v.first]||0)+3;
+    tally[v.second] = (tally[v.second]||0)+2;
+    tally[v.third] = (tally[v.third]||0)+1;
+  });
+
+  // submissions to lookup labels and winners
+  const subsSnap = await stageRef(sKey).get();
+  const subs = subsSnap.val() || {};
+  const arr = Object.values(subs).map(it=>({
+    id: it.id, short: stageLabel(it), name: it.name || '', score: tally[it.id]||0
+  })).sort((a,b)=> b.score-a.score);
+
+  const totalVotes = Object.keys(vs).length;
+
+  resultsWrap.innerHTML = `
+    <div class="pill" style="margin-bottom:8px;">Current: ${STAGES[idx].label}</div>
+    <div class="tiny">Total ballots: ${totalVotes}</div>
+    <div class="gallery" style="grid-template-columns: 1fr;">
+      ${arr.map((r,i)=>`
+        <div class="tile ${i<3?'winner':''}" style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div class="caption" style="font-size:14px;"><strong>${i+1}.</strong> ${r.short} <span class="tiny" style="color:#8fb">(${r.score} pts)</span></div>
+            <div class="tiny" style="color:#9ab">Name: ${escapeHtml(r.name)}</div>
+          </div>
+          <span class="badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'⭐'}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ===============================
+   UI: Tabs & Stage forms
 ================================== */
 function renderTabs(){
   if(!els.tabs) return;
@@ -353,26 +436,6 @@ function renderTabs(){
     b.onclick = () => { currentStageIndex = i; renderTabs(); renderStage(); };
     els.tabs.appendChild(b);
   });
-}
-
-function renderStage(){
-  if(!els.content) return;
-  const s = STAGES[currentStageIndex];
-  const wrap = document.createElement('div');
-  wrap.innerHTML = getStageHTML(s.key);
-  els.content.innerHTML = "";
-  els.content.appendChild(wrap);
-
-  // Hook handlers per stage
-  if(s.key === 'stage1'){
-    const btn = document.getElementById('s1Submit'); if(btn) btn.onclick = submitSlogan;
-  } else if(s.key==='stage2'){
-    const btn = document.getElementById('s2Submit'); if(btn) btn.onclick = submitLogo;
-  } else if(s.key==='stage3'){
-    const btn = document.getElementById('s3Submit'); if(btn) btn.onclick = submitFlyer;
-  } else if(s.key==='stage4'){
-    const btn = document.getElementById('s4Submit'); if(btn) btn.onclick = submitSparkle;
-  }
 }
 
 function getStageHTML(key){
@@ -426,6 +489,26 @@ function getStageHTML(key){
     <input id="s4File" type="file" accept="image/*,video/*" />
     <button class="btn primary" id="s4Submit" style="margin-top:10px;">Submit Sparkle</button>
   `;
+}
+
+function renderStage(){
+  if(!els.content) return;
+  const s = STAGES[currentStageIndex];
+  const wrap = document.createElement('div');
+  wrap.innerHTML = getStageHTML(s.key);
+  els.content.innerHTML = "";
+  els.content.appendChild(wrap);
+
+  // Hook handlers per stage
+  if(s.key === 'stage1'){
+    const btn = document.getElementById('s1Submit'); if(btn) btn.onclick = submitSlogan;
+  } else if(s.key==='stage2'){
+    const btn = document.getElementById('s2Submit'); if(btn) btn.onclick = submitLogo;
+  } else if(s.key==='stage3'){
+    const btn = document.getElementById('s3Submit'); if(btn) btn.onclick = submitFlyer;
+  } else if(s.key==='stage4'){
+    const btn = document.getElementById('s4Submit'); if(btn) btn.onclick = submitSparkle;
+  }
 }
 
 /* ===============================
@@ -497,7 +580,7 @@ async function submitSparkle(){
 }
 
 /* ===============================
-   Gallery & Voting (bug-fixed)
+   Gallery & Voting (numbered)
 ================================== */
 let galleryStageKey = STAGES[0].key;
 if(els.openGalleryBtn){
@@ -512,14 +595,12 @@ function openGallery(){
 }
 
 async function loadGallery(stageKey){
-  const s = settings[stageKey] || {};
-  const votingOpen = !!s.votingOpen;
+  const votingOpen = !!(settings?.[stageKey]?.votingOpen);
   const showNames = false;
 
   if(els.votingPanel) els.votingPanel.style.display = votingOpen ? 'block' : 'none';
   if(els.galleryHint) els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.";
 
-  // Fetch submissions once
   const snap = await stageRef(stageKey).get();
   const data = snap.val() || {};
   const items = Object.values(data).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
@@ -527,20 +608,28 @@ async function loadGallery(stageKey){
   if(els.gallery) els.gallery.innerHTML = "";
   const voteOptions = [{value:"",label:"— choose —"}];
 
-  items.forEach(it => {
+  items.forEach((it, idx) => {
+    const number = idx + 1; // sequential number
     const div = document.createElement('div');
     div.className = 'tile';
+    div.style.position = 'relative';
+
     let media = '';
     if(stageKey==='stage1'){
-      media = `<div class="caption" style="font-weight:800; font-size:16px;">“${escapeHtml(it.slogan || '')}”</div>`;
+      media = `<div class="caption" style="font-weight:800; font-size:16px; min-height:130px; display:flex; align-items:center;">“${escapeHtml(it.slogan || '')}”</div>`;
     } else {
       const src = it.imageUrl || it.demoUrl || '';
-      media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption">No media uploaded</div>`;
+      media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption" style="min-height:130px; display:flex; align-items:center;">No media uploaded</div>`;
     }
+
     const caption = showNames ? `<div class="caption">${escapeHtml(it.name||'')}</div>` : '';
-    div.innerHTML = `${media}${caption}`;
+    div.innerHTML = `
+      <div class="num-badge">${number}</div>
+      ${media}${caption}
+    `;
     if(els.gallery) els.gallery.appendChild(div);
-    voteOptions.push({value: it.id, label: stageLabel(it)});
+
+    voteOptions.push({ value: it.id, label: `${number}` });
   });
 
   if(els.firstVote) fillSelect(els.firstVote, voteOptions);
@@ -550,16 +639,6 @@ async function loadGallery(stageKey){
   if(els.submitVoteBtn){
     els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
   }
-}
-
-function stageLabel(it){ return `#${(it.id||'').slice(-6)}`; }
-
-function fillSelect(sel, opts){
-  sel.innerHTML = "";
-  opts.forEach(o=>{
-    const op=document.createElement('option');
-    op.value=o.value; op.textContent=o.label; sel.appendChild(op);
-  });
 }
 
 async function submitVotes(stageKey, validIds){
@@ -610,7 +689,6 @@ if(els.lockAllBtn){
     await adminRef.update(newSet);
   };
 }
-
 if(els.openNextBtn){
   els.openNextBtn.onclick = async ()=>{
     const idx = settings.currentIndex || 0;
@@ -620,7 +698,6 @@ if(els.openNextBtn){
     await adminRef.update(newSet);
   };
 }
-
 if(els.closeVotingBtn){
   els.closeVotingBtn.onclick = async ()=>{
     const k = STAGES[settings.currentIndex||0].key;
@@ -695,22 +772,6 @@ adminRef.on('value', (snap)=>{
 });
 
 /* ===============================
-   Identity
-================================== */
-function loadName(){
-  const n = getName();
-  if(els.participantName) els.participantName.value = n || "";
-  if(els.nameStatus) els.nameStatus.textContent = n ? `Saved: ${n}` : '';
-}
-if(els.saveNameBtn){
-  els.saveNameBtn.onclick = ()=>{
-    const n = (els.participantName?.value||"").trim();
-    if(!n){ alert("Enter your name."); return; }
-    setName(n); loadName(); alert("Name saved.");
-  };
-}
-
-/* ===============================
    Participants (for admin collage picker)
 ================================== */
 async function refreshParticipantPicker(){
@@ -728,7 +789,6 @@ async function refreshParticipantPicker(){
     op.value = n; op.textContent = n;
     els.adminParticipantPicker.appendChild(op);
   });
-  // keep previous selection if possible
   if(curr && names.has(curr)) els.adminParticipantPicker.value = curr;
 }
 
@@ -739,28 +799,24 @@ if(els.downloadMyCollageBtn){
   els.downloadMyCollageBtn.onclick = async ()=>{
     const name = getName();
     if(!name){ alert("Save your name first."); return; }
-    await buildAndDownloadCollageForName(name);
+    const data = await gatherUserStageData(name);
+    if(!data){ alert("No submissions yet."); return; }
+    const url = await renderCollage(data);
+    triggerDownload(url, `${safeFileName(name)}-CornwallAI-Collage.png`);
   };
 }
 if(els.adminDownloadCollageBtn){
   els.adminDownloadCollageBtn.onclick = async ()=>{
     const n = els.adminParticipantPicker?.value || "";
     if(!n){ alert("Select a participant first."); return; }
-    await buildAndDownloadCollageForName(n);
+    const data = await gatherUserStageData(n);
+    if(!data){ alert("No submissions yet for this participant."); return; }
+    const url = await renderCollage(data);
+    triggerDownload(url, `${safeFileName(n)}-CornwallAI-Collage.png`);
   };
 }
 
-async function buildAndDownloadCollageForName(name){
-  const data = await gatherUserStageData(name);
-  if(!data){ alert("No submissions found for this participant yet."); return; }
-  const url = await renderCollage(data);
-  triggerDownload(url, safeFileName(`${name}-CornwallAI-Collage.png`));
-}
-
-function safeFileName(s){ return s.replace(/[^\w\-]+/g,'_'); }
-
 async function gatherUserStageData(name){
-  // get latest per stage for this name
   const out = { name, slogan:"", logoUrl:"", flyerUrl:"", description:"", sparkle: "" };
   // Stage 1
   let snap = await stageRef('stage1').orderByChild('name').equalTo(name).get();
@@ -782,12 +838,12 @@ async function gatherUserStageData(name){
 }
 
 function loadImage(url){
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve)=>{
     if(!url) return resolve(null);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = ()=> resolve(img);
-    img.onerror = ()=> resolve(null); // don't block if missing
+    img.onerror = ()=> resolve(null);
     img.src = url;
   });
 }
@@ -815,7 +871,7 @@ async function renderCollage({name, slogan, logoUrl, flyerUrl, description, spar
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Background: deep space gradient
+  // Background gradient
   const g = ctx.createLinearGradient(0,0,W,H);
   g.addColorStop(0, '#0a0838'); g.addColorStop(.5, '#0a1b44'); g.addColorStop(1, '#050316');
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
@@ -839,8 +895,7 @@ async function renderCollage({name, slogan, logoUrl, flyerUrl, description, spar
   ctx.fillText(name || 'Participant', 48, 130);
 
   // Slogan box
-  ctx.strokeStyle = '#2cb67d';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#2cb67d'; ctx.lineWidth = 3;
   ctx.strokeRect(44, 160, W-88, 160);
   ctx.fillStyle = '#e6f3ff';
   ctx.font = 'bold 38px Inter, sans-serif';
@@ -849,25 +904,15 @@ async function renderCollage({name, slogan, logoUrl, flyerUrl, description, spar
 
   // Logo
   const logo = await loadImage(logoUrl);
-  if(logo){
-    const L = 360; // box
-    ctx.drawImage(logo, 60, 340, L, L);
-  } else {
-    ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(60, 340, 360, 360);
-    ctx.fillStyle = '#8aa5ff'; ctx.font = 'bold 20px Inter, sans-serif';
-    ctx.fillText('Logo not uploaded', 80, 540);
-  }
+  if(logo){ ctx.drawImage(logo, 60, 340, 360, 360); }
+  else { ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(60, 340, 360, 360);
+         ctx.fillStyle = '#8aa5ff'; ctx.font='bold 20px Inter, sans-serif'; ctx.fillText('Logo not uploaded', 80, 540); }
 
   // Flyer
   const flyer = await loadImage(flyerUrl);
-  if(flyer){
-    const FW = 640, FH = 480;
-    ctx.drawImage(flyer, 480, 340, FW, FH);
-  } else {
-    ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(480, 340, 640, 480);
-    ctx.fillStyle = '#8aa5ff'; ctx.font = 'bold 20px Inter, sans-serif';
-    ctx.fillText('Flyer not uploaded', 500, 580);
-  }
+  if(flyer){ ctx.drawImage(flyer, 480, 340, 640, 480); }
+  else { ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(480, 340, 640, 480);
+         ctx.fillStyle = '#8aa5ff'; ctx.font='bold 20px Inter, sans-serif'; ctx.fillText('Flyer not uploaded', 500, 580); }
 
   // Description
   ctx.fillStyle = '#9fe7ff';
@@ -894,12 +939,6 @@ async function renderCollage({name, slogan, logoUrl, flyerUrl, description, spar
   return canvas.toDataURL('image/png');
 }
 
-function triggerDownload(dataUrl, filename){
-  const a = document.createElement('a');
-  a.href = dataUrl; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
 /* ===============================
    Archive & Clear
 ================================== */
@@ -910,23 +949,19 @@ if(els.downloadArchiveBtn){
     triggerDownload(dataStr, `CornwallAI-archive-${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
   };
 }
-
 if(els.archiveAndClearBtn){
   els.archiveAndClearBtn.onclick = async ()=>{
     if(!confirm("Archive to Firebase Storage and then CLEAR ALL submissions/votes? This cannot be undone.")) return;
     const archive = await buildArchive();
     const blob = new Blob([JSON.stringify(archive)], {type: 'application/json'});
     const path = `backups/session-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
-
     try{
       if(storage){
         const ref = storage.ref().child(path);
         await ref.put(blob);
       }
-      // Clear DB sections
       await db.ref('submissions').remove();
       await db.ref('votes').remove();
-      // Reset settings
       await adminRef.set(DEFAULT_SETTINGS);
       alert("Archived to Firebase Storage and cleared.");
     }catch(e){
@@ -935,7 +970,6 @@ if(els.archiveAndClearBtn){
     }
   };
 }
-
 async function buildArchive(){
   const submissions = {};
   for(const s of STAGES){
@@ -947,20 +981,23 @@ async function buildArchive(){
     const snap = await votesRef(s.key).get();
     votes[s.key] = snap.val() || {};
   }
-  const snapshot = {
-    exportedAt: new Date().toISOString(),
-    settings,
-    submissions,
-    votes
-  };
-  return snapshot;
+  return { exportedAt: new Date().toISOString(), settings, submissions, votes };
 }
 
 /* ===============================
-   Utils
+   Identity
 ================================== */
-function escapeHtml(str){
-  return (str||"").replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+function loadName(){
+  const n = getName();
+  if(els.participantName) els.participantName.value = n || "";
+  if(els.nameStatus) els.nameStatus.textContent = n ? `Saved: ${n}` : '';
+}
+if(els.saveNameBtn){
+  els.saveNameBtn.onclick = ()=>{
+    const n = (els.participantName?.value||"").trim();
+    if(!n){ alert("Enter your name."); return; }
+    setName(n); loadName(); alert("Name saved.");
+  };
 }
 
 /* ===============================
@@ -970,8 +1007,6 @@ window.addEventListener('load', ()=>{
   loadName();
   renderTabs();
   renderStage();
-  // optional: pre-load participant picker shortly after
-  setTimeout(()=>{ if(admin) refreshParticipantPicker(); }, 1000);
 });
 </script>
 </body>
