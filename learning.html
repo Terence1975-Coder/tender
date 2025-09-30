@@ -1,4 +1,3 @@
-<!-- /index.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -23,7 +22,7 @@
     <!-- Cytoscape for network graph -->
     <script src="https://unpkg.com/cytoscape/dist/cytoscape.umd.js"></script>
 
-    <!-- Firebase compat (easier single-file setup) -->
+    <!-- Firebase compat (single-file setup) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -33,18 +32,16 @@
       .bg-accent { background: var(--accent); }
       .text-accent { color: var(--accent); }
       .border-soft { border-color: rgba(0,0,0,0.08); }
-      .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,0.6); }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
     <div id="root"></div>
 
     <script type="text/babel">
-      // ===== Minimal globals
-      const {useEffect,useMemo,useRef,useState} = React;
-      const motion = (window.framerMotion && window.framerMotion.motion) || {div:(p)=><div {...p}/>,span:(p)=><span {...p}/>};
+      const { useEffect, useMemo, useRef, useState } = React;
+      const motion = (window.framerMotion && window.framerMotion.motion) || { div:(p)=><div {...p}/>, span:(p)=><span {...p}/> };
 
-      // ===== Firebase init (provided config)
+      // ===== Firebase config (given)
       const firebaseConfig = {
         apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
         authDomain: "prospecting-f2f42.firebaseapp.com",
@@ -56,17 +53,10 @@
         measurementId: "G-WWB0JTX2L2"
       };
       let fbApp, fbAuth, fbDB;
-      try {
-        fbApp = firebase.initializeApp(firebaseConfig);
-        fbAuth = firebase.auth();
-        fbDB = firebase.database();
-      } catch(e) {
-        console.warn("Firebase init error:", e);
-      }
+      try { fbApp = firebase.initializeApp(firebaseConfig); fbAuth = firebase.auth(); fbDB = firebase.database(); } catch(e) { console.warn("Firebase init error:", e); }
 
-      // ===== Data model
+      // ===== Data
       const LEVELS = ["Novice","Intermediate","Expert"];
-
       const WEEKS = [
         { id:"w1", title:"Week 1-2: AI Fundamentals for Business", sessions:[
           { id:"s1",  title:"Introduction to AI in the Workplace" },
@@ -99,8 +89,7 @@
           { id:"s18", title:"Capstone Showcase" },
         ]},
       ];
-
-      const LEARNING_OUTCOMES = [
+      const OUTCOMES = [
         "Understand AI’s role in business",
         "Master prompt engineering",
         "Boost productivity with AI",
@@ -109,127 +98,68 @@
         "Implement AI responsibly",
         "Build an AI-ready strategy",
       ];
+      const ALL_SESSIONS = WEEKS.flatMap(w=>w.sessions);
+      const byId = (id)=>ALL_SESSIONS.find(x=>x.id===id);
 
-      const CHALLENGES = [
-        {
-          id:"c1",
-          title:"Too many emails, not enough time",
-          mapsTo:["s2","s4","s5"]
-        },
-        {
-          id:"c2",
-          title:"I want to create an app which…",
-          mapsTo:["s2","s13","s14","s15"]
-        },
-        {
-          id:"c3",
-          title:"I need clarity on my data…",
-          mapsTo:["s6","s7","s8"]
-        },
-        {
-          id:"c4",
-          title:"Improve customer experience fast",
-          mapsTo:["s10","s11","s12"]
-        },
-        {
-          id:"c5",
-          title:"Plan an AI adoption roadmap",
-          mapsTo:["s16","s17","s18"]
-        },
-      ];
+      // ===== Utils
+      const DAY = 24*60*60*1000;
+      const throttle = (fn, wait=800) => { let t=0, last=null; return (...a)=>{ const n=Date.now(); last=a; if(n-t>wait){ t=n; fn(...last);} }; };
+      const fmtDate = (ms)=> new Date(ms).toLocaleDateString();
 
-      // ===== Helpers
-      const byId = (id) => WEEKS.flatMap(w=>w.sessions).find(s=>s.id===id);
-      const now = () => Date.now();
-      const days = (n) => n*24*60*60*1000;
-      const fmtDate = (ms) => new Date(ms).toLocaleDateString();
+      // AES-GCM + PBKDF2 (for admin key backup)
+      const enc = new TextEncoder(), dec = new TextDecoder();
+      async function deriveKey(passphrase, salt) {
+        const km = await crypto.subtle.importKey("raw", enc.encode(passphrase), {name:"PBKDF2"}, false, ["deriveKey"]);
+        return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:120000, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+      }
+      async function encryptToBase64(plain, pass) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const key = await deriveKey(pass, salt);
+        const cipher = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, enc.encode(plain));
+        const payload = new Uint8Array(salt.length + iv.length + cipher.byteLength);
+        payload.set(salt,0); payload.set(iv,16); payload.set(new Uint8Array(cipher),28);
+        return btoa(String.fromCharCode(...payload));
+      }
+      async function decryptFromBase64(b64, pass) {
+        const buf = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+        const salt = buf.slice(0,16), iv = buf.slice(16,28), data = buf.slice(28);
+        const key = await deriveKey(pass, salt);
+        const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv}, key, data);
+        return dec.decode(plain);
+      }
 
-      // Task generator (level-aware)
+      // Tasks (level-aware)
       function tasksFor(session, level) {
-        const L = level || "Novice";
-        const t = (dur,label,detail) => ({ duration:dur, label, detail });
+        const hint = level==="Novice" ? "Guided steps + examples." : level==="Intermediate" ? "Less hand-holding; include choices." : "Open-ended; focus on outcomes & metrics.";
+        const mk = (d,l,dt)=>({duration:d,label:l,detail:dt});
         const base = session.title;
-
-        // why: templates ensure complete coverage without manual authoring per session
-        const noviceHint = "Guided steps + examples.";
-        const interHint = "Less hand-holding; include choices.";
-        const expertHint = "Open-ended; focus on outcomes and metrics.";
-
-        const hint = L==="Novice" ? noviceHint : L==="Intermediate" ? interHint : expertHint;
-
         return {
-          short: [
-            t("2–5 min", `Micro-task: ${base}`, `${hint} Do a 1-step action tied to ${base}.`),
-          ],
-          medium: [
-            t("15–30 min", `Applied practice: ${base}`, `${hint} Complete an end-to-end mini workflow for ${base}.`),
-          ],
-          long: [
-            t("1–3 hrs", `Project: ${base}`, `${hint} Build a small artefact or SOP demonstrating ${base} in context.`),
-          ]
+          short: [ mk("2–5 min", `Micro-task: ${base}`, `${hint} Do a 1-step action tied to ${base}.`) ],
+          medium:[ mk("15–30 min", `Applied: ${base}`, `${hint} Complete a mini workflow for ${base}.`) ],
+          long:  [ mk("1–3 hrs", `Project: ${base}`, `${hint} Build an artefact/SOP for ${base} in context.`) ],
         };
       }
 
-      // MCQ generator (2 Qs per session)
+      // MCQs (2 per session)
       function mcqFor(session) {
         const s = session.title;
         return [
-          {
-            q: `What is the primary goal of "${s}" in a business context?`,
-            choices: [
-              "Increase operational risk",
-              "Align AI use with a real business outcome",
-              "Replace every human task",
-              "Ignore data quality"
-            ],
-            answer: 1,
-            why: "Business-first framing ensures AI adds measurable value."
-          },
-          {
-            q: `Which action best reflects learning from "${s}"?`,
-            choices: [
-              "Implementing random tools without a plan",
-              "Designing prompts/workflows mapped to a KPI",
-              "Blocking all automation",
-              "Waiting for perfect data before any pilot"
-            ],
-            answer: 1,
-            why: "Tie prompts/workflows to a KPI to validate value early."
-          }
+          { q:`What is the primary goal of "${s}"?`, choices:["Increase operational risk","Align AI use with a measurable business outcome","Replace every human task","Ignore data quality"], answer:1, why:"Business-first framing ensures measurable value." },
+          { q:`Which action best reflects learning from "${s}"?`, choices:["Implement random tools without a plan","Design prompts/workflows mapped to a KPI","Block all automation","Wait for perfect data before any pilot"], answer:1, why:"Tie prompts/workflows to a KPI to validate value early." }
         ];
       }
+      const MCQ = Object.fromEntries(ALL_SESSIONS.map(s=>[s.id, mcqFor(s)]));
 
-      // Build MCQ bank
-      const MCQ = Object.fromEntries(
-        WEEKS.flatMap(w=>w.sessions).map(s => [s.id, mcqFor(s)])
-      );
-
-      // Spaced repetition schedule (Leitner-like)
-      function nextSchedule(prevBox, correct, level) {
-        const L = level || "Novice";
-        let box = Math.max(1, Math.min(5, prevBox || 1));
-        box = correct ? Math.min(5, box+1) : Math.max(1, box-1);
-
-        const gap = correct
-          ? (L==="Novice" ? days(3) : L==="Intermediate" ? days(5) : days(7))
-          : days(1);
-
-        return { box, next: now() + gap };
+      // Spaced repetition
+      function nextSchedule(prev, correct, level) {
+        const prevBox = prev?.box ?? 1;
+        let box = correct ? Math.min(5, prevBox+1) : Math.max(1, prevBox-1);
+        const gap = correct ? (level==="Novice"?3:level==="Intermediate"?5:7)*DAY : 1*DAY;
+        return { box, next: Date.now()+gap, last: Date.now() };
       }
 
-      // Throttle
-      function throttle(fn, wait=800) {
-        let t = 0, lastArgs=null;
-        return (...args) => {
-          const n = Date.now();
-          lastArgs = args;
-          if (n - t > wait) {
-            t = n; fn(...lastArgs);
-          }
-        };
-      }
-
-      // ===== Components
+      // ===== UI Components
       function Header({theme,setTheme,level,setLevel}) {
         return (
           <div className="flex items-center justify-between mb-4">
@@ -241,21 +171,11 @@
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <select
-                value={level}
-                onChange={(e)=>setLevel(e.target.value)}
-                className="rounded-xl border border-soft px-3 py-2 bg-white"
-                title="Skill level"
-              >
+              <select value={level} onChange={(e)=>setLevel(e.target.value)} className="rounded-xl border border-soft px-3 py-2 bg-white">
                 {LEVELS.map(l=><option key={l} value={l}>{l}</option>)}
               </select>
-              <input
-                type="color"
-                value={theme.primary}
-                onChange={(e)=>setTheme({primary:e.target.value})}
-                className="w-10 h-10 p-0 rounded-xl border border-soft"
-                title="Accent colour"
-              />
+              <input type="color" value={theme.primary} onChange={(e)=>setTheme({primary:e.target.value})} className="w-10 h-10 p-0 rounded-xl border border-soft" title="Accent colour" />
+              <a href="#/admin" className="text-xs underline">Admin</a>
             </div>
           </div>
         );
@@ -266,95 +186,230 @@
           <div className="rounded-2xl border border-soft bg-white p-4">
             <div className="font-semibold mb-2">Learning Outcomes</div>
             <ul className="grid sm:grid-cols-2 gap-2 text-sm">
-              {LEARNING_OUTCOMES.map((o,i)=>(
-                <li key={i} className="rounded-xl border border-soft px-3 py-2">{o}</li>
-              ))}
+              {OUTCOMES.map((o,i)=><li key={i} className="rounded-xl border border-soft px-3 py-2">{o}</li>)}
             </ul>
           </div>
         );
       }
 
-      function Graph({path, onSelect}) {
-        const ref = useRef(null);
+      function Graph({ onSelect, selected }) {
+        const ref = useRef(null), cyRef = useRef(null);
         useEffect(()=>{
-          if (!ref.current) return;
+          if(!ref.current) return;
           const cy = cytoscape({
             container: ref.current,
             elements: [
               ...WEEKS.map(w=>({ data:{ id:w.id, label:w.title, type:"week" }})),
-              ...WEEKS.flatMap(w=>w.sessions.map(s=>({ data:{ id:s.id, label:s.title, type:"session" }}))),
+              ...ALL_SESSIONS.map(s=>({ data:{ id:s.id, label:s.title, type:"session" }})),
               ...WEEKS.flatMap(w=>w.sessions.map(s=>({ data:{ id:`e-${w.id}-${s.id}`, source:w.id, target:s.id }}))),
             ],
             style: [
-              { selector: 'node[type="week"]', style: { 'background-color':'#fff','border-width':1,'border-color':'#ddd','label':'data(label)','text-wrap':'wrap','text-max-width':220,'padding':12,'shape':'round-rectangle','font-size':12 } },
-              { selector: 'node[type="session"]', style: { 'background-color':'#fff','border-width':2,'border-color':'#bbb','label':'data(label)','text-wrap':'wrap','text-max-width':200,'padding':10,'shape':'round-rectangle','font-size':11 } },
-              { selector: 'edge', style: { 'width':1,'line-color':'#ddd','target-arrow-shape':'triangle','target-arrow-color':'#ddd','curve-style':'bezier' } },
-              { selector: '.in-path', style: { 'border-color':'var(--accent)','border-width':3,'color':'#111' } },
+              { selector:'node[type="week"]', style:{ 'background-color':'#fff','border-width':1,'border-color':'#ddd','label':'data(label)','text-wrap':'wrap','text-max-width':220,'padding':12,'shape':'round-rectangle','font-size':12 } },
+              { selector:'node[type="session"]', style:{ 'background-color':'#fff','border-width':2,'border-color':'#bbb','label':'data(label)','text-wrap':'wrap','text-max-width':200,'padding':10,'shape':'round-rectangle','font-size':11 } },
+              { selector:'edge', style:{ 'width':1,'line-color':'#ddd','target-arrow-shape':'triangle','target-arrow-color':'#ddd','curve-style':'bezier' } },
+              { selector:'.selected', style:{ 'border-color':'var(--accent)','border-width':4 } },
             ],
-            layout: { name:'breadthfirst', directed:true, spacingFactor: 1.2, animate:false },
+            layout: { name:'breadthfirst', directed:true, spacingFactor:1.2, animate:false },
             wheelSensitivity: 0.2
           });
-
-          cy.on('tap', 'node', (evt)=>{
+          cy.on('tap','node',(evt)=>{
             const n = evt.target;
-            const id = n.data('id');
-            const s = byId(id);
-            if (s) onSelect(s);
+            if(n.data('type')==='session'){
+              const s = byId(n.id());
+              if(s) onSelect(s);
+            }
           });
-
-          // Highlight path nodes
-          const ids = new Set(path.map(p=>p.id));
-          cy.nodes().forEach(n=>{
-            if (ids.has(n.id())) n.addClass('in-path'); else n.removeClass('in-path');
-          });
-
-          const handle = () => cy.resize();
-          window.addEventListener('resize', handle);
-          return ()=>{ window.removeEventListener('resize', handle); cy.destroy(); };
-        }, [ref, path]);
+          cyRef.current = cy;
+          const rs = ()=>cy.resize();
+          window.addEventListener('resize', rs);
+          return ()=>{ window.removeEventListener('resize', rs); cy.destroy(); };
+        }, [onSelect]);
+        useEffect(()=>{
+          const cy = cyRef.current; if(!cy) return;
+          cy.nodes().forEach(n=>n.removeClass('selected'));
+          if(selected){ const n = cy.getElementById(selected.id); if(n) n.addClass('selected'); }
+        }, [selected]);
         return <div ref={ref} className="w-full h-96 rounded-2xl border border-soft bg-white" />;
       }
 
-      function SessionPanel({session, level, onAddToPath, onStartQuiz, progress}) {
-        if (!session) return (
-          <div className="rounded-2xl border border-soft bg-white p-4">
-            <div className="font-semibold mb-2">Session Details</div>
-            <div className="text-sm opacity-60">Select a session from the network to view tasks, then add it to your path.</div>
-          </div>
-        );
-
-        const t = tasksFor(session, level);
-        const pr = progress[session.id];
+      function Whiteboard({notes,setNotes}) {
+        const boardRef = useRef(null);
+        const add = ()=> setNotes(n=>[...n, {id:crypto.randomUUID(), text:"New note", x:40, y:40}]);
+        const remove = (id)=> setNotes(n=>n.filter(x=>x.id!==id));
+        const onText = (id, text)=> setNotes(n=>n.map(x=>x.id===id?{...x,text}:x));
         return (
-          <div className="rounded-2xl border border-soft bg-white p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold">{session.title}</div>
-              <div className="text-xs opacity-70">Level: {level}</div>
+          <div className="rounded-2xl border border-soft bg-white p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold">Floating Whiteboard</div>
+              <button onClick={add} className="text-xs underline">add note</button>
             </div>
-
-            {pr && pr.next ? (
-              <div className="text-xs">
-                Next review: <span className="font-medium">{fmtDate(pr.next)}</span> · Box {pr.box || 1}
-              </div>
-            ) : (
-              <div className="text-xs opacity-70">No review scheduled yet.</div>
-            )}
-
-            <div className="grid md:grid-cols-3 gap-3">
-              <TaskCard title="Short" items={t.short}/>
-              <TaskCard title="Medium" items={t.medium}/>
-              <TaskCard title="Long" items={t.long}/>
-            </div>
-
-            <div className="flex gap-2">
-              <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={()=>onAddToPath(session)}>Add to Path</button>
-              <button className="px-3 py-2 rounded-xl border border-soft" onClick={()=>onStartQuiz(session)}>Start Quiz</button>
+            <div ref={boardRef} className="relative h-64 rounded-xl border border-dashed border-soft bg-[linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:20px_20px]">
+              {notes.map(n=>(
+                <div key={n.id} className="absolute w-40" style={{ left:n.x, top:n.y }}>
+                  <div
+                    className="cursor-move rounded-t-xl px-3 py-1 text-white"
+                    style={{ background:'var(--accent)' }}
+                    onMouseDown={(downEvt)=>{
+                      const rect = boardRef.current.getBoundingClientRect();
+                      const startX = downEvt.clientX - n.x - rect.left;
+                      const startY = downEvt.clientY - n.y - rect.top;
+                      const move = (e)=>{
+                        const x = e.clientX - rect.left - startX;
+                        const y = e.clientY - rect.top - startY;
+                        setNotes(ns=>ns.map(xn=>xn.id===n.id?{...xn, x:Math.max(0,x), y:Math.max(0,y)}:xn));
+                      };
+                      const up = ()=>{ window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+                      window.addEventListener('mousemove', move);
+                      window.addEventListener('mouseup', up);
+                    }}
+                    title="Drag"
+                  >drag</div>
+                  <textarea value={n.text} onChange={(e)=>onText(n.id,e.target.value)} className="w-40 h-24 rounded-b-xl border border-soft p-2 text-sm bg-white" />
+                  <button onClick={()=>remove(n.id)} className="text-xs underline opacity-70 mt-1">remove</button>
+                </div>
+              ))}
             </div>
           </div>
         );
       }
 
-      function TaskCard({title, items}) {
+      function ChatGPTPanel({adminApiKey, thread, setThread}) {
+        const [userKey, setUserKey] = useState("");
+        const [input, setInput] = useState("");
+        const key = userKey || adminApiKey || "";
+
+        const send = async ()=>{
+          const msg = input.trim(); if(!msg) return;
+          setThread(t=>[...t,{role:"user",content:msg}]);
+          if(!key){
+            setThread(t=>[...t,{role:"assistant",content:"(No API key) Example: outline steps, sample prompt, quick win."}]);
+            setInput(""); return;
+          }
+          try{
+            const res = await fetch("https://api.openai.com/v1/chat/completions",{
+              method:"POST",
+              headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${key}` },
+              body: JSON.stringify({
+                model:"gpt-4o-mini",
+                messages:[ {role:"system",content:"You are a concise, practical AI training assistant."}, ...thread, {role:"user",content:msg} ],
+                temperature:0.4
+              })
+            });
+            const data = await res.json();
+            const text = data?.choices?.[0]?.message?.content || "(No content)";
+            setThread(t=>[...t,{role:"assistant",content:text}]);
+          } catch(e){ setThread(t=>[...t,{role:"assistant",content:`Error: ${e?.message||e}`}]); }
+          finally{ setInput(""); }
+        };
+
+        return (
+          <div className="rounded-2xl border border-soft bg-white p-4 h-full">
+            <div className="font-semibold mb-2">ChatGPT Integration</div>
+            <div className="text-xs opacity-70 mb-2">Using {userKey ? "your" : adminApiKey ? "admin" : "no"} key.</div>
+            <input type="password" placeholder="OpenAI API Key (sk-...)" value={userKey} onChange={(e)=>setUserKey(e.target.value)} className="w-full rounded-xl border border-soft px-3 py-2 mb-2" />
+            <div className="h-40 overflow-auto rounded-xl border border-soft p-2 mb-2 bg-gray-50">
+              {thread.length===0 ? <div className="text-xs opacity-60">Start a conversation below.</div> : thread.map((m,i)=>(
+                <div key={i} className="mb-2">
+                  <span className="text-[10px] uppercase opacity-50 mr-2">{m.role}</span>
+                  <span className="text-sm whitespace-pre-wrap">{m.content}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <textarea className="flex-1 rounded-xl border border-soft px-3 py-2" rows="2" placeholder="Ask or paste a prompt…" value={input} onChange={(e)=>setInput(e.target.value)} />
+              <button className="rounded-xl px-3 py-2 bg-accent text-white" onClick={send}>Send</button>
+            </div>
+          </div>
+        );
+      }
+
+      function QuizModal({session, level, onClose, onResult}) {
+        const qs = MCQ[session.id] || [];
+        const [idx,setIdx]=useState(0);
+        const [choice,setChoice]=useState(null);
+        const [showAns,setShowAns]=useState(false);
+        const q = qs[idx];
+
+        const submit = ()=>{ if(choice==null) return; setShowAns(true); };
+        const next = ()=>{
+          if(idx<qs.length-1){ setIdx(idx+1); setChoice(null); setShowAns(false); }
+          else { const passed = choice===q.answer; onResult(passed); onClose(); }
+        };
+        const correct = (choice!=null && showAns) ? (choice===q.answer) : null;
+
+        return (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold">Quiz – {session.title}</div>
+                <div className="text-xs opacity-70">Level: {level}</div>
+              </div>
+              <div className="mb-3 text-sm">{q.q}</div>
+              <div className="space-y-2">
+                {q.choices.map((c,i)=>(
+                  <label key={i} className={`block rounded-xl border p-2 cursor-pointer ${choice===i ? 'border-[var(--accent)]':'border-soft'}`}>
+                    <input type="radio" name="mcq" className="mr-2" checked={choice===i} onChange={()=>setChoice(i)} />
+                    {c}
+                  </label>
+                ))}
+              </div>
+              {showAns && <div className={`mt-3 text-sm ${correct?'text-green-600':'text-red-600'}`}>{correct?"Correct. ":"Not quite. "}{q.why}</div>}
+              <div className="mt-4 flex justify-end gap-2">
+                {!showAns ? (<>
+                  <button className="px-3 py-2 rounded-xl border border-soft" onClick={onClose}>Cancel</button>
+                  <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={submit}>Check</button>
+                </>) : (
+                  <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={next}>Next</button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function LearningWorkspace({session, level, onClose, onQuizResult}) {
+        const [tab,setTab]=useState("Instructions");
+        const [quizOpen,setQuizOpen]=useState(false);
+        const tasks = tasksFor(session, level);
+        return (
+          <div className="rounded-2xl border border-soft bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold">{session.title}</div>
+              <button onClick={onClose} className="text-xs underline opacity-70">back to selection</button>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              {["Instructions","Tasks","Quiz"].map(t=>(
+                <button key={t} onClick={()=>setTab(t)} className={`px-3 py-2 rounded-xl ${tab===t?'bg-accent text-white':'border border-soft'}`}>{t}</button>
+              ))}
+            </div>
+            {tab==="Instructions" && (
+              <div className="text-sm space-y-2">
+                <p>What you’ll learn: align {session.title} with a measurable business outcome. Focus on outcomes, data quality, and ethics.</p>
+                <ul className="list-disc ml-5">
+                  <li>Key concept: value-first framing</li>
+                  <li>Deliverable: 1 KPI-aligned workflow or prompt</li>
+                  <li>Evidence: before/after metric or artefact</li>
+                </ul>
+              </div>
+            )}
+            {tab==="Tasks" && (
+              <div className="grid md:grid-cols-3 gap-3">
+                <TaskCol title="Short" items={tasks.short}/>
+                <TaskCol title="Medium" items={tasks.medium}/>
+                <TaskCol title="Long" items={tasks.long}/>
+              </div>
+            )}
+            {tab==="Quiz" && (
+              <div className="text-sm">
+                <p className="mb-3">Test your understanding of this module.</p>
+                <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={()=>setQuizOpen(true)}>Start Quiz</button>
+              </div>
+            )}
+            {quizOpen && <QuizModal session={session} level={level} onClose={()=>setQuizOpen(false)} onResult={onQuizResult} />}
+          </div>
+        );
+      }
+      function TaskCol({title, items}) {
         return (
           <div className="rounded-xl border border-soft p-3">
             <div className="font-medium mb-2">{title}</div>
@@ -373,343 +428,154 @@
         );
       }
 
-      function ChallengesPanel({onPick, onAddToPath}) {
-        return (
-          <div className="rounded-2xl border border-soft bg-white p-4">
-            <div className="font-semibold mb-2">Learn by Challenge/Opportunity</div>
-            <ul className="space-y-3">
-              {CHALLENGES.map(c=>(
-                <li key={c.id} className="rounded-xl border border-soft p-3">
-                  <div className="font-medium mb-1">{c.title}</div>
-                  <div className="text-xs opacity-70 mb-2">Mapped sessions:</div>
-                  <div className="flex flex-wrap gap-2">
-                    {c.mapsTo.map(id=>{
-                      const s = byId(id);
-                      return (
-                        <button key={id} className="text-xs px-2 py-1 rounded-lg border border-soft" onClick={()=>onPick(s)}>{s?.title}</button>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-2">
-                    <button className="text-xs underline" onClick={()=>c.mapsTo.forEach(id=>{ const s=byId(id); if(s) onAddToPath(s); })}>
-                      Add all to path
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
+      function Admin() {
+        const [uid,setUid]=useState(null);
+        const [email,setEmail]=useState(""); const [password,setPassword]=useState("");
+        const [apiKey,setApiKey]=useState(localStorage.getItem("a2ia_admin_api_key")||"");
+        const [passphrase,setPassphrase]=useState("");
+        const [cloudEnc,setCloudEnc]=useState(null);
+        const [status,setStatus]=useState("");
 
-      function PathPanel({path, onRemove, onClear}) {
+        useEffect(()=>{ 
+          if(!fbAuth) return;
+          const unsub = fbAuth.onAuthStateChanged(u=>setUid(u?.uid||null));
+          return ()=>unsub&&unsub();
+        },[]);
+        useEffect(()=>{
+          if(!fbDB) return;
+          const ref = fbDB.ref("/admin/apiKeyEnc");
+          const cb = snap=> setCloudEnc(snap.val()||null);
+          ref.on("value", cb);
+          return ()=> ref.off("value", cb);
+        },[]);
+
+        const saveLocal = ()=>{ localStorage.setItem("a2ia_admin_api_key", apiKey); setStatus("Saved locally."); };
+        const loadLocal = ()=>{ const v=localStorage.getItem("a2ia_admin_api_key")||""; setApiKey(v); setStatus(v?"Loaded local key.":"No local key."); };
+
+        const backupToCloud = async ()=>{
+          if(!uid){ setStatus("Sign in first."); return; }
+          if(!apiKey){ setStatus("No API key."); return; }
+          if(!passphrase){ setStatus("Enter passphrase."); return; }
+          const encb64 = await encryptToBase64(apiKey, passphrase);
+          await fbDB.ref("/admin/apiKeyEnc").set(encb64);
+          setStatus("Encrypted backup saved to Firebase.");
+        };
+        const restoreFromCloud = async ()=>{
+          if(!cloudEnc){ setStatus("No cloud backup."); return; }
+          if(!passphrase){ setStatus("Enter passphrase to decrypt."); return; }
+          try { const plain = await decryptFromBase64(cloudEnc, passphrase); setApiKey(plain); setStatus("Decrypted key restored (not auto-saved)."); }
+          catch { setStatus("Decryption failed. Check passphrase."); }
+        };
+
+        const signIn = async ()=>{ try{ await fbAuth.signInWithEmailAndPassword(email,password); setStatus("Signed in."); } catch(e){ setStatus(e?.message||"Sign-in error"); } };
+        const signUp = async ()=>{ try{ await fbAuth.createUserWithEmailAndPassword(email,password); setStatus("Account created. Sign in."); } catch(e){ setStatus(e?.message||"Sign-up error"); } };
+        const signOut = async ()=>{ try{ await fbAuth.signOut(); setStatus("Signed out."); } catch(e){} };
+
         return (
-          <div className="rounded-2xl border border-soft bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold">Your Path</div>
-              <button className="text-xs underline opacity-70" onClick={onClear} disabled={!path.length}>clear</button>
+          <div className="max-w-xl mx-auto p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-semibold">Admin</div>
+                <div className="text-xs opacity-70">UID: {uid||"-"}</div>
+              </div>
+              <a href="#/" className="text-xs underline">Back</a>
             </div>
-            {path.length===0 ? (
-              <div className="text-xs opacity-60">No sessions yet.</div>
+
+            {!uid ? (
+              <div className="rounded-2xl border border-soft bg-white p-4 mb-4">
+                <div className="font-semibold mb-2">Sign In</div>
+                <input className="w-full rounded-xl border border-soft px-3 py-2 mb-2" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} />
+                <input type="password" className="w-full rounded-xl border border-soft px-3 py-2 mb-2" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} />
+                <div className="flex gap-2">
+                  <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={signIn}>Sign In</button>
+                  <button className="px-3 py-2 rounded-xl border border-soft" onClick={signUp}>Create Account</button>
+                </div>
+              </div>
             ) : (
-              <ul className="space-y-2">
-                {path.map(s=>(
-                  <li key={s.id} className="flex items-center justify-between rounded-lg border border-soft p-2">
-                    <span className="text-sm">{s.title}</span>
-                    <button onClick={()=>onRemove(s.id)} className="text-xs underline opacity-70">remove</button>
-                  </li>
-                ))}
-              </ul>
+              <div className="mb-4">
+                <button className="text-xs underline" onClick={signOut}>Sign out</button>
+              </div>
             )}
-          </div>
-        );
-      }
 
-      function Whiteboard({notes,setNotes,theme}) {
-        const boardRef = useRef(null);
-        const add = () => {
-          setNotes(n => [...n, { id: crypto.randomUUID(), text:"New note", x: 40, y: 40 }]);
-        };
-        const onDrag = (id, e) => {
-          // why: direct DOM coords keep it simple in a single file
-          const rect = boardRef.current.getBoundingClientRect();
-          const x = e.clientX - rect.left - 60;
-          const y = e.clientY - rect.top - 20;
-          setNotes(ns => ns.map(n => n.id===id ? {...n, x:Math.max(0,x), y:Math.max(0,y)} : n));
-        };
-        const onText = (id, value) => setNotes(ns => ns.map(n => n.id===id ? {...n, text:value} : n));
-        const remove = (id) => setNotes(ns => ns.filter(n=>n.id!==id));
-
-        return (
-          <div className="rounded-2xl border border-soft bg-white p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold">Floating Whiteboard</div>
-              <button onClick={add} className="text-xs underline">add note</button>
-            </div>
-            <div ref={boardRef} className="relative h-64 rounded-xl border border-dashed border-soft bg-[linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:20px_20px]">
-              {notes.map(n=>(
-                <div key={n.id}
-                  className="absolute w-40"
-                  style={{ left:n.x, top:n.y }}
-                >
-                  <div
-                    className="cursor-move rounded-t-xl px-3 py-1 text-white"
-                    style={{ background: 'var(--accent)' }}
-                    onMouseDown={(downEvt)=>{
-                      const move = (e)=>onDrag(n.id,e);
-                      const up = ()=>{ window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-                      window.addEventListener('mousemove', move);
-                      window.addEventListener('mouseup', up);
-                    }}
-                    title="Drag"
-                  >drag</div>
-                  <textarea
-                    value={n.text}
-                    onChange={(e)=>onText(n.id,e.target.value)}
-                    className="w-40 h-24 rounded-b-xl border border-soft p-2 text-sm"
-                  />
-                  <button onClick={()=>remove(n.id)} className="text-xs underline opacity-70 mt-1">remove</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      function ChatGPTPanel({apiKey,setApiKey,thread,setThread,level}) {
-        const [goal,setGoal]=useState("");
-        const [constraints,setConstraints]=useState("");
-        const [input,setInput]=useState("");
-
-        const buildPrompt = ()=>{
-          const pre = `Role: You are a helpful AI coach for ${level} learners.\nGoal: ${goal || "Help me apply AI effectively."}\nConstraints: ${constraints || "Keep it actionable and safe."}\nTask: Provide step-by-step guidance, a sample prompt, and a quick win in 5 minutes.`;
-          setInput(pre);
-        };
-
-        const send = async ()=>{
-          const msg = input.trim();
-          if (!msg) return;
-          setThread(t=>[...t, {role:"user", content:msg}]);
-          if (!apiKey) {
-            setThread(t=>[...t, {role:"assistant", content:"(No API key set) Example response: Outline steps, create a prompt, suggest a quick win."}]);
-            setInput(""); return;
-          }
-          try {
-            const res = await fetch("https://api.openai.com/v1/chat/completions",{
-              method:"POST",
-              headers:{
-                "Content-Type":"application/json",
-                "Authorization":`Bearer ${apiKey}`
-              },
-              body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                  { role:"system", content:"You are a concise, practical AI training assistant."},
-                  ...thread.map(m=>({role:m.role, content:m.content})),
-                  { role:"user", content: msg }
-                ],
-                temperature: 0.4
-              })
-            });
-            const data = await res.json();
-            const text = data?.choices?.[0]?.message?.content || "(No content)";
-            setThread(t=>[...t, {role:"assistant", content:text}]);
-          } catch (e) {
-            setThread(t=>[...t, {role:"assistant", content:`Error: ${e?.message || e}` }]);
-          } finally {
-            setInput("");
-          }
-        };
-
-        return (
-          <div className="rounded-2xl border border-soft bg-white p-4 h-full">
-            <div className="font-semibold mb-2">ChatGPT Integration</div>
-            <div className="grid sm:grid-cols-2 gap-2 mb-3">
-              <input
-                type="password"
-                placeholder="OpenAI API Key (sk-...)"
-                value={apiKey}
-                onChange={(e)=>setApiKey(e.target.value)}
-                className="rounded-xl border border-soft px-3 py-2"
-              />
-              <button className="rounded-xl px-3 py-2 bg-accent text-white" onClick={buildPrompt}>Build Prompt from Goal</button>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-2 mb-3">
-              <input className="rounded-xl border border-soft px-3 py-2" placeholder="Your goal..." value={goal} onChange={(e)=>setGoal(e.target.value)} />
-              <input className="rounded-xl border border-soft px-3 py-2" placeholder="Constraints..." value={constraints} onChange={(e)=>setConstraints(e.target.value)} />
-            </div>
-            <div className="h-40 overflow-auto rounded-xl border border-soft p-2 mb-2 bg-gray-50">
-              {thread.length===0 ? <div className="text-xs opacity-60">Start a conversation below.</div> : thread.map((m,i)=>(
-                <div key={i} className="mb-2">
-                  <span className="text-[10px] uppercase opacity-50 mr-2">{m.role}</span>
-                  <span className="text-sm whitespace-pre-wrap">{m.content}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <textarea className="flex-1 rounded-xl border border-soft px-3 py-2" rows="2" placeholder="Type or build a prompt…" value={input} onChange={(e)=>setInput(e.target.value)} />
-              <button className="rounded-xl px-3 py-2 bg-accent text-white" onClick={send}>Send</button>
-            </div>
-          </div>
-        );
-      }
-
-      function QuizModal({session, onClose, level, onResult}) {
-        const [idx,setIdx]=useState(0);
-        const [choice,setChoice]=useState(null);
-        const [showAns,setShowAns]=useState(false);
-        const qs = MCQ[session.id] || [];
-        const q = qs[idx];
-
-        if (!q) return null;
-
-        const submit = ()=>{
-          if (choice==null) return;
-          setShowAns(true);
-        };
-
-        const next = ()=>{
-          if (idx < qs.length-1) {
-            setIdx(idx+1); setChoice(null); setShowAns(false);
-          } else {
-            const correctCount = qs.reduce((acc,_,i)=> acc + (i===idx ? (choice===q.answer?1:0) : 1), 0); // last screen includes current choice
-            const passed = correctCount >= Math.ceil(qs.length*0.5);
-            onResult(passed);
-            onClose();
-          }
-        };
-
-        const correct = (choice!=null && showAns) ? (choice===q.answer) : null;
-
-        return (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold">Quiz – {session.title}</div>
-                <div className="text-xs opacity-70">Level: {level}</div>
+            <div className="rounded-2xl border border-soft bg-white p-4 space-y-3">
+              <div className="font-semibold">OpenAI API Key Vault</div>
+              <input type="password" className="w-full rounded-xl border border-soft px-3 py-2" placeholder="API Key (sk-...)" value={apiKey} onChange={(e)=>setApiKey(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={saveLocal}>Save Locally</button>
+                <button className="px-3 py-2 rounded-xl border border-soft" onClick={loadLocal}>Load Local</button>
               </div>
-              <div className="mb-3 text-sm">{q.q}</div>
-              <div className="space-y-2">
-                {q.choices.map((c,i)=>(
-                  <label key={i} className={`block rounded-xl border p-2 cursor-pointer ${choice===i ? 'border-[var(--accent)]' : 'border-soft'}`}>
-                    <input type="radio" name="mcq" className="mr-2" checked={choice===i} onChange={()=>setChoice(i)} />
-                    {c}
-                  </label>
-                ))}
+              <div className="text-xs opacity-70">Cloud backup (encrypted)</div>
+              <input type="password" className="w-full rounded-xl border border-soft px-3 py-2" placeholder="Passphrase for encryption" value={passphrase} onChange={(e)=>setPassphrase(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <button className="px-3 py-2 rounded-xl border border-soft" onClick={backupToCloud}>Backup to Firebase</button>
+                <button className="px-3 py-2 rounded-xl border border-soft" onClick={restoreFromCloud}>Restore from Firebase</button>
               </div>
-
-              {showAns && (
-                <div className={`mt-3 text-sm ${correct ? 'text-green-600' : 'text-red-600'}`}>
-                  {correct ? "Correct. " : "Not quite. "} {q.why}
-                </div>
-              )}
-
-              <div className="mt-4 flex justify-end gap-2">
-                {!showAns ? (
-                  <>
-                    <button className="px-3 py-2 rounded-xl border border-soft" onClick={onClose}>Cancel</button>
-                    <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={submit}>Check</button>
-                  </>
-                ) : (
-                  <button className="px-3 py-2 rounded-xl bg-accent text-white" onClick={next}>Next</button>
-                )}
+              <div className="text-xs opacity-70">{status}</div>
+              <div className="text-xs opacity-60">
+                Security: local save is plaintext in your browser; Firebase backup is encrypted with your passphrase; keep it safe.
               </div>
             </div>
           </div>
         );
       }
 
-      // ===== Main App
       function App() {
-        const [theme,setTheme] = useState({ primary:"#ff8a3d" });
-        const [level,setLevel] = useState("Novice");
-        const [mode,setMode] = useState("Topics");
-        const [path,setPath] = useState([]);
-        const [selected,setSelected] = useState(null);
-        const [notes,setNotes] = useState([]);
-        const [quizFor,setQuizFor] = useState(null);
-        const [progress,setProgress] = useState({}); // sessionId -> {box,next,last}
-        const [apiKey,setApiKey] = useState("");
-        const [thread,setThread] = useState([]);
-        const [fbUser,setFbUser] = useState(null);
+        const [theme,setTheme]=useState({ primary:"#ff8a3d" });
+        const [level,setLevel]=useState("Novice");
+        const [selected,setSelected]=useState(null);
+        const [workspaceOpen,setWorkspaceOpen]=useState(false);
 
-        // theme sync
-        useEffect(()=>{ document.documentElement.style.setProperty("--accent", theme.primary); }, [theme]);
+        const [notes,setNotes]=useState([]);
+        const [progress,setProgress]=useState({});
+        const [thread,setThread]=useState([]);
+        const [adminApiKey,setAdminApiKey]=useState(localStorage.getItem("a2ia_admin_api_key"));
 
-        // load from local
+        useEffect(()=>{ document.documentElement.style.setProperty("--accent", theme.primary); },[theme]);
+
+        // anon auth & cloud sync
         useEffect(()=>{
-          const raw = localStorage.getItem("a2ia_state");
-          if (raw) {
-            try {
-              const s = JSON.parse(raw);
-              if (s.theme) setTheme(s.theme);
-              if (s.level) setLevel(s.level);
-              if (s.path) setPath(s.path);
-              if (s.notes) setNotes(s.notes);
-              if (s.progress) setProgress(s.progress);
-              if (s.thread) setThread(s.thread);
-              if (s.apiKey) setApiKey(s.apiKey);
-            } catch {}
-          }
+          if(!fbAuth || !fbDB) return;
+          if(!fbAuth.currentUser){ fbAuth.signInAnonymously().catch(()=>{}); }
         },[]);
-
-        // firebase auth + sync
         useEffect(()=>{
-          if (!fbAuth || !fbDB) return;
-          let unsub = fbAuth.onAuthStateChanged(async (user)=>{
-            if (!user) {
-              try { await fbAuth.signInAnonymously(); } catch(e){ console.warn("Anon auth failed", e); }
-              return;
-            }
-            setFbUser(user);
-            const ref = fbDB.ref(`/users/${user.uid}/a2iaState`);
-            ref.on('value', snap=>{
-              const cloud = snap.val();
-              if (cloud && cloud._ts && (!localStorage.getItem("a2ia_cloud_ts") || cloud._ts > Number(localStorage.getItem("a2ia_cloud_ts")))) {
-                // merge – local takes precedence for apiKey for privacy
-                setTheme(cloud.theme || {primary:"#ff8a3d"});
-                setLevel(cloud.level || "Novice");
-                setPath(cloud.path || []);
-                setNotes(cloud.notes || []);
-                setProgress(cloud.progress || {});
-                setThread(cloud.thread || []);
-                localStorage.setItem("a2ia_cloud_ts", String(cloud._ts));
-              }
-            });
-          });
-          return ()=>unsub && unsub();
-        },[]);
+          if(!fbAuth || !fbDB) return;
+          const uid = fbAuth.currentUser?.uid;
+          if(!uid) return;
+          const ref = fbDB.ref(`/users/${uid}/a2iaState`);
+          const cb = snap=>{
+            const cloud = snap.val(); if(!cloud) return;
+            setTheme(cloud.theme || {primary:"#ff8a3d"});
+            setLevel(cloud.level || "Novice");
+            setNotes(cloud.notes || []);
+            setProgress(cloud.progress || {});
+            setThread(cloud.thread || []);
+          };
+          ref.on('value', cb);
+          return ()=> ref.off('value', cb);
+        }, [fbAuth?.currentUser?.uid]);
 
-        const saveLocalAndCloud = useMemo(()=>throttle((state)=>{
+        // local load
+        useEffect(()=>{
+          try{
+            const st = JSON.parse(localStorage.getItem("a2ia_state")||"{}");
+            if(st.theme) setTheme(st.theme);
+            if(st.level) setLevel(st.level);
+            if(st.notes) setNotes(st.notes);
+            if(st.progress) setProgress(st.progress);
+            if(st.thread) setThread(st.thread);
+          } catch {}
+        },[]);
+        const persist = useMemo(()=>throttle((state)=>{
           localStorage.setItem("a2ia_state", JSON.stringify(state));
-          if (fbUser && fbDB) {
-            const ref = fbDB.ref(`/users/${fbUser.uid}/a2iaState`);
-            const { apiKey, ...safe } = state; // why: never store API key in cloud
-            ref.set({ ...safe, _ts: Date.now() }).catch(()=>{});
-            localStorage.setItem("a2ia_cloud_ts", String(Date.now()));
-          }
-        }, 1000), [fbUser]);
+          if(fbAuth?.currentUser && fbDB){ fbDB.ref(`/users/${fbAuth.currentUser.uid}/a2iaState`).set({...state, _ts: Date.now()}).catch(()=>{}); }
+        },1000),[]);
+        useEffect(()=>{ persist({ theme, level, notes, progress, thread }); }, [theme, level, notes, progress, thread, persist]);
 
-        // persist on changes
-        useEffect(()=>{
-          saveLocalAndCloud({ theme, level, path, notes, progress, thread, apiKey });
-        }, [theme, level, path, notes, progress, thread, apiKey, saveLocalAndCloud]);
-
-        const addToPath = (s)=> setPath(p => p.some(x=>x.id===s.id) ? p : [...p, s]);
-        const removeFromPath = (id)=> setPath(p => p.filter(x=>x.id!==id));
-        const clearPath = ()=> setPath([]);
-
-        const handleQuizResult = (passed)=>{
-          const prev = progress[quizFor.id] || { box:1, next:0, last:0 };
-          const sch = nextSchedule(prev.box, passed, level);
-          setProgress(pr => ({ ...pr, [quizFor.id]: { box: sch.box, next: sch.next, last: now() } }));
-          if (passed) {
-            // auto-advance to next session in global sequence
-            const all = WEEKS.flatMap(w=>w.sessions);
-            const idx = all.findIndex(x=>x.id===quizFor.id);
-            const next = all[idx+1];
-            if (next) addToPath(next);
-          }
+        const startLearning = ()=>{ if(!selected) return; setWorkspaceOpen(true); };
+        const onQuizResult = (passed)=>{
+          if(!selected) return;
+          const sch = nextSchedule(progress[selected.id], passed, level);
+          setProgress(p=>({ ...p, [selected.id]: sch }));
         };
 
         return (
@@ -718,85 +584,59 @@
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2 space-y-4">
-                <div className="rounded-2xl border border-soft bg-white p-2">
-                  <div className="flex items-center gap-2 p-2">
-                    <button className={`px-3 py-2 rounded-xl ${mode==="Topics"?"bg-accent text-white":"border border-soft"}`} onClick={()=>setMode("Topics")}>Topics</button>
-                    <button className={`px-3 py-2 rounded-xl ${mode==="Challenges"?"bg-accent text-white":"border border-soft"}`} onClick={()=>setMode("Challenges")}>Challenges</button>
-                  </div>
-                  <div className="p-2">
-                    <Graph path={path} onSelect={setSelected}/>
+                <div className="rounded-2xl border border-soft bg-white p-4">
+                  <div className="font-semibold mb-2">Select a Module</div>
+                  <Graph onSelect={setSelected} selected={selected} />
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="text-sm opacity-70">
+                      {selected ? <>Selected: <span className="font-medium">{selected.title}</span></> : "Pick a session node from the graph."}
+                    </div>
+                    <button className="px-3 py-2 rounded-xl bg-accent text-white disabled:opacity-50" disabled={!selected} onClick={startLearning}>
+                      Start Learning
+                    </button>
                   </div>
                 </div>
 
-                {mode==="Challenges" ? (
-                  <ChallengesPanel onPick={setSelected} onAddToPath={addToPath}/>
-                ) : (
-                  <Outcomes />
-                )}
-
-                <div className="rounded-2xl border border-soft p-4 bg-white">
-                  <div className="font-semibold mb-2">Session</div>
-                  <SessionPanel
-                    session={selected}
-                    level={level}
-                    onAddToPath={addToPath}
-                    onStartQuiz={(s)=>setQuizFor(s)}
-                    progress={progress}
-                  />
-                </div>
+                <Outcomes />
               </div>
 
               <div className="space-y-4">
-                <PathPanel path={path} onRemove={removeFromPath} onClear={clearPath} />
-                <Whiteboard notes={notes} setNotes={setNotes} theme={theme} />
+                <Whiteboard notes={notes} setNotes={setNotes} />
+                <ChatGPTPanel adminApiKey={adminApiKey} thread={thread} setThread={setThread} />
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <ChatGPTPanel apiKey={apiKey} setApiKey={setApiKey} thread={thread} setThread={setThread} level={level} />
-              <div className="rounded-2xl border border-soft bg-white p-4">
-                <div className="font-semibold mb-2">Course Weeks & Sessions</div>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {WEEKS.map(w=>(
-                    <div key={w.id} className="rounded-xl border border-soft">
-                      <div className="px-3 py-2 bg-gray-50 rounded-t-xl font-medium">{w.title}</div>
-                      <ul className="p-2 space-y-2">
-                        {w.sessions.map(s=>(
-                          <li key={s.id} className="flex items-center justify-between rounded-lg border border-soft p-2">
-                            <span className="text-sm">{s.title}</span>
-                            <div className="flex gap-2">
-                              <button className="text-xs underline" onClick={()=>addToPath(s)}>add</button>
-                              <button className="text-xs underline" onClick={()=>setSelected(s)}>view</button>
-                              <button className="text-xs underline" onClick={()=>setQuizFor(s)}>quiz</button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+            {workspaceOpen && selected && (
+              <div className="mt-4">
+                <LearningWorkspace session={selected} level={level} onClose={()=>setWorkspaceOpen(false)} onQuizResult={onQuizResult} />
               </div>
-            </div>
-
-            <div className="mt-8 text-xs opacity-70 text-center">
-              © 2025 Blue Screen IT Ltd. Course mapping used for interactive learning prototype.
-            </div>
-
-            {quizFor && (
-              <QuizModal
-                session={quizFor}
-                level={level}
-                onClose={()=>setQuizFor(null)}
-                onResult={handleQuizResult}
-              />
             )}
+
+            <footer className="mt-8 text-xs opacity-70 text-center">
+              © 2025 Blue Screen IT Ltd. Course mapping used for interactive learning prototype.
+            </footer>
           </div>
         );
       }
 
+      // ===== Tiny router (hash)
+      function Router() {
+        const [route,setRoute]=useState(window.location.hash || "#/");
+        useEffect(()=>{
+          const onHash=()=>setRoute(window.location.hash || "#/");
+          window.addEventListener("hashchange", onHash);
+          return ()=>window.removeEventListener("hashchange", onHash);
+        },[]);
+        useEffect(()=>{
+          // ensure anon auth for learner view
+          if(route==="#/" && fbAuth && !fbAuth.currentUser){ fbAuth.signInAnonymously().catch(()=>{}); }
+        },[route]);
+        return route==="#/admin" ? <Admin/> : <App/>;
+      }
+
       // ===== Mount
       const root = ReactDOM.createRoot(document.getElementById("root"));
-      root.render(<App />);
+      root.render(<Router />);
     </script>
   </body>
 </html>
