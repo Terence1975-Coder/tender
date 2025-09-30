@@ -1,0 +1,1095 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { v4 as uuidv4 } from "uuid";
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set, get, update } from "firebase/database";
+
+/**
+ * SupaChargeAI — Interactive AI Training Tool
+ * Single-file React app you can upload to GitHub.
+ * - 3 learner levels (Novice, Intermediate, Expert)
+ * - Learn by Topic or by Challenge/Opportunity
+ * - Short/Medium/Long tasks per topic
+ * - MCQ quizzes with explanations
+ * - Network layout that grows as the learner selects nodes
+ * - Theme switcher (base: soft vibrant orange #ff8a3d)
+ * - Local persistence + Firebase Realtime DB integration
+ * - Floating whiteboard (sticky notes, draggable)
+ * - ChatGPT panel (user-supplied API key) for research/creation
+ * - Help buttons on topics for extra explanations
+ *
+ * Notes:
+ * - This is framework-agnostic React; you can render <App /> as the root in your project.
+ * - Tailwind classes are used for styling. For vanilla CSS envs, replace className with inline styles.
+ */
+
+/*******************************
+ * Firebase (Provided Config)
+ *******************************/
+const firebaseConfig = {
+  apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
+  authDomain: "prospecting-f2f42.firebaseapp.com",
+  databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "prospecting-f2f42",
+  storageBucket: "prospecting-f2f42.firebasestorage.app",
+  messagingSenderId: "292034226428",
+  appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
+  measurementId: "G-WWB0JTX2L2",
+};
+let appInstance;
+try {
+  appInstance = initializeApp(firebaseConfig);
+} catch (e) {
+  // ignore duplicate init in dev HMR
+}
+const db = getDatabase();
+
+/*******************************
+ * Data — Course Structure
+ *******************************/
+const WEEKS = [
+  {
+    id: "w1_2",
+    title: "Week 1-2: AI Fundamentals for Business",
+    sessions: [
+      {
+        id: "s1_intro_ai",
+        title: "Session 1: Introduction to AI in the Workplace",
+        level: "Novice",
+        summary:
+          "Demystify AI for non-technical professionals; understand evolution and current role in business.",
+        help:
+          "AI spans rule-based automation through modern machine learning and generative models. Focus on value, not buzzwords.",
+        tasks: {
+          short: ["List 5 AI touchpoints in your daily work."],
+          medium: [
+            "Interview a colleague about AI friction points; summarize 3 opportunities.",
+          ],
+          long: [
+            "Draft a 1-page memo on where AI could support your team with risks/benefits.",
+          ],
+        },
+        quiz: {
+          q: "Which statement best captures AI in business?",
+          options: [
+            "A futuristic concept not yet practical",
+            "A set of tools that automate, support decisions, and augment work",
+            "Only for data scientists",
+            "Only robotics",
+          ],
+          answerIndex: 1,
+          explain:
+            "AI is a broad set of techniques that automate tasks and augment decisions across functions.",
+        },
+      },
+      {
+        id: "s2_prompt_basics",
+        title: "Session 2: Prompt Engineering Basics",
+        level: "Novice",
+        summary:
+          "Principles of clear instructions, roles, constraints, and examples to shape model outputs.",
+        help:
+          "Use ROLE + TASK + CONTEXT + CONSTRAINTS + EXAMPLES + EVALUATION. Prefer explicit structure.",
+        tasks: {
+          short: ["Rewrite a vague prompt into a specific one with role + constraints."],
+          medium: [
+            "Create a reusable email-triage prompt with bullet rules and tone guidance.",
+          ],
+          long: [
+            "Design a prompt evaluation rubric; test on 5 real cases and compare outputs.",
+          ],
+        },
+        quiz: {
+          q: "What most improves output reliability?",
+          options: [
+            "Longer word count",
+            "Clear structure with role, constraints, and examples",
+            "ALL CAPS",
+            "Adding emojis",
+          ],
+          answerIndex: 1,
+          explain: "Structure beats length; be explicit with examples and constraints.",
+        },
+      },
+      {
+        id: "s3_tools_overview",
+        title: "Session 3: AI Tools Overview",
+        level: "Novice",
+        summary:
+          "Landscape of productivity, analytics, and creativity tools; how to evaluate fit.",
+        help:
+          "Score tools on value, usability, security, and integration; pilot before scaling.",
+        tasks: {
+          short: ["List 3 tools you use weekly and one pain each solves."],
+          medium: ["Run a 1-week pilot comparing two tools on the same task."],
+          long: [
+            "Create a tool selection matrix with criteria and draft a recommendation.",
+          ],
+        },
+        quiz: {
+          q: "A good tool evaluation includes:",
+          options: ["Logo design only", "Security, ROI, integration, usability", "Hype only", "Price only"],
+          answerIndex: 1,
+          explain: "Balance value, risk, and fit; involve end users early.",
+        },
+      },
+    ],
+  },
+  {
+    id: "w3_4",
+    title: "Week 3-4: AI for Productivity & Efficiency",
+    sessions: [
+      {
+        id: "s4_automation",
+        title: "Session 4: Automating Repetitive Tasks",
+        level: "Intermediate",
+        summary: "Identify automation opportunities; design low-code/no-code flows.",
+        help:
+          "Start with high-volume, low-variation tasks. Track success metrics before/after.",
+        tasks: {
+          short: ["Document one repetitive task with steps."],
+          medium: ["Automate using a workflow tool; measure time saved."],
+          long: ["Propose a team-wide rollout with change management plan."],
+        },
+        quiz: {
+          q: "Best candidates for automation are:",
+          options: [
+            "High-variability creative work",
+            "High-volume, standardized, rules-based tasks",
+            "Strategic planning",
+            "Performance reviews",
+          ],
+          answerIndex: 1,
+          explain: "Automate stable, repeatable work first.",
+        },
+      },
+      {
+        id: "s5_commms",
+        title: "Session 5: AI for Smarter Communication",
+        level: "Intermediate",
+        summary: "AI-assisted email drafting, meeting notes, and reports.",
+        help:
+          "Use templates for tone and audience. Disclose assistive AI use where appropriate.",
+        tasks: {
+          short: ["Create a reply-intent taxonomy for your inbox."],
+          medium: ["Build prompts for 3 recurring email types."],
+          long: ["Automate meeting note extraction and action item routing."],
+        },
+        quiz: {
+          q: "Ethical consideration when using AI for comms:",
+          options: ["Hide it always", "Disclose where required and validate facts", "Never review", "Share private data"],
+          answerIndex: 1,
+          explain: "Transparency and verification protect trust.",
+        },
+      },
+      {
+        id: "s6_data",
+        title: "Session 6: AI for Data Handling",
+        level: "Intermediate",
+        summary:
+          "Extract insights from spreadsheets/docs; avoid bias and errors; data quality.",
+        help:
+          "Profile data, handle missingness, and document assumptions. Beware spurious correlations.",
+        tasks: {
+          short: ["Run a quick data audit (completeness, format)."],
+          medium: ["Write a prompt to summarize CSV columns and outliers."],
+          long: ["Draft a lightweight data quality checklist for your team."],
+        },
+        quiz: {
+          q: "First step in reliable analysis:",
+          options: ["Ignore missing data", "Profile and clean data", "Guess values", "Delete everything"],
+          answerIndex: 1,
+          explain: "Quality in, quality out.",
+        },
+      },
+    ],
+  },
+  {
+    id: "w5_6",
+    title: "Week 5-6: AI for Decision Making",
+    sessions: [
+      {
+        id: "s7_research",
+        title: "Session 7: AI-Powered Research & Analysis",
+        level: "Intermediate",
+        summary: "Use AI to gather, summarize, and compare; verify insights.",
+        help:
+          "Triangulate with sources; record citations; note confidence and gaps.",
+        tasks: {
+          short: ["Write a research framing prompt with scope + criteria."],
+          medium: ["Compare 3 vendors using the same rubric."],
+          long: ["Produce an exec brief with sources and risks."],
+        },
+        quiz: {
+          q: "Key to trustworthy AI research:",
+          options: ["Single source", "Triangulation and citation logging", "Copy/paste", "Speed only"],
+          answerIndex: 1,
+          explain: "Corroborate and document.",
+        },
+      },
+      {
+        id: "s8_predictive",
+        title: "Session 8: Predictive AI for Planning",
+        level: "Intermediate",
+        summary: "Simple forecasting and scenario planning; limits and uncertainty.",
+        help:
+          "Communicate confidence intervals and assumptions; avoid overfitting.",
+        tasks: {
+          short: ["Identify 3 drivers of your KPI."],
+          medium: ["Draft a simple baseline + optimistic + pessimistic scenario."],
+          long: ["Backtest a simple model and report error metrics."],
+        },
+        quiz: {
+          q: "Good forecasting practice:",
+          options: ["Hide uncertainty", "State assumptions and error bounds", "Cherry-pick results", "Ignore drift"],
+          answerIndex: 1,
+          explain: "Forecasts need context and limits.",
+        },
+      },
+      {
+        id: "s9_meetings",
+        title: "Session 9: AI in Strategic Meetings",
+        level: "Intermediate",
+        summary: "Live transcription, action tracking; balance human judgment.",
+        help: "Clarify ownership of actions; verify summaries before sharing.",
+        tasks: {
+          short: ["Create a meeting summary template."],
+          medium: ["Pilot auto-summary + action routing for one team."],
+          long: ["Define governance for recorded meetings + retention."],
+        },
+        quiz: {
+          q: "Risk of blind reliance on AI summaries:",
+          options: ["Perfect accuracy", "Misinterpretation or omissions", "Zero latency", "No security issues"],
+          answerIndex: 1,
+          explain: "Always review critical decisions.",
+        },
+      },
+    ],
+  },
+  {
+    id: "w7_8",
+    title: "Week 7-8: AI for Customer & Market Engagement",
+    sessions: [
+      {
+        id: "s10_cs",
+        title: "Session 10: AI in Customer Service",
+        level: "Intermediate",
+        summary: "Chatbots, ticketing, and sentiment analysis; measure impact.",
+        help: "Start with FAQ deflection; escalate to humans with context.",
+        tasks: {
+          short: ["List top 10 FAQs and required data for answers."],
+          medium: ["Sketch a simple routing flow with confidence thresholds."],
+          long: ["Define metrics: CSAT, FCR, AHT and create a dashboard plan."],
+        },
+        quiz: {
+          q: "Best practice for bot handoff:",
+          options: ["Never handoff", "Seamless transfer with conversation context", "Drop the user", "Ask to start over"],
+          answerIndex: 1,
+          explain: "Preserve context to reduce friction.",
+        },
+      },
+      {
+        id: "s11_marketing",
+        title: "Session 11: AI for Personalised Marketing",
+        level: "Intermediate",
+        summary: "Audience segmentation and dynamic content with privacy boundaries.",
+        help: "Use consented data; avoid over-personalization creep.",
+        tasks: {
+          short: ["Define 3 audience personas and goals."],
+          medium: ["Draft 3 tailored messages with success metrics."],
+          long: ["Plan an A/B test and collect lift data."],
+        },
+        quiz: {
+          q: "Ethical personalization means:",
+          options: ["Use any data", "Respect consent and relevance", "Ignore opt-outs", "Share PII"],
+          answerIndex: 1,
+          explain: "Privacy-respecting practices build trust.",
+        },
+      },
+      {
+        id: "s12_market_intel",
+        title: "Session 12: Market Intelligence with AI",
+        level: "Intermediate",
+        summary: "Monitor trends, news, and social media; rapid response.",
+        help: "Define signals and noise; avoid reactive whiplash.",
+        tasks: {
+          short: ["List 5 sources to monitor weekly."],
+          medium: ["Create a competitive intel brief template."],
+          long: ["Set up an alerting rubric with severity tiers."],
+        },
+        quiz: {
+          q: "A risk of overreacting to signals:",
+          options: ["Strategic stability", "Whiplash and wasted effort", "Perfect foresight", "Lower risk"],
+          answerIndex: 1,
+          explain: "Calibrate responses to evidence strength.",
+        },
+      },
+    ],
+  },
+  {
+    id: "w9_10",
+    title: "Week 9-10: AI for Creativity & Problem-Solving",
+    sessions: [
+      {
+        id: "s13_brainstorm",
+        title: "Session 13: AI for Brainstorming & Ideation",
+        level: "Intermediate",
+        summary: "Break creative blocks; combine divergence and convergence.",
+        help: "Use SCAMPER and constraints for targeted ideation.",
+        tasks: {
+          short: ["Generate 10 ideas with forced constraints."],
+          medium: ["Cluster ideas and pick top 3 by impact/effort."],
+          long: ["Prototype one idea and gather 5 user reactions."],
+        },
+        quiz: {
+          q: "Healthy ideation mixes:",
+          options: ["Only divergence", "Divergence then convergence with criteria", "No criteria", "Random picks"],
+          answerIndex: 1,
+          explain: "Converge using explicit selection rules.",
+        },
+      },
+      {
+        id: "s14_visual_content",
+        title: "Session 14: Visual & Content Creation",
+        level: "Intermediate",
+        summary: "Draft images and content; attribution and copyright.",
+        help: "Track sources and licenses; respect brand guidelines.",
+        tasks: {
+          short: ["Draft an infographic outline with headings."],
+          medium: ["Create a content brief with target persona and CTA."],
+          long: ["Produce a full asset set and peer-review for compliance."],
+        },
+        quiz: {
+          q: "Important when generating content:",
+          options: ["Ignore brand rules", "Respect licensing and attribution", "Scrape PII", "Skip reviews"],
+          answerIndex: 1,
+          explain: "Compliance reduces legal and reputational risk.",
+        },
+      },
+      {
+        id: "s15_problem_solving",
+        title: "Session 15: Solving Business Problems with AI",
+        level: "Intermediate",
+        summary: "Frame challenges; test unconventional applications.",
+        help: "Use problem statements with success metrics and constraints.",
+        tasks: {
+          short: ["Write a problem statement with measurable outcome."],
+          medium: ["Map stakeholders and risks."],
+          long: ["Run a mini-pilot and capture before/after metrics."],
+        },
+        quiz: {
+          q: "Good problem framing includes:",
+          options: ["Vagueness", "Success metrics and constraints", "No stakeholders", "No timeline"],
+          answerIndex: 1,
+          explain: "Clarity accelerates solutions.",
+        },
+      },
+    ],
+  },
+  {
+    id: "w11_12",
+    title: "Week 11-12: Implementation & Future Trends",
+    sessions: [
+      {
+        id: "s16_adoption",
+        title: "Session 16: Building an AI-Adoption Plan",
+        level: "Expert",
+        summary: "Assess readiness; roadmap for phased integration.",
+        help: "Balance capability building, governance, and value capture.",
+        tasks: {
+          short: ["Draft a 3-phase rollout outline."],
+          medium: ["Define KPIs and operating model for an AI council."],
+          long: ["Plan training, change mgmt, and budget for 2 quarters."],
+        },
+        quiz: {
+          q: "An adoption plan should include:",
+          options: ["Random trials", "Phased roadmap with KPIs and owners", "No governance", "Unlimited scope"],
+          answerIndex: 1,
+          explain: "Clear ownership and metrics drive success.",
+        },
+      },
+      {
+        id: "s17_ethics",
+        title: "Session 17: Ethics & Responsible AI Use",
+        level: "Expert",
+        summary: "Bias, transparency, accountability; guidelines and audits.",
+        help: "Document model limitations; establish escalation paths.",
+        tasks: {
+          short: ["Write a 10-point responsible AI checklist."],
+          medium: ["Draft a red-team test plan for an assistant."],
+          long: ["Propose monitoring with incident response workflow."],
+        },
+        quiz: {
+          q: "Governance focuses on:",
+          options: ["GPU counts", "Policy, controls, monitoring", "Prompt length only", "Fonts"],
+          answerIndex: 1,
+          explain: "Responsible use requires policy and oversight.",
+        },
+      },
+      {
+        id: "s18_capstone",
+        title: "Session 18: Capstone Showcase",
+        level: "Expert",
+        summary: "Present AI-powered solutions with peer feedback.",
+        help: "Frame result, evidence, and lessons learned.",
+        tasks: {
+          short: ["Draft a 1-slide problem/solution summary."],
+          medium: ["Create a 5-min demo script with metrics."],
+          long: ["Collect peer feedback and plan next iteration."],
+        },
+        quiz: {
+          q: "Capstone value comes from:",
+          options: ["Polish only", "Evidence of impact and learning", "Jargon", "Slide count"],
+          answerIndex: 1,
+          explain: "Outcomes + insights trump theatrics.",
+        },
+      },
+    ],
+  },
+];
+
+const CHALLENGES = [
+  {
+    id: "c_email_overload",
+    label: "Too many emails, not enough time",
+    mapTo: ["s2_prompt_basics", "s5_commms", "s4_automation"],
+    howTo: [
+      "Create a triage prompt with intent labels and urgency.",
+      "Auto-draft replies with tone rules; always human review high-impact.",
+      "Batch and schedule; measure reply time and satisfaction.",
+    ],
+  },
+  {
+    id: "c_build_app",
+    label: "I want to create an app which…",
+    mapTo: [
+      "s1_intro_ai",
+      "s2_prompt_basics",
+      "s7_research",
+      "s8_predictive",
+      "s15_problem_solving",
+    ],
+    howTo: [
+      "Define pain, users, and success metrics.",
+      "Choose architecture (chat + tools + RAG if needed).",
+      "Prototype fast; evaluate; iterate.",
+    ],
+  },
+  {
+    id: "c_data_clarity",
+    label: "I need clarity on my data with regards to…",
+    mapTo: ["s6_data", "s7_research", "s17_ethics"],
+    howTo: [
+      "Inventory sources and permissions.",
+      "Profile data quality; document assumptions.",
+      "Define privacy, retention, and access controls.",
+    ],
+  },
+];
+
+/*******************************
+ * Utilities
+ *******************************/
+const useLocalId = () => {
+  const [id, setId] = useState("");
+  useEffect(() => {
+    let stored = localStorage.getItem("scai_local_id");
+    if (!stored) {
+      stored = uuidv4();
+      localStorage.setItem("scai_local_id", stored);
+    }
+    setId(stored);
+  }, []);
+  return id;
+};
+
+const persist = async (userId, key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+  try {
+    await update(ref(db, `users/${userId}`), { [key]: value });
+  } catch (e) {
+    console.warn("Firebase update skipped or failed", e);
+  }
+};
+
+const loadLocal = (key, fallback) => {
+  try {
+    const s = localStorage.getItem(key);
+    return s ? JSON.parse(s) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+/*******************************
+ * UI Helpers
+ *******************************/
+const Pill = ({ children }) => (
+  <span className="px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-xs">
+    {children}
+  </span>
+);
+
+const HelpButton = ({ text }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-black/10 shadow text-xs hover:scale-105"
+        title="Need a quick explainer?"
+      >
+        ?
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="absolute z-20 mt-2 w-72 p-3 rounded-xl bg-white shadow-xl border border-black/10 text-sm"
+          >
+            <div className="font-semibold mb-1">Quick Explainer</div>
+            <div className="opacity-80">{text}</div>
+            <div className="text-right mt-2">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-xs underline opacity-70 hover:opacity-100"
+              >
+                close
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/*******************************
+ * Components
+ *******************************/
+const ThemeSelector = ({ theme, setTheme }) => {
+  const THEMES = [
+    { name: "Sunburst", primary: "#ff8a3d", bg: "#fff8f3", text: "#111827" },
+    { name: "Midnight", primary: "#ff8a3d", bg: "#0b132b", text: "#e5e7eb" },
+    { name: "Mint", primary: "#ff8a3d", bg: "#f0fff9", text: "#0f172a" },
+  ];
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {THEMES.map((t) => (
+        <button
+          key={t.name}
+          onClick={() => setTheme(t)}
+          className="px-3 py-1.5 rounded-full shadow border border-black/10"
+          style={{ background: t.bg, color: t.text }}
+        >
+          <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ background: t.primary }} />
+          {t.name}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const LevelSelector = ({ level, setLevel }) => (
+  <div className="flex gap-2">
+    {["Novice", "Intermediate", "Expert"].map((l) => (
+      <button
+        key={l}
+        onClick={() => setLevel(l)}
+        className={`px-3 py-1.5 rounded-full border text-sm ${
+          level === l ? "bg-black text-white" : "bg-white"
+        }`}
+      >
+        {l}
+      </button>
+    ))}
+  </div>
+);
+
+const PathSelector = ({ path, setPath }) => (
+  <div className="flex gap-2">
+    {["By Topic", "By Challenge"].map((p) => (
+      <button
+        key={p}
+        onClick={() => setPath(p)}
+        className={`px-3 py-1.5 rounded-full border text-sm ${
+          path === p ? "bg-black text-white" : "bg-white"
+        }`}
+      >
+        {p}
+      </button>
+    ))}
+  </div>
+);
+
+const Network = ({ nodes, onSelect, theme }) => {
+  // simple radial layout
+  const radius = 160 + nodes.length * 8;
+  const center = { x: 0, y: 0 };
+  return (
+    <svg viewBox={`${-radius - 40} ${-radius - 40} ${2 * (radius + 40)} ${2 * (radius + 40)}`} className="w-full h-80">
+      <circle cx={center.x} cy={center.y} r={8} fill={theme.primary} />
+      {nodes.map((n, i) => {
+        const angle = (i / nodes.length) * Math.PI * 2;
+        const x = center.x + radius * Math.cos(angle);
+        const y = center.y + radius * Math.sin(angle);
+        return (
+          <g key={n.id} onClick={() => onSelect(n)} className="cursor-pointer">
+            <line x1={center.x} y1={center.y} x2={x} y2={y} stroke={theme.primary} strokeOpacity={0.3} />
+            <circle cx={x} cy={y} r={18} fill={theme.primary} />
+            <text x={x} y={y + 34} textAnchor="middle" fontSize="10" fill="#374151">
+              {n.title}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+const TopicCard = ({ s, level, onAddToPath, onQuizStart }) => (
+  <motion.div layout className="rounded-2xl p-4 border bg-white shadow-sm">
+    <div className="flex items-start justify-between">
+      <div>
+        <div className="font-semibold text-lg">{s.title}</div>
+        <div className="text-sm opacity-80 mt-1">{s.summary}</div>
+        <div className="mt-2 flex items-center gap-2">
+          <Pill>{s.level}</Pill>
+          <Pill>Tasks</Pill>
+          <HelpButton text={s.help} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={() => onQuizStart(s)} className="px-3 py-1.5 rounded-xl border text-sm">
+          Quiz
+        </button>
+        <button onClick={() => onAddToPath(s)} className="px-3 py-1.5 rounded-xl border text-sm bg-black text-white">
+          Add to Path
+        </button>
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+      {["short", "medium", "long"].map((t) => (
+        <div key={t} className="rounded-xl border p-3">
+          <div className="font-medium mb-1 capitalize">{t} tasks</div>
+          <ul className="list-disc ml-5 text-sm space-y-1">
+            {s.tasks[t].map((x, i) => (
+              <li key={i}>{x}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </motion.div>
+);
+
+const Quiz = ({ s, onClose, onComplete }) => {
+  const [choice, setChoice] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const correct = choice === s.quiz.answerIndex;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
+      <div className="w-full max-w-xl rounded-2xl bg-white p-5 border shadow-xl">
+        <div className="font-semibold text-lg">Quiz — {s.title}</div>
+        <div className="mt-3 text-sm">{s.quiz.q}</div>
+        <div className="mt-3 space-y-2">
+          {s.quiz.options.map((opt, i) => (
+            <label key={i} className="flex items-center gap-2">
+              <input type="radio" name="q" checked={choice === i} onChange={() => setChoice(i)} />
+              <span className="text-sm">{opt}</span>
+            </label>
+          ))}
+        </div>
+        {submitted && (
+          <div className={`mt-3 p-3 rounded-xl text-sm ${correct ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+            <div className="font-medium mb-1">{correct ? "Correct!" : "Not quite."}</div>
+            <div className="opacity-80">{s.quiz.explain}</div>
+          </div>
+        )}
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button className="px-3 py-1.5 rounded-xl border" onClick={onClose}>Close</button>
+          <button
+            className="px-3 py-1.5 rounded-xl border bg-black text-white"
+            onClick={() => {
+              if (choice === null) return;
+              if (!submitted) setSubmitted(true);
+              else {
+                onComplete(correct);
+                onClose();
+              }
+            }}
+          >
+            {submitted ? "Finish" : "Submit"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Whiteboard = ({ notes, setNotes, theme }) => {
+  const addNote = () => {
+    const n = {
+      id: uuidv4(),
+      x: 40 + Math.random() * 120,
+      y: 40 + Math.random() * 120,
+      text: "",
+    };
+    setNotes((prev) => [...prev, n]);
+  };
+  const onDrag = (id, e) => {
+    const rect = e.currentTarget.parentElement.getBoundingClientRect();
+    const x = e.clientX - rect.left - 80;
+    const y = e.clientY - rect.top - 20;
+    setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, x, y } : n)));
+  };
+  return (
+    <div className="relative border rounded-2xl bg-white h-72 overflow-hidden">
+      <div className="absolute top-2 left-2 flex gap-2 z-10">
+        <button onClick={addNote} className="px-3 py-1.5 rounded-xl border bg-black text-white text-sm">Add Note</button>
+        <span className="text-xs opacity-70 bg-white px-2 py-1 rounded">Drag notes anywhere</span>
+      </div>
+      <div className="absolute inset-0">
+        {notes.map((n) => (
+          <div key={n.id} className="absolute" style={{ left: n.x, top: n.y }}>
+            <div
+              className="w-40 rounded-xl shadow border bg-yellow-50"
+              onMouseDown={(e) => {
+                const move = (ev) => onDrag(n.id, ev);
+                const up = () => {
+                  window.removeEventListener("mousemove", move);
+                  window.removeEventListener("mouseup", up);
+                };
+                window.addEventListener("mousemove", move);
+                window.addEventListener("mouseup", up);
+              }}
+            >
+              <div className="text-xs px-2 py-1 bg-yellow-100 rounded-t-xl border-b">note</div>
+              <textarea
+                className="w-full h-24 p-2 text-sm bg-transparent outline-none"
+                value={n.text}
+                onChange={(e) => setNotes((prev) => prev.map((x) => (x.id === n.id ? { ...x, text: e.target.value } : x)))}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ChatGPTPanel = ({ apiKey, setApiKey, thread, setThread }) => {
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const chat = async () => {
+    if (!apiKey || !input) return;
+    setBusy(true);
+    const userMsg = { role: "user", content: input };
+    const newThread = [...thread, userMsg];
+    setThread(newThread);
+    setInput("");
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: newThread,
+          temperature: 0.3,
+        }),
+      });
+      const data = await res.json();
+      const reply = data?.choices?.[0]?.message?.content || "(no response)";
+      setThread((prev) => [...prev, { role: "assistant", content: reply }]);
+    } catch (e) {
+      setThread((prev) => [
+        ...prev,
+        { role: "assistant", content: "Error calling OpenAI API. Check key/network." },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border bg-white p-4 space-y-3">
+      <div className="font-semibold">Research & Creation (ChatGPT)</div>
+      <input
+        className="w-full border rounded-xl px-3 py-2 text-sm"
+        placeholder="Paste your OpenAI API key (stored locally)"
+        value={apiKey}
+        onChange={(e) => {
+          setApiKey(e.target.value);
+          localStorage.setItem("scai_openai_key", e.target.value);
+        }}
+      />
+      <div className="h-40 overflow-auto border rounded-xl p-2 bg-gray-50">
+        {thread.map((m, i) => (
+          <div key={i} className="text-sm mb-2">
+            <span className={`font-semibold ${m.role === "user" ? "text-gray-700" : "text-blue-700"}`}>
+              {m.role === "user" ? "You" : "Assistant"}:
+            </span>{" "}
+            <span>{m.content}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="flex-1 border rounded-xl px-3 py-2 text-sm"
+          placeholder="Ask for research, drafting, prompts…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <button onClick={chat} disabled={busy} className="px-3 py-2 rounded-xl border bg-black text-white text-sm">
+          {busy ? "Thinking…" : "Send"}
+        </button>
+      </div>
+      <div className="text-xs opacity-70">Your key is stored only in your browser and used client-side.</div>
+    </div>
+  );
+};
+
+/*******************************
+ * Main App
+ *******************************/
+export default function App() {
+  const userId = useLocalId();
+  const [theme, setTheme] = useState(
+    loadLocal("scai_theme", { name: "Sunburst", primary: "#ff8a3d", bg: "#fff8f3", text: "#111827" })
+  );
+  const [level, setLevel] = useState(loadLocal("scai_level", "Novice"));
+  const [path, setPath] = useState(loadLocal("scai_path", "By Topic"));
+  const [selectedWeek, setSelectedWeek] = useState(WEEKS[0].id);
+  const [learningPath, setLearningPath] = useState(loadLocal("scai_learning_path", []));
+  const [notes, setNotes] = useState(loadLocal("scai_notes", []));
+  const [apiKey, setApiKey] = useState(localStorage.getItem("scai_openai_key") || "");
+  const [thread, setThread] = useState(loadLocal("scai_thread", []));
+  const [quizSession, setQuizSession] = useState(null);
+
+  useEffect(() => {
+    persist(userId, "scai_theme", theme);
+  }, [theme]);
+  useEffect(() => {
+    persist(userId, "scai_level", level);
+  }, [level]);
+  useEffect(() => {
+    persist(userId, "scai_path", path);
+  }, [path]);
+  useEffect(() => {
+    persist(userId, "scai_learning_path", learningPath);
+  }, [learningPath]);
+  useEffect(() => {
+    persist(userId, "scai_notes", notes);
+  }, [notes]);
+  useEffect(() => {
+    persist(userId, "scai_thread", thread);
+  }, [thread]);
+
+  const currentWeek = useMemo(() => WEEKS.find((w) => w.id === selectedWeek) || WEEKS[0], [selectedWeek]);
+  const availableNodes = useMemo(() => {
+    if (path === "By Topic") return currentWeek.sessions;
+    // By Challenge
+    return CHALLENGES.map((c) => ({ id: c.id, title: c.label }));
+  }, [path, selectedWeek]);
+
+  const addToPath = (item) => {
+    if (learningPath.find((x) => x.id === item.id)) return;
+    setLearningPath((prev) => [...prev, { id: item.id, title: item.title }]);
+  };
+
+  const onNetworkSelect = (n) => {
+    if (path === "By Topic") {
+      const s = currentWeek.sessions.find((x) => x.id === n.id);
+      if (s) addToPath(s);
+    } else {
+      // challenge selected -> expand mapped sessions into path
+      const c = CHALLENGES.find((x) => x.id === n.id);
+      if (!c) return;
+      const sessions = WEEKS.flatMap((w) => w.sessions).filter((s) => c.mapTo.includes(s.id));
+      const toAdd = sessions.filter((s) => !learningPath.some((lp) => lp.id === s.id));
+      setLearningPath((prev) => [...prev, ...toAdd.map((s) => ({ id: s.id, title: s.title }))]);
+    }
+  };
+
+  const upgradePath = () => {
+    // Simple upgrade: when many correct quizzes, bump level once
+    const newLevel = level === "Novice" ? "Intermediate" : level === "Intermediate" ? "Expert" : "Expert";
+    setLevel(newLevel);
+  };
+
+  return (
+    <div style={{ background: theme.bg, color: theme.text }} className="min-h-screen">
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-2xl font-bold flex items-center">
+              SupaChargeAI — Applied AI Associate <span className="ml-2 text-sm font-normal opacity-70">(Interactive)</span>
+            </div>
+            <div className="text-xs mt-1 opacity-70">Single-file React app · Themeable · Firebase · Whiteboard · ChatGPT</div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <ThemeSelector theme={theme} setTheme={(t) => setTheme(t)} />
+            <div className="text-xs opacity-70 -mt-1">Base accent</div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-2xl p-4 border bg-white">
+            <div className="font-semibold mb-2">Level</div>
+            <LevelSelector level={level} setLevel={setLevel} />
+            <div className="text-xs mt-2 opacity-70">Content adapts by depth and complexity.</div>
+          </div>
+          <div className="rounded-2xl p-4 border bg-white">
+            <div className="font-semibold mb-2">Learning Mode</div>
+            <PathSelector path={path} setPath={setPath} />
+            {path === "By Topic" ? (
+              <div className="mt-3">
+                <div className="text-sm font-medium mb-1">Select Week</div>
+                <div className="flex gap-2 flex-wrap">
+                  {WEEKS.map((w) => (
+                    <button
+                      key={w.id}
+                      onClick={() => setSelectedWeek(w.id)}
+                      className={`px-3 py-1.5 rounded-full border text-sm ${selectedWeek === w.id ? "bg-black text-white" : "bg-white"}`}
+                    >
+                      {w.title.replace(/:.*/, "")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 text-sm opacity-80">Pick a challenge node from the network to auto-build a learning path.</div>
+            )}
+          </div>
+          <div className="rounded-2xl p-4 border bg-white">
+            <div className="font-semibold mb-2">Your Path</div>
+            <div className="text-xs opacity-70 mb-2">Click a node to add; upgrade adapts difficulty.</div>
+            <div className="max-h-40 overflow-auto text-sm space-y-1">
+              {learningPath.length === 0 && <div className="opacity-60">No items yet. Click a node or "Add to Path".</div>}
+              {learningPath.map((lp) => (
+                <div key={lp.id} className="flex items-center justify-between">
+                  <span>• {lp.title}</span>
+                  <button
+                    className="text-xs opacity-70 hover:opacity-100"
+                    onClick={() => setLearningPath((prev) => prev.filter((x) => x.id !== lp.id))}
+                  >
+                    remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <button onClick={upgradePath} className="px-3 py-1.5 rounded-xl border text-sm bg-black text-white">Upgrade Path</button>
+              <div className="text-xs opacity-70">Current: {level}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Network */}
+        <div className="mt-6 rounded-2xl p-4 border bg-white">
+          <div className="font-semibold mb-2">Network View</div>
+          <div className="text-xs opacity-70 mb-3">Graph grows as you select nodes. Click a node to add it to your path.</div>
+          <Network nodes={availableNodes} onSelect={onNetworkSelect} theme={theme} />
+        </div>
+
+        {/* Topics / Challenges List */}
+        <div className="mt-6 grid grid-cols-1 gap-3">
+          {path === "By Topic" ? (
+            <>
+              <div className="text-lg font-semibold">{currentWeek.title}</div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                {currentWeek.sessions.map((s) => (
+                  <TopicCard
+                    key={s.id}
+                    s={s}
+                    level={level}
+                    onAddToPath={addToPath}
+                    onQuizStart={(sess) => setQuizSession(sess)}
+                  />)
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              {CHALLENGES.map((c) => (
+                <motion.div key={c.id} layout className="rounded-2xl p-4 border bg-white shadow-sm">
+                  <div className="font-semibold text-lg">{c.label}</div>
+                  <div className="mt-2 text-sm opacity-80">How to approach</div>
+                  <ul className="list-disc ml-5 text-sm space-y-1 mt-1">
+                    {c.howTo.map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 text-sm font-medium">Relevant topics</div>
+                  <ul className="list-disc ml-5 text-sm space-y-1">
+                    {c.mapTo.map((id) => {
+                      const s = WEEKS.flatMap((w) => w.sessions).find((x) => x.id === id);
+                      return (
+                        <li key={id} className="flex items-center justify-between">
+                          <span>{s?.title}</span>
+                          <button className="text-xs underline" onClick={() => addToPath(s)}>add</button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tools Row */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="rounded-2xl p-4 border" style={{ background: "white" }}>
+            <div className="font-semibold mb-2">Floating Whiteboard</div>
+            <Whiteboard notes={notes} setNotes={setNotes} theme={theme} />
+          </div>
+          <ChatGPTPanel apiKey={apiKey} setApiKey={setApiKey} thread={thread} setThread={setThread} />
+        </div>
+
+        <div className="mt-8 text-xs opacity-70 text-center">
+          © 2025 Blue Screen IT Ltd. Course mapping used for interactive learning prototype.
+        </div>
+      </div>
+
+      {/* Quiz Modal */}
+      {quizSession && (
+        <Quiz
+          s={quizSession}
+          onClose={() => setQuizSession(null)}
+          onComplete={(ok) => {
+            if (ok) {
+              // micro-adaptation: add another related item if correct
+              const all = WEEKS.flatMap((w) => w.sessions);
+              const idx = all.findIndex((x) => x.id === quizSession.id);
+              const next = all[idx + 1];
+              if (next) addToPath(next);
+            }
+          }}
+        />
+      )}
+
+      {/* Theme accent */}
+      <style>{`
+        :root {
+          --accent: ${theme.primary};
+        }
+        .border { border-color: rgba(0,0,0,0.08); }
+        .bg-accent { background: var(--accent); }
+        .text-accent { color: var(--accent); }
+        svg line { stroke: var(--accent); }
+        svg circle { fill: var(--accent); }
+      `}</style>
+    </div>
+  );
+}
