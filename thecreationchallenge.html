@@ -210,34 +210,6 @@ so collages and certificates can render even when CORS is not set.
         <div class="muted" id="resultsPublicHint">Leaderboard updates in real time.</div>
         <div id="resultsPublicList"></div>
       </div>
-
-      <!-- Archive Gallery Controls -->
-      <div class="notice" style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
-        <div><strong>Archive Gallery</strong> — browse sessions saved when admin archived & cleared.</div>
-        <button class="btn ghost" id="openArchiveBtn">Open Archive Gallery</button>
-      </div>
-
-      <div id="archiveWrap" class="card" style="margin-top:12px; display:none;">
-        <h2>Archive Gallery</h2>
-        <div class="row" style="align-items:flex-end;">
-          <div>
-            <label>Session</label>
-            <select id="archiveSession"><option value="">— Select Session —</option></select>
-          </div>
-          <div>
-            <label>Stage</label>
-            <select id="archiveStage">
-              <option value="stage1">Stage 1 — Slogan</option>
-              <option value="stage2">Stage 2 — Logo</option>
-              <option value="stage3">Stage 3 — Flyer</option>
-              <option value="stage4">Stage 4 — Sparkle</option>
-            </select>
-          </div>
-          <div><button class="btn" id="loadArchiveBtn">Load</button></div>
-        </div>
-        <div class="muted" id="archiveHint">Names are visible in archive.</div>
-        <div class="gallery" id="archiveGallery" style="margin-top:10px;"></div>
-      </div>
     </div>
 
     <!-- Right: Identity, Certificates & Admin -->
@@ -260,7 +232,7 @@ so collages and certificates can render even when CORS is not set.
       <hr style="border: none; border-top:1px solid #2a2769; margin:16px 0">
 
       <h3>Certificate</h3>
-      <div class="tiny" style="margin-bottom:8px;">Download a PDF certificate showing your places and overall rank.</div>
+      <div class="tiny" style="margin-bottom:8px;">PDF certificate shows your placements and overall status (Completed or Top-3), with base points of 12 + bonus points.</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="downloadMyCertPdfBtn">My Certificate (PDF)</button>
       </div>
@@ -309,7 +281,29 @@ so collages and certificates can render even when CORS is not set.
 
             <hr style="border:none; border-top:1px solid #2a2769; margin:14px 0">
 
-            <h3>Archive & Clear</h3>
+            <h3>Archive Gallery</h3>
+            <div class="row" style="align-items:flex-end;">
+              <div>
+                <label>Session</label>
+                <select id="adminArchiveSession"><option value="">— Select Session —</option></select>
+              </div>
+              <div>
+                <label>Stage</label>
+                <select id="adminArchiveStage">
+                  <option value="stage1">Stage 1 — Slogan</option>
+                  <option value="stage2">Stage 2 — Logo</option>
+                  <option value="stage3">Stage 3 — Flyer</option>
+                  <option value="stage4">Stage 4 — Sparkle</option>
+                </select>
+              </div>
+              <div><button class="btn" id="adminLoadArchiveBtn">Load</button></div>
+            </div>
+            <div class="tiny" id="adminArchiveHint" style="margin-top:6px;">Names are visible in archive.</div>
+            <div class="gallery" id="adminArchiveGallery" style="margin-top:10px;"></div>
+
+            <hr style="border:none; border-top:1px solid #2a2769; margin:14px 0">
+
+            <h3>Archive & Clear (End Session)</h3>
             <div class="row">
               <button class="btn ghost" id="downloadArchiveBtn">Download Archive (JSON)</button>
               <button class="btn danger" id="archiveAndClearBtn" title="Copies to DB archive + uploads JSON to Storage, then clears live data">Archive to Firebase & Clear All</button>
@@ -418,13 +412,12 @@ const els = {
   downloadArchiveBtn: document.getElementById('downloadArchiveBtn'),
   archiveAndClearBtn: document.getElementById('archiveAndClearBtn'),
 
-  openArchiveBtn: document.getElementById('openArchiveBtn'),
-  archiveWrap: document.getElementById('archiveWrap'),
-  archiveSession: document.getElementById('archiveSession'),
-  archiveStage: document.getElementById('archiveStage'),
-  loadArchiveBtn: document.getElementById('loadArchiveBtn'),
-  archiveGallery: document.getElementById('archiveGallery'),
-  archiveHint: document.getElementById('archiveHint'),
+  // Admin Archive Gallery elements
+  adminArchiveSession: document.getElementById('adminArchiveSession'),
+  adminArchiveStage: document.getElementById('adminArchiveStage'),
+  adminLoadArchiveBtn: document.getElementById('adminLoadArchiveBtn'),
+  adminArchiveGallery: document.getElementById('adminArchiveGallery'),
+  adminArchiveHint: document.getElementById('adminArchiveHint'),
 
   computeOverallBtn: document.getElementById('computeOverallBtn'),
   overallResultsWrap: document.getElementById('overallResultsWrap'),
@@ -805,7 +798,7 @@ function setAdminMode(on){
   admin = on;
   els.adminPanel && (els.adminPanel.style.display = on ? 'block' : 'none');
   els.adminPanelLocked && (els.adminPanelLocked.style.display = on ? 'none' : 'block');
-  if(on) refreshParticipantPicker();
+  if(on){ refreshParticipantPicker(); loadAdminArchiveSessions(); }
   renderPublicResults();
 }
 els.adminLoginBtn?.addEventListener('click', ()=>{
@@ -1145,7 +1138,26 @@ async function generateCertificateFor(name){
   const { leaderboard } = await computeOverall();
   const row = leaderboard.find(r=> r.name===name) || { total:0, rank:leaderboard.length||'-' };
   const places = await placementsForName(name);
-  const canvas = await renderCertificateCanvas({ name, overallPoints: row.total, overallRank: row.rank, places });
+
+  // Certificate logic per request:
+  // - If overall rank NOT in top 3, show "Completed" (no medal)
+  // - Base points = 12; display Total = 12 + bonus (earned)
+  const basePoints = 12;
+  const bonusPoints = row.total || 0;
+  const totalPoints = basePoints + bonusPoints;
+  const isTop3Overall = row.rank && row.rank <= 3;
+  const hasAnyStagePodium = Object.keys(places).length > 0;
+
+  const canvas = await renderCertificateCanvas({
+    name,
+    overallPoints: bonusPoints,
+    overallRank: row.rank,
+    basePoints,
+    totalPoints,
+    isTop3Overall,
+    hasAnyStagePodium,
+    places
+  });
   const dataUrl = canvasToDataURL(canvas);
   if(!dataUrl){ alert('PDF export blocked by browser due to image CORS.'); return; }
   const jsPDF = await ensureJsPDF();
@@ -1155,7 +1167,7 @@ async function generateCertificateFor(name){
   pdf.addImage(dataUrl, 'PNG', 0, 0, pageW, pageH, undefined, 'FAST');
   pdf.save(`${safeFileName(name)}-Certificate.pdf`);
 }
-async function renderCertificateCanvas({name, overallPoints, overallRank, places}){
+async function renderCertificateCanvas({name, overallPoints, overallRank, basePoints, totalPoints, isTop3Overall, hasAnyStagePodium, places}){
   const W = 1600, H = 1132;
   const c = document.createElement('canvas'); c.width=W; c.height=H;
   const ctx = c.getContext('2d');
@@ -1170,16 +1182,18 @@ async function renderCertificateCanvas({name, overallPoints, overallRank, places
   ctx.strokeStyle = '#7f5af0'; ctx.lineWidth = 8; ctx.strokeRect(24,24,W-48,H-48);
 
   ctx.fillStyle = '#5de4ff'; ctx.font = 'bold 70px Orbitron, sans-serif'; ctx.textAlign='center';
-  ctx.fillText('Certificate of Achievement', W/2, 180);
+  const title = isTop3Overall ? 'Certificate of Achievement' : 'Certificate of Completion';
+  ctx.fillText(title, W/2, 180);
 
   ctx.fillStyle = '#a78bfa'; ctx.font = '800 64px Inter, sans-serif';
   ctx.fillText(name || 'Participant', W/2, 280);
 
   ctx.fillStyle = '#cde8ff'; ctx.font = '28px Inter, sans-serif';
-  ctx.fillText('in the Cornwall AI Creation Challenge', W/2, 330);
+  ctx.fillText('Cornwall AI Creation Challenge — Best AI group in Cornwall', W/2, 330);
 
   ctx.strokeStyle = '#2cb67d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(200,360); ctx.lineTo(W-200,360); ctx.stroke();
 
+  // Stage placements
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9fe7ff'; ctx.font = 'bold 30px Inter, sans-serif';
   ctx.fillText('Stage Placements:', 220, 420);
@@ -1194,29 +1208,36 @@ async function renderCertificateCanvas({name, overallPoints, overallRank, places
     ctx.fillText(line, 240, y); y += 38;
   }
   if(!anyPlace){
-    ctx.fillStyle = '#ffdca8'; ctx.fillText('No podium places recorded — thanks for participating and shining!', 240, y);
+    ctx.fillStyle = '#ffdca8'; ctx.fillText('No podium places recorded — status: Completed', 240, y);
   }
 
-  const boxX = W-640, boxY = 420, boxW = 420, boxH = 220;
+  // Overall performance box
+  const boxX = W-640, boxY = 420, boxW = 420, boxH = 260;
   ctx.fillStyle = 'rgba(15,14,60,0.65)'; ctx.strokeStyle='#4a3fb6'; ctx.lineWidth=2;
   ctx.fillRect(boxX, boxY, boxW, boxH); ctx.strokeRect(boxX, boxY, boxW, boxH);
   ctx.fillStyle = '#9fe7ff'; ctx.font = 'bold 28px Inter, sans-serif';
   ctx.fillText('Overall Performance', boxX+24, boxY+42);
   ctx.fillStyle = '#e6f3ff'; ctx.font = '26px Inter, sans-serif';
-  ctx.fillText(`Points: ${overallPoints||0}`, boxX+24, boxY+88);
-  ctx.fillText(`Rank: ${overallRank||'-'}`, boxX+24, boxY+128);
+  const status = isTop3Overall ? (overallRank===1 ? '🥇 Overall Winner' : overallRank===2 ? '🥈 Overall Runner-up' : '🥉 Overall Third') : 'Completed';
+  ctx.fillText(`Status: ${status}`, boxX+24, boxY+86);
+  ctx.fillText(`Base Points: ${basePoints}`, boxX+24, boxY+126);
+  ctx.fillText(`Bonus Points: ${overallPoints||0}`, boxX+24, boxY+166);
+  ctx.fillText(`Total Points: ${totalPoints}`, boxX+24, boxY+206);
 
+  // Footer: instructors / signature
   ctx.textAlign = 'center';
   ctx.fillStyle = '#7adcc8'; ctx.font = '22px Inter, sans-serif';
-  ctx.fillText('Awarded by Cornwall AI — Best AI group in Cornwall', W/2, H-80);
+  ctx.fillText('AI Instructors: Terence Herbert', W/2, H-100);
+  ctx.fillStyle = '#7adcc8'; ctx.font = '18px Inter, sans-serif';
+  ctx.fillText('Awarded by Cornwall AI — Best AI group in Cornwall', W/2, H-70);
   ctx.fillStyle = '#d9e7ff'; ctx.font = '18px Inter, sans-serif';
-  ctx.fillText(new Date().toLocaleString(), W/2, H-50);
+  ctx.fillText(new Date().toLocaleString(), W/2, H-40);
 
   return c;
 }
 
 /* ===============================
-   Archive (JSON + DB + Gallery)
+   Archive (JSON + DB + Admin Gallery)
 ================================== */
 els.downloadArchiveBtn?.addEventListener('click', async ()=>{
   const archive = await buildArchive();
@@ -1257,18 +1278,14 @@ async function buildArchive(){
   return { exportedAt: new Date().toISOString(), settings, submissions, votes };
 }
 
-/* ---------- Archive Gallery UI ---------- */
-els.openArchiveBtn?.addEventListener('click', ()=>{
-  els.archiveWrap && (els.archiveWrap.style.display = 'block');
-  loadArchiveSessions();
-});
-els.loadArchiveBtn?.addEventListener('click', ()=>{
-  const sessionId = els.archiveSession.value;
-  const stageKey = els.archiveStage.value;
+/* ---------- Admin Archive Gallery UI ---------- */
+els.adminLoadArchiveBtn?.addEventListener('click', ()=>{
+  const sessionId = els.adminArchiveSession.value;
+  const stageKey = els.adminArchiveStage.value;
   if(!sessionId){ alert('Pick a session first.'); return; }
-  loadArchiveGallery(sessionId, stageKey);
+  loadAdminArchiveGallery(sessionId, stageKey);
 });
-async function loadArchiveSessions(){
+async function loadAdminArchiveSessions(){
   const snap = await archiveSessionsRef.get();
   const data = snap.val() || {};
   const entries = Object.entries(data).sort((a,b)=> (b[1]?.createdAt||0)-(a[1]?.createdAt||0));
@@ -1277,12 +1294,12 @@ async function loadArchiveSessions(){
     const count = Object.values(meta.counts||{}).reduce((a,b)=>a+(b||0),0);
     return { value:id, label:`${id} (${count} items) — ${date}` };
   }));
-  fillSelect(els.archiveSession, opts);
+  fillSelect(els.adminArchiveSession, opts);
 }
-async function loadArchiveGallery(sessionId, stageKey){
+async function loadAdminArchiveGallery(sessionId, stageKey){
   const node = await archiveDataRef(sessionId).child(`submissions/${stageKey}`).get();
   const items = Object.values(node.val()||{}).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
-  els.archiveGallery && (els.archiveGallery.innerHTML = "");
+  els.adminArchiveGallery && (els.adminArchiveGallery.innerHTML = "");
   items.forEach((it, idx)=>{
     const number = idx+1;
     const div = document.createElement('div');
@@ -1297,9 +1314,9 @@ async function loadArchiveGallery(sessionId, stageKey){
     }
     const name = `<div class="caption">By: ${escapeHtml(it.name||'-')}</div>`;
     div.innerHTML = `<div class="num-badge">${number}</div>${media}${name}`;
-    els.archiveGallery && els.archiveGallery.appendChild(div);
+    els.adminArchiveGallery && els.adminArchiveGallery.appendChild(div);
   });
-  els.archiveHint && (els.archiveHint.textContent = items.length ? `Loaded ${items.length} item(s) — ${STAGES.find(s=>s.key===stageKey).label}` : 'No items in that session/stage.');
+  els.adminArchiveHint && (els.adminArchiveHint.textContent = items.length ? `Loaded ${items.length} item(s) — ${STAGES.find(s=>s.key===stageKey).label}` : 'No items in that session/stage.');
 }
 
 /* ===============================
@@ -1328,3 +1345,4 @@ window.addEventListener('load', ()=>{
 </script>
 </body>
 </html>
+
