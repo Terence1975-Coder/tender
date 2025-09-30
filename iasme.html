@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>IASME Researcher — Single-File Project Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; --bg:#0b0c0f; --fg:#e7e7ea; --muted:#9aa0a6; --accent:#6ee7b7; --card:#111218; --border:#2a2c36; }
+    html,body { margin:0; padding:0; font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--fg); }
+    .wrap { max-width:980px; margin:40px auto; padding:0 20px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+    h1 { font-size:28px; margin:0 0 8px; }
+    .muted { color:var(--muted); }
+    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+    button { background: linear-gradient(135deg, #22c55e, #10b981); color:#08110b; border:0; border-radius:12px; padding:12px 16px; font-weight:700; cursor:pointer; transition: filter .2s ease, transform .02s ease; }
+    button.secondary { background:transparent; border:1px solid var(--border); color:var(--fg); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    button:active { transform: translateY(1px); }
+    code, pre { background:#0e1117; color:#e2e8f0; border:1px solid #1f2430; border-radius:10px; padding:.2em .45em; }
+    pre { padding:12px; overflow:auto; }
+    .ok{color:#85f7c1}.warn{color:#fbbf24}.err{color:#f87171}
+    .small{font-size:14px}
+    .files{margin-top:16px; max-height:280px; overflow:auto; border:1px dashed var(--border); padding:10px; border-radius:12px;}
+    .footer{margin-top:24px; font-size:14px; color:var(--muted)}
+    ul { margin:.4rem 0 0 .8rem; }
+    a { color:#93c5fd; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>IASME Network Directory Scraper/Researcher</h1>
+      <p class="muted">
+        This single HTML file generates a complete TypeScript project (Playwright + Cheerio + Zod). If folder access isn't supported,
+        use the ZIP download — it includes the full folder structure.
+      </p>
+      <div class="row" style="margin:14px 0 8px;">
+        <button id="generate">Generate into folder (Chrome/Edge)</button>
+        <button id="downloadZip" class="secondary">Download project.zip (works everywhere)</button>
+        <span id="status" class="muted small"></span>
+      </div>
+
+      <div class="small">
+        <p><strong>Quickstart after generation</strong></p>
+        <pre>cd iasme-research
+pnpm i   # or: npm i / yarn
+npx playwright install chromium
+pnpm build
+node dist/bin/iasme-research.js --index https://iasme.co.uk/network-directory/ \
+  --format jsonl --output out/iasme_companies.jsonl \
+  --max-companies 100 --concurrency 4 --delay-ms 500 --retries 3</pre>
+      </div>
+
+      <div class="files small">
+        <strong>Files to be created:</strong>
+        <ul id="filelist"></ul>
+      </div>
+
+      <div class="footer">
+        If nothing happens on click, your browser likely blocks folder access or downloads; try allowing pop-ups/downloads or use the ZIP button.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Embedded project files as plain text ===== -->
+  <script type="text/plain" data-path="package.json">{
+  "name": "iasme-research",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "bin": { "iasme-research": "dist/bin/iasme-research.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/bin/iasme-research.js",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "playwright": "^1.48.2",
+    "cheerio": "^1.0.0",
+    "p-limit": "^5.0.0",
+    "yargs": "^17.7.2",
+    "zod": "^3.23.8",
+    "normalize-url": "^8.0.1",
+    "dayjs": "^1.11.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@types/normalize-url": "^6.1.0",
+    "eslint": "^9.12.0",
+    "eslint-config-standard-with-typescript": "^43.0.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-n": "^17.10.3",
+    "eslint-plugin-promise": "^7.1.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.1"
+  }
+}</script>
+
+  <script type="text/plain" data-path="tsconfig.json">{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "bin", "tests"]
+}</script>
+
+  <script type="text/plain" data-path="bin/iasme-research.ts">#!/usr/bin/env node
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import { runJob } from '../src/job.js';
+import { writeFileSync, mkdirSync, createWriteStream, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+
+type Argv = {
+  index: string
+  format: 'jsonl' | 'json'
+  output: string
+  maxCompanies?: number
+  concurrency: number
+  delayMs: number
+  retries: number
+  timeoutMs: number
+  mapFile?: string
+};
+
+const argv = await yargs(hideBin(process.argv))
+  .scriptName('iasme-research')
+  .usage('$0 --index <url> --output out.jsonl')
+  .options({
+    index: { type: 'string', demandOption: true, desc: 'IASME Network Directory index URL' },
+    format: { choices: ['jsonl', 'json'] as const, default: 'jsonl' },
+    output: { type: 'string', demandOption: true },
+    maxCompanies: { type: 'number', desc: 'Cap total companies processed' },
+    concurrency: { type: 'number', default: 4, desc: 'Global concurrency' },
+    delayMs: { type: 'number', default: 500, desc: 'Jitter base delay between requests (ms)' },
+    retries: { type: 'number', default: 3, desc: 'Retry count on 429/5xx' },
+    timeoutMs: { type: 'number', default: 30000, desc: 'Per-request timeout' },
+    mapFile: { type: 'string', desc: 'JSON file with output key rename map' }
+  })
+  .strict()
+  .help()
+  .parseAsync() as Argv;
+
+const map: Record<string, string> | null = argv.mapFile
+  ? JSON.parse(readFileSync(argv.mapFile, 'utf8'))
+  : null;
+
+mkdirSync(dirname(resolve(argv.output)), { recursive: true });
+
+const res = await runJob({
+  indexUrl: argv.index,
+  maxCompanies: argv.maxCompanies,
+  concurrency: argv.concurrency,
+  delayMs: argv.delayMs,
+  retries: argv.retries,
+  timeoutMs: argv.timeoutMs
+});
+
+const out = res.records.map(r => map ? remapKeys(r, map) : r);
+if (argv.format === 'jsonl') {
+  const ws = createWriteStream(argv.output, { encoding: 'utf8' });
+  for (const row of out) ws.write(JSON.stringify(row) + '\n');
+  ws.end();
+  await new Promise(r => ws.on('finish', r));
+} else {
+  writeFileSync(argv.output, JSON.stringify(out, null, 2), 'utf8');
+}
+console.error(`Wrote ${out.length} records → ${argv.output}`);
+
+function remapKeys<T extends Record<string, any>>(obj: T, m: Record<string, string>) {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) out[m[k] ?? k] = v;
+  return out;
+}
+</script>
+
+  <script type="text/plain" data-path="src/types.ts">import { z } from 'zod';
+
+export const ContactSchema = z.object({
+  name: z.string().nullable(),
+  title: z.string().nullable(),
+  email: z.string().email().nullable(),
+  linkedin: z.string().url().nullable()
+});
+
+export const RecordSchema = z.object({
+  company: z.string(),
+  domain: z.string().nullable(),
+  website: z.string().url().nullable(),
+  emails: z.array(z.string()).default([]),
+  phones: z.array(z.string()).default([]),
+  address: z.string().nullable(),
+  linkedin_company: z.string().url().nullable(),
+  it_contact: ContactSchema.nullable(),
+  hr_contact: ContactSchema.nullable(),
+  certifications: z.array(z.string()).default([]),
+  profile_url: z.string().url().nullable(),
+  sources: z.array(z.string().url()).min(1),
+  last_seen: z.string()
+});
+
+export type OutputRecord = z.infer<typeof RecordSchema>;
+export type Contact = z.infer<typeof ContactSchema>;
+
+export const RoleIntent = {
+  IT: ['cio','chief information officer','cto','chief technology officer','it director','it manager','head of it','head of technology','infrastructure','network','systems','technology director'],
+  HR: ['chief people officer','cpo','hr director','head of hr','head of people','people director','talent lead','recruiting lead','hr manager','people manager']
+};
+</script>
+
+  <script type="text/plain" data-path="src/job.ts">import pLimit from 'p-limit';
+import dayjs from 'dayjs';
+import { harvestIndex } from './sources/iasme-index.js';
+import { discoverWebsite } from './website/discovery.js';
+import { enrichContacts } from './website/enrich.js';
+import { discoverRoles } from './website/roles.js';
+import { normalizeRecord, uniqKeepOrder } from './util/normalize.js';
+import { RecordSchema, type OutputRecord } from './types.js';
+
+type JobOpts = {
+  indexUrl: string
+  maxCompanies?: number
+  concurrency: number
+  delayMs: number
+  retries: number
+  timeoutMs: number
+};
+
+export async function runJob(opts: JobOpts) {
+  const started = Date.now();
+  const index = await harvestIndex({
+    indexUrl: opts.indexUrl,
+    retries: opts.retries,
+    timeoutMs: opts.timeoutMs,
+    delayMs: opts.delayMs
+  });
+
+  const companies = opts.maxCompanies ? index.slice(0, opts.maxCompanies) : index;
+
+  const limit = pLimit(opts.concurrency);
+  const records: OutputRecord[] = [];
+
+  await Promise.all(companies.map((c, i) => limit(async () => {
+    const sources = new Set<string>([opts.indexUrl]);
+    if (c.profile_url) sources.add(c.profile_url);
+
+    const websiteInfo = await discoverWebsite({
+      displayName: c.company,
+      profileUrl: c.profile_url,
+      knownWebsite: c.website,
+      retries: opts.retries,
+      timeoutMs: opts.timeoutMs,
+      delayMs: opts.delayMs,
+      sources
+    });
+
+    const enriched = await enrichContacts({
+      website: websiteInfo.website,
+      retries: opts.retries,
+      timeoutMs: opts.timeoutMs,
+      delayMs: opts.delayMs,
+      sources
+    });
+
+    const roles = await discoverRoles({
+      website: websiteInfo.website,
+      retries: opts.retries,
+      timeoutMs: opts.timeoutMs,
+      delayMs: opts.delayMs,
+      sources
+    });
+
+    const rec = normalizeRecord({
+      company: c.company,
+      domain: websiteInfo.domain,
+      website: websiteInfo.website,
+      emails: uniqKeepOrder([...enriched.emails]),
+      phones: uniqKeepOrder([...enriched.phones]),
+      address: enriched.address ?? null,
+      linkedin_company: enriched.linkedinCompany ?? null,
+      it_contact: roles.it ?? null,
+      hr_contact: roles.hr ?? null,
+      certifications: c.certifications ?? [],
+      profile_url: c.profile_url ?? null,
+      sources: Array.from(sources),
+      last_seen: dayjs().format('YYYY-MM-DD')
+    });
+
+    const parsed = RecordSchema.safeParse(rec);
+    if (!parsed.success) {
+      console.error('Validation error for', c.company, parsed.error.flatten().fieldErrors);
+      return;
+    }
+    records.push(parsed.data);
+    console.error(`[${i+1}/${companies.length}] ${c.company} ✓`);
+  })));
+
+  return { records, tookMs: Date.now() - started };
+}
+</script>
+
+  <script type="text/plain" data-path="src/sources/iasme-index.ts">import { chromium, type Response } from 'playwright';
+import { parseDirectoryTable } from './table-parse.js';
+
+type IndexRow = {
+  company: string
+  profile_url: string | null
+  website: string | null
+  certifications: string[]
+};
+
+type HarvestOpts = {
+  indexUrl: string
+  retries: number
+  timeoutMs: number
+  delayMs: number
+};
+
+export async function harvestIndex(opts: HarvestOpts): Promise<IndexRow[]> {
+  const browser = await chromium.launch({ headless: true });
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const jsonFeeds = new Set<string>();
+  const jsonPayloads: any[] = [];
+
+  page.on('response', async (res: Response) => {
+    try {
+      const ct = res.headers()['content-type'] || '';
+      if (/application\/json/i.test(ct) && res.request().method() === 'GET') {
+        const url = res.url();
+        if (url.includes('network') || url.includes('directory') || url.includes('search')) {
+          jsonFeeds.add(url);
+          const data = await res.json().catch(() => null);
+          if (data) jsonPayloads.push({ url, data });
+        }
+      }
+    } catch {}
+  });
+
+  await page.goto(opts.indexUrl, { timeout: opts.timeoutMs, waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1000);
+  await page.waitForSelector('text=Company Name', { timeout: opts.timeoutMs }).catch(() => {});
+
+  let rows = await parseDirectoryTable(page);
+
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  for (const L of letters) {
+    const sel = `button:has-text("${L}"), [role="tab"]:has-text("${L}"), a:has-text("${L}")`;
+    const el = await page.$(sel);
+    if (!el) continue;
+    await el.click({ timeout: 5000 }).catch(()=>{});
+    await page.waitForTimeout(400);
+    rows.push(...await parseDirectoryTable(page));
+  }
+
+  const filterSel = 'button[role="tab"], .filter button, .filter [role="option"], .filter input[type=checkbox]';
+  const filters = await page.$$(filterSel);
+  for (const f of filters) {
+    const label = (await f.textContent() ?? '').trim();
+    if (!label) continue;
+    await f.click({ timeout: 5000 }).catch(()=>{});
+    await page.waitForTimeout(500);
+    rows.push(...await parseDirectoryTable(page));
+  }
+
+  if (jsonFeeds.size > 0 && jsonPayloads.length > 0) {
+    const rx = extractFromJSON(jsonPayloads.map(p => p.data));
+    if (rx.length >= rows.length * 0.8) {
+      await browser.close();
+      return dedupeBy(rx, r => r.company.toLowerCase());
+    }
+  }
+
+  await browser.close();
+  return dedupeBy(rows, r => r.company.toLowerCase());
+}
+
+function extractFromJSON(payloads: any[]): IndexRow[] {
+  const out: IndexRow[] = [];
+  const push = (company: string, profile?: string | null, website?: string | null, certifications?: string[]) => {
+    if (!company) return;
+    out.push({
+      company: company.trim(),
+      profile_url: profile ?? null,
+      website: website ?? null,
+      certifications: (certifications ?? []).map(s => String(s).trim()).filter(Boolean)
+    });
+  };
+  const visit = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) { obj.forEach(visit); return; }
+    const keys = Object.keys(obj).map(k => k.toLowerCase());
+    if (keys.includes('company') || keys.includes('companyname') || keys.includes('name')) {
+      const company = obj.company ?? obj.companyName ?? obj.name;
+      const profile = obj.profileUrl ?? obj.profile ?? obj.url ?? null;
+      const website = obj.website ?? obj.site ?? null;
+      const certs = obj.certifications ?? obj.badges ?? obj.labels ?? [];
+      if (typeof company === 'string') push(company, profile, website, Array.isArray(certs) ? certs : []);
+    }
+    for (const v of Object.values(obj)) visit(v);
+  };
+  payloads.forEach(visit);
+  return out;
+}
+
+function dedupeBy<T>(arr: T[], key: (t: T)=>string) {
+  const seen = new Set<string>(); const out: T[] = [];
+  for (const x of arr) { const k = key(x); if (!seen.has(k)) { seen.add(k); out.push(x); } }
+  return out;
+}
+</script>
+
+  <script type="text/plain" data-path="src/sources/table-parse.ts">import type { Page } from 'playwright';
+
+export async function parseDirectoryTable(page: Page) {
+  return await page.$$eval('table, [role="table"]', (tables) => {
+    const rows: Array<{ company: string, profile_url: string | null, website: string | null, certifications: string[] }> = [];
+    const T = tables[0];
+    if (!T) return rows;
+    const headers = Array.from(T.querySelectorAll('thead th, [role="columnheader"]')).map(th => th.textContent?.trim().toLowerCase());
+    const bodyRows = T.querySelectorAll('tbody tr, [role="rowgroup"] [role="row"]');
+    for (const tr of Array.from(bodyRows)) {
+      const cells = Array.from(tr.querySelectorAll('td, [role="cell"]'));
+      const text = (i: number)=>cells[i]?.textContent?.trim() ?? '';
+      const nameIdx = headers.findIndex(h => h?.includes('company'));
+      const certIdx = headers.findIndex(h => h?.includes('cert'));
+      const company = nameIdx >= 0 ? text(nameIdx) : (cells[0]?.textContent?.trim() ?? '');
+      let profile_url: string | null = null;
+      const nameCell = nameIdx >=0 ? cells[nameIdx] : cells[0];
+      const a = nameCell?.querySelector('a[href]');
+      if (a) profile_url = (a as HTMLAnchorElement).href;
+
+      const certifications: string[] = [];
+      if (certIdx >= 0) {
+        const certCell = cells[certIdx];
+        const tags = Array.from(certCell.querySelectorAll('[class*="badge"], [class*="chip"], img[alt], span')).map(e => e.textContent?.trim() || (e as HTMLImageElement).alt || '').filter(Boolean);
+        tags.forEach(t => certifications.push(t));
+      }
+
+      rows.push({ company, profile_url, website: null, certifications });
+    }
+    return rows;
+  });
+}
+</script>
+
+  <script type="text/plain" data-path="src/website/discovery.ts">import normalizeUrl from 'normalize-url';
+
+type DiscoverOpts = {
+  displayName: string
+  profileUrl: string | null
+  knownWebsite: string | null
+  retries: number
+  timeoutMs: number
+  delayMs: number
+  sources: Set<string>
+};
+
+export async function discoverWebsite(opts: DiscoverOpts) {
+  if (opts.knownWebsite) {
+    const u = safeNormalize(opts.knownWebsite);
+    if (u) { opts.sources.add(u); return { website: u, domain: new URL(u).hostname }; }
+  }
+  if (opts.profileUrl) {
+    const html = await fetchText(opts.profileUrl, opts);
+    const link = firstUrl(html, (u) => !sameHost(u, opts.profileUrl!) && !isSocial(u));
+    if (link) {
+      const u = safeNormalize(link);
+      if (u) { opts.sources.add(opts.profileUrl!); opts.sources.add(u); return { website: u, domain: new URL(u).hostname }; }
+    }
+  }
+  const q = `${opts.displayName} official site`;
+  const results = await ddgFirstUrls(q, opts);
+  const picked = pickLikelyOfficial(results, opts.displayName);
+  if (picked) {
+    const u = safeNormalize(picked);
+    if (u) { opts.sources.add(u); return { website: u, domain: new URL(u).hostname }; }
+  }
+  return { website: null as string | null, domain: null as string | null };
+}
+
+function sameHost(a: string, b: string) { try { return new URL(a).hostname === new URL(b).hostname; } catch { return false; } }
+function isSocial(u: string) { return /(?:linkedin|facebook|twitter|x\.com|instagram|tiktok|youtube|youtu\.be)/i.test(u); }
+function firstUrl(text: string, predicate: (u: string)=>boolean) { const urls = Array.from(text.matchAll(/https?:\/\/[^\s"'<>]+/g)).map(m => m[0]); return urls.find(predicate) || null; }
+function safeNormalize(u: string) { try { return normalizeUrl(u, { stripWWW: false, removeTrailingSlash: false, forceHttps: true }); } catch { return null; } }
+
+async function fetchText(url: string, { retries, timeoutMs }: { retries: number, timeoutMs: number }) {
+  for (let attempt=0; attempt<=retries; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+      const res = await fetch(url, { signal: ctrl.signal, headers: { 'user-agent': UA, 'accept': 'text/html,*/*' } });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch {
+      await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt) * (0.5 + Math.random())));
+    }
+  }
+  return '';
+}
+const UA = 'Mozilla/5.0 (compatible; IASMEResearchBot/1.0; +https://example.invalid/bot)';
+
+async function ddgFirstUrls(q: string, { retries, timeoutMs, delayMs }: { retries: number, timeoutMs: number, delayMs: number }) {
+  await new Promise(r => setTimeout(r, 200 + Math.random()*delayMs));
+  const url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q);
+  const html = await fetchText(url, { retries, timeoutMs });
+  const urls = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m => m[1]);
+  return urls.slice(0, 10);
+}
+
+function pickLikelyOfficial(urls: string[], name: string) {
+  const cleaned = name.toLowerCase().replace(/(limited|ltd|plc|llp|uk|the)\b/gi, '').trim();
+  const score = (u: string) => {
+    try {
+      const h = new URL(u).hostname.toLowerCase();
+      let s = 0;
+      if (h.includes(cleaned.replace(/\s+/g, ''))) s += 3;
+      if (!/wixsite|wordpress|blogspot|facebook|linkedin|x\.com|github|medium|notion|google|cloudfront|amazonaws/.test(h)) s += 1;
+      if (/\.(co\.uk|com|io|net)$/.test(h)) s += 1;
+      return s;
+    } catch { return 0; }
+  };
+  return urls.sort((a,b)=>score(b)-score(a))[0] || null;
+}
+</script>
+
+  <script type="text/plain" data-path="src/website/enrich.ts">type EnrichOpts = {
+  website: string | null
+  retries: number
+  timeoutMs: number
+  delayMs: number
+  sources: Set<string>
+};
+
+const TAILS = ['contact','about','team','leadership','people','careers','jobs','privacy','impressum'];
+
+export async function enrichContacts(opts: EnrichOpts) {
+  const emails = new Set<string>();
+  const phones = new Set<string>();
+  let address: string | null = null;
+  let linkedinCompany: string | null = null;
+
+  if (!opts.website) return { emails, phones, address, linkedinCompany };
+
+  const root = rootOf(opts.website);
+  const pages = [root, ...TAILS.map(t => root + t + '/')];
+
+  for (const url of pages) {
+    await sleep(Math.random() * opts.delayMs);
+    try {
+      const html = await fetchText(url, opts);
+      opts.sources.add(url);
+
+      for (const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
+        const e = m[0].toLowerCase();
+        if (sameDomain(e, root)) emails.add(e);
+        else if (emails.size === 0) emails.add(e);
+      }
+
+      for (const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)) {
+        const p = m[0].replace(/\s+/g, ' ').trim();
+        if (p.length >= 10) phones.add(p);
+      }
+
+      const l = Array.from(html.matchAll(/https?:\/\/(www\.)?linkedin\.com\/company\/[a-z0-9\-_%/]+/gi)).map(m=>m[0])[0];
+      if (l) linkedinCompany = l;
+
+      if (!address) {
+        const block = pickAddressBlock(html);
+        if (block) address = block;
+      }
+    } catch { /* ignore */ }
+  }
+
+  return { emails, phones, address, linkedinCompany };
+}
+
+function rootOf(u: string) { const p = new URL(u); return `${p.protocol}//${p.host}/`; }
+
+function sameDomain(email: string, siteRoot: string) {
+  try {
+    const host = new URL(siteRoot).hostname.split('.').slice(-2).join('.');
+    const dom = email.split('@')[1].split('.').slice(-2).join('.');
+    return host === dom;
+  } catch { return false; }
+}
+
+function pickAddressBlock(text: string) {
+  const m = text.match(/(?:address|registered office|head office)\s*[:\-]?\s*([\s\S]{0,300})/i);
+  if (!m) return null;
+  const slice = m[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  return slice.length > 8 ? slice : null;
+}
+
+async function fetchText(url: string, { retries, timeoutMs }: { retries: number, timeoutMs: number }) {
+  for (let attempt=0; attempt<=retries; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+      const res = await fetch(url, { signal: ctrl.signal, headers: { 'user-agent': UA, 'accept': 'text/html,*/*' } });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch {
+      await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt) * (0.5 + Math.random())));
+    }
+  }
+  return '';
+}
+const UA = 'Mozilla/5.0 (compatible; IASMEResearchBot/1.0; +https://example.invalid/bot)';
+async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+
+  <script type="text/plain" data-path="src/website/roles.ts">import type { Contact } from '../types.js';
+
+type RoleOpts = {
+  website: string | null
+  retries: number
+  timeoutMs: number
+  delayMs: number
+  sources: Set<string>
+};
+
+const CANDIDATE_TAILS = ['team','leadership','people','about','management','board','executive','our-team','careers','jobs','news','press'];
+
+const IT = ['cio','chief information officer','cto','chief technology officer','it director','it manager','head of it','head of technology','infrastructure','network','systems','technology director'];
+const HR = ['chief people officer','cpo','hr director','head of hr','head of people','people director','talent lead','recruiting lead','hr manager','people manager'];
+
+export async function discoverRoles(opts: RoleOpts) {
+  const it = await discoverForIntent(opts, IT);
+  const hr = await discoverForIntent(opts, HR);
+  return { it, hr };
+}
+
+async function discoverForIntent(opts: RoleOpts, keywords: string[]): Promise<Contact | null> {
+  if (!opts.website) return null;
+  const root = rootOf(opts.website);
+  const pages = [root, ...CANDIDATE_TAILS.map(t => root + t + '/')];
+
+  type Found = { name: string, title: string, email?: string|null, linkedin?: string|null, score: number, source: string };
+  const candidates: Found[] = [];
+
+  for (const url of pages) {
+    await sleep(Math.random()*opts.delayMs);
+    try {
+      const html = await fetchText(url, opts);
+      opts.sources.add(url);
+
+      const text = html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+      for (const kw of keywords) {
+        const re = new RegExp(`(.{0,160}\\b${escapeRe(kw)}\\b.{0,160})`, 'ig');
+        let m;
+        while ((m = re.exec(text)) != null) {
+          const window = m[1];
+          const name = (window.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g) || []).filter(w => /^[A-Z]/.test(w)).sort((a,b)=>b.length-a.length)[0];
+          const title = (window.match(/([A-Z][A-Za-z/&\-\s]{3,60})/g) || []).find(t => new RegExp(keywords.map(escapeRe).join('|'),'i').test(t)) || kw;
+          if (name) {
+            const linkedin = (window.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%/]+/i) || [null])[0];
+            const email = (window.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [null])[0];
+            const score = scoreTitle(title);
+            candidates.push({ name, title, email, linkedin, score, source: url });
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (candidates.length === 0) return null;
+  candidates.sort((a,b)=>b.score-a.score);
+  const best = candidates[0];
+  return { name: best.name || null, title: best.title || null, email: best.email ?? null, linkedin: best.linkedin ?? null };
+}
+
+function scoreTitle(t: string) {
+  const s = t.toLowerCase();
+  if (/chief|cio|cto|cpo/.test(s)) return 100;
+  if (/vp|vice president|director/.test(s)) return 80;
+  if (/head of|head,/.test(s)) return 70;
+  if (/manager/.test(s)) return 50;
+  return 10;
+}
+
+function rootOf(u: string) { const p = new URL(u); return `${p.protocol}//${p.host}/`; }
+function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+async function fetchText(url: string, { retries, timeoutMs }: { retries: number, timeoutMs: number }) {
+  for (let attempt=0; attempt<=retries; attempt++) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+      const res = await fetch(url, { signal: ctrl.signal, headers: { 'user-agent': UA, 'accept': 'text/html,*/*' } });
+      clearTimeout(t);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch {
+      await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt) * (0.5 + Math.random())));
+    }
+  }
+  return '';
+}
+const UA = 'Mozilla/5.0 (compatible; IASMEResearchBot/1.0; +https://example.invalid/bot)';
+async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+
+  <script type="text/plain" data-path="src/util/misc.ts">export async function withRetry<T>(fn: ()=>Promise<T>, opts: { retries: number, baseDelayMs: number, jitter?: boolean }) {
+  let attempt = 0, err: any;
+  while (attempt <= opts.retries) {
+    try { return await fn(); }
+    catch (e) {
+      err = e;
+      const backoff = Math.min(30000, opts.baseDelayMs * Math.pow(2, attempt));
+      const jitter = opts.jitter ? backoff * (0.5 + Math.random()) : backoff;
+      await sleep(jitter);
+      attempt += 1;
+    }
+  }
+  throw err;
+}
+export async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+export function jURL(u: string) { try { return new URL(u); } catch { return null; } }
+export function dedupeBy<T>(arr: T[], key: (t: T)=>string) {
+  const seen = new Set<string>(); const out: T[] = [];
+  for (const x of arr) { const k = key(x); if (!seen.has(k)) { seen.add(k); out.push(x); } }
+  return out;
+}
+</script>
+
+  <script type="text/plain" data-path="src/util/normalize.ts">import normalizeUrl from 'normalize-url';
+
+export function normalizeRecord(rec: any) {
+  rec.website = rec.website ?? null;
+  rec.domain = rec.domain ?? (rec.website ? new URL(rec.website).hostname : null);
+  rec.emails = uniqKeepOrder((rec.emails ?? []).map((e: string)=>e.toLowerCase()).filter((v: string)=>!!v));
+  rec.phones = uniqKeepOrder((rec.phones ?? []).map((p: string)=>p.replace(/\s+/g,' ').trim()).filter((v: string)=>!!v));
+  rec.sources = uniqKeepOrder((rec.sources ?? []).map((u: string)=>safe(u))).filter(Boolean);
+  return rec;
+}
+
+export function uniqKeepOrder<T>(arr: T[]): T[] {
+  const seen = new Set<string>(); const out: T[] = [];
+  for (const v of arr) { const k = String(v); if (!seen.has(k)) { seen.add(k); out.push(v); } }
+  return out;
+}
+
+function safe(u: string) {
+  try { return normalizeUrl(u, { forceHttps: false }); } catch { return ''; }
+}
+</script>
+
+  <script type="text/plain" data-path="tests/extractors.test.ts">import { describe, it, expect } from 'vitest';
+
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const UK_PHONE_RE = /(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g;
+
+describe('patterns', () => {
+  it('finds emails', () => {
+    const s = 'Contact us at [email protected] or [email protected].';
+    expect(s.match(EMAIL_RE)?.[0]).toBe('info@example.co.uk');
+  });
+  it('finds phones', () => {
+    const s = 'Call +44 20 7123 4567 or 0121 234 5678 today';
+    const m = s.match(UK_PHONE_RE);
+    expect(m && m[0]).toContain('44');
+  });
+});
+</script>
+
+  <script type="text/plain" data-path="tests/seniority.test.ts">import { describe, it, expect } from 'vitest';
+
+function scoreTitle(t: string) {
+  const s = t.toLowerCase();
+  if (/chief|cio|cto|cpo/.test(s)) return 100;
+  if (/vp|vice president|director/.test(s)) return 80;
+  if (/head of|head,/.test(s)) return 70;
+  if (/manager/.test(s)) return 50;
+  return 10;
+}
+
+describe('seniority scoring', () => {
+  it('scores CIO higher than Head', () => {
+    expect(scoreTitle('CIO')).toBeGreaterThan(scoreTitle('Head of IT'));
+  });
+  it('scores Director over Manager', () => {
+    expect(scoreTitle('IT Director')).toBeGreaterThan(scoreTitle('IT Manager'));
+  });
+});
+</script>
+
+  <script type="text/plain" data-path="README.md"># IASME Network Directory Scraper/Researcher (Single-file generator)
+
+This HTML page writes a full Node/TypeScript project to your disk, or downloads a ZIP if folder access isn't supported.
+
+## Quickstart
+
+```bash
+cd iasme-research
+pnpm i   # or npm i / yarn
+npx playwright install chromium
+pnpm build
+node dist/bin/iasme-research.js --index https://iasme.co.uk/network-directory/ \
+  --format jsonl --output out/iasme_companies.jsonl \
+  --max-companies 100 --concurrency 4 --delay-ms 500 --retries 3
