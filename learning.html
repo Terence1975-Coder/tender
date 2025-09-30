@@ -1,336 +1,429 @@
-diff --git a/learning.html b/learning.html
-index 333c44386a0e8676563a4226c8daa61979f62f23..8cc6bae0ae500a52b4af74becb7e4955b54cc23e 100644
---- a/learning.html
-+++ b/learning.html
-@@ -1,70 +1,71 @@
--import React, { useEffect, useMemo, useRef, useState } from "react";
-+import React, { useEffect, useMemo, useState } from "react";
- import { motion, AnimatePresence } from "framer-motion";
- import { v4 as uuidv4 } from "uuid";
--import { initializeApp } from "firebase/app";
--import { getDatabase, ref, set, get, update } from "firebase/database";
-+import { initializeApp, getApps } from "firebase/app";
-+import { getDatabase, ref, update } from "firebase/database";
- 
- /**
-  * SupaChargeAI — Interactive AI Training Tool
-  * Single-file React app you can upload to GitHub.
-  * - 3 learner levels (Novice, Intermediate, Expert)
-  * - Learn by Topic or by Challenge/Opportunity
-  * - Short/Medium/Long tasks per topic
-  * - MCQ quizzes with explanations
-  * - Network layout that grows as the learner selects nodes
-  * - Theme switcher (base: soft vibrant orange #ff8a3d)
-  * - Local persistence + Firebase Realtime DB integration
-  * - Floating whiteboard (sticky notes, draggable)
-  * - ChatGPT panel (user-supplied API key) for research/creation
-  * - Help buttons on topics for extra explanations
-  *
-  * Notes:
-  * - This is framework-agnostic React; you can render <App /> as the root in your project.
-  * - Tailwind classes are used for styling. For vanilla CSS envs, replace className with inline styles.
-  */
- 
- /*******************************
-  * Firebase (Provided Config)
-  *******************************/
- const firebaseConfig = {
-   apiKey: "AIzaSyChiAlrD-JLtBSDN3sOyxYiLGig-6Cy3GM",
-   authDomain: "prospecting-f2f42.firebaseapp.com",
-   databaseURL: "https://prospecting-f2f42-default-rtdb.europe-west1.firebasedatabase.app",
-   projectId: "prospecting-f2f42",
-   storageBucket: "prospecting-f2f42.firebasestorage.app",
-   messagingSenderId: "292034226428",
-   appId: "1:292034226428:web:878b867e3eb4d3e0098f79",
-   measurementId: "G-WWB0JTX2L2",
- };
- let appInstance;
- try {
--  appInstance = initializeApp(firebaseConfig);
-+  const apps = getApps();
-+  appInstance = apps.length ? apps[0] : initializeApp(firebaseConfig);
- } catch (e) {
--  // ignore duplicate init in dev HMR
-+  console.warn("Firebase init skipped", e);
- }
--const db = getDatabase();
-+const db = appInstance ? getDatabase(appInstance) : null;
- 
- /*******************************
-  * Data — Course Structure
-  *******************************/
- const WEEKS = [
-   {
-     id: "w1_2",
-     title: "Week 1-2: AI Fundamentals for Business",
-     sessions: [
-       {
-         id: "s1_intro_ai",
-         title: "Session 1: Introduction to AI in the Workplace",
-         level: "Novice",
-         summary:
-           "Demystify AI for non-technical professionals; understand evolution and current role in business.",
-         help:
-           "AI spans rule-based automation through modern machine learning and generative models. Focus on value, not buzzwords.",
-         tasks: {
-           short: ["List 5 AI touchpoints in your daily work."],
-           medium: [
-             "Interview a colleague about AI friction points; summarize 3 opportunities.",
-           ],
-           long: [
-             "Draft a 1-page memo on where AI could support your team with risks/benefits.",
-           ],
-diff --git a/learning.html b/learning.html
-index 333c44386a0e8676563a4226c8daa61979f62f23..8cc6bae0ae500a52b4af74becb7e4955b54cc23e 100644
---- a/learning.html
-+++ b/learning.html
-@@ -468,83 +469,109 @@ const CHALLENGES = [
-       "s7_research",
-       "s8_predictive",
-       "s15_problem_solving",
-     ],
-     howTo: [
-       "Define pain, users, and success metrics.",
-       "Choose architecture (chat + tools + RAG if needed).",
-       "Prototype fast; evaluate; iterate.",
-     ],
-   },
-   {
-     id: "c_data_clarity",
-     label: "I need clarity on my data with regards to…",
-     mapTo: ["s6_data", "s7_research", "s17_ethics"],
-     howTo: [
-       "Inventory sources and permissions.",
-       "Profile data quality; document assumptions.",
-       "Define privacy, retention, and access controls.",
-     ],
-   },
- ];
- 
- /*******************************
-  * Utilities
-  *******************************/
-+const hasWindow = typeof window !== "undefined";
-+
- const useLocalId = () => {
-   const [id, setId] = useState("");
-   useEffect(() => {
--    let stored = localStorage.getItem("scai_local_id");
-+    if (!hasWindow) return;
-+    let stored = window.localStorage.getItem("scai_local_id");
-     if (!stored) {
-       stored = uuidv4();
--      localStorage.setItem("scai_local_id", stored);
-+      try {
-+        window.localStorage.setItem("scai_local_id", stored);
-+      } catch {}
-     }
-     setId(stored);
-   }, []);
-   return id;
- };
- 
- const persist = async (userId, key, value) => {
--  try {
--    localStorage.setItem(key, JSON.stringify(value));
--  } catch {}
-+  if (hasWindow) {
-+    try {
-+      window.localStorage.setItem(key, JSON.stringify(value));
-+    } catch {}
-+  }
-+  if (!db || !userId) return;
-   try {
-     await update(ref(db, `users/${userId}`), { [key]: value });
-   } catch (e) {
-     console.warn("Firebase update skipped or failed", e);
-   }
- };
- 
- const loadLocal = (key, fallback) => {
-+  if (!hasWindow) return fallback;
-   try {
--    const s = localStorage.getItem(key);
-+    const s = window.localStorage.getItem(key);
-     return s ? JSON.parse(s) : fallback;
-   } catch {
-     return fallback;
-   }
- };
- 
-+const loadLocalString = (key, fallback = "") => {
-+  if (!hasWindow) return fallback;
-+  try {
-+    const value = window.localStorage.getItem(key);
-+    return value !== null ? value : fallback;
-+  } catch {
-+    return fallback;
-+  }
-+};
-+
-+const saveLocalString = (key, value) => {
-+  if (!hasWindow) return;
-+  try {
-+    window.localStorage.setItem(key, value);
-+  } catch {}
-+};
-+
- /*******************************
-  * UI Helpers
-  *******************************/
- const Pill = ({ children }) => (
-   <span className="px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-xs">
-     {children}
-   </span>
- );
- 
- const HelpButton = ({ text }) => {
-   const [open, setOpen] = useState(false);
-   return (
-     <div className="relative inline-block">
-       <button
-         onClick={() => setOpen((v) => !v)}
-         className="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-black/10 shadow text-xs hover:scale-105"
-         title="Need a quick explainer?"
-       >
-         ?
-       </button>
-       <AnimatePresence>
-         {open && (
-           <motion.div
-             initial={{ opacity: 0, y: 4 }}
-             animate={{ opacity: 1, y: 0 }}
-diff --git a/learning.html b/learning.html
-index 333c44386a0e8676563a4226c8daa61979f62f23..8cc6bae0ae500a52b4af74becb7e4955b54cc23e 100644
---- a/learning.html
-+++ b/learning.html
-@@ -806,114 +833,120 @@ const ChatGPTPanel = ({ apiKey, setApiKey, thread, setThread }) => {
-           temperature: 0.3,
-         }),
-       });
-       const data = await res.json();
-       const reply = data?.choices?.[0]?.message?.content || "(no response)";
-       setThread((prev) => [...prev, { role: "assistant", content: reply }]);
-     } catch (e) {
-       setThread((prev) => [
-         ...prev,
-         { role: "assistant", content: "Error calling OpenAI API. Check key/network." },
-       ]);
-     } finally {
-       setBusy(false);
-     }
-   };
- 
-   return (
-     <div className="rounded-2xl border bg-white p-4 space-y-3">
-       <div className="font-semibold">Research & Creation (ChatGPT)</div>
-       <input
-         className="w-full border rounded-xl px-3 py-2 text-sm"
-         placeholder="Paste your OpenAI API key (stored locally)"
-         value={apiKey}
-         onChange={(e) => {
-           setApiKey(e.target.value);
--          localStorage.setItem("scai_openai_key", e.target.value);
-+          saveLocalString("scai_openai_key", e.target.value);
-         }}
-       />
-       <div className="h-40 overflow-auto border rounded-xl p-2 bg-gray-50">
-         {thread.map((m, i) => (
-           <div key={i} className="text-sm mb-2">
-             <span className={`font-semibold ${m.role === "user" ? "text-gray-700" : "text-blue-700"}`}>
-               {m.role === "user" ? "You" : "Assistant"}:
-             </span>{" "}
-             <span>{m.content}</span>
-           </div>
-         ))}
-       </div>
-       <div className="flex gap-2">
-         <input
-           className="flex-1 border rounded-xl px-3 py-2 text-sm"
-           placeholder="Ask for research, drafting, prompts…"
-           value={input}
-           onChange={(e) => setInput(e.target.value)}
-         />
-         <button onClick={chat} disabled={busy} className="px-3 py-2 rounded-xl border bg-black text-white text-sm">
-           {busy ? "Thinking…" : "Send"}
-         </button>
-       </div>
-       <div className="text-xs opacity-70">Your key is stored only in your browser and used client-side.</div>
-     </div>
-   );
- };
- 
- /*******************************
-  * Main App
-  *******************************/
- export default function App() {
-   const userId = useLocalId();
-   const [theme, setTheme] = useState(
-     loadLocal("scai_theme", { name: "Sunburst", primary: "#ff8a3d", bg: "#fff8f3", text: "#111827" })
-   );
-   const [level, setLevel] = useState(loadLocal("scai_level", "Novice"));
-   const [path, setPath] = useState(loadLocal("scai_path", "By Topic"));
-   const [selectedWeek, setSelectedWeek] = useState(WEEKS[0].id);
-   const [learningPath, setLearningPath] = useState(loadLocal("scai_learning_path", []));
-   const [notes, setNotes] = useState(loadLocal("scai_notes", []));
--  const [apiKey, setApiKey] = useState(localStorage.getItem("scai_openai_key") || "");
-+  const [apiKey, setApiKey] = useState(() => loadLocalString("scai_openai_key", ""));
-   const [thread, setThread] = useState(loadLocal("scai_thread", []));
-   const [quizSession, setQuizSession] = useState(null);
- 
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_theme", theme);
--  }, [theme]);
-+  }, [userId, theme]);
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_level", level);
--  }, [level]);
-+  }, [userId, level]);
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_path", path);
--  }, [path]);
-+  }, [userId, path]);
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_learning_path", learningPath);
--  }, [learningPath]);
-+  }, [userId, learningPath]);
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_notes", notes);
--  }, [notes]);
-+  }, [userId, notes]);
-   useEffect(() => {
-+    if (!userId) return;
-     persist(userId, "scai_thread", thread);
--  }, [thread]);
-+  }, [userId, thread]);
- 
-   const currentWeek = useMemo(() => WEEKS.find((w) => w.id === selectedWeek) || WEEKS[0], [selectedWeek]);
-   const availableNodes = useMemo(() => {
-     if (path === "By Topic") return currentWeek.sessions;
-     // By Challenge
-     return CHALLENGES.map((c) => ({ id: c.id, title: c.label }));
-   }, [path, selectedWeek]);
- 
-   const addToPath = (item) => {
-     if (learningPath.find((x) => x.id === item.id)) return;
-     setLearningPath((prev) => [...prev, { id: item.id, title: item.title }]);
-   };
- 
-   const onNetworkSelect = (n) => {
-     if (path === "By Topic") {
-       const s = currentWeek.sessions.find((x) => x.id === n.id);
-       if (s) addToPath(s);
-     } else {
-       // challenge selected -> expand mapped sessions into path
-       const c = CHALLENGES.find((x) => x.id === n.id);
-       if (!c) return;
-       const sessions = WEEKS.flatMap((w) => w.sessions).filter((s) => c.mapTo.includes(s.id));
-       const toAdd = sessions.filter((s) => !learningPath.some((lp) => lp.id === s.id));
-       setLearningPath((prev) => [...prev, ...toAdd.map((s) => ({ id: s.id, title: s.title }))]);
-     }
+<!-- /index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Learning Prototype – Fixed UI</title>
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 (UMD) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel Standalone so JSX runs in-browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Optional: Framer Motion UMD; fallback if unavailable -->
+    <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
+
+    <style>
+      :root {
+        --accent: #6366f1; /* default indigo */
+      }
+      .bg-accent { background: var(--accent); }
+      .text-accent { color: var(--accent); }
+      .border-soft { border-color: rgba(0, 0, 0, 0.08); }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // Minimal framer-motion fallback if CDN isn't available.
+      const motion = (window.framerMotion && window.framerMotion.motion) || {
+        div: (props) => <div {...props} />,
+      };
+
+      const { useEffect, useMemo, useState } = React;
+
+      /** ---------------------------
+       * Sample Data
+       * --------------------------- */
+      const WEEKS = [
+        {
+          id: "w1",
+          title: "Week 1 – Foundations",
+          sessions: [
+            { id: "w1s1", title: "Intro to JS" },
+            { id: "w1s2", title: "ES6 Essentials" },
+            { id: "w1s3", title: "Debugging Basics" },
+          ],
+        },
+        {
+          id: "w2",
+          title: "Week 2 – Frontend",
+          sessions: [
+            { id: "w2s1", title: "React Components" },
+            { id: "w2s2", title: "State & Props" },
+            { id: "w2s3", title: "Hooks Primer" },
+          ],
+        },
+        {
+          id: "w3",
+          title: "Week 3 – Tooling",
+          sessions: [
+            { id: "w3s1", title: "Vite & Bundling" },
+            { id: "w3s2", title: "Testing 101" },
+            { id: "w3s3", title: "Ship It" },
+          ],
+        },
+      ];
+
+      /** ---------------------------
+       * Utils
+       * --------------------------- */
+      const cls = (...names) => names.filter(Boolean).join(" ");
+
+      /** ---------------------------
+       * Whiteboard (stub)
+       * --------------------------- */
+      function Whiteboard({ notes, setNotes, theme }) {
+        const [val, setVal] = useState("");
+
+        const add = () => {
+          if (!val.trim()) return;
+          setNotes((n) => [...n, val.trim()]);
+          setVal("");
+        };
+
+        const remove = (i) =>
+          setNotes((n) => n.filter((_, idx) => idx !== i));
+
+        return (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                value={val}
+                onChange={(e) => setVal(e.target.value)}
+                placeholder="Add a note…"
+                className="flex-1 rounded-xl border border-soft px-3 py-2 outline-none focus:ring-2"
+                style={{ caretColor: theme.primary }}
+              />
+              <button
+                onClick={add}
+                className="rounded-xl px-4 py-2 text-white bg-accent"
+                title="Add note"
+              >
+                Add
+              </button>
+            </div>
+            <ul className="grid gap-2">
+              {notes.length === 0 && (
+                <li className="text-xs opacity-60">
+                  No notes yet. Jot something above.
+                </li>
+              )}
+              {notes.map((n, i) => (
+                <li
+                  key={i}
+                  className="rounded-xl border border-soft p-3 flex items-start justify-between bg-white"
+                >
+                  <span className="text-sm">{n}</span>
+                  <button
+                    onClick={() => remove(i)}
+                    className="text-xs underline opacity-70"
+                    title="Remove note"
+                  >
+                    remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+
+      /** ---------------------------
+       * ChatGPTPanel (stub)
+       * --------------------------- */
+      function ChatGPTPanel({ apiKey, setApiKey, thread, setThread }) {
+        const [input, setInput] = useState("");
+
+        const send = () => {
+          const msg = input.trim();
+          if (!msg) return;
+          setThread((t) => [...t, { role: "user", content: msg }]);
+          // No network calls; simple echo to demonstrate UI flow.
+          setTimeout(() => {
+            setThread((t) => [
+              ...t,
+              { role: "assistant", content: `Echo: ${msg}` },
+            ]);
+          }, 200);
+          setInput("");
+        };
+
+        return (
+          <div className="rounded-2xl p-4 border border-soft bg-white h-full">
+            <div className="font-semibold mb-2">ChatGPT Panel (demo)</div>
+            <div className="mb-3">
+              <label className="text-xs block mb-1 opacity-70">API Key</label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-… (not used in demo)"
+                className="w-full rounded-xl border border-soft px-3 py-2"
+              />
+            </div>
+            <div className="h-40 overflow-auto rounded-xl border border-soft p-2 mb-3 bg-gray-50">
+              {thread.length === 0 && (
+                <div className="text-xs opacity-60">
+                  Start the conversation below.
+                </div>
+              )}
+              {thread.map((m, i) => (
+                <div key={i} className="mb-2">
+                  <span className="text-[10px] uppercase opacity-50 mr-2">
+                    {m.role}
+                  </span>
+                  <span className="text-sm">{m.content}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Type a message…"
+                className="flex-1 rounded-xl border border-soft px-3 py-2"
+              />
+              <button onClick={send} className="rounded-xl px-4 py-2 bg-accent text-white">
+                Send
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      /** ---------------------------
+       * Quiz Modal (stub)
+       * --------------------------- */
+      function Quiz({ s, onClose, onComplete }) {
+        const [answer, setAnswer] = useState("");
+
+        const submit = () => {
+          // Simple correctness check.
+          const ok = answer.trim().toLowerCase().includes(s.title.toLowerCase().split(" ")[0]);
+          onComplete?.(ok);
+          onClose?.();
+        };
+
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <div className="font-semibold text-lg mb-1">Quick Quiz</div>
+              <div className="text-sm opacity-70 mb-4">
+                Session: <span className="font-medium">{s.title}</span>
+              </div>
+              <div className="text-sm mb-3">What is a key concept from this session?</div>
+              <input
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                className="w-full rounded-xl border border-soft px-3 py-2 mb-4"
+                placeholder="Type your answer…"
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={onClose} className="px-3 py-2 rounded-xl border border-soft">
+                  Cancel
+                </button>
+                <button onClick={submit} className="px-4 py-2 rounded-xl bg-accent text-white">
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /** ---------------------------
+       * Main App
+       * --------------------------- */
+      function App() {
+        const [theme, setTheme] = useState({ primary: "#6366f1" });
+        const [notes, setNotes] = useState([]);
+        const [apiKey, setApiKey] = useState("");
+        const [thread, setThread] = useState([]);
+        const [path, setPath] = useState([]);
+        const [quizSession, setQuizSession] = useState(null);
+
+        useEffect(() => {
+          // Keep CSS var in sync with theme.
+          document.documentElement.style.setProperty("--accent", theme.primary);
+        }, [theme]);
+
+        const addToPath = (s) =>
+          setPath((p) => (p.some((x) => x.id === s.id) ? p : [...p, s]));
+
+        const removeFromPath = (id) =>
+          setPath((p) => p.filter((x) => x.id !== id));
+
+        const clearPath = () => setPath([]);
+
+        const allSessions = useMemo(
+          () => WEEKS.flatMap((w) => w.sessions),
+          []
+        );
+
+        return (
+          <div className="max-w-6xl mx-auto p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-accent" />
+                <div>
+                  <div className="font-semibold">Interactive Learning Prototype</div>
+                  <div className="text-xs opacity-60">Blue Screen IT Ltd</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={theme.primary}
+                  onChange={(e) => setTheme({ primary: e.target.value })}
+                  className="w-10 h-10 p-0 rounded-xl border border-soft"
+                  title="Change accent colour"
+                />
+                <span className="text-xs opacity-70">Accent</span>
+              </div>
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Weeks & Sessions */}
+              <motion.div
+                layout
+                className="rounded-2xl border border-soft bg-white p-4 lg:col-span-2"
+              >
+                <div className="font-semibold mb-3">Course Weeks</div>
+
+                <div className="space-y-4">
+                  {WEEKS.map((w) => (
+                    <motion.div key={w.id} layout className="rounded-xl border border-soft">
+                      <div className="px-4 py-2 bg-gray-50 rounded-t-xl font-medium">
+                        {w.title}
+                      </div>
+                      <ul className="p-3 space-y-2">
+                        {w.sessions.map((s) => (
+                          <li
+                            key={s.id}
+                            className="flex items-center justify-between rounded-lg border border-soft p-2"
+                          >
+                            <span className="text-sm">{s.title}</span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                className="text-xs underline"
+                                onClick={() => addToPath(s)}
+                                title="Add to path"
+                              >
+                                add
+                              </button>
+                              <button
+                                className="text-xs underline"
+                                onClick={() => setQuizSession(s)}
+                                title="Start quiz for this session"
+                              >
+                                quiz
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Learning Path */}
+              <motion.div
+                layout
+                className="rounded-2xl border border-soft bg-white p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold">Your Path</div>
+                  <button
+                    onClick={clearPath}
+                    className="text-xs underline opacity-70"
+                    disabled={path.length === 0}
+                    title="Clear path"
+                  >
+                    clear
+                  </button>
+                </div>
+
+                {path.length === 0 ? (
+                  <div className="text-xs opacity-60">
+                    No sessions yet. Click <em>add</em> on a session.
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {path.map((s) => (
+                      <li
+                        key={s.id}
+                        className="flex items-center justify-between rounded-lg border border-soft p-2"
+                      >
+                        <span className="text-sm">{s.title}</span>
+                        <button
+                          className="text-xs underline opacity-70"
+                          onClick={() => removeFromPath(s.id)}
+                          title="Remove"
+                        >
+                          remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Tools Row */}
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="rounded-2xl p-4 border border-soft bg-white">
+                <div className="font-semibold mb-2">Floating Whiteboard</div>
+                <Whiteboard notes={notes} setNotes={setNotes} theme={theme} />
+              </div>
+
+              <ChatGPTPanel
+                apiKey={apiKey}
+                setApiKey={setApiKey}
+                thread={thread}
+                setThread={setThread}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-xs opacity-70 text-center">
+              © 2025 Blue Screen IT Ltd. Course mapping used for interactive learning prototype.
+            </div>
+
+            {/* Quiz Modal */}
+            {quizSession && (
+              <Quiz
+                s={quizSession}
+                onClose={() => setQuizSession(null)}
+                onComplete={(ok) => {
+                  // why: mimic your "micro-adaptation" behavior to keep UX intact
+                  if (ok) {
+                    const all = WEEKS.flatMap((w) => w.sessions);
+                    const idx = all.findIndex((x) => x.id === quizSession.id);
+                    const next = all[idx + 1];
+                    if (next) setPath((p) => (p.some((x) => x.id === next.id) ? p : [...p, next]));
+                  }
+                }}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // Mount
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
 
