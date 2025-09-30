@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Cornwall AI — 4-Stage Challenge</title>
-<meta name="description" content="Futuristic 4-stage prompt challenge with Firebase uploads, numbered voting, live results, overall leaderboard, certificates, archive gallery, and collage export to PNG/PDF." />
+<meta name="description" content="Futuristic 4-stage prompt challenge with Firebase uploads, numbered voting, live results, overall leaderboard, archive gallery, and collage/certificate export." />
 
 <!--
-IMPORTANT WORKSHOP SETUP
+WORKSHOP SETUP (read once)
 
-1) Realtime Database RULES (works even WITHOUT indexes now, but this is better):
+Realtime Database RULES (works even WITHOUT indexes now, but this is better):
 {
   "rules": {
     "submissions": {
@@ -24,7 +24,7 @@ IMPORTANT WORKSHOP SETUP
   }
 }
 
-2) Storage CORS (needed so the collage/certificate canvas can export with images):
+Storage CORS (optional if you rely on the base64 copies; required if you want to draw remote Storage images into canvas):
 [
   {
     "origin": ["*"],
@@ -33,7 +33,9 @@ IMPORTANT WORKSHOP SETUP
     "maxAgeSeconds": 3600
   }
 ]
-Apply via gsutil or Cloud Console on your Storage bucket.
+
+This app saves a resized base64 snapshot of uploaded images to DB (imageData/demoData),
+so collages and certificates can render even when CORS is not set.
 -->
 
 <!-- Fonts -->
@@ -43,30 +45,22 @@ Apply via gsutil or Cloud Console on your Storage bucket.
 
 <style>
   :root{
-    --bg1:#050316;
-    --bg2:#0b0630;
-    --glow:#7f5af0;
-    --cyan:#2cb67d;
-    --blue:#5de4ff;
-    --purple:#a78bfa;
-    --green:#22c55e;
-    --danger:#ef4444;
-    --muted:#a3a3a3;
-    --card:#0f0a3a80;
-    --card2:#110a4a99;
+    --bg1:#050316; --bg2:#0b0630; --glow:#7f5af0; --cyan:#2cb67d;
+    --blue:#5de4ff; --purple:#a78bfa; --green:#22c55e; --danger:#ef4444;
+    --muted:#a3a3a3; --card:#0f0a3a80; --card2:#110a4a99;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
-    margin:0; color:#eef; background: radial-gradient(1200px 700px at 20% 10%, #140b55 0%, #090530 40%, #050316 80%),
-                         radial-gradient(900px 500px at 80% 30%, #0b2455 0%, #060321 60%, #050316 90%);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+    margin:0; color:#eef;
+    background: radial-gradient(1200px 700px at 20% 10%, #140b55 0%, #090530 40%, #050316 80%),
+               radial-gradient(900px 500px at 80% 30%, #0b2455 0%, #060321 60%, #050316 90%);
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     overflow-x:hidden;
   }
   .stars, .stars2, .stars3{
     position:fixed; inset:0; pointer-events:none; z-index:0;
-    background-repeat:repeat; background-size:contain; opacity:.5;
-    animation: drift 120s linear infinite;
+    background-repeat:repeat; background-size:contain; opacity:.5; animation: drift 120s linear infinite;
   }
   .stars { background-image: radial-gradient(2px 2px at 20% 30%, #fff, transparent 60%),
                               radial-gradient(1px 1px at 70% 60%, #ddf, transparent 60%),
@@ -80,8 +74,7 @@ Apply via gsutil or Cloud Console on your Storage bucket.
   .brand{
     font-family: Orbitron, Inter, sans-serif; letter-spacing:.06em; font-weight:800; font-size: clamp(24px, 3vw, 44px);
     background: linear-gradient(90deg, var(--blue), var(--purple), var(--cyan));
-    -webkit-background-clip:text; background-clip:text; color: transparent;
-    text-shadow: 0 0 20px rgba(127,90,240,.25);
+    -webkit-background-clip:text; background-clip:text; color: transparent; text-shadow: 0 0 20px rgba(127,90,240,.25);
   }
   .subtitle{margin-top:6px; color:#bcd; font-weight:500}
   .container{ position:relative; z-index:1; max-width:1200px; margin: 20px auto 160px; padding: 0 16px; }
@@ -259,14 +252,15 @@ Apply via gsutil or Cloud Console on your Storage bucket.
       </div>
       <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="saveNameBtn">Save Name</button>
-        <button class="btn ghost" id="downloadMyCollageBtn" title="PNG poster with your slogan, logo, flyer & sparkle">My Collage (PNG)</button>
-        <button class="btn ghost" id="downloadMyCollagePdfBtn" title="PDF poster with your slogan, logo, flyer & sparkle">My Collage (PDF)</button>
+        <button class="btn ghost" id="downloadMyCollageBtn">My Collage (PNG)</button>
+        <button class="btn ghost" id="downloadMyCollagePdfBtn">My Collage (PDF)</button>
+        <span class="tiny" id="nameStatus"></span>
       </div>
 
       <hr style="border: none; border-top:1px solid #2a2769; margin:16px 0">
 
       <h3>Certificate</h3>
-      <div class="tiny" style="margin-bottom:8px;">After voting, download your certificate showing any places you achieved and your overall points/rank.</div>
+      <div class="tiny" style="margin-bottom:8px;">Download a PDF certificate showing your places and overall rank.</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="downloadMyCertPdfBtn">My Certificate (PDF)</button>
       </div>
@@ -320,7 +314,7 @@ Apply via gsutil or Cloud Console on your Storage bucket.
               <button class="btn ghost" id="downloadArchiveBtn">Download Archive (JSON)</button>
               <button class="btn danger" id="archiveAndClearBtn" title="Copies to DB archive + uploads JSON to Storage, then clears live data">Archive to Firebase & Clear All</button>
             </div>
-            <div class="tiny" style="margin-top:6px;">DB path: <code>archive/</code>, Storage path: <code>backups/session-&lt;timestamp&gt;.json</code></div>
+            <div class="tiny" style="margin-top:6px;">DB: <code>archive/</code> • Storage: <code>backups/session-*.json</code></div>
           </div>
 
           <div class="card" style="padding:12px;">
@@ -342,7 +336,7 @@ Apply via gsutil or Cloud Console on your Storage bucket.
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
-<!-- jsPDF (no SRI; with fallback loader below) -->
+<!-- jsPDF (without SRI); fallback loader in ensureJsPDF() -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
@@ -432,7 +426,6 @@ const els = {
   archiveGallery: document.getElementById('archiveGallery'),
   archiveHint: document.getElementById('archiveHint'),
 
-  // Overall & Certificates
   computeOverallBtn: document.getElementById('computeOverallBtn'),
   overallResultsWrap: document.getElementById('overallResultsWrap'),
   certPicker: document.getElementById('certPicker'),
@@ -530,10 +523,10 @@ function renderAdminResults(){ return renderResultsTo(els.resultsWrap, true); }
 function renderPublicResults(){
   const sKey = STAGES[currentStageIndex].key;
   const canShow = settings[sKey]?.resultsOpen || admin;
-  els.resultsPublicHint.textContent = canShow ? "Leaderboard updates in real time." : "Results hidden by facilitator.";
-  if(els.resultsPublicWrap.style.display==='block'){
+  els.resultsPublicHint && (els.resultsPublicHint.textContent = canShow ? "Leaderboard updates in real time." : "Results hidden by facilitator.");
+  if(els.resultsPublicWrap && els.resultsPublicWrap.style.display==='block'){
     if(canShow) renderResultsTo(els.resultsPublicList, false);
-    else els.resultsPublicList.innerHTML = "";
+    else els.resultsPublicList && (els.resultsPublicList.innerHTML = "");
   }
 }
 
@@ -561,7 +554,7 @@ function getStageHTML(key){
       <div class="muted">Create a punchy slogan for our AI group in Cornwall. Be nice 😄</div>
       ${nameWarn}
       <label>Your Slogan</label>
-      <input id="s1Slogan" type="text" maxlength="120" placeholder="e.g., &quot;Cornwall AI: Clever minds, kinder futures&quot;" />
+      <input id="s1Slogan" type="text" maxlength="120" placeholder='e.g., "Cornwall AI: Clever minds, kinder futures"' />
       <button class="btn primary" id="s1Submit" style="margin-top:10px;">Submit Slogan</button>
     `;
   }
@@ -611,75 +604,123 @@ function renderStage(){
   els.content.innerHTML = "";
   els.content.appendChild(wrap);
 
-  if(s.key === 'stage1'){ document.getElementById('s1Submit')?.addEventListener('click', submitSlogan); }
-  if(s.key === 'stage2'){ document.getElementById('s2Submit')?.addEventListener('click', submitLogo); }
-  if(s.key === 'stage3'){ document.getElementById('s3Submit')?.addEventListener('click', submitFlyer); }
-  if(s.key === 'stage4'){ document.getElementById('s4Submit')?.addEventListener('click', submitSparkle); }
+  document.getElementById('s1Submit')?.addEventListener('click', submitSlogan);
+  document.getElementById('s2Submit')?.addEventListener('click', submitLogo);
+  document.getElementById('s3Submit')?.addEventListener('click', submitFlyer);
+  document.getElementById('s4Submit')?.addEventListener('click', submitSparkle);
 }
 
 /* ===============================
-   Submissions
+   Debounce & Image helpers
 ================================== */
-async function submitSlogan(){
-  const name = getName();
-  if(!name){ alert("Please set your name on the right first."); return; }
-  const slogan = (document.getElementById('s1Slogan')?.value || "").trim();
-  if(!slogan){ alert("Please write your slogan."); return; }
-  const id = uid();
-  await stageRef('stage1').child(id).set({ id, name, slogan, createdAt: Date.now() });
-  alert("Slogan submitted! 🎉");
-  const input = document.getElementById('s1Slogan'); if(input) input.value = "";
+let busy = { s1:false, s2:false, s3:false, s4:false };
+function disableBtn(btn, on){
+  if(!btn) return;
+  btn.disabled = !!on;
+  btn.style.opacity = on ? .6 : 1;
 }
-async function submitLogo(){
-  const name = getName();
-  if(!name){ alert("Please set your name on the right first."); return; }
-  const file = document.getElementById('s2File')?.files?.[0];
-  if(!file){ alert("Please choose a logo file."); return; }
-  const id = uid();
-  let url = "";
-  if(storage){
-    const ref = storage.ref().child(`uploads/stage2/${id}-${file.name}`);
-    await ref.put(file);
-    url = await ref.getDownloadURL();
-  }
-  await stageRef('stage2').child(id).set({ id, name, imageUrl: url, fileName: file.name, createdAt: Date.now() });
-  alert("Logo uploaded! 🚀");
-  const input = document.getElementById('s2File'); if(input) input.value = "";
+function fileToResizedDataURL(file, maxSize=1024, mime='image/jpeg', quality=.9){
+  return new Promise((resolve)=>{
+    if(!file || !file.type.startsWith('image/')) return resolve(null);
+    const img = new Image(); img.crossOrigin='anonymous';
+    const fr = new FileReader();
+    fr.onload = ()=>{ img.onload = ()=>{
+        const canvas=document.createElement('canvas');
+        let w=img.width, h=img.height;
+        const scale = Math.min(1, maxSize/Math.max(w,h));
+        w=Math.round(w*scale); h=Math.round(h*scale);
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        try{ resolve(canvas.toDataURL(mime, quality)); }
+        catch(e){ resolve(null); }
+      }; img.onerror=()=>resolve(null); img.src = fr.result;
+    };
+    fr.onerror = ()=> resolve(null);
+    fr.readAsDataURL(file);
+  });
 }
-async function submitFlyer(){
-  const name = getName();
-  if(!name){ alert("Please set your name on the right first."); return; }
-  const desc = (document.getElementById('s3Desc')?.value || "").trim();
-  const file = document.getElementById('s3File')?.files?.[0];
-  if(!desc){ alert("Please add a short description."); return; }
-  if(!file){ alert("Please choose a flyer image file."); return; }
-  const id = uid();
-  let url = "";
-  if(storage){
-    const ref = storage.ref().child(`uploads/stage3/${id}-${file.name}`);
-    await ref.put(file);
-    url = await ref.getDownloadURL();
-  }
-  await stageRef('stage3').child(id).set({ id, name, description: desc, imageUrl: url, fileName: file.name, createdAt: Date.now() });
-  alert("Flyer uploaded! 🌟");
-  document.getElementById('s3Desc').value = "";
-  document.getElementById('s3File').value = "";
+
+/* ===============================
+   Submissions (with single-run guards & base64 copy)
+================================== */
+async function submitSlogan(e){
+  if(busy.s1) return; busy.s1 = true; disableBtn(e?.target, true);
+  try{
+    const name = getName(); if(!name){ alert("Please set your name on the right first."); return; }
+    const slogan = (document.getElementById('s1Slogan')?.value || "").trim();
+    if(!slogan){ alert("Please write your slogan."); return; }
+    const id = uid();
+    await stageRef('stage1').child(id).set({ id, name, slogan, createdAt: Date.now() });
+    alert("Slogan submitted! 🎉");
+    const input = document.getElementById('s1Slogan'); if(input) input.value = "";
+  } finally { busy.s1 = false; disableBtn(e?.target, false); }
 }
-async function submitSparkle(){
-  const name = getName();
-  if(!name){ alert("Please set your name on the right first."); return; }
-  const effect = document.getElementById('s4Effect')?.value || 'starlight';
-  const file = document.getElementById('s4File')?.files?.[0];
-  const id = uid();
-  let url = "";
-  if(file && storage){
-    const ref = storage.ref().child(`uploads/stage4/${id}-${file.name}`);
-    await ref.put(file);
-    url = await ref.getDownloadURL();
-  }
-  await stageRef('stage4').child(id).set({ id, name, effect, demoUrl: url || "", fileName: file?.name || "", createdAt: Date.now() });
-  alert("Sparkle submitted! ✨");
-  const f = document.getElementById('s4File'); if(f) f.value = "";
+
+async function submitLogo(e){
+  if(busy.s2) return; busy.s2 = true; disableBtn(e?.target, true);
+  try{
+    const name = getName(); if(!name){ alert("Please set your name on the right first."); return; }
+    const file = document.getElementById('s2File')?.files?.[0];
+    if(!file){ alert("Please choose a logo file."); return; }
+    const id = uid();
+    let url = ""; let dataURL = await fileToResizedDataURL(file, 1024, 'image/jpeg', .9);
+    if(storage){
+      const ref = storage.ref().child(`uploads/stage2/${id}-${file.name}`);
+      await ref.put(file);
+      url = await ref.getDownloadURL();
+    }
+    await stageRef('stage2').child(id).set({
+      id, name, imageUrl: url, imageData: dataURL || "", fileName: file.name, createdAt: Date.now()
+    });
+    alert("Logo uploaded! 🚀");
+    const input = document.getElementById('s2File'); if(input) input.value = "";
+  } finally { busy.s2 = false; disableBtn(e?.target, false); }
+}
+
+async function submitFlyer(e){
+  if(busy.s3) return; busy.s3 = true; disableBtn(e?.target, true);
+  try{
+    const name = getName(); if(!name){ alert("Please set your name on the right first."); return; }
+    const desc = (document.getElementById('s3Desc')?.value || "").trim();
+    const file = document.getElementById('s3File')?.files?.[0];
+    if(!desc){ alert("Please add a short description."); return; }
+    if(!file){ alert("Please choose a flyer image file."); return; }
+    const id = uid();
+    let url = ""; let dataURL = await fileToResizedDataURL(file, 1280, 'image/jpeg', .9);
+    if(storage){
+      const ref = storage.ref().child(`uploads/stage3/${id}-${file.name}`);
+      await ref.put(file);
+      url = await ref.getDownloadURL();
+    }
+    await stageRef('stage3').child(id).set({
+      id, name, description: desc, imageUrl: url, imageData: dataURL || "", fileName: file.name, createdAt: Date.now()
+    });
+    alert("Flyer uploaded! 🌟");
+    const t = document.getElementById('s3Desc'); if(t) t.value = "";
+    const f = document.getElementById('s3File'); if(f) f.value = "";
+  } finally { busy.s3 = false; disableBtn(e?.target, false); }
+}
+
+async function submitSparkle(e){
+  if(busy.s4) return; busy.s4 = true; disableBtn(e?.target, true);
+  try{
+    const name = getName(); if(!name){ alert("Please set your name on the right first."); return; }
+    const effect = document.getElementById('s4Effect')?.value || 'starlight';
+    const file = document.getElementById('s4File')?.files?.[0];
+    const id = uid();
+    let url = ""; let dataURL = file ? await fileToResizedDataURL(file, 1024, 'image/jpeg', .9) : "";
+    if(file && storage){
+      const ref = storage.ref().child(`uploads/stage4/${id}-${file.name}`);
+      await ref.put(file);
+      url = await ref.getDownloadURL();
+    }
+    await stageRef('stage4').child(id).set({
+      id, name, effect, demoUrl: url || "", demoData: dataURL || "", fileName: file?.name || "", createdAt: Date.now()
+    });
+    alert("Sparkle submitted! ✨");
+    const f = document.getElementById('s4File'); if(f) f.value = "";
+  } finally { busy.s4 = false; disableBtn(e?.target, false); }
 }
 
 /* ===============================
@@ -689,22 +730,22 @@ let galleryStageKey = STAGES[0].key;
 els.openGalleryBtn?.addEventListener('click', openGallery);
 function openGallery(){
   galleryStageKey = STAGES[currentStageIndex].key;
-  els.galleryWrap.style.display = 'block';
-  els.galleryTitle.textContent = `Gallery — ${STAGES[currentStageIndex].label}`;
+  els.galleryWrap && (els.galleryWrap.style.display = 'block');
+  els.galleryTitle && (els.galleryTitle.textContent = `Gallery — ${STAGES[currentStageIndex].label}`);
   loadGallery(galleryStageKey);
 }
 async function loadGallery(stageKey){
   const votingOpen = !!(settings?.[stageKey]?.votingOpen);
   const showNames = false;
 
-  els.votingPanel.style.display = votingOpen ? 'block' : 'none';
-  els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.";
+  els.votingPanel && (els.votingPanel.style.display = votingOpen ? 'block' : 'none');
+  els.galleryHint && (els.galleryHint.textContent = votingOpen ? "Voting is open — names are hidden." : "Gallery preview — voting is closed.");
 
   const snap = await stageRef(stageKey).get();
   const data = snap.val() || {};
   const items = Object.values(data).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
 
-  els.gallery.innerHTML = "";
+  els.gallery && (els.gallery.innerHTML = "");
   const voteOptions = [{value:"",label:"— choose —"}];
 
   items.forEach((it, idx) => {
@@ -717,21 +758,21 @@ async function loadGallery(stageKey){
     if(stageKey==='stage1'){
       media = `<div class="caption" style="font-weight:800; font-size:16px; min-height:130px; display:flex; align-items:center;">“${escapeHtml(it.slogan || '')}”</div>`;
     } else {
-      const src = it.imageUrl || it.demoUrl || '';
+      const src = it.imageData || it.imageUrl || it.demoData || it.demoUrl || '';
       media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption" style="min-height:130px; display:flex; align-items:center;">No media uploaded</div>`;
     }
 
     const caption = showNames ? `<div class="caption">${escapeHtml(it.name||'')}</div>` : '';
     div.innerHTML = `<div class="num-badge">${number}</div>${media}${caption}`;
-    els.gallery.appendChild(div);
+    els.gallery && els.gallery.appendChild(div);
 
     voteOptions.push({ value: it.id, label: `${number}` });
   });
 
-  fillSelect(els.firstVote, voteOptions);
-  fillSelect(els.secondVote, voteOptions);
-  fillSelect(els.thirdVote, voteOptions);
-  els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
+  els.firstVote && fillSelect(els.firstVote, voteOptions);
+  els.secondVote && fillSelect(els.secondVote, voteOptions);
+  els.thirdVote && fillSelect(els.thirdVote, voteOptions);
+  if(els.submitVoteBtn) els.submitVoteBtn.onclick = () => submitVotes(stageKey, voteOptions.map(o=>o.value));
 }
 async function submitVotes(stageKey, validIds){
   const v1 = els.firstVote?.value; const v2 = els.secondVote?.value; const v3 = els.thirdVote?.value;
@@ -752,7 +793,7 @@ async function submitVotes(stageKey, validIds){
    Public Results toggle
 ================================== */
 els.openResultsBtn?.addEventListener('click', ()=>{
-  els.resultsPublicWrap.style.display = 'block';
+  els.resultsPublicWrap && (els.resultsPublicWrap.style.display = 'block');
   renderPublicResults();
 });
 
@@ -762,8 +803,8 @@ els.openResultsBtn?.addEventListener('click', ()=>{
 const ADMIN_CODE = "1975";
 function setAdminMode(on){
   admin = on;
-  els.adminPanel.style.display = on ? 'block' : 'none';
-  els.adminPanelLocked.style.display = on ? 'none' : 'block';
+  els.adminPanel && (els.adminPanel.style.display = on ? 'block' : 'none');
+  els.adminPanelLocked && (els.adminPanelLocked.style.display = on ? 'none' : 'block');
   if(on) refreshParticipantPicker();
   renderPublicResults();
 }
@@ -876,11 +917,15 @@ async function refreshParticipantPicker(){
     op.value = n; op.textContent = n;
     els.adminParticipantPicker.appendChild(op);
   });
+  // also populate certificate picker
+  fillSelect(els.certPicker, [{value:'',label:'— Select participant —'}].concat(
+    Array.from(names).sort().map(n=>({value:n,label:n}))
+  ));
   if(curr && names.has(curr)) els.adminParticipantPicker.value = curr;
 }
 
 /* ===============================
-   Collage Builder (PNG + PDF)
+   Collage Builder (PNG + PDF) — prefers base64 from DB
 ================================== */
 els.downloadMyCollageBtn?.addEventListener('click', async ()=>{
   const name = getName();
@@ -912,8 +957,7 @@ els.adminDownloadCollagePdfBtn?.addEventListener('click', async ()=>{
 });
 
 async function gatherUserStageData(name){
-  // Client-side filter (no index required)
-  const out = { name, slogan:"", logoUrl:"", flyerUrl:"", description:"", sparkle: "" };
+  const out = { name, slogan:"", logoUrl:"", logoData:"", flyerUrl:"", flyerData:"", description:"", sparkle: "", sparkleData:"" };
 
   let snap = await stageRef('stage1').get();
   let items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
@@ -921,129 +965,108 @@ async function gatherUserStageData(name){
 
   snap = await stageRef('stage2').get();
   items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
-  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.logoUrl = items[0].imageUrl||""; }
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.logoUrl = items[0].imageUrl||""; out.logoData = items[0].imageData||""; }
 
   snap = await stageRef('stage3').get();
   items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
-  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.flyerUrl = items[0].imageUrl||""; out.description = items[0].description||""; }
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.flyerUrl = items[0].imageUrl||""; out.flyerData = items[0].imageData||""; out.description = items[0].description||""; }
 
   snap = await stageRef('stage4').get();
   items = Object.values(snap.val()||{}).filter(it=>it?.name===name);
-  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.sparkle = items[0].effect||""; }
+  if(items.length){ items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); out.sparkle = items[0].effect||""; out.sparkleData = items[0].demoData||""; }
 
   return out;
 }
-function loadImage(url){
+function loadImage(src){
   return new Promise((resolve)=>{
-    if(!url) return resolve(null);
+    if(!src) return resolve(null);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = ()=> resolve(img);
     img.onerror = ()=> resolve(null);
-    img.src = url;
+    img.src = src;
   });
 }
 function wrapText(ctx, text, x, y, maxWidth, lineHeight){
   const words = (text||"").split(/\s+/); let line = ""; let yy = y;
   for(let n=0; n<words.length; n++){
-    const testLine = line + words[n] + " ";
-    const metrics = ctx.measureText(testLine);
-    if(metrics.width > maxWidth && n>0){
-      ctx.fillText(line, x, yy);
-      line = words[n] + " ";
-      yy += lineHeight;
-    } else { line = testLine; }
+    const test = line + words[n] + " ";
+    if(ctx.measureText(test).width > maxWidth && n>0){
+      ctx.fillText(line, x, yy); line = words[n] + " "; yy += lineHeight;
+    } else { line = test; }
   }
   ctx.fillText(line, x, yy);
   return yy;
 }
-async function renderCollageCanvas({name, slogan, logoUrl, flyerUrl, description, sparkle}){
+async function renderCollageCanvas({name, slogan, logoUrl, logoData, flyerUrl, flyerData, description, sparkle, sparkleData}){
   const W = 1200, H = 1600;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
+  const canvas = document.createElement('canvas'); canvas.width=W; canvas.height=H;
   const ctx = canvas.getContext('2d');
 
-  // Background gradient
+  // Background gradient + stars
   const g = ctx.createLinearGradient(0,0,W,H);
   g.addColorStop(0, '#0a0838'); g.addColorStop(.5, '#0a1b44'); g.addColorStop(1, '#050316');
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-  // Stars
   ctx.globalAlpha = 0.35;
-  for(let i=0;i<180;i++){
-    const x = Math.random()*W, y = Math.random()*H, r = Math.random()*1.6+0.4;
-    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-  }
+  for(let i=0;i<180;i++){ const x=Math.random()*W,y=Math.random()*H,r=Math.random()*1.6+.4; ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
   ctx.globalAlpha = 1;
 
-  // Header
-  ctx.fillStyle = '#5de4ff';
-  ctx.font = 'bold 44px Orbitron, sans-serif';
-  ctx.fillText('Cornwall AI — Prompt Gauntlet', 48, 80);
-
-  // Name
-  ctx.fillStyle = '#a78bfa';
-  ctx.font = 'bold 36px Inter, sans-serif';
-  ctx.fillText(name || 'Participant', 48, 130);
+  // Headings
+  ctx.fillStyle = '#5de4ff'; ctx.font = 'bold 44px Orbitron, sans-serif'; ctx.fillText('Cornwall AI — Prompt Gauntlet', 48, 80);
+  ctx.fillStyle = '#a78bfa'; ctx.font = 'bold 36px Inter, sans-serif'; ctx.fillText(name || 'Participant', 48, 130);
 
   // Slogan box
-  ctx.strokeStyle = '#2cb67d'; ctx.lineWidth = 3;
-  ctx.strokeRect(44, 160, W-88, 160);
-  ctx.fillStyle = '#e6f3ff';
-  ctx.font = 'bold 38px Inter, sans-serif';
-  const sl = `"${slogan || 'Your brilliant slogan'}"`;
-  wrapText(ctx, sl, 60, 205, W-120, 44);
+  ctx.strokeStyle = '#2cb67d'; ctx.lineWidth = 3; ctx.strokeRect(44, 160, W-88, 160);
+  ctx.fillStyle = '#e6f3ff'; ctx.font = 'bold 38px Inter, sans-serif';
+  wrapText(ctx, `"${slogan || 'Your brilliant slogan'}"`, 60, 205, W-120, 44);
 
   // Logo
-  const logo = await loadImage(logoUrl);
+  let logo = await loadImage(logoData || logoUrl);
   if(logo){ ctx.drawImage(logo, 60, 340, 360, 360); }
   else { ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(60, 340, 360, 360);
          ctx.fillStyle = '#8aa5ff'; ctx.font='bold 20px Inter, sans-serif'; ctx.fillText('Logo not uploaded', 80, 540); }
 
   // Flyer
-  const flyer = await loadImage(flyerUrl);
+  let flyer = await loadImage(flyerData || flyerUrl);
   if(flyer){ ctx.drawImage(flyer, 480, 340, 640, 480); }
   else { ctx.strokeStyle = '#4b3fb6'; ctx.strokeRect(480, 340, 640, 480);
          ctx.fillStyle = '#8aa5ff'; ctx.font='bold 20px Inter, sans-serif'; ctx.fillText('Flyer not uploaded', 500, 580); }
 
   // Description
-  ctx.fillStyle = '#9fe7ff';
-  ctx.font = 'bold 28px Inter, sans-serif';
+  ctx.fillStyle = '#9fe7ff'; ctx.font = 'bold 28px Inter, sans-serif';
   ctx.fillText('Why we are the best AI group in Cornwall', 48, 860);
-  ctx.fillStyle = '#dfe9ff';
-  ctx.font = '24px Inter, sans-serif';
+  ctx.fillStyle = '#dfe9ff'; ctx.font = '24px Inter, sans-serif';
   const lastY = wrapText(ctx, description || '—', 48, 900, W-96, 34);
 
   // Sparkle
-  ctx.fillStyle = '#2cb67d';
-  ctx.font = 'bold 28px Inter, sans-serif';
-  const spark = sparkle ? `Sparkle: ${sparkle}` : 'Sparkle: —';
-  ctx.fillText(spark, 48, Math.min(lastY+50, 1120));
+  ctx.fillStyle = '#2cb67d'; ctx.font = 'bold 28px Inter, sans-serif';
+  ctx.fillText(`Sparkle: ${sparkle || '—'}`, 48, Math.min(lastY+50, 1120));
+  const spr = await loadImage(sparkleData);
+  if(spr){ ctx.globalAlpha = 0.85; ctx.drawImage(spr, W-360, 880, 300, 220); ctx.globalAlpha = 1; }
 
   // Footer ribbon
   const grad = ctx.createLinearGradient(0, H-120, W, H-60);
   grad.addColorStop(0,'#5de4ff'); grad.addColorStop(0.5,'#a78bfa'); grad.addColorStop(1,'#2cb67d');
   ctx.fillStyle = grad; ctx.fillRect(0, H-80, W, 80);
-  ctx.fillStyle = '#040319';
-  ctx.font = 'bold 28px Orbitron, sans-serif';
+  ctx.fillStyle = '#040319'; ctx.font = 'bold 28px Orbitron, sans-serif';
   ctx.fillText('Made at the Cornwall AI Creation Challenge', 48, H-30);
 
   return canvas;
 }
 function canvasToDataURL(canvas){
   try { return canvas.toDataURL('image/png'); }
-  catch(e){ console.warn('Canvas toDataURL blocked (CORS). Set Storage CORS.'); return null; }
+  catch(e){ console.warn('Canvas toDataURL blocked (CORS).'); return null; }
 }
 async function exportCollagePNG(data, filename){
   const canvas = await renderCollageCanvas(data);
   const dataUrl = canvasToDataURL(canvas);
-  if(!dataUrl){ alert('PNG export blocked by browser due to image CORS.\nSet Firebase Storage CORS (see file header).'); return; }
+  if(!dataUrl){ alert('PNG export blocked by browser due to image CORS. (Base64 fallback should avoid this.)'); return; }
   triggerDownload(dataUrl, filename);
 }
 async function exportCollagePDF(data, filename){
   const canvas = await renderCollageCanvas(data);
   const dataUrl = canvasToDataURL(canvas);
-  if(!dataUrl){ alert('PDF export blocked by browser due to image CORS.\nSet Firebase Storage CORS (see file header).'); return; }
+  if(!dataUrl){ alert('PDF export blocked by browser due to image CORS. (Base64 fallback should avoid this.)'); return; }
   const jsPDF = await ensureJsPDF();
   const pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
@@ -1074,14 +1097,9 @@ els.downloadMyCertPdfBtn?.addEventListener('click', async ()=>{
 });
 
 async function computeOverall(){
-  // returns { leaderboard:[{name,total,rank}], placements:{[stageKey]:[{id,name,points,place}...]} }
   const nameTotals = {};
-  const placements = {};
   for(const s of STAGES){
-    const { scores, idToName } = await computeStageScores(s.key);
-    // top 3 placements per stage
-    placements[s.key] = scores.slice(0,3).map((r,i)=>({ id:r.id, name:r.name, points:r.score, place:i+1 }));
-    // add points to names
+    const { scores } = await computeStageScores(s.key);
     scores.forEach(r=>{
       const nm = r.name || '(unknown)';
       nameTotals[nm] = (nameTotals[nm]||0) + (r.score||0);
@@ -1091,11 +1109,11 @@ async function computeOverall(){
     .map(([name,total])=>({name,total}))
     .sort((a,b)=> b.total-a.total)
     .map((row,i)=> ({...row, rank:i+1}));
-  return { leaderboard, placements };
+  return { leaderboard };
 }
 async function computeOverallAndRender(){
   const { leaderboard } = await computeOverall();
-  els.overallResultsWrap.innerHTML = `
+  els.overallResultsWrap && (els.overallResultsWrap.innerHTML = `
     <div class="gallery" style="grid-template-columns: 1fr;">
       ${leaderboard.map(r=>`
         <div class="tile" style="display:flex; align-items:center; justify-content:space-between;">
@@ -1107,8 +1125,8 @@ async function computeOverallAndRender(){
         </div>
       `).join('')}
     </div>
-  `;
-  // populate cert picker
+  `);
+  // populate pickers
   fillSelect(els.certPicker, [{value:'',label:'— Select participant —'}].concat(
     leaderboard.map(r=>({value:r.name, label:`${r.name} (${r.total} pts)`}))
   ));
@@ -1118,8 +1136,8 @@ async function placementsForName(name){
   for(const s of STAGES){
     const { scores } = await computeStageScores(s.key);
     const top3 = scores.slice(0,3);
-    const found = top3.find(x=> (x.name||'') === name);
-    if(found){ out[s.key] = top3.findIndex(x=>x.id===found.id)+1; } // 1,2,3
+    const idx = top3.findIndex(x=> (x.name||'') === name);
+    if(idx>=0) out[s.key] = idx+1; // 1..3
   }
   return out;
 }
@@ -1129,7 +1147,7 @@ async function generateCertificateFor(name){
   const places = await placementsForName(name);
   const canvas = await renderCertificateCanvas({ name, overallPoints: row.total, overallRank: row.rank, places });
   const dataUrl = canvasToDataURL(canvas);
-  if(!dataUrl){ alert('PDF export blocked by browser due to image CORS.\nSet Firebase Storage CORS (see file header).'); return; }
+  if(!dataUrl){ alert('PDF export blocked by browser due to image CORS.'); return; }
   const jsPDF = await ensureJsPDF();
   const pdf = new jsPDF({ orientation:'landscape', unit:'pt', format:'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
@@ -1138,72 +1156,47 @@ async function generateCertificateFor(name){
   pdf.save(`${safeFileName(name)}-Certificate.pdf`);
 }
 async function renderCertificateCanvas({name, overallPoints, overallRank, places}){
-  // A4 landscape @ ~1600x1132 px
   const W = 1600, H = 1132;
   const c = document.createElement('canvas'); c.width=W; c.height=H;
   const ctx = c.getContext('2d');
 
-  // Background: deep nebula gradient
   const g = ctx.createLinearGradient(0,0,W,H);
   g.addColorStop(0,'#0a0a33'); g.addColorStop(0.5,'#0b1f54'); g.addColorStop(1,'#06041f');
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-  // Stars
   ctx.globalAlpha = 0.35;
   for(let i=0;i<240;i++){ const x=Math.random()*W,y=Math.random()*H,r=Math.random()*1.6+.4; ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
   ctx.globalAlpha = 1;
 
-  // Glowing border
   ctx.strokeStyle = '#7f5af0'; ctx.lineWidth = 8; ctx.strokeRect(24,24,W-48,H-48);
 
-  // Title
-  ctx.fillStyle = '#5de4ff';
-  ctx.font = 'bold 70px Orbitron, sans-serif';
-  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5de4ff'; ctx.font = 'bold 70px Orbitron, sans-serif'; ctx.textAlign='center';
   ctx.fillText('Certificate of Achievement', W/2, 180);
 
-  // Recipient
-  ctx.fillStyle = '#a78bfa';
-  ctx.font = '800 64px Inter, sans-serif';
+  ctx.fillStyle = '#a78bfa'; ctx.font = '800 64px Inter, sans-serif';
   ctx.fillText(name || 'Participant', W/2, 280);
 
-  // Subtitle
-  ctx.fillStyle = '#cde8ff';
-  ctx.font = '28px Inter, sans-serif';
+  ctx.fillStyle = '#cde8ff'; ctx.font = '28px Inter, sans-serif';
   ctx.fillText('in the Cornwall AI Creation Challenge', W/2, 330);
 
-  // Divider
   ctx.strokeStyle = '#2cb67d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(200,360); ctx.lineTo(W-200,360); ctx.stroke();
 
-  // Placements list
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#9fe7ff';
-  ctx.font = 'bold 30px Inter, sans-serif';
+  ctx.fillStyle = '#9fe7ff'; ctx.font = 'bold 30px Inter, sans-serif';
   ctx.fillText('Stage Placements:', 220, 420);
 
-  ctx.fillStyle = '#eaf6ff';
-  ctx.font = '26px Inter, sans-serif';
-  const labels = {
-    stage1: 'Stage 1 • Slogan',
-    stage2: 'Stage 2 • Logo',
-    stage3: 'Stage 3 • Flyer',
-    stage4: 'Stage 4 • Sparkle',
-  };
-  let y = 460;
-  let anyPlace = false;
+  ctx.fillStyle = '#eaf6ff'; ctx.font = '26px Inter, sans-serif';
+  const labels = { stage1:'Stage 1 • Slogan', stage2:'Stage 2 • Logo', stage3:'Stage 3 • Flyer', stage4:'Stage 4 • Sparkle' };
+  let y = 460; let anyPlace=false;
   for(const k of Object.keys(labels)){
     const p = places[k];
     const line = `${labels[k]} — ${p===1?'🥇 First Place': p===2?'🥈 Second Place': p===3?'🥉 Third Place': '—'}`;
-    if(p){ anyPlace = true; }
-    ctx.fillText(line, 240, y);
-    y += 38;
+    if(p) anyPlace=true;
+    ctx.fillText(line, 240, y); y += 38;
   }
   if(!anyPlace){
-    ctx.fillStyle = '#ffdca8';
-    ctx.fillText('No podium places recorded — thanks for participating and shining!', 240, y);
+    ctx.fillStyle = '#ffdca8'; ctx.fillText('No podium places recorded — thanks for participating and shining!', 240, y);
   }
 
-  // Overall stats box
   const boxX = W-640, boxY = 420, boxW = 420, boxH = 220;
   ctx.fillStyle = 'rgba(15,14,60,0.65)'; ctx.strokeStyle='#4a3fb6'; ctx.lineWidth=2;
   ctx.fillRect(boxX, boxY, boxW, boxH); ctx.strokeRect(boxX, boxY, boxW, boxH);
@@ -1213,7 +1206,6 @@ async function renderCertificateCanvas({name, overallPoints, overallRank, places
   ctx.fillText(`Points: ${overallPoints||0}`, boxX+24, boxY+88);
   ctx.fillText(`Rank: ${overallRank||'-'}`, boxX+24, boxY+128);
 
-  // Footer
   ctx.textAlign = 'center';
   ctx.fillStyle = '#7adcc8'; ctx.font = '22px Inter, sans-serif';
   ctx.fillText('Awarded by Cornwall AI — Best AI group in Cornwall', W/2, H-80);
@@ -1267,7 +1259,7 @@ async function buildArchive(){
 
 /* ---------- Archive Gallery UI ---------- */
 els.openArchiveBtn?.addEventListener('click', ()=>{
-  els.archiveWrap.style.display = 'block';
+  els.archiveWrap && (els.archiveWrap.style.display = 'block');
   loadArchiveSessions();
 });
 els.loadArchiveBtn?.addEventListener('click', ()=>{
@@ -1290,7 +1282,7 @@ async function loadArchiveSessions(){
 async function loadArchiveGallery(sessionId, stageKey){
   const node = await archiveDataRef(sessionId).child(`submissions/${stageKey}`).get();
   const items = Object.values(node.val()||{}).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
-  els.archiveGallery.innerHTML = "";
+  els.archiveGallery && (els.archiveGallery.innerHTML = "");
   items.forEach((it, idx)=>{
     const number = idx+1;
     const div = document.createElement('div');
@@ -1300,14 +1292,14 @@ async function loadArchiveGallery(sessionId, stageKey){
     if(stageKey==='stage1'){
       media = `<div class="caption" style="font-weight:800; font-size:16px; min-height:130px; display:flex; align-items:center;">“${escapeHtml(it.slogan || '')}”</div>`;
     } else {
-      const src = it.imageUrl || it.demoUrl || '';
+      const src = it.imageData || it.imageUrl || it.demoData || it.demoUrl || '';
       media = src ? `<img src="${src}" alt="submission media" />` : `<div class="caption" style="min-height:130px; display:flex; align-items:center;">No media</div>`;
     }
     const name = `<div class="caption">By: ${escapeHtml(it.name||'-')}</div>`;
     div.innerHTML = `<div class="num-badge">${number}</div>${media}${name}`;
-    els.archiveGallery.appendChild(div);
+    els.archiveGallery && els.archiveGallery.appendChild(div);
   });
-  els.archiveHint.textContent = items.length ? `Loaded ${items.length} item(s) — ${STAGES.find(s=>s.key===stageKey).label}` : 'No items in that session/stage.';
+  els.archiveHint && (els.archiveHint.textContent = items.length ? `Loaded ${items.length} item(s) — ${STAGES.find(s=>s.key===stageKey).label}` : 'No items in that session/stage.');
 }
 
 /* ===============================
@@ -1315,8 +1307,8 @@ async function loadArchiveGallery(sessionId, stageKey){
 ================================== */
 function loadName(){
   const n = getName();
-  els.participantName.value = n || "";
-  els.nameStatus.textContent = n ? `Saved: ${n}` : '';
+  if(els.participantName) els.participantName.value = n || "";
+  if(els.nameStatus) els.nameStatus.textContent = n ? `Saved: ${n}` : '';
 }
 els.saveNameBtn?.addEventListener('click', ()=>{
   const n = (els.participantName?.value||"").trim();
@@ -1332,12 +1324,6 @@ window.addEventListener('load', ()=>{
   renderTabs();
   renderStage();
   attachLiveResultsListeners();
-});
-
-// Public Results open
-els.openResultsBtn?.addEventListener('click', ()=>{
-  els.resultsPublicWrap.style.display = 'block';
-  renderPublicResults();
 });
 </script>
 </body>
