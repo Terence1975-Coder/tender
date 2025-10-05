@@ -49,17 +49,18 @@
   .tag.warn{color:#6a3a00;background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.25)}
   .tag.bad{color:#5f0d1a;background:rgba(251,113,133,.18);border-color:rgba(251,113,133,.25)}
   .list{display:grid;gap:8px}
-  .li{display:grid;grid-template-columns:1fr 120px 36px;gap:8px;align-items:center}
+  .li{display:grid;grid-template-columns:1fr 170px 140px 36px;gap:8px;align-items:center}
   .li .x{display:grid;place-items:center;height:38px;border-radius:10px;background:#0b1230;border:1px solid rgba(255,255,255,.12);cursor:pointer}
   .footnote{color:var(--muted);font-size:12px}
 
   /* Roadmap */
   .roadmap-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .phase-bar{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
-  .phase{background:#0e1740;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;min-height:180px}
-  .phase-title{display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:8px}
-  .phase-title input{background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:6px 8px}
-  .item{background:#0b1230;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;margin-bottom:8px;cursor:grab}
+  .phase{background:#0e1740;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;min-height:180px;color:var(--ink)}
+  .phase-title{display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:8px;color:var(--ink)}
+  .phase-title input{background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:6px 8px;color:var(--ink)}
+  .item{background:#0b1230;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;margin-bottom:8px;cursor:grab;color:var(--ink)}
+  .item [contenteditable], .item input{color:var(--ink)}
   .item:active{cursor:grabbing}
   .ghost{opacity:.4;border:1px dashed rgba(255,255,255,.35)}
   .drop-hint{border:1px dashed rgba(255,255,255,.35);border-radius:10px;height:38px;margin:6px 0}
@@ -73,6 +74,19 @@
   canvas#board{width:100%;height:420px;display:block;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:
     repeating-linear-gradient(0deg, #0f1633 0 24px, #111a3a 24px 25px),
     repeating-linear-gradient(90deg, #0f1633 0 24px, #111a3a 24px 25px);}
+  /* Editable, draggable sticky notes */
+  .sticky{
+    position:absolute; min-width:180px; max-width:280px; padding:10px 12px; border-radius:10px;
+    background:rgba(255,251,210,.95); color:#222; border:1px solid rgba(0,0,0,.25);
+    box-shadow:0 6px 20px rgba(0,0,0,.3); cursor:move; user-select:none;
+  }
+  .sticky[contenteditable="true"]{cursor:text}
+  .sticky:focus{outline:2px solid rgba(0,0,0,.25)}
+  .sticky .bar{background:transparent;border:none;padding:0;margin:0;gap:8px}
+  .sticky .bar .handle{font-weight:700;color:#555;cursor:move}
+  .sticky .close{margin-left:auto}
+  #boardPrint{display:none}
+
   .pdf-embed{width:100%;height:500px;border:1px solid rgba(255,255,255,.12);border-radius:12px}
 
   @media print{
@@ -82,7 +96,8 @@
     .card{box-shadow:none;border:1px solid #ddd;color:#000}
     input,textarea{border:1px solid #999 !important;color:#000 !important;background:#fff !important}
     .tag.ok,.tag.warn,.tag.bad{border-color:#999 !important;background:#fff !important;color:#000 !important}
-    canvas#board{border:1px solid #999 !important}
+    canvas#board{display:none}
+    #boardPrint{display:block; width:100%; height:auto; border:1px solid #999; border-radius:8px}
     @page{size:A4;margin:12mm}
   }
   @media (max-width:1000px){.grid{grid-template-columns:1fr}}
@@ -132,9 +147,7 @@
     <!-- Right column -->
     <div class="card">
       <div class="panel-title">Readiness-Assessment Canvas</div>
-
       <div id="sections"></div>
-
       <div class="row">
         <label class="lab">7) Confidence Level: <span id="confVal">5</span>/10</label>
         <input type="range" id="confidence" min="0" max="10" value="5" />
@@ -162,7 +175,8 @@
       <div class="list" id="actionList"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" class="no-print">
         <input type="text" id="actionInput" placeholder="Add action item..." />
-        <input type="text" id="actionOwner" placeholder="Owner & target date" />
+        <input type="text" id="actionOwner" placeholder="Owner" />
+        <input type="date" id="actionDate" />
         <button class="btn small" id="addAction">Add</button>
       </div>
     </div>
@@ -183,8 +197,9 @@
         <button class="btn small" id="clearBoard">Clear</button>
         <button class="btn small" id="downloadPng">Export PNG</button>
       </div>
-      <div class="canvas-area">
+      <div class="canvas-area" id="canvasArea">
         <canvas id="board" width="1200" height="420" aria-label="Sketch board"></canvas>
+        <img id="boardPrint" alt="Sketchboard snapshot for print"/>
       </div>
     </div>
 
@@ -210,7 +225,7 @@
   </section>
 
   <p class="footnote no-print" style="text-align:center;margin-top:14px">
-    Download PDF uses your browser’s print dialog. Choose <strong>“Save as PDF”</strong>. Page is formatted for A4.
+    “Download PDF” composites the sketch board to an image so it appears in the PDF. Page is formatted for A4.
   </p>
 </div>
 
@@ -230,13 +245,14 @@ const els = {
   sections: $('sections'), ring:$('ring'), score:$('score'), readinessText:$('readinessText'), statusTag:$('statusTag'),
   team:$('team'), facilitator:$('facilitator'), date:$('date'),
   confidence:$('confidence'), confVal:$('confVal'),
-  actionInput:$('actionInput'), actionOwner:$('actionOwner'), actionList:$('actionList'),
+  actionInput:$('actionInput'), actionOwner:$('actionOwner'), actionDate:$('actionDate'), actionList:$('actionList'),
   rep:$('rep'), sponsor:$('sponsor'),
   roadmapName:$('roadmapName'), phaseBar:$('phaseBar'), addPhaseBtn:$('addPhaseBtn'), addItemBtn:$('addItemBtn'),
   pdfBtn:$('pdfBtn'), saveBtn:$('saveBtn'), loadBtn:$('loadBtn'), exportBtn:$('exportBtn'), importFile:$('importFile'), newCanvasBtn:$('newCanvasBtn'),
-  // sketch board
-  board:$('board'), color:$('color'), size:$('size'), undoBtn:$('undoBtn'), redoBtn:$('redoBtn'), clearBoard:$('clearBoard'), noteTool:$('noteTool'),
-  pdfInput:$('pdfInput'), pdfViewer:$('pdfViewer'), pdfWrap:$('pdfViewerWrap'), miroLink:$('miroLink')
+  // sketch board & notes
+  board:$('board'), canvasArea:$('canvasArea'), color:$('color'), size:$('size'), undoBtn:$('undoBtn'), redoBtn:$('redoBtn'), clearBoard:$('clearBoard'), noteTool:$('noteTool'),
+  pdfInput:$('pdfInput'), pdfViewer:$('pdfViewer'), pdfWrap:$('pdfViewerWrap'), miroLink:$('miroLink'),
+  boardPrint:$('boardPrint')
 };
 function sectionMarkup(def){
   return `
@@ -278,34 +294,35 @@ function updateRing(pct, answered){
 document.addEventListener('change', e=>{ if(e.target.matches('input[type="radio"]')){computeScore(); autoSave();}});
 els.confidence.addEventListener('input', ()=>{ $('confVal').textContent=els.confidence.value; computeScore(); autoSave();});
 
-/* ========= Actions ========= */
-function addActionRow(item={text:'',owner:''}){
+/* ========= Actions (now with date) ========= */
+function addActionRow(item={text:'',owner:'',date:''}){
   const wrap=document.createElement('div'); wrap.className='li';
   wrap.innerHTML=`<input type="text" placeholder="Action" value="${item.text||''}">
-                  <input type="text" placeholder="Owner & target date" value="${item.owner||''}">
+                  <input type="text" placeholder="Owner" value="${item.owner||''}">
+                  <input type="date" value="${item.date||''}">
                   <div class="x" title="Remove">✕</div>`;
   wrap.querySelector('.x').onclick=()=>{wrap.remove();autoSave();};
   wrap.querySelectorAll('input').forEach(i=>i.oninput=autoSave);
   els.actionList.appendChild(wrap);
 }
 $('addAction').addEventListener('click', ()=>{
-  const text=els.actionInput.value.trim(), owner=els.actionOwner.value.trim();
-  if(!text && !owner) return;
-  addActionRow({text, owner}); els.actionInput.value=''; els.actionOwner.value=''; autoSave();
+  const text=els.actionInput.value.trim(), owner=els.actionOwner.value.trim(), date=els.actionDate.value;
+  if(!text && !owner && !date) return;
+  addActionRow({text, owner, date}); els.actionInput.value=''; els.actionOwner.value=''; els.actionDate.value=''; autoSave();
 });
 function getActions(){
   return Array.from(els.actionList.querySelectorAll('.li')).map(li=>{
-    const [a,b]=li.querySelectorAll('input'); return {text:a.value.trim(), owner:b.value.trim()};
-  }).filter(x=>x.text||x.owner);
+    const [a,b,c]=li.querySelectorAll('input'); return {text:a.value.trim(), owner:b.value.trim(), date:c.value};
+  }).filter(x=>x.text||x.owner||x.date);
 }
 
 /* ========= Roadmap (phases + drag) ========= */
 let phases = [
-  { id: crypto('p1'), name:'Phase 1 — Discover', items:[] },
-  { id: crypto('p2'), name:'Phase 2 — Build', items:[] },
-  { id: crypto('p3'), name:'Phase 3 — Release', items:[] },
+  { id: uid('p1'), name:'Phase 1 — Discover', items:[] },
+  { id: uid('p2'), name:'Phase 2 — Build', items:[] },
+  { id: uid('p3'), name:'Phase 3 — Release', items:[] },
 ];
-function crypto(prefix){ return prefix + Math.random().toString(36).slice(2,9); }
+function uid(prefix){ return prefix + Math.random().toString(36).slice(2,9); }
 function renderPhases(){
   els.phaseBar.innerHTML='';
   phases.forEach(ph=>{
@@ -329,7 +346,7 @@ function renderPhases(){
     });
     el.querySelector('[data-role="pname"]').addEventListener('input', e=>{ ph.name=e.target.value; autoSave(); });
     el.querySelector('[data-role="del"]').addEventListener('click', ()=>{
-      if(confirm('Remove this phase? Items will be kept but not shown.')){ phases = phases.filter(x=>x.id!==ph.id); renderPhases(); autoSave(); }
+      if(confirm('Remove this phase?')){ phases = phases.filter(x=>x.id!==ph.id); renderPhases(); autoSave(); }
     });
     els.phaseBar.appendChild(el);
   });
@@ -346,111 +363,151 @@ function renderItem(it){
   el.querySelector('[data-role="date"]').value = it.date||''; el.querySelector('[data-role="date"]').oninput=e=>{ it.date=e.target.value; autoSave(); };
   el.querySelector('[data-role="owner"]').value = it.owner||''; el.querySelector('[data-role="owner"]').oninput=e=>{ it.owner=e.target.value; autoSave(); };
   el.querySelector('[data-role="del"]').onclick = ()=>{ removeItem(it.id); el.remove(); autoSave(); };
-
   el.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', it.id); });
   return el;
 }
-function addPhase(){ phases.push({ id:crypto('p'), name:`Phase ${phases.length+1}`, items:[] }); renderPhases(); }
+function addPhase(){ phases.push({ id:uid('p'), name:`Phase ${phases.length+1}`, items:[] }); renderPhases(); }
 function addItem(){
   if(phases.length===0) addPhase();
-  const it={ id:crypto('i'), title:'New item', date:'', owner:'' };
+  const it={ id:uid('i'), title:'New item', date:'', owner:'' };
   phases[0].items.push(it); renderPhases(); autoSave();
 }
 function moveItem(itemId, destPid){
-  let found=null, src=null;
-  phases.forEach(p=>{ const idx=p.items.findIndex(i=>i.id===itemId); if(idx>=0){ found=p.items[idx]; src=p; p.items.splice(idx,1); }});
+  let found=null;
+  phases.forEach(p=>{ const idx=p.items.findIndex(i=>i.id===itemId); if(idx>=0){ found=p.items[idx]; p.items.splice(idx,1); }});
   const dest = phases.find(p=>p.id===destPid);
   if(found && dest){ dest.items.push(found); }
 }
-function removeItem(itemId){
-  phases.forEach(p=>{ p.items = p.items.filter(i=>i.id!==itemId); });
-}
-els.addPhaseBtn.addEventListener('click', addPhase);
-els.addItemBtn.addEventListener('click', addItem);
+function removeItem(itemId){ phases.forEach(p=>{ p.items = p.items.filter(i=>i.id!==itemId); }); }
+$('addPhaseBtn').addEventListener('click', addPhase);
+$('addItemBtn').addEventListener('click', addItem);
 renderPhases();
 
-/* ========= Sketch board (pen/eraser/notes) ========= */
+/* ========= Sketch board (pen/eraser + editable draggable sticky notes) ========= */
 const ctx = els.board.getContext('2d');
 let drawing=false, tool='pen', strokes=[], undone=[], currentPath=null;
+let notes=[]; // {id,x,y,text}
 function resizeCanvasToDisplaySize(canvas){
   const {width, height} = canvas.getBoundingClientRect();
-  if(canvas.width !== Math.round(width) || canvas.height !== Math.round(height)){
+  const w = Math.round(width), h = Math.round(height);
+  if(canvas.width !== w || canvas.height !== h){
     const img = ctx.getImageData(0,0,canvas.width,canvas.height);
-    canvas.width = Math.round(width); canvas.height = Math.round(height);
+    canvas.width = w; canvas.height = h;
     ctx.putImageData(img, 0, 0);
   }
 }
 window.addEventListener('resize', ()=> resizeCanvasToDisplaySize(els.board));
 resizeCanvasToDisplaySize(els.board);
-function startDraw(x,y){
-  drawing=true; currentPath={tool, color: els.color.value, size:+els.size.value, pts:[[x,y]], text:null};
-}
-function moveDraw(x,y){
-  if(!drawing) return;
-  currentPath.pts.push([x,y]); redraw();
-}
+
+function startDraw(x,y){ drawing=true; currentPath={tool, color: els.color.value, size:+els.size.value, pts:[[x,y]]}; }
+function moveDraw(x,y){ if(!drawing) return; currentPath.pts.push([x,y]); redraw(); }
 function endDraw(){ if(!drawing) return; drawing=false; strokes.push(currentPath); undone=[]; currentPath=null; autoSave(); }
 function redraw(){
   ctx.clearRect(0,0,els.board.width,els.board.height);
   const all = [...strokes]; if(currentPath) all.push(currentPath);
   all.forEach(p=>{
-    if(p.tool==='note' && p.text){
-      // sticky note rendered as rounded rect + text
-      const [x,y]=p.pts[0]; const w=220, h=120; drawNote(x,y,w,h,p.text);
-    }else{
-      ctx.strokeStyle = (p.tool==='eraser') ? '#0f1633' : p.color;
-      ctx.lineWidth=p.size; ctx.lineJoin='round'; ctx.lineCap='round';
-      ctx.beginPath();
-      p.pts.forEach(([px,py],i)=>{ if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
-      ctx.stroke();
-    }
+    ctx.strokeStyle = (p.tool==='eraser') ? '#0f1633' : p.color;
+    ctx.lineWidth=p.size; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.beginPath();
+    p.pts.forEach(([px,py],i)=>{ if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+    ctx.stroke();
   });
 }
-function drawNote(x,y,w,h,text){
-  const r=12;
-  ctx.fillStyle='rgba(255,251,210,.95)'; ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1.5;
-  ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#222'; ctx.font='14px system-ui'; wrapText(text, x+10, y+24, w-20, 18);
-}
-function wrapText(t, x, y, maxW, lh){
-  const words=t.split(' '); let line=''; for(let i=0;i<words.length;i++){
-    const test = line + words[i] + ' '; if(ctx.measureText(test).width > maxW){ ctx.fillText(line, x, y); line=words[i]+' '; y+=lh; }
-    else line=test;
-  } ctx.fillText(line, x, y);
-}
-els.board.addEventListener('mousedown', e=>{ const r=els.board.getBoundingClientRect(); startDraw(e.clientX-r.left, e.clientY-r.top); });
-els.board.addEventListener('mousemove', e=>{ const r=els.board.getBoundingClientRect(); moveDraw(e.clientX-r.left, e.clientY-r.top); });
+els.board.addEventListener('mousedown', e=>{ if(tool!=='pen' && tool!=='eraser') return; const r=els.board.getBoundingClientRect(); startDraw(e.clientX-r.left, e.clientY-r.top); });
+els.board.addEventListener('mousemove', e=>{ if(tool!=='pen' && tool!=='eraser') return; const r=els.board.getBoundingClientRect(); moveDraw(e.clientX-r.left, e.clientY-r.top); });
 window.addEventListener('mouseup', endDraw);
-els.board.addEventListener('touchstart', e=>{ const t=e.touches[0]; const r=els.board.getBoundingClientRect(); startDraw(t.clientX-r.left, t.clientY-r.top); });
-els.board.addEventListener('touchmove', e=>{ const t=e.touches[0]; const r=els.board.getBoundingClientRect(); moveDraw(t.clientX-r.left, t.clientY-r.top); e.preventDefault(); }, {passive:false});
+els.board.addEventListener('touchstart', e=>{ if(tool!=='pen' && tool!=='eraser') return; const t=e.touches[0]; const r=els.board.getBoundingClientRect(); startDraw(t.clientX-r.left, t.clientY-r.top); });
+els.board.addEventListener('touchmove', e=>{ if(tool!=='pen' && tool!=='eraser') return; const t=e.touches[0]; const r=els.board.getBoundingClientRect(); moveDraw(t.clientX-r.left, t.clientY-r.top); e.preventDefault(); }, {passive:false});
 els.board.addEventListener('touchend', endDraw);
-document.querySelectorAll('.tools [data-tool]').forEach(b=> b.addEventListener('click', ()=>{ tool=b.dataset.tool; toast('Tool: '+tool); }));
-els.noteTool.addEventListener('click', ()=>{
-  tool='note';
-  const txt = prompt('Sticky note text:');
-  if(!txt) return;
-  // Place note centered; user can draw again to place another
-  const x = 20 + Math.random()*60; const y = 20 + Math.random()*40;
-  strokes.push({tool:'note', color:'#fff', size:0, pts:[[x,y]], text:txt});
-  redraw(); autoSave();
-});
-els.undoBtn.addEventListener('click', ()=>{ if(strokes.length){ undone.push(strokes.pop()); redraw(); autoSave(); }});
-els.redoBtn.addEventListener('click', ()=>{ if(undone.length){ strokes.push(undone.pop()); redraw(); autoSave(); }});
-els.clearBoard.addEventListener('click', ()=>{ if(confirm('Clear the board?')){ strokes=[]; undone=[]; redraw(); autoSave(); }});
-$('downloadPng').addEventListener('click', ()=>{
-  const a=document.createElement('a'); a.href=els.board.toDataURL('image/png'); a.download='sketchboard.png'; a.click();
-});
 
-/* ========= PDF attach ========= */
+document.querySelectorAll('.tools [data-tool]').forEach(b=> b.addEventListener('click', ()=>{ tool=b.dataset.tool; toast('Tool: '+tool); }));
+$('undoBtn').addEventListener('click', ()=>{ if(strokes.length){ undone.push(strokes.pop()); redraw(); autoSave(); }});
+$('redoBtn').addEventListener('click', ()=>{ if(undone.length){ strokes.push(undone.pop()); redraw(); autoSave(); }});
+$('clearBoard').addEventListener('click', ()=>{ if(confirm('Clear board drawings and notes?')){ strokes=[]; undone=[]; notes=[]; clearNotesDOM(); redraw(); autoSave(); }});
+$('downloadPng').addEventListener('click', ()=>{ els.boardPrint.src = snapshotBoard(); const a=document.createElement('a'); a.href=els.boardPrint.src; a.download='sketchboard.png'; a.click(); });
+
+/* ----- Sticky notes (DOM elements over canvas) ----- */
+$('noteTool').addEventListener('click', ()=>{
+  const txt = prompt('Sticky note text (you can edit later):') || 'Note';
+  const x = 24 + Math.random()*60, y = 24 + Math.random()*40;
+  const n = {id:uid('n'), x, y, text:txt};
+  notes.push(n); makeNoteDOM(n); autoSave();
+});
+function makeNoteDOM(n){
+  const d=document.createElement('div'); d.className='sticky'; d.dataset.nid=n.id; d.style.left=n.x+'px'; d.style.top=n.y+'px';
+  d.innerHTML = `
+    <div class="bar" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <span class="handle">::</span>
+      <button class="btn small close no-print" title="Delete">✕</button>
+    </div>
+    <div class="content" contenteditable="true" spellcheck="false">${escapeHTML(n.text)}</div>
+  `;
+  // Dragging
+  let drag=false, sx=0, sy=0, ox=0, oy=0;
+  d.querySelector('.handle').addEventListener('mousedown', e=>{ drag=true; sx=e.clientX; sy=e.clientY; ox=n.x; oy=n.y; e.preventDefault(); });
+  window.addEventListener('mousemove', e=>{ if(!drag) return; const dx=e.clientX-sx, dy=e.clientY-sy; n.x = ox+dx; n.y = oy+dy; d.style.left=n.x+'px'; d.style.top=n.y+'px'; });
+  window.addEventListener('mouseup', ()=>{ if(drag){ drag=false; autoSave(); }});
+  // Touch drag
+  d.querySelector('.handle').addEventListener('touchstart', e=>{ const t=e.touches[0]; drag=true; sx=t.clientX; sy=t.clientY; ox=n.x; oy=n.y; });
+  window.addEventListener('touchmove', e=>{ if(!drag) return; const t=e.touches[0]; const dx=t.clientX-sx, dy=t.clientY-sy; n.x=ox+dx; n.y=oy+dy; d.style.left=n.x+'px'; d.style.top=n.y+'px'; }, {passive:false});
+  window.addEventListener('touchend', ()=>{ if(drag){ drag=false; autoSave(); }});
+  // Edit
+  const content = d.querySelector('.content');
+  content.addEventListener('input', ()=>{ n.text = content.innerText; autoSave(); });
+  // Delete
+  d.querySelector('.close').addEventListener('click', ()=>{ notes = notes.filter(x=>x.id!==n.id); d.remove(); autoSave(); });
+  els.canvasArea.appendChild(d);
+}
+function clearNotesDOM(){ els.canvasArea.querySelectorAll('.sticky').forEach(e=>e.remove()); }
+function restoreNotesDOM(){ clearNotesDOM(); notes.forEach(makeNoteDOM); }
+function escapeHTML(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+/* ----- Snapshot to PNG including notes ----- */
+function snapshotBoard(){
+  // Create a temp canvas same size as visible canvas
+  const rect = els.board.getBoundingClientRect();
+  const temp = document.createElement('canvas'); temp.width = Math.round(rect.width); temp.height = Math.round(rect.height);
+  const tctx = temp.getContext('2d');
+  // Draw grid background (approx)
+  tctx.fillStyle='#0f1633'; tctx.fillRect(0,0,temp.width,temp.height);
+  // Draw strokes
+  function drawPath(p){
+    tctx.strokeStyle = (p.tool==='eraser') ? '#0f1633' : p.color;
+    tctx.lineWidth=p.size; tctx.lineJoin='round'; tctx.lineCap='round';
+    tctx.beginPath();
+    p.pts.forEach(([px,py],i)=>{ if(i===0) tctx.moveTo(px,py); else tctx.lineTo(px,py); });
+    tctx.stroke();
+  }
+  strokes.forEach(drawPath);
+  // Draw notes
+  notes.forEach(n=>{
+    const w=220, h=120, r=12, x=n.x, y=n.y;
+    tctx.fillStyle='rgba(255,251,210,1)'; tctx.strokeStyle='rgba(0,0,0,.25)'; tctx.lineWidth=1.5;
+    tctx.beginPath();
+    tctx.moveTo(x+r,y); tctx.arcTo(x+w,y,x+w,y+h,r); tctx.arcTo(x+w,y+h,x,y+h,r);
+    tctx.arcTo(x,y+h,x,y,r); tctx.arcTo(x,y,x+w,y,r); tctx.closePath(); tctx.fill(); tctx.stroke();
+    // Text
+    tctx.fillStyle='#222'; tctx.font='14px system-ui';
+    const words=(n.text||'').split(' '); let line='', yy=y+24; const maxW=w-20, lh=18, xx=x+10;
+    for(let i=0;i<words.length;i++){ const test=line+words[i]+' '; if(tctx.measureText(test).width>maxW){ tctx.fillText(line,xx,yy); line=words[i]+' '; yy+=lh; } else line=test; }
+    tctx.fillText(line,xx,yy);
+  });
+  return temp.toDataURL('image/png');
+}
+
+/* ========= PDF attach & print handling ========= */
 els.pdfInput.addEventListener('change', (e)=>{
   const f=e.target.files[0]; if(!f) return;
   const url = URL.createObjectURL(f);
   els.pdfViewer.data = url;
-  els.pdfWrap.style.display='block';
+  $('pdfViewerWrap').style.display='block';
   autoSave();
 });
+// Before printing: capture snapshot of board (drawings + notes)
+window.addEventListener('beforeprint', ()=>{
+  els.boardPrint.src = snapshotBoard();
+});
+els.pdfBtn.addEventListener('click', ()=>window.print());
 
 /* ========= Storage + export ========= */
 function storageKey(){
@@ -481,7 +538,7 @@ function getData(){
     actions:getActions(),
     roadmapName:els.roadmapName.value,
     phases,
-    strokes, undone, // sketch board
+    strokes, undone, notes, // include notes
     miroLink:els.miroLink.value
   };
 }
@@ -493,6 +550,7 @@ function setData(d){
   els.roadmapName.value=d.roadmapName||'';
   phases = Array.isArray(d.phases) && d.phases.length ? d.phases : phases; renderPhases();
   strokes = Array.isArray(d.strokes)? d.strokes : []; undone = Array.isArray(d.undone)? d.undone : []; redraw();
+  notes = Array.isArray(d.notes)? d.notes : []; restoreNotesDOM();
   els.miroLink.value = d.miroLink||'';
   computeScore();
 }
@@ -503,7 +561,6 @@ function loadLocal(){
   try{ setData(JSON.parse(raw)); toast('Loaded'); }catch{ alert('Could not load saved data.'); }
 }
 let autosaveTimer=null; function autoSave(){ clearTimeout(autosaveTimer); autosaveTimer=setTimeout(saveLocal,500); }
-els.pdfBtn.addEventListener('click', ()=>window.print());
 els.saveBtn.addEventListener('click', saveLocal);
 els.loadBtn.addEventListener('click', loadLocal);
 els.exportBtn.addEventListener('click', ()=>{
@@ -520,8 +577,8 @@ els.importFile.addEventListener('change', e=>{
 els.newCanvasBtn.addEventListener('click', ()=>{
   if(confirm('Start a new, blank canvas? Unsaved changes will be lost.')){
     localStorage.removeItem(storageKey());
-    phases=[{id:crypto('p1'),name:'Phase 1 — Discover',items:[]},{id:crypto('p2'),name:'Phase 2 — Build',items:[]},{id:crypto('p3'),name:'Phase 3 — Release',items:[]}];
-    setData({checks:{},actions:[],phases});
+    phases=[{id:uid('p1'),name:'Phase 1 — Discover',items:[]},{id:uid('p2'),name:'Phase 2 — Build',items:[]},{id:uid('p3'),name:'Phase 3 — Release',items:[]}];
+    setData({checks:{},actions:[],phases,notes:[]});
   }
 });
 ['team','facilitator','date','roadmapName','rep','sponsor','miroLink'].forEach(id=>$(id)?.addEventListener('input', autoSave));
@@ -541,3 +598,4 @@ setData({checks:{},actions:[]}); computeScore();
 </script>
 </body>
 </html>
+
