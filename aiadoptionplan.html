@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Readiness-Assessment Canvas</title>
+<style>
+  :root{
+    --bg:#0b1020;          /* dark indigo */
+    --card:#111831;        /* panel */
+    --muted:#a8b3cf;       /* muted text */
+    --ink:#e9efff;         /* primary text */
+    --accent:#5eead4;      /* teal */
+    --accent-2:#60a5fa;    /* blue */
+    --danger:#fb7185;      /* rose */
+    --ok:#34d399;          /* green */
+    --warn:#f59e0b;        /* amber */
+    --ring: conic-gradient(var(--ok) var(--okdeg), var(--warn) var(--warndeg), var(--danger) 0);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:linear-gradient(180deg,#0a0f1d, #0b1020 60%, #0b1020);
+    color:var(--ink); font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  }
+
+  .app{
+    max-width:1100px; margin:28px auto; padding:0 16px 56px;
+  }
+  header.appbar{
+    position:sticky; top:0; z-index:10;
+    backdrop-filter:saturate(140%) blur(10px);
+  }
+  .bar{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(9,14,30,.7); border:1px solid rgba(255,255,255,.06);
+    padding:10px 12px; border-radius:14px;
+  }
+  .logo{
+    width:34px; height:34px; border-radius:8px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:grid; place-items:center; font-weight:700; color:#08121c;
+  }
+  .title{font-size:18px; font-weight:700; letter-spacing:.2px}
+  .muted{color:var(--muted)}
+  .spacer{flex:1}
+
+  .btn{
+    appearance:none; border:1px solid rgba(255,255,255,.12);
+    background:#0f1730; color:var(--ink); padding:8px 12px; border-radius:10px;
+    font-weight:600; cursor:pointer; transition:.18s transform, .18s opacity, .18s background, .18s border-color;
+  }
+  .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.2)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08121c; border-color:transparent}
+  .btn.ghost{background:transparent}
+  .btn.danger{border-color:rgba(255,255,255,.12); color:#ffdfe4}
+  .btn.small{padding:6px 10px; font-size:14px}
+
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns: 330px 1fr;
+    margin-top:16px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:16px; padding:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .panel-title{font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:10px}
+
+  .stack{display:grid; gap:10px}
+  label.lab{font-weight:600; display:block; margin-bottom:6px}
+  input[type="text"], input[type="date"], textarea{
+    width:100%; background:#0b1230; color:var(--ink);
+    border:1px solid rgba(255,255,255,.12); border-radius:10px;
+    padding:10px 12px; outline:none; transition:.18s border-color, .18s box-shadow;
+  }
+  textarea{min-height:90px; resize:vertical}
+  input[type="text"]:focus, input[type="date"]:focus, textarea:focus{
+    border-color:var(--accent-2); box-shadow:0 0 0 3px rgba(96,165,250,.15)
+  }
+
+  .row{display:grid; gap:12px; grid-template-columns: 1fr; margin-bottom:12px}
+  .group{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border-radius:999px;
+    background:#0c1536; border:1px solid rgba(255,255,255,.12); cursor:pointer; user-select:none;
+  }
+  .chip input{accent-color:var(--accent-2)}
+  .kpi{
+    display:flex; align-items:center; gap:14px; padding:14px; border-radius:12px;
+    background:#0e1740; border:1px dashed rgba(255,255,255,.15)
+  }
+
+  /* Readiness ring */
+  .ring{
+    width:120px; height:120px; border-radius:50%;
+    background: conic-gradient(var(--ok) 0deg, var(--ok) 0deg, var(--warn) 0deg, var(--danger) 0deg);
+    display:grid; place-items:center; position:relative; isolation:isolate;
+  }
+  .ring::after{
+    content:""; position:absolute; inset:8px; background:var(--card); border-radius:50%;
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .ring .val{
+    position:relative; font-size:22px; font-weight:800; letter-spacing:.5px;
+  }
+  .tag{
+    font-size:12px; text-transform:uppercase; letter-spacing:.12em; padding:6px 8px; border-radius:999px;
+    background:#0a132f; color:var(--muted); border:1px solid rgba(255,255,255,.12)
+  }
+  .tag.ok{color:#072; background:rgba(52,211,153,.15); border-color:rgba(52,211,153,.25)}
+  .tag.warn{color:#6a3a00; background:rgba(245,158,11,.15); border-color:rgba(245,158,11,.25)}
+  .tag.bad{color:#5f0d1a; background:rgba(251,113,133,.18); border-color:rgba(251,113,133,.25)}
+
+  .actions{display:flex; gap:8px; flex-wrap:wrap}
+  .list{display:grid; gap:8px}
+  .li{
+    display:grid; grid-template-columns: 1fr 120px 36px; gap:8px; align-items:center;
+  }
+  .li input[type="text"]{height:38px}
+  .li .x{
+    display:grid; place-items:center; height:38px; border-radius:10px; background:#0b1230; border:1px solid rgba(255,255,255,.12); cursor:pointer
+  }
+  .footnote{color:var(--muted); font-size:12px}
+
+  /* Print styles (PDF) */
+  @media print{
+    body{background:#fff}
+    header.appbar, .no-print{display:none !important}
+    .app{max-width:none; padding:0}
+    .grid{grid-template-columns:1fr 1fr; gap:14px; margin:0}
+    .card{box-shadow:none; border:1px solid #ddd; color:#000}
+    .ring::after{background:#fff; border-color:#ddd}
+    input, textarea{border:1px solid #999 !important; color:#000 !important; background:#fff !important}
+    .tag.ok, .tag.warn, .tag.bad{border-color:#999 !important; background:#fff !important; color:#000 !important}
+    @page { size: A4; margin: 12mm }
+  }
+
+  /* Responsive */
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="bar">
+      <div class="logo">RC</div>
+      <div class="title">Readiness-Assessment Canvas</div>
+      <div class="muted">One per team — fill, save, export, and download as PDF</div>
+      <div class="spacer"></div>
+      <button class="btn ghost small no-print" id="newCanvasBtn" title="Clear the form">New Canvas</button>
+      <button class="btn small no-print" id="saveBtn" title="Save to this browser">Save</button>
+      <button class="btn small no-print" id="loadBtn" title="Load from this browser">Load</button>
+      <button class="btn small no-print" id="exportBtn" title="Download JSON">Export JSON</button>
+      <label class="btn small no-print" for="importFile" title="Import JSON" style="cursor:pointer">Import</label>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <button class="btn primary no-print" id="pdfBtn" title="Save as PDF">Download PDF</button>
+    </div>
+  </header>
+
+  <section class="grid">
+    <!-- Left column: Identification + KPIs -->
+    <div class="card">
+      <div class="panel-title">Team & Session</div>
+      <div class="stack">
+        <div class="row">
+          <label class="lab">Team / Project</label>
+          <input type="text" id="team" placeholder="e.g., Data Platform Team" />
+        </div>
+        <div class="row">
+          <label class="lab">Facilitator</label>
+          <input type="text" id="facilitator" placeholder="e.g., Jane Doe" />
+        </div>
+        <div class="row">
+          <label class="lab">Date</label>
+          <input type="date" id="date" />
+        </div>
+
+        <div class="row kpi">
+          <div class="ring" id="ring"><div class="val" id="score">0%</div></div>
+          <div>
+            <div class="panel-title" style="margin:0">Readiness Index</div>
+            <div style="font-size:14px" id="readinessText">Complete the sections to calculate readiness.</div>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+              <span class="tag" id="statusTag">—</span>
+              <span class="tag">Autosaves</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <label class="lab">Overall Notes</label>
+          <textarea id="overallNotes" placeholder="Highlights, constraints, decisions..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: The Canvas -->
+    <div class="card">
+      <div class="panel-title">Readiness Checks</div>
+
+      <!-- Reusable section template pattern -->
+      <div id="sections"></div>
+
+      <div class="row">
+        <label class="lab">7) Confidence Level: <span id="confVal">5</span>/10</label>
+        <input type="range" id="confidence" min="0" max="10" value="5" />
+      </div>
+
+      <div class="row">
+        <label class="lab">8) Actions Needed Before Starting</label>
+        <div class="actions">
+          <input type="text" id="actionInput" placeholder="Add action item..." />
+          <button class="btn small no-print" id="addAction">Add</button>
+        </div>
+        <div class="list" id="actionList"></div>
+        <div class="footnote">Tip: assign an owner and target date for each action.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <div class="panel-title">Stakeholders & Sign-off</div>
+    <div class="row">
+      <label class="lab">Key Stakeholders</label>
+      <textarea id="stakeholders" placeholder="Names/roles of sponsors, SMEs, approvers…"></textarea>
+    </div>
+    <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+      <div>
+        <label class="lab">Team Representative</label>
+        <input type="text" id="rep" placeholder="Full name" />
+      </div>
+      <div>
+        <label class="lab">Sponsor / Product Owner</label>
+        <input type="text" id="sponsor" placeholder="Full name" />
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote no-print" style="text-align:center; margin-top:14px">
+    Download PDF uses your browser’s print dialog. Choose <strong>“Save as PDF”</strong>. Page is formatted for A4.
+  </p>
+</div>
+
+<script>
+/* ===============================
+   Readiness-Assessment App (vanilla JS)
+   =============================== */
+
+const SECTION_DEFS = [
+  { id: 'vision',       title: '1) Vision & Alignment',       q: 'Shared understanding of goals?' },
+  { id: 'skills',       title: '2) Skills & Capabilities',    q: 'Right mix of skills on the team?' },
+  { id: 'tools',        title: '3) Tools & Infrastructure',   q: 'Environments, access & data in place?' },
+  { id: 'stake',        title: '4) Stakeholder Support',      q: 'Stakeholders understand & back this?' },
+  { id: 'process',      title: '5) Processes & Ways of Working', q: 'Roles, responsibilities, decisions clear?' },
+  { id: 'risks',        title: '6) Risks & Dependencies',     q: 'External risks/dependencies mapped & managed?' },
+];
+
+const RADIO_VALS = { yes: 2, partial: 1, no: 0 };
+
+const els = {
+  sections: document.getElementById('sections'),
+  ring: document.getElementById('ring'),
+  score: document.getElementById('score'),
+  readinessText: document.getElementById('readinessText'),
+  statusTag: document.getElementById('statusTag'),
+  team: document.getElementById('team'),
+  facilitator: document.getElementById('facilitator'),
+  date: document.getElementById('date'),
+  overallNotes: document.getElementById('overallNotes'),
+  confidence: document.getElementById('confidence'),
+  confVal: document.getElementById('confVal'),
+  actionInput: document.getElementById('actionInput'),
+  actionList: document.getElementById('actionList'),
+  stakeholders: document.getElementById('stakeholders'),
+  rep: document.getElementById('rep'),
+  sponsor: document.getElementById('sponsor'),
+
+  pdfBtn: document.getElementById('pdfBtn'),
+  saveBtn: document.getElementById('saveBtn'),
+  loadBtn: document.getElementById('loadBtn'),
+  exportBtn: document.getElementById('exportBtn'),
+  importFile: document.getElementById('importFile'),
+  newCanvasBtn: document.getElementById('newCanvasBtn'),
+};
+
+function sectionMarkup(def){
+  const name = def.id;
+  return `
+    <div class="row card" style="padding:14px">
+      <div class="lab" style="margin-bottom:10px">${def.title}</div>
+      <div class="group" role="group" aria-label="${def.title}">
+        <span class="muted" style="margin-right:6px">${def.q}</span>
+        <label class="chip"><input type="radio" name="${name}-rad" value="yes"> Yes</label>
+        <label class="chip"><input type="radio" name="${name}-rad" value="partial"> Partially</label>
+        <label class="chip"><input type="radio" name="${name}-rad" value="no"> No</label>
+      </div>
+      <div class="row">
+        <label class="lab" for="${name}-notes">Notes</label>
+        <textarea id="${name}-notes" placeholder="Context, gaps, evidence…"></textarea>
+      </div>
+    </div>
+  `;
+}
+
+// Render sections
+els.sections.innerHTML = SECTION_DEFS.map(sectionMarkup).join("");
+
+// Helpers to get & set form data
+function getFormData(){
+  const data = {
+    team: els.team.value.trim(),
+    facilitator: els.facilitator.value.trim(),
+    date: els.date.value,
+    overallNotes: els.overallNotes.value,
+    stakeholders: els.stakeholders.value,
+    rep: els.rep.value.trim(),
+    sponsor: els.sponsor.value.trim(),
+    confidence: +els.confidence.value,
+    checks: {},
+    actions: getActions()
+  };
+  SECTION_DEFS.forEach(def=>{
+    const chosen = document.querySelector(`input[name="${def.id}-rad"]:checked`);
+    data.checks[def.id] = { value: chosen ? chosen.value : null, notes: (document.getElementById(def.id+'-notes').value||'') };
+  });
+  return data;
+}
+function setFormData(data){
+  els.team.value = data.team||'';
+  els.facilitator.value = data.facilitator||'';
+  els.date.value = data.date||'';
+  els.overallNotes.value = data.overallNotes||'';
+  els.stakeholders.value = data.stakeholders||'';
+  els.rep.value = data.rep||'';
+  els.sponsor.value = data.sponsor||'';
+  els.confidence.value = (data.confidence ?? 5);
+  els.confVal.textContent = els.confidence.value;
+
+  // Radios + notes
+  SECTION_DEFS.forEach(def=>{
+    const v = data.checks?.[def.id]?.value;
+    if(v){
+      const el = document.querySelector(`input[name="${def.id}-rad"][value="${v}"]`);
+      if(el) el.checked = true;
+    } else {
+      document.querySelectorAll(`input[name="${def.id}-rad"]`).forEach(r=>r.checked=false);
+    }
+    document.getElementById(def.id+'-notes').value = data.checks?.[def.id]?.notes || '';
+  });
+
+  // Actions
+  els.actionList.innerHTML = '';
+  (data.actions||[]).forEach(addActionRow);
+
+  computeScore();
+}
+
+function computeScore(){
+  // Base readiness from 6 checks (Yes=2, Partial=1, No=0), max = 12
+  let earned = 0, answered = 0;
+  SECTION_DEFS.forEach(def=>{
+    const chosen = document.querySelector(`input[name="${def.id}-rad"]:checked`);
+    if(chosen){ answered++; earned += RADIO_VALS[chosen.value] }
+  });
+  const base = answered ? (earned / (2*answered)) : 0; // 0..1
+  const confidence = (+els.confidence.value)/10;        // 0..1
+  const final = Math.round(((base*0.7 + confidence*0.3) * 100));
+  updateRing(final, answered);
+}
+
+function updateRing(pct, answered){
+  els.score.textContent = `${pct}%`;
+  // Status label
+  let s = '—', cls = '';
+  if(answered === 0){ s='Incomplete'; cls='' }
+  else if(pct >= 75){ s='Ready'; cls='ok' }
+  else if(pct >= 55){ s='Almost'; cls='warn' }
+  else { s='Not Ready'; cls='bad' }
+  els.statusTag.textContent = s;
+  els.statusTag.className = 'tag ' + (cls || '');
+
+  els.readinessText.textContent = (answered === SECTION_DEFS.length)
+    ? 'All checks completed. Review actions and export when done.'
+    : `Complete all checks (${answered}/${SECTION_DEFS.length}) to improve accuracy.`;
+
+  // Update conic-gradient ring
+  const okdeg = Math.min(360 * (pct/100), 360);
+  els.ring.style.background = `conic-gradient(var(--ok) 0deg ${okdeg}deg, #263353 ${okdeg}deg 360deg)`;
+}
+
+// Actions list
+function addActionRow(item){
+  const row = document.createElement('div');
+  row.className = 'li';
+  row.innerHTML = `
+    <input type="text" placeholder="Action" value="${item?.text ?? ''}" />
+    <input type="text" placeholder="Owner & target date" value="${item?.owner ?? ''}" />
+    <div class="x" title="Remove">✕</div>
+  `;
+  row.querySelector('.x').onclick = ()=>{ row.remove(); autoSave(); };
+  const [a,b] = row.querySelectorAll('input');
+  a.oninput = b.oninput = ()=>{ computeScore(); autoSave(); };
+  els.actionList.appendChild(row);
+}
+function getActions(){
+  return Array.from(els.actionList.querySelectorAll('.li')).map(li=>{
+    const [a,b] = li.querySelectorAll('input');
+    return { text: a.value.trim(), owner: b.value.trim() };
+  }).filter(x=>x.text || x.owner);
+}
+
+// Event wiring
+els.confidence.addEventListener('input', ()=>{
+  els.confVal.textContent = els.confidence.value;
+  computeScore(); autoSave();
+});
+document.addEventListener('change', (e)=>{
+  if(e.target.matches('input[type="radio"]')){ computeScore(); autoSave(); }
+});
+['team','facilitator','date','overallNotes','stakeholders','rep','sponsor']
+  .forEach(id=> document.getElementById(id).addEventListener('input', ()=>{ autoSave(); }));
+
+document.getElementById('addAction').addEventListener('click', ()=>{
+  const txt = els.actionInput.value.trim();
+  if(!txt) return;
+  addActionRow({ text: txt, owner:'' });
+  els.actionInput.value='';
+  autoSave();
+});
+
+// Buttons
+els.pdfBtn.addEventListener('click', ()=> window.print());
+els.saveBtn.addEventListener('click', saveLocal);
+els.loadBtn.addEventListener('click', loadLocal);
+els.exportBtn.addEventListener('click', exportJSON);
+els.importFile.addEventListener('change', importJSON);
+els.newCanvasBtn.addEventListener('click', ()=>{
+  if(confirm('Start a new, blank canvas? Unsaved changes will be lost.')){
+    setFormData({ checks:{}, actions:[] });
+    localStorage.removeItem(storageKey());
+  }
+});
+
+// Storage keys per team+date (so multiple canvases can live in same browser)
+function storageKey(){
+  const t = (els.team.value || 'team').toLowerCase().replace(/\s+/g,'-').slice(0,40);
+  const d = (els.date.value || 'date');
+  return `readiness-canvas::${t}::${d}`;
+}
+function saveLocal(){
+  const data = getFormData();
+  localStorage.setItem(storageKey(), JSON.stringify(data));
+  toast('Saved to this browser');
+}
+function loadLocal(){
+  const key = storageKey();
+  const raw = localStorage.getItem(key);
+  if(!raw){ toast('No saved data for this team/date'); return; }
+  setFormData(JSON.parse(raw));
+  toast('Loaded from this browser');
+}
+let autosaveTimer=null;
+function autoSave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveLocal, 500);
+}
+function exportJSON(){
+  const data = getFormData();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  const t = (data.team||'team').toLowerCase().replace(/\s+/g,'-');
+  const d = data.date || new Date().toISOString().slice(0,10);
+  a.href = URL.createObjectURL(blob);
+  a.download = `readiness-canvas_${t}_${d}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importJSON(evt){
+  const f = evt.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      setFormData(data);
+      toast('Imported JSON');
+    }catch(err){
+      alert('Invalid JSON file.');
+    }
+  };
+  reader.readAsText(f);
+  evt.target.value='';
+}
+
+// Toast
+function toast(msg){
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.position='fixed'; t.style.bottom='20px'; t.style.left='50%'; t.style.transform='translateX(-50%)';
+  t.style.background='rgba(15,23,42,.95)'; t.style.border='1px solid rgba(255,255,255,.18)';
+  t.style.color='var(--ink)'; t.style.padding='10px 14px'; t.style.borderRadius='10px'; t.style.zIndex='9999';
+  document.body.appendChild(t);
+  setTimeout(()=> t.remove(), 1600);
+}
+
+// Initialize with defaults
+setFormData({ checks:{}, actions:[] });
+</script>
+</body>
+</html>
