@@ -6,142 +6,86 @@
 <title>Readiness-Assessment Canvas</title>
 <style>
   :root{
-    --bg:#0b1020;          /* dark indigo */
-    --card:#111831;        /* panel */
-    --muted:#a8b3cf;       /* muted text */
-    --ink:#e9efff;         /* primary text */
-    --accent:#5eead4;      /* teal */
-    --accent-2:#60a5fa;    /* blue */
-    --danger:#fb7185;      /* rose */
-    --ok:#34d399;          /* green */
-    --warn:#f59e0b;        /* amber */
-    --ring: conic-gradient(var(--ok) var(--okdeg), var(--warn) var(--warndeg), var(--danger) 0);
+    --bg:#0b1020; --card:#111831; --muted:#a8b3cf; --ink:#e9efff;
+    --accent:#5eead4; --accent2:#60a5fa; --ok:#34d399; --warn:#f59e0b; --bad:#fb7185;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; background:linear-gradient(180deg,#0a0f1d, #0b1020 60%, #0b1020);
-    color:var(--ink); font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  }
+  body{margin:0;background:linear-gradient(180deg,#0a0f1d,#0b1020 60%,#0b1020);color:var(--ink);
+       font:16px/1.45 system-ui,-apple-system,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial}
+  .app{max-width:1200px;margin:28px auto;padding:0 16px 56px}
+  header.appbar{position:sticky;top:0;z-index:10;backdrop-filter:saturate(140%) blur(10px)}
+  .bar{display:flex;align-items:center;gap:12px;background:rgba(9,14,30,.7);
+       border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:14px}
+  .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+        display:grid;place-items:center;font-weight:800;color:#08121c}
+  .title{font-size:18px;font-weight:700}
+  .muted{color:var(--muted)} .spacer{flex:1}
+  .btn{appearance:none;border:1px solid rgba(255,255,255,.12);background:#0f1730;color:var(--ink);
+       padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer;transition:.18s}
+  .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.2)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#08121c;border-color:transparent}
+  .btn.small{padding:6px 10px;font-size:14px}
+  .grid{display:grid;gap:16px;grid-template-columns:330px 1fr;margin-top:16px}
+  .card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;
+        box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .panel-title{font-size:14px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:10px}
+  .stack{display:grid;gap:10px}
+  label.lab{font-weight:600;display:block;margin-bottom:6px}
+  input[type="text"],input[type="date"],textarea{width:100%;background:#0b1230;color:var(--ink);
+        border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;outline:none}
+  input:focus,textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(96,165,250,.15)}
+  textarea{min-height:90px;resize:vertical}
+  .row{display:grid;gap:12px;grid-template-columns:1fr;margin-bottom:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;background:#0c1536;
+        border:1px solid rgba(255,255,255,.12);cursor:pointer;user-select:none}
+  .chip input{accent-color:var(--accent2)}
+  .kpi{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;background:#0e1740;border:1px dashed rgba(255,255,255,.15)}
+  .ring{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;position:relative}
+  .ring::after{content:"";position:absolute;inset:8px;background:var(--card);border-radius:50%;border:1px solid rgba(255,255,255,.08)}
+  .ring .val{position:relative;font-size:22px;font-weight:800}
+  .tag{font-size:12px;text-transform:uppercase;letter-spacing:.12em;padding:6px 8px;border-radius:999px;
+       background:#0a132f;color:var(--muted);border:1px solid rgba(255,255,255,.12)}
+  .tag.ok{color:#072;background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.25)}
+  .tag.warn{color:#6a3a00;background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.25)}
+  .tag.bad{color:#5f0d1a;background:rgba(251,113,133,.18);border-color:rgba(251,113,133,.25)}
+  .list{display:grid;gap:8px}
+  .li{display:grid;grid-template-columns:1fr 120px 36px;gap:8px;align-items:center}
+  .li .x{display:grid;place-items:center;height:38px;border-radius:10px;background:#0b1230;border:1px solid rgba(255,255,255,.12);cursor:pointer}
+  .footnote{color:var(--muted);font-size:12px}
 
-  .app{
-    max-width:1100px; margin:28px auto; padding:0 16px 56px;
-  }
-  header.appbar{
-    position:sticky; top:0; z-index:10;
-    backdrop-filter:saturate(140%) blur(10px);
-  }
-  .bar{
-    display:flex; align-items:center; gap:12px;
-    background:rgba(9,14,30,.7); border:1px solid rgba(255,255,255,.06);
-    padding:10px 12px; border-radius:14px;
-  }
-  .logo{
-    width:34px; height:34px; border-radius:8px;
-    background:linear-gradient(135deg, var(--accent), var(--accent-2));
-    display:grid; place-items:center; font-weight:700; color:#08121c;
-  }
-  .title{font-size:18px; font-weight:700; letter-spacing:.2px}
-  .muted{color:var(--muted)}
-  .spacer{flex:1}
+  /* Roadmap */
+  .roadmap-header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .phase-bar{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
+  .phase{background:#0e1740;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;min-height:180px}
+  .phase-title{display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:8px}
+  .phase-title input{background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:6px 8px}
+  .item{background:#0b1230;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;margin-bottom:8px;cursor:grab}
+  .item:active{cursor:grabbing}
+  .ghost{opacity:.4;border:1px dashed rgba(255,255,255,.35)}
+  .drop-hint{border:1px dashed rgba(255,255,255,.35);border-radius:10px;height:38px;margin:6px 0}
 
-  .btn{
-    appearance:none; border:1px solid rgba(255,255,255,.12);
-    background:#0f1730; color:var(--ink); padding:8px 12px; border-radius:10px;
-    font-weight:600; cursor:pointer; transition:.18s transform, .18s opacity, .18s background, .18s border-color;
-  }
-  .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.2)}
-  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08121c; border-color:transparent}
-  .btn.ghost{background:transparent}
-  .btn.danger{border-color:rgba(255,255,255,.12); color:#ffdfe4}
-  .btn.small{padding:6px 10px; font-size:14px}
+  /* Sketch board (Miro-lite) */
+  .board-wrap{background:#0e1740;border:1px solid rgba(255,255,255,.12);border-radius:14px}
+  .tools{display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+  .tools .btn{background:#0b1230}
+  .tools input[type="color"]{width:36px;height:36px;border:none;background:transparent}
+  .canvas-area{position:relative}
+  canvas#board{width:100%;height:420px;display:block;border-bottom-left-radius:14px;border-bottom-right-radius:14px;background:
+    repeating-linear-gradient(0deg, #0f1633 0 24px, #111a3a 24px 25px),
+    repeating-linear-gradient(90deg, #0f1633 0 24px, #111a3a 24px 25px);}
+  .pdf-embed{width:100%;height:500px;border:1px solid rgba(255,255,255,.12);border-radius:12px}
 
-  .grid{
-    display:grid; gap:16px;
-    grid-template-columns: 330px 1fr;
-    margin-top:16px;
-  }
-  .card{
-    background:var(--card);
-    border:1px solid rgba(255,255,255,.06);
-    border-radius:16px; padding:16px;
-    box-shadow:0 10px 30px rgba(0,0,0,.25);
-  }
-  .panel-title{font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:10px}
-
-  .stack{display:grid; gap:10px}
-  label.lab{font-weight:600; display:block; margin-bottom:6px}
-  input[type="text"], input[type="date"], textarea{
-    width:100%; background:#0b1230; color:var(--ink);
-    border:1px solid rgba(255,255,255,.12); border-radius:10px;
-    padding:10px 12px; outline:none; transition:.18s border-color, .18s box-shadow;
-  }
-  textarea{min-height:90px; resize:vertical}
-  input[type="text"]:focus, input[type="date"]:focus, textarea:focus{
-    border-color:var(--accent-2); box-shadow:0 0 0 3px rgba(96,165,250,.15)
-  }
-
-  .row{display:grid; gap:12px; grid-template-columns: 1fr; margin-bottom:12px}
-  .group{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
-  .chip{
-    display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border-radius:999px;
-    background:#0c1536; border:1px solid rgba(255,255,255,.12); cursor:pointer; user-select:none;
-  }
-  .chip input{accent-color:var(--accent-2)}
-  .kpi{
-    display:flex; align-items:center; gap:14px; padding:14px; border-radius:12px;
-    background:#0e1740; border:1px dashed rgba(255,255,255,.15)
-  }
-
-  /* Readiness ring */
-  .ring{
-    width:120px; height:120px; border-radius:50%;
-    background: conic-gradient(var(--ok) 0deg, var(--ok) 0deg, var(--warn) 0deg, var(--danger) 0deg);
-    display:grid; place-items:center; position:relative; isolation:isolate;
-  }
-  .ring::after{
-    content:""; position:absolute; inset:8px; background:var(--card); border-radius:50%;
-    border:1px solid rgba(255,255,255,.08);
-  }
-  .ring .val{
-    position:relative; font-size:22px; font-weight:800; letter-spacing:.5px;
-  }
-  .tag{
-    font-size:12px; text-transform:uppercase; letter-spacing:.12em; padding:6px 8px; border-radius:999px;
-    background:#0a132f; color:var(--muted); border:1px solid rgba(255,255,255,.12)
-  }
-  .tag.ok{color:#072; background:rgba(52,211,153,.15); border-color:rgba(52,211,153,.25)}
-  .tag.warn{color:#6a3a00; background:rgba(245,158,11,.15); border-color:rgba(245,158,11,.25)}
-  .tag.bad{color:#5f0d1a; background:rgba(251,113,133,.18); border-color:rgba(251,113,133,.25)}
-
-  .actions{display:flex; gap:8px; flex-wrap:wrap}
-  .list{display:grid; gap:8px}
-  .li{
-    display:grid; grid-template-columns: 1fr 120px 36px; gap:8px; align-items:center;
-  }
-  .li input[type="text"]{height:38px}
-  .li .x{
-    display:grid; place-items:center; height:38px; border-radius:10px; background:#0b1230; border:1px solid rgba(255,255,255,.12); cursor:pointer
-  }
-  .footnote{color:var(--muted); font-size:12px}
-
-  /* Print styles (PDF) */
   @media print{
-    body{background:#fff}
-    header.appbar, .no-print{display:none !important}
-    .app{max-width:none; padding:0}
-    .grid{grid-template-columns:1fr 1fr; gap:14px; margin:0}
-    .card{box-shadow:none; border:1px solid #ddd; color:#000}
-    .ring::after{background:#fff; border-color:#ddd}
-    input, textarea{border:1px solid #999 !important; color:#000 !important; background:#fff !important}
-    .tag.ok, .tag.warn, .tag.bad{border-color:#999 !important; background:#fff !important; color:#000 !important}
-    @page { size: A4; margin: 12mm }
+    header.appbar,.no-print{display:none !important}
+    body{background:#fff;color:#000}
+    .app{max-width:none;padding:0}
+    .card{box-shadow:none;border:1px solid #ddd;color:#000}
+    input,textarea{border:1px solid #999 !important;color:#000 !important;background:#fff !important}
+    .tag.ok,.tag.warn,.tag.bad{border-color:#999 !important;background:#fff !important;color:#000 !important}
+    canvas#board{border:1px solid #999 !important}
+    @page{size:A4;margin:12mm}
   }
-
-  /* Responsive */
-  @media (max-width:900px){
-    .grid{grid-template-columns:1fr}
-  }
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -150,366 +94,450 @@
     <div class="bar">
       <div class="logo">RC</div>
       <div class="title">Readiness-Assessment Canvas</div>
-      <div class="muted">One per team — fill, save, export, and download as PDF</div>
+      <div class="muted">One per team — fill, sketch, roadmap, and export</div>
       <div class="spacer"></div>
-      <button class="btn ghost small no-print" id="newCanvasBtn" title="Clear the form">New Canvas</button>
-      <button class="btn small no-print" id="saveBtn" title="Save to this browser">Save</button>
-      <button class="btn small no-print" id="loadBtn" title="Load from this browser">Load</button>
-      <button class="btn small no-print" id="exportBtn" title="Download JSON">Export JSON</button>
-      <label class="btn small no-print" for="importFile" title="Import JSON" style="cursor:pointer">Import</label>
+      <button class="btn ghost small no-print" id="newCanvasBtn">New</button>
+      <button class="btn small no-print" id="saveBtn">Save</button>
+      <button class="btn small no-print" id="loadBtn">Load</button>
+      <button class="btn small no-print" id="exportBtn">Export JSON</button>
+      <label class="btn small no-print" for="importFile" style="cursor:pointer">Import</label>
       <input id="importFile" type="file" accept="application/json" style="display:none" />
-      <button class="btn primary no-print" id="pdfBtn" title="Save as PDF">Download PDF</button>
+      <button class="btn primary no-print" id="pdfBtn">Download PDF</button>
     </div>
   </header>
 
   <section class="grid">
-    <!-- Left column: Identification + KPIs -->
+    <!-- Left column -->
     <div class="card">
       <div class="panel-title">Team & Session</div>
       <div class="stack">
-        <div class="row">
-          <label class="lab">Team / Project</label>
-          <input type="text" id="team" placeholder="e.g., Data Platform Team" />
-        </div>
-        <div class="row">
-          <label class="lab">Facilitator</label>
-          <input type="text" id="facilitator" placeholder="e.g., Jane Doe" />
-        </div>
-        <div class="row">
-          <label class="lab">Date</label>
-          <input type="date" id="date" />
-        </div>
+        <div class="row"><label class="lab">Team / Project</label><input type="text" id="team" placeholder="e.g., Data Platform Team" /></div>
+        <div class="row"><label class="lab">Facilitator</label><input type="text" id="facilitator" placeholder="e.g., Jane Doe" /></div>
+        <div class="row"><label class="lab">Date</label><input type="date" id="date" /></div>
 
         <div class="row kpi">
           <div class="ring" id="ring"><div class="val" id="score">0%</div></div>
           <div>
             <div class="panel-title" style="margin:0">Readiness Index</div>
             <div style="font-size:14px" id="readinessText">Complete the sections to calculate readiness.</div>
-            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
               <span class="tag" id="statusTag">—</span>
               <span class="tag">Autosaves</span>
             </div>
           </div>
         </div>
-
-        <div class="row">
-          <label class="lab">Overall Notes</label>
-          <textarea id="overallNotes" placeholder="Highlights, constraints, decisions..."></textarea>
-        </div>
       </div>
     </div>
 
-    <!-- Right column: The Canvas -->
+    <!-- Right column -->
     <div class="card">
-      <div class="panel-title">Readiness Checks</div>
+      <div class="panel-title">Readiness-Assessment Canvas</div>
 
-      <!-- Reusable section template pattern -->
       <div id="sections"></div>
 
       <div class="row">
         <label class="lab">7) Confidence Level: <span id="confVal">5</span>/10</label>
         <input type="range" id="confidence" min="0" max="10" value="5" />
       </div>
+    </div>
+  </section>
 
-      <div class="row">
-        <label class="lab">8) Actions Needed Before Starting</label>
-        <div class="actions">
-          <input type="text" id="actionInput" placeholder="Add action item..." />
-          <button class="btn small no-print" id="addAction">Add</button>
-        </div>
-        <div class="list" id="actionList"></div>
-        <div class="footnote">Tip: assign an owner and target date for each action.</div>
+  <!-- Roadmap Template -->
+  <section class="card" style="margin-top:16px">
+    <div class="panel-title">Phased Roadmap Template</div>
+    <div class="roadmap-header">
+      <label class="lab" style="margin:0">Roadmap Name</label>
+      <input type="text" id="roadmapName" placeholder="e.g., Q1–Q3 Delivery Roadmap" style="max-width:360px" />
+      <button class="btn small no-print" id="addPhaseBtn">Add Phase</button>
+      <button class="btn small no-print" id="addItemBtn">New Item</button>
+      <span class="muted">Drag items between phases</span>
+    </div>
+    <div id="phaseBar" class="phase-bar"></div>
+  </section>
+
+  <!-- Actions & Sign-off -->
+  <section class="card" style="margin-top:16px">
+    <div class="panel-title">Actions Before Starting</div>
+    <div class="row">
+      <div class="list" id="actionList"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" class="no-print">
+        <input type="text" id="actionInput" placeholder="Add action item..." />
+        <input type="text" id="actionOwner" placeholder="Owner & target date" />
+        <button class="btn small" id="addAction">Add</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Miro-style Sketch Board + PDF -->
+  <section class="card" style="margin-top:16px">
+    <div class="panel-title">Overall Notes — Sketch Board (Miro-style)</div>
+    <div class="board-wrap">
+      <div class="tools no-print">
+        <button class="btn small" data-tool="pen">Pen</button>
+        <button class="btn small" data-tool="eraser">Eraser</button>
+        <button class="btn small" id="noteTool">Sticky Note</button>
+        <label class="muted">Color</label><input type="color" id="color" value="#ffffff" />
+        <label class="muted">Size</label><input type="range" id="size" min="2" max="24" value="4" />
+        <button class="btn small" id="undoBtn">Undo</button>
+        <button class="btn small" id="redoBtn">Redo</button>
+        <button class="btn small" id="clearBoard">Clear</button>
+        <button class="btn small" id="downloadPng">Export PNG</button>
+      </div>
+      <div class="canvas-area">
+        <canvas id="board" width="1200" height="420" aria-label="Sketch board"></canvas>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div style="display:grid;gap:8px" class="no-print">
+        <label class="lab">Attach PDF (optional)</label>
+        <input type="file" id="pdfInput" accept="application/pdf" />
+        <label class="lab" style="margin-top:6px">Miro Board Link (optional)</label>
+        <input type="text" id="miroLink" placeholder="https://miro.com/app/board/..." />
+      </div>
+      <div id="pdfViewerWrap" style="margin-top:12px;display:none">
+        <object id="pdfViewer" class="pdf-embed" type="application/pdf"></object>
       </div>
     </div>
   </section>
 
   <section class="card" style="margin-top:16px">
     <div class="panel-title">Stakeholders & Sign-off</div>
-    <div class="row">
-      <label class="lab">Key Stakeholders</label>
-      <textarea id="stakeholders" placeholder="Names/roles of sponsors, SMEs, approvers…"></textarea>
-    </div>
-    <div class="row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
-      <div>
-        <label class="lab">Team Representative</label>
-        <input type="text" id="rep" placeholder="Full name" />
-      </div>
-      <div>
-        <label class="lab">Sponsor / Product Owner</label>
-        <input type="text" id="sponsor" placeholder="Full name" />
-      </div>
+    <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label class="lab">Team Representative</label><input type="text" id="rep" placeholder="Full name" /></div>
+      <div><label class="lab">Sponsor / Product Owner</label><input type="text" id="sponsor" placeholder="Full name" /></div>
     </div>
   </section>
 
-  <p class="footnote no-print" style="text-align:center; margin-top:14px">
+  <p class="footnote no-print" style="text-align:center;margin-top:14px">
     Download PDF uses your browser’s print dialog. Choose <strong>“Save as PDF”</strong>. Page is formatted for A4.
   </p>
 </div>
 
 <script>
-/* ===============================
-   Readiness-Assessment App (vanilla JS)
-   =============================== */
-
+/* ========= Base form + readiness scoring ========= */
 const SECTION_DEFS = [
-  { id: 'vision',       title: '1) Vision & Alignment',       q: 'Shared understanding of goals?' },
-  { id: 'skills',       title: '2) Skills & Capabilities',    q: 'Right mix of skills on the team?' },
-  { id: 'tools',        title: '3) Tools & Infrastructure',   q: 'Environments, access & data in place?' },
-  { id: 'stake',        title: '4) Stakeholder Support',      q: 'Stakeholders understand & back this?' },
-  { id: 'process',      title: '5) Processes & Ways of Working', q: 'Roles, responsibilities, decisions clear?' },
-  { id: 'risks',        title: '6) Risks & Dependencies',     q: 'External risks/dependencies mapped & managed?' },
+  { id:'vision',   title:'1) Vision & Alignment', q:'Shared understanding of goals?' },
+  { id:'skills',   title:'2) Skills & Capabilities', q:'Right mix of skills on the team?' },
+  { id:'tools',    title:'3) Tools & Infrastructure', q:'Environments, access & data in place?' },
+  { id:'stake',    title:'4) Stakeholder Support', q:'Stakeholders understand & back this?' },
+  { id:'process',  title:'5) Processes & Ways of Working', q:'Roles, responsibilities, decisions clear?' },
+  { id:'risks',    title:'6) Risks & Dependencies', q:'Risks/dependencies mapped & managed?' },
 ];
-
-const RADIO_VALS = { yes: 2, partial: 1, no: 0 };
-
+const RADIO_VALS = { yes:2, partial:1, no:0 };
+const $ = id=>document.getElementById(id);
 const els = {
-  sections: document.getElementById('sections'),
-  ring: document.getElementById('ring'),
-  score: document.getElementById('score'),
-  readinessText: document.getElementById('readinessText'),
-  statusTag: document.getElementById('statusTag'),
-  team: document.getElementById('team'),
-  facilitator: document.getElementById('facilitator'),
-  date: document.getElementById('date'),
-  overallNotes: document.getElementById('overallNotes'),
-  confidence: document.getElementById('confidence'),
-  confVal: document.getElementById('confVal'),
-  actionInput: document.getElementById('actionInput'),
-  actionList: document.getElementById('actionList'),
-  stakeholders: document.getElementById('stakeholders'),
-  rep: document.getElementById('rep'),
-  sponsor: document.getElementById('sponsor'),
-
-  pdfBtn: document.getElementById('pdfBtn'),
-  saveBtn: document.getElementById('saveBtn'),
-  loadBtn: document.getElementById('loadBtn'),
-  exportBtn: document.getElementById('exportBtn'),
-  importFile: document.getElementById('importFile'),
-  newCanvasBtn: document.getElementById('newCanvasBtn'),
+  sections: $('sections'), ring:$('ring'), score:$('score'), readinessText:$('readinessText'), statusTag:$('statusTag'),
+  team:$('team'), facilitator:$('facilitator'), date:$('date'),
+  confidence:$('confidence'), confVal:$('confVal'),
+  actionInput:$('actionInput'), actionOwner:$('actionOwner'), actionList:$('actionList'),
+  rep:$('rep'), sponsor:$('sponsor'),
+  roadmapName:$('roadmapName'), phaseBar:$('phaseBar'), addPhaseBtn:$('addPhaseBtn'), addItemBtn:$('addItemBtn'),
+  pdfBtn:$('pdfBtn'), saveBtn:$('saveBtn'), loadBtn:$('loadBtn'), exportBtn:$('exportBtn'), importFile:$('importFile'), newCanvasBtn:$('newCanvasBtn'),
+  // sketch board
+  board:$('board'), color:$('color'), size:$('size'), undoBtn:$('undoBtn'), redoBtn:$('redoBtn'), clearBoard:$('clearBoard'), noteTool:$('noteTool'),
+  pdfInput:$('pdfInput'), pdfViewer:$('pdfViewer'), pdfWrap:$('pdfViewerWrap'), miroLink:$('miroLink')
 };
-
 function sectionMarkup(def){
-  const name = def.id;
   return `
     <div class="row card" style="padding:14px">
       <div class="lab" style="margin-bottom:10px">${def.title}</div>
-      <div class="group" role="group" aria-label="${def.title}">
-        <span class="muted" style="margin-right:6px">${def.q}</span>
-        <label class="chip"><input type="radio" name="${name}-rad" value="yes"> Yes</label>
-        <label class="chip"><input type="radio" name="${name}-rad" value="partial"> Partially</label>
-        <label class="chip"><input type="radio" name="${name}-rad" value="no"> No</label>
-      </div>
-      <div class="row">
-        <label class="lab" for="${name}-notes">Notes</label>
-        <textarea id="${name}-notes" placeholder="Context, gaps, evidence…"></textarea>
-      </div>
-    </div>
-  `;
+      <div class="chip"><input type="radio" name="${def.id}-rad" value="yes"> Yes</div>
+      <div class="chip"><input type="radio" name="${def.id}-rad" value="partial"> Partially</div>
+      <div class="chip"><input type="radio" name="${def.id}-rad" value="no"> No</div>
+      <div class="row"><label class="lab" for="${def.id}-notes">Notes</label>
+        <textarea id="${def.id}-notes" placeholder="Context, gaps, evidence…"></textarea></div>
+    </div>`;
 }
-
-// Render sections
 els.sections.innerHTML = SECTION_DEFS.map(sectionMarkup).join("");
 
-// Helpers to get & set form data
-function getFormData(){
-  const data = {
-    team: els.team.value.trim(),
-    facilitator: els.facilitator.value.trim(),
-    date: els.date.value,
-    overallNotes: els.overallNotes.value,
-    stakeholders: els.stakeholders.value,
-    rep: els.rep.value.trim(),
-    sponsor: els.sponsor.value.trim(),
-    confidence: +els.confidence.value,
-    checks: {},
-    actions: getActions()
-  };
-  SECTION_DEFS.forEach(def=>{
-    const chosen = document.querySelector(`input[name="${def.id}-rad"]:checked`);
-    data.checks[def.id] = { value: chosen ? chosen.value : null, notes: (document.getElementById(def.id+'-notes').value||'') };
-  });
-  return data;
-}
-function setFormData(data){
-  els.team.value = data.team||'';
-  els.facilitator.value = data.facilitator||'';
-  els.date.value = data.date||'';
-  els.overallNotes.value = data.overallNotes||'';
-  els.stakeholders.value = data.stakeholders||'';
-  els.rep.value = data.rep||'';
-  els.sponsor.value = data.sponsor||'';
-  els.confidence.value = (data.confidence ?? 5);
-  els.confVal.textContent = els.confidence.value;
-
-  // Radios + notes
-  SECTION_DEFS.forEach(def=>{
-    const v = data.checks?.[def.id]?.value;
-    if(v){
-      const el = document.querySelector(`input[name="${def.id}-rad"][value="${v}"]`);
-      if(el) el.checked = true;
-    } else {
-      document.querySelectorAll(`input[name="${def.id}-rad"]`).forEach(r=>r.checked=false);
-    }
-    document.getElementById(def.id+'-notes').value = data.checks?.[def.id]?.notes || '';
-  });
-
-  // Actions
-  els.actionList.innerHTML = '';
-  (data.actions||[]).forEach(addActionRow);
-
-  computeScore();
-}
-
+/* ========= Readiness score ========= */
 function computeScore(){
-  // Base readiness from 6 checks (Yes=2, Partial=1, No=0), max = 12
-  let earned = 0, answered = 0;
+  let earned=0, answered=0;
   SECTION_DEFS.forEach(def=>{
-    const chosen = document.querySelector(`input[name="${def.id}-rad"]:checked`);
-    if(chosen){ answered++; earned += RADIO_VALS[chosen.value] }
+    const ch = document.querySelector(`input[name="${def.id}-rad"]:checked`);
+    if(ch){ answered++; earned += RADIO_VALS[ch.value]; }
   });
-  const base = answered ? (earned / (2*answered)) : 0; // 0..1
-  const confidence = (+els.confidence.value)/10;        // 0..1
-  const final = Math.round(((base*0.7 + confidence*0.3) * 100));
-  updateRing(final, answered);
+  const base = answered ? (earned/(2*answered)) : 0;
+  const conf = +els.confidence.value/10;
+  const pct = Math.round((base*0.7 + conf*0.3)*100);
+  updateRing(pct, answered);
 }
-
 function updateRing(pct, answered){
   els.score.textContent = `${pct}%`;
-  // Status label
-  let s = '—', cls = '';
-  if(answered === 0){ s='Incomplete'; cls='' }
-  else if(pct >= 75){ s='Ready'; cls='ok' }
-  else if(pct >= 55){ s='Almost'; cls='warn' }
-  else { s='Not Ready'; cls='bad' }
-  els.statusTag.textContent = s;
-  els.statusTag.className = 'tag ' + (cls || '');
-
-  els.readinessText.textContent = (answered === SECTION_DEFS.length)
-    ? 'All checks completed. Review actions and export when done.'
-    : `Complete all checks (${answered}/${SECTION_DEFS.length}) to improve accuracy.`;
-
-  // Update conic-gradient ring
-  const okdeg = Math.min(360 * (pct/100), 360);
+  let s='—', cls='';
+  if(answered===0){s='Incomplete'}
+  else if(pct>=75){s='Ready';cls='ok'}
+  else if(pct>=55){s='Almost';cls='warn'}
+  else {s='Not Ready';cls='bad'}
+  els.statusTag.textContent=s; els.statusTag.className='tag ' + (cls||'');
+  els.readinessText.textContent = answered===SECTION_DEFS.length ? 'All checks completed — review and export.' : `Complete all checks (${answered}/${SECTION_DEFS.length}).`;
+  const okdeg = Math.min(360*(pct/100),360);
   els.ring.style.background = `conic-gradient(var(--ok) 0deg ${okdeg}deg, #263353 ${okdeg}deg 360deg)`;
 }
+document.addEventListener('change', e=>{ if(e.target.matches('input[type="radio"]')){computeScore(); autoSave();}});
+els.confidence.addEventListener('input', ()=>{ $('confVal').textContent=els.confidence.value; computeScore(); autoSave();});
 
-// Actions list
-function addActionRow(item){
-  const row = document.createElement('div');
-  row.className = 'li';
-  row.innerHTML = `
-    <input type="text" placeholder="Action" value="${item?.text ?? ''}" />
-    <input type="text" placeholder="Owner & target date" value="${item?.owner ?? ''}" />
-    <div class="x" title="Remove">✕</div>
-  `;
-  row.querySelector('.x').onclick = ()=>{ row.remove(); autoSave(); };
-  const [a,b] = row.querySelectorAll('input');
-  a.oninput = b.oninput = ()=>{ computeScore(); autoSave(); };
-  els.actionList.appendChild(row);
+/* ========= Actions ========= */
+function addActionRow(item={text:'',owner:''}){
+  const wrap=document.createElement('div'); wrap.className='li';
+  wrap.innerHTML=`<input type="text" placeholder="Action" value="${item.text||''}">
+                  <input type="text" placeholder="Owner & target date" value="${item.owner||''}">
+                  <div class="x" title="Remove">✕</div>`;
+  wrap.querySelector('.x').onclick=()=>{wrap.remove();autoSave();};
+  wrap.querySelectorAll('input').forEach(i=>i.oninput=autoSave);
+  els.actionList.appendChild(wrap);
 }
+$('addAction').addEventListener('click', ()=>{
+  const text=els.actionInput.value.trim(), owner=els.actionOwner.value.trim();
+  if(!text && !owner) return;
+  addActionRow({text, owner}); els.actionInput.value=''; els.actionOwner.value=''; autoSave();
+});
 function getActions(){
   return Array.from(els.actionList.querySelectorAll('.li')).map(li=>{
-    const [a,b] = li.querySelectorAll('input');
-    return { text: a.value.trim(), owner: b.value.trim() };
-  }).filter(x=>x.text || x.owner);
+    const [a,b]=li.querySelectorAll('input'); return {text:a.value.trim(), owner:b.value.trim()};
+  }).filter(x=>x.text||x.owner);
 }
 
-// Event wiring
-els.confidence.addEventListener('input', ()=>{
-  els.confVal.textContent = els.confidence.value;
-  computeScore(); autoSave();
-});
-document.addEventListener('change', (e)=>{
-  if(e.target.matches('input[type="radio"]')){ computeScore(); autoSave(); }
-});
-['team','facilitator','date','overallNotes','stakeholders','rep','sponsor']
-  .forEach(id=> document.getElementById(id).addEventListener('input', ()=>{ autoSave(); }));
+/* ========= Roadmap (phases + drag) ========= */
+let phases = [
+  { id: crypto('p1'), name:'Phase 1 — Discover', items:[] },
+  { id: crypto('p2'), name:'Phase 2 — Build', items:[] },
+  { id: crypto('p3'), name:'Phase 3 — Release', items:[] },
+];
+function crypto(prefix){ return prefix + Math.random().toString(36).slice(2,9); }
+function renderPhases(){
+  els.phaseBar.innerHTML='';
+  phases.forEach(ph=>{
+    const el=document.createElement('div'); el.className='phase'; el.dataset.pid=ph.id;
+    el.innerHTML=`
+      <div class="phase-title">
+        <input value="${ph.name.replace(/"/g,'&quot;')}" data-role="pname">
+        <button class="btn small no-print" data-role="del">Remove</button>
+      </div>
+      <div class="bucket" data-role="bucket"></div>
+    `;
+    const bucket = el.querySelector('[data-role="bucket"]');
+    ph.items.forEach(it=> bucket.appendChild(renderItem(it)) );
+    el.addEventListener('dragover', ev=>{ ev.preventDefault(); bucket.classList.add('ghost'); });
+    el.addEventListener('dragleave', ()=> bucket.classList.remove('ghost'));
+    el.addEventListener('drop', ev=>{
+      ev.preventDefault(); bucket.classList.remove('ghost');
+      const jid = ev.dataTransfer.getData('text/plain');
+      const itemEl = document.querySelector(`.item[data-iid="${jid}"]`);
+      if(itemEl && bucket!==itemEl.parentNode){ bucket.appendChild(itemEl); moveItem(jid, ph.id); autoSave(); }
+    });
+    el.querySelector('[data-role="pname"]').addEventListener('input', e=>{ ph.name=e.target.value; autoSave(); });
+    el.querySelector('[data-role="del"]').addEventListener('click', ()=>{
+      if(confirm('Remove this phase? Items will be kept but not shown.')){ phases = phases.filter(x=>x.id!==ph.id); renderPhases(); autoSave(); }
+    });
+    els.phaseBar.appendChild(el);
+  });
+}
+function renderItem(it){
+  const el=document.createElement('div'); el.className='item'; el.draggable=true; el.dataset.iid=it.id;
+  el.innerHTML=`<div contenteditable="true" data-role="title" style="outline:none">${(it.title||'Roadmap item')}</div>
+                <div class="muted" style="display:flex;gap:8px;align-items:center;margin-top:6px">
+                  <input type="text" data-role="date" placeholder="YYYY-MM-DD" style="width:130px;background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:2px 6px">
+                  <input type="text" data-role="owner" placeholder="Owner" style="width:140px;background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:8px;padding:2px 6px">
+                  <button class="btn small no-print" data-role="del">✕</button>
+                </div>`;
+  el.querySelector('[data-role="title"]').oninput = e=>{ it.title=e.target.innerText; autoSave(); };
+  el.querySelector('[data-role="date"]').value = it.date||''; el.querySelector('[data-role="date"]').oninput=e=>{ it.date=e.target.value; autoSave(); };
+  el.querySelector('[data-role="owner"]').value = it.owner||''; el.querySelector('[data-role="owner"]').oninput=e=>{ it.owner=e.target.value; autoSave(); };
+  el.querySelector('[data-role="del"]').onclick = ()=>{ removeItem(it.id); el.remove(); autoSave(); };
 
-document.getElementById('addAction').addEventListener('click', ()=>{
-  const txt = els.actionInput.value.trim();
+  el.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', it.id); });
+  return el;
+}
+function addPhase(){ phases.push({ id:crypto('p'), name:`Phase ${phases.length+1}`, items:[] }); renderPhases(); }
+function addItem(){
+  if(phases.length===0) addPhase();
+  const it={ id:crypto('i'), title:'New item', date:'', owner:'' };
+  phases[0].items.push(it); renderPhases(); autoSave();
+}
+function moveItem(itemId, destPid){
+  let found=null, src=null;
+  phases.forEach(p=>{ const idx=p.items.findIndex(i=>i.id===itemId); if(idx>=0){ found=p.items[idx]; src=p; p.items.splice(idx,1); }});
+  const dest = phases.find(p=>p.id===destPid);
+  if(found && dest){ dest.items.push(found); }
+}
+function removeItem(itemId){
+  phases.forEach(p=>{ p.items = p.items.filter(i=>i.id!==itemId); });
+}
+els.addPhaseBtn.addEventListener('click', addPhase);
+els.addItemBtn.addEventListener('click', addItem);
+renderPhases();
+
+/* ========= Sketch board (pen/eraser/notes) ========= */
+const ctx = els.board.getContext('2d');
+let drawing=false, tool='pen', strokes=[], undone=[], currentPath=null;
+function resizeCanvasToDisplaySize(canvas){
+  const {width, height} = canvas.getBoundingClientRect();
+  if(canvas.width !== Math.round(width) || canvas.height !== Math.round(height)){
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    canvas.width = Math.round(width); canvas.height = Math.round(height);
+    ctx.putImageData(img, 0, 0);
+  }
+}
+window.addEventListener('resize', ()=> resizeCanvasToDisplaySize(els.board));
+resizeCanvasToDisplaySize(els.board);
+function startDraw(x,y){
+  drawing=true; currentPath={tool, color: els.color.value, size:+els.size.value, pts:[[x,y]], text:null};
+}
+function moveDraw(x,y){
+  if(!drawing) return;
+  currentPath.pts.push([x,y]); redraw();
+}
+function endDraw(){ if(!drawing) return; drawing=false; strokes.push(currentPath); undone=[]; currentPath=null; autoSave(); }
+function redraw(){
+  ctx.clearRect(0,0,els.board.width,els.board.height);
+  const all = [...strokes]; if(currentPath) all.push(currentPath);
+  all.forEach(p=>{
+    if(p.tool==='note' && p.text){
+      // sticky note rendered as rounded rect + text
+      const [x,y]=p.pts[0]; const w=220, h=120; drawNote(x,y,w,h,p.text);
+    }else{
+      ctx.strokeStyle = (p.tool==='eraser') ? '#0f1633' : p.color;
+      ctx.lineWidth=p.size; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.beginPath();
+      p.pts.forEach(([px,py],i)=>{ if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+      ctx.stroke();
+    }
+  });
+}
+function drawNote(x,y,w,h,text){
+  const r=12;
+  ctx.fillStyle='rgba(255,251,210,.95)'; ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#222'; ctx.font='14px system-ui'; wrapText(text, x+10, y+24, w-20, 18);
+}
+function wrapText(t, x, y, maxW, lh){
+  const words=t.split(' '); let line=''; for(let i=0;i<words.length;i++){
+    const test = line + words[i] + ' '; if(ctx.measureText(test).width > maxW){ ctx.fillText(line, x, y); line=words[i]+' '; y+=lh; }
+    else line=test;
+  } ctx.fillText(line, x, y);
+}
+els.board.addEventListener('mousedown', e=>{ const r=els.board.getBoundingClientRect(); startDraw(e.clientX-r.left, e.clientY-r.top); });
+els.board.addEventListener('mousemove', e=>{ const r=els.board.getBoundingClientRect(); moveDraw(e.clientX-r.left, e.clientY-r.top); });
+window.addEventListener('mouseup', endDraw);
+els.board.addEventListener('touchstart', e=>{ const t=e.touches[0]; const r=els.board.getBoundingClientRect(); startDraw(t.clientX-r.left, t.clientY-r.top); });
+els.board.addEventListener('touchmove', e=>{ const t=e.touches[0]; const r=els.board.getBoundingClientRect(); moveDraw(t.clientX-r.left, t.clientY-r.top); e.preventDefault(); }, {passive:false});
+els.board.addEventListener('touchend', endDraw);
+document.querySelectorAll('.tools [data-tool]').forEach(b=> b.addEventListener('click', ()=>{ tool=b.dataset.tool; toast('Tool: '+tool); }));
+els.noteTool.addEventListener('click', ()=>{
+  tool='note';
+  const txt = prompt('Sticky note text:');
   if(!txt) return;
-  addActionRow({ text: txt, owner:'' });
-  els.actionInput.value='';
+  // Place note centered; user can draw again to place another
+  const x = 20 + Math.random()*60; const y = 20 + Math.random()*40;
+  strokes.push({tool:'note', color:'#fff', size:0, pts:[[x,y]], text:txt});
+  redraw(); autoSave();
+});
+els.undoBtn.addEventListener('click', ()=>{ if(strokes.length){ undone.push(strokes.pop()); redraw(); autoSave(); }});
+els.redoBtn.addEventListener('click', ()=>{ if(undone.length){ strokes.push(undone.pop()); redraw(); autoSave(); }});
+els.clearBoard.addEventListener('click', ()=>{ if(confirm('Clear the board?')){ strokes=[]; undone=[]; redraw(); autoSave(); }});
+$('downloadPng').addEventListener('click', ()=>{
+  const a=document.createElement('a'); a.href=els.board.toDataURL('image/png'); a.download='sketchboard.png'; a.click();
+});
+
+/* ========= PDF attach ========= */
+els.pdfInput.addEventListener('change', (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  els.pdfViewer.data = url;
+  els.pdfWrap.style.display='block';
   autoSave();
 });
 
-// Buttons
-els.pdfBtn.addEventListener('click', ()=> window.print());
-els.saveBtn.addEventListener('click', saveLocal);
-els.loadBtn.addEventListener('click', loadLocal);
-els.exportBtn.addEventListener('click', exportJSON);
-els.importFile.addEventListener('change', importJSON);
-els.newCanvasBtn.addEventListener('click', ()=>{
-  if(confirm('Start a new, blank canvas? Unsaved changes will be lost.')){
-    setFormData({ checks:{}, actions:[] });
-    localStorage.removeItem(storageKey());
-  }
-});
-
-// Storage keys per team+date (so multiple canvases can live in same browser)
+/* ========= Storage + export ========= */
 function storageKey(){
-  const t = (els.team.value || 'team').toLowerCase().replace(/\s+/g,'-').slice(0,40);
-  const d = (els.date.value || 'date');
+  const t=(els.team.value||'team').toLowerCase().replace(/\s+/g,'-').slice(0,40);
+  const d=(els.date.value||'date');
   return `readiness-canvas::${t}::${d}`;
 }
-function saveLocal(){
-  const data = getFormData();
-  localStorage.setItem(storageKey(), JSON.stringify(data));
-  toast('Saved to this browser');
+function getChecks(){
+  const checks={};
+  SECTION_DEFS.forEach(def=>{
+    const chosen=document.querySelector(`input[name="${def.id}-rad"]:checked`);
+    checks[def.id]={ value:chosen?chosen.value:null, notes:($(`${def.id}-notes`).value||'') };
+  });
+  return checks;
 }
-function loadLocal(){
-  const key = storageKey();
-  const raw = localStorage.getItem(key);
-  if(!raw){ toast('No saved data for this team/date'); return; }
-  setFormData(JSON.parse(raw));
-  toast('Loaded from this browser');
+function setChecks(checks={}){
+  SECTION_DEFS.forEach(def=>{
+    const v=checks[def.id]?.value; document.querySelectorAll(`input[name="${def.id}-rad"]`).forEach(r=>r.checked=false);
+    if(v){ const el=document.querySelector(`input[name="${def.id}-rad"][value="${v}"]`); if(el) el.checked=true; }
+    $(`${def.id}-notes`).value = checks[def.id]?.notes || '';
+  });
 }
-let autosaveTimer=null;
-function autoSave(){
-  clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(saveLocal, 500);
-}
-function exportJSON(){
-  const data = getFormData();
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  const t = (data.team||'team').toLowerCase().replace(/\s+/g,'-');
-  const d = data.date || new Date().toISOString().slice(0,10);
-  a.href = URL.createObjectURL(blob);
-  a.download = `readiness-canvas_${t}_${d}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-function importJSON(evt){
-  const f = evt.target.files[0];
-  if(!f) return;
-  const reader = new FileReader();
-  reader.onload = (e)=>{
-    try{
-      const data = JSON.parse(e.target.result);
-      setFormData(data);
-      toast('Imported JSON');
-    }catch(err){
-      alert('Invalid JSON file.');
-    }
+function getData(){
+  return {
+    team:els.team.value, facilitator:els.facilitator.value, date:els.date.value,
+    confidence:+els.confidence.value,
+    checks:getChecks(),
+    actions:getActions(),
+    roadmapName:els.roadmapName.value,
+    phases,
+    strokes, undone, // sketch board
+    miroLink:els.miroLink.value
   };
-  reader.readAsText(f);
-  evt.target.value='';
 }
+function setData(d){
+  els.team.value=d.team||''; els.facilitator.value=d.facilitator||''; els.date.value=d.date||'';
+  els.confidence.value = d.confidence ?? 5; els.confVal.textContent=els.confidence.value;
+  setChecks(d.checks||{});
+  els.actionList.innerHTML=''; (d.actions||[]).forEach(addActionRow);
+  els.roadmapName.value=d.roadmapName||'';
+  phases = Array.isArray(d.phases) && d.phases.length ? d.phases : phases; renderPhases();
+  strokes = Array.isArray(d.strokes)? d.strokes : []; undone = Array.isArray(d.undone)? d.undone : []; redraw();
+  els.miroLink.value = d.miroLink||'';
+  computeScore();
+}
+function saveLocal(){ localStorage.setItem(storageKey(), JSON.stringify(getData())); toast('Saved'); }
+function loadLocal(){
+  const raw=localStorage.getItem(storageKey());
+  if(!raw){ toast('No saved data for this team/date'); return; }
+  try{ setData(JSON.parse(raw)); toast('Loaded'); }catch{ alert('Could not load saved data.'); }
+}
+let autosaveTimer=null; function autoSave(){ clearTimeout(autosaveTimer); autosaveTimer=setTimeout(saveLocal,500); }
+els.pdfBtn.addEventListener('click', ()=>window.print());
+els.saveBtn.addEventListener('click', saveLocal);
+els.loadBtn.addEventListener('click', loadLocal);
+els.exportBtn.addEventListener('click', ()=>{
+  const blob=new Blob([JSON.stringify(getData(),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); const t=(els.team.value||'team').toLowerCase().replace(/\s+/g,'-');
+  const d=els.date.value||new Date().toISOString().slice(0,10);
+  a.href=URL.createObjectURL(blob); a.download=`readiness-canvas_${t}_${d}.json`; a.click(); URL.revokeObjectURL(a.href);
+});
+els.importFile.addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader(); reader.onload=ev=>{ try{ setData(JSON.parse(ev.target.result)); toast('Imported'); }catch{ alert('Invalid JSON'); } };
+  reader.readAsText(f); e.target.value='';
+});
+els.newCanvasBtn.addEventListener('click', ()=>{
+  if(confirm('Start a new, blank canvas? Unsaved changes will be lost.')){
+    localStorage.removeItem(storageKey());
+    phases=[{id:crypto('p1'),name:'Phase 1 — Discover',items:[]},{id:crypto('p2'),name:'Phase 2 — Build',items:[]},{id:crypto('p3'),name:'Phase 3 — Release',items:[]}];
+    setData({checks:{},actions:[],phases});
+  }
+});
+['team','facilitator','date','roadmapName','rep','sponsor','miroLink'].forEach(id=>$(id)?.addEventListener('input', autoSave));
 
-// Toast
+/* ========= Utils ========= */
 function toast(msg){
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.position='fixed'; t.style.bottom='20px'; t.style.left='50%'; t.style.transform='translateX(-50%)';
-  t.style.background='rgba(15,23,42,.95)'; t.style.border='1px solid rgba(255,255,255,.18)';
-  t.style.color='var(--ink)'; t.style.padding='10px 14px'; t.style.borderRadius='10px'; t.style.zIndex='9999';
-  document.body.appendChild(t);
-  setTimeout(()=> t.remove(), 1600);
+  const t=document.createElement('div');
+  t.textContent=msg; t.style.position='fixed'; t.style.bottom='20px'; t.style.left='50%';
+  t.style.transform='translateX(-50%)'; t.style.background='rgba(15,23,42,.95)';
+  t.style.border='1px solid rgba(255,255,255,.18)'; t.style.color='var(--ink)'; t.style.padding='10px 14px';
+  t.style.borderRadius='10px'; t.style.zIndex='9999'; document.body.appendChild(t);
+  setTimeout(()=>t.remove(),1600);
 }
 
-// Initialize with defaults
-setFormData({ checks:{}, actions:[] });
+/* ========= Initialize ========= */
+setData({checks:{},actions:[]}); computeScore();
 </script>
 </body>
 </html>
