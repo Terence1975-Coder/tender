@@ -1,563 +1,43 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>IASME Researcher — App Generator (with Preview UI)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<title>IASME Scraper — Single-File (Sitemap + Search)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
-  :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--accent:#22c55e}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-  .wrap{max-width:1000px;margin:40px auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  h1{margin:0 0 6px;font-size:26px}
-  .muted{color:var(--muted)}
-  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-  button{background:linear-gradient(135deg,#22c55e,#10b981);color:#05110a;border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
-  button.secondary{background:transparent;border:1px solid var(--border);color:var(--fg)}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .small{font-size:14px}
-  .files{margin-top:12px;border:1px dashed var(--border);border-radius:12px;padding:10px;max-height:220px;overflow:auto}
-</style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <h1>IASME Researcher — Single-File Project Generator</h1>
-      <p class="muted">Creates a local web app (Node + Playwright) with a live preview table. If your browser blocks folder access, use the ZIP button.</p>
-      <div class="row" style="margin:10px 0 6px">
-        <button id="zip">Download project.zip</button>
-        <span id="status" class="small muted"></span>
-      </div>
-      <div class="files small">
-        <strong>Files that will be generated</strong>
-        <ul id="list" style="columns:2;margin:.4rem 0 0 .8rem"></ul>
-      </div>
-      <p class="small muted" style="margin-top:12px">
-        After unzip: <code>npm i</code> → <code>npx playwright install chromium</code> → <code>npm run build</code> → <code>npm run serve</code> → open <code>http://localhost:3000</code>.
-      </p>
-    </div>
-  </div>
-
-  <!-- ===================== PROJECT FILES (as text blocks) ===================== -->
-  <script type="text/plain" data-path="iasme-research/package.json">{
-  "name": "iasme-research",
-  "version": "1.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "serve": "node dist/server.js",
-    "start": "node dist/server.js",
-    "test": "echo \"(tests omitted in generator build)\""
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "dayjs": "^1.11.13",
-    "normalize-url": "^8.0.1",
-    "p-limit": "^5.0.0",
-    "playwright": "^1.48.2",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "typescript": "^5.6.3",
-    "@types/express": "^4.17.21",
-    "@types/node": "^22.7.4"
-  }
-}
-</script>
-
-  <script type="text/plain" data-path="iasme-research/tsconfig.json">{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
-    "outDir": "dist",
-    "rootDir": "src",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true
-  },
-  "include": ["src"]
-}
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/types.ts">import { z } from "zod";
-
-export const Person = z.object({
-  name: z.string().nullable(),
-  title: z.string().nullable(),
-  email: z.string().email().nullable(),
-  linkedin: z.string().url().nullable()
-});
-
-export const Row = z.object({
-  company: z.string(),
-  domain: z.string().nullable(),
-  website: z.string().url().nullable(),
-  emails: z.array(z.string()).default([]),
-  phones: z.array(z.string()).default([]),
-  address: z.string().nullable(),
-  linkedin_company: z.string().url().nullable(),
-  it_contact: Person.nullable(),
-  project_contact: Person.nullable(),
-  certifications: z.array(z.string()).default([]),
-  profile_url: z.string().url().nullable(),
-  sources: z.array(z.string().url()).min(1),
-  last_seen: z.string()
-});
-
-export type OutputRow = z.infer<typeof Row>;
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/server.ts">import express from "express";
-import { join, resolve } from "node:path";
-import { runJob } from "./worker/job.js";
-
-const app = express();
-app.use(express.json({ limit: "1mb" }));
-app.use(express.static(join(process.cwd(), "ui")));
-
-type Client = { id: number; res: express.Response };
-let nextId = 1;
-const clients: Client[] = [];
-let lastDump = "": string;
-
-app.get("/", (_req, res) => res.sendFile(join(process.cwd(), "ui", "index.html")));
-
-app.get("/events", (req, res) => {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-    "Access-Control-Allow-Origin": "*"
-  });
-  res.write(`event: hello\ndata: ok\n\n`);
-  const c = { id: nextId++, res };
-  clients.push(c);
-  req.on("close", () => {
-    const i = clients.findIndex(x => x.id === c.id);
-    if (i >= 0) clients.splice(i, 1);
-  });
-});
-
-function push(event: string, data: any) {
-  lastDump = event === "done" ? (data?.jsonl ?? lastDump) : lastDump;
-  for (const c of clients) c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-}
-
-app.post("/start", async (req, res) => {
-  const { indexUrl, maxCompanies, concurrency, delayMs, retries, timeoutMs } = Object.assign({
-    indexUrl: "https://iasme.co.uk/network-directory/",
-    maxCompanies: 50,
-    concurrency: 4,
-    delayMs: 400,
-    retries: 3,
-    timeoutMs: 30000
-  }, req.body||{});
-  res.json({ ok: true });
-  try {
-    await runJob({ indexUrl, maxCompanies, concurrency, delayMs, retries, timeoutMs, onPreview: (p) => push("preview", p), onProgress: (p) => push("progress", p) });
-    push("done", { ok: true });
-  } catch (e:any) {
-    push("error", { message: String(e?.message||e) });
-  }
-});
-
-app.get("/download.jsonl", (_req, res) => {
-  res.setHeader("Content-Type", "application/jsonl; charset=utf-8");
-  res.setHeader("Content-Disposition", "attachment; filename=iasme_output.jsonl");
-  res.send(lastDump || "");
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log("Server on http://localhost:"+port));
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/worker/job.ts">import pLimit from "p-limit";
-import dayjs from "dayjs";
-import { sniffIndex } from "./sources/iasme-index.js";
-import { discoverWebsite } from "./website/discovery.js";
-import { enrichContacts } from "./website/enrich.js";
-import { discoverRoles } from "./website/roles.js";
-import { Row, type OutputRow } from "../types.js";
-
-type JobOpts = {
-  indexUrl: string;
-  maxCompanies: number;
-  concurrency: number;
-  delayMs: number;
-  retries: number;
-  timeoutMs: number;
-  onPreview?: (row: OutputRow) => void;
-  onProgress?: (msg: any) => void;
-};
-
-export async function runJob(opts: JobOpts) {
-  const companies = await sniffIndex({ indexUrl: opts.indexUrl, retries: opts.retries, timeoutMs: opts.timeoutMs, delayMs: opts.delayMs });
-  const list = companies.slice(0, opts.maxCompanies);
-  const limit = pLimit(opts.concurrency);
-
-  const rows: OutputRow[] = [];
-  let jsonl = "";
-
-  await Promise.all(list.map((c, i) => limit(async () => {
-    const sources = new Set<string>([opts.indexUrl]);
-    if (c.profile_url) sources.add(c.profile_url);
-    if (c.website) sources.add(c.website);
-
-    const web = await discoverWebsite({ displayName: c.company, profileUrl: c.profile_url, knownWebsite: c.website, retries: opts.retries, timeoutMs: opts.timeoutMs, delayMs: opts.delayMs, sources });
-    const enrich = await enrichContacts({ website: web.website, retries: opts.retries, timeoutMs: opts.timeoutMs, delayMs: opts.delayMs, sources });
-    const roles  = await discoverRoles({ website: web.website, retries: opts.retries, timeoutMs: opts.timeoutMs, delayMs: opts.delayMs, sources });
-
-    const row: OutputRow = Row.parse({
-      company: c.company,
-      domain: web.domain,
-      website: web.website,
-      emails: [...enrich.emails],
-      phones: [...enrich.phones],
-      address: enrich.address ?? null,
-      linkedin_company: enrich.linkedinCompany ?? null,
-      it_contact: roles.it ?? null,
-      project_contact: roles.pm ?? null,
-      certifications: c.certifications ?? [],
-      profile_url: c.profile_url ?? null,
-      sources: Array.from(sources),
-      last_seen: dayjs().format("YYYY-MM-DD")
-    });
-
-    rows.push(row);
-    jsonl += JSON.stringify(row)+"\n";
-    opts.onPreview?.(row);
-    opts.onProgress?.({ i:i+1, total:list.length, company: c.company });
-  })));
-
-  // push a JSONL blob back through SSE "done" (server stores it for /download)
-  opts.onProgress?.({ i:list.length, total:list.length, status:"complete" });
-  (globalThis as any).__JSONL__ = jsonl;
-  return rows;
-}
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/worker/sources/iasme-index.ts">import { chromium, type Response } from "playwright";
-
-type IndexItem = { company: string; profile_url: string|null; website: string|null; certifications: string[] };
-
-export async function sniffIndex(opts: { indexUrl: string; retries: number; timeoutMs: number; delayMs: number }): Promise<IndexItem[]> {
-  const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext();
-  const page = await ctx.newPage();
-
-  const payloads: any[] = [];
-  page.on("response", async (res: Response) => {
-    try {
-      if ((res.headers()["content-type"]||"").includes("application/json")) {
-        const url = res.url();
-        if (/network|directory|member|search/i.test(url)) {
-          const data = await res.json().catch(()=>null);
-          if (data) payloads.push(data);
-        }
-      }
-    } catch {}
-  });
-
-  await page.goto(opts.indexUrl, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
-  await page.waitForTimeout(1200);
-
-  // Try to extract via sniffed JSON first
-  const jrows = extractFromJSON(payloads);
-  if (jrows.length >= 10) {
-    await browser.close();
-    return dedupeBy(jrows, x => x.company.toLowerCase());
-  }
-
-  // Fallback: enumerate visible cards & click into each to pick a website
-  const out: IndexItem[] = [];
-  // Collect company labels in the list
-  const companies = await page.$$eval("a,button,div", nodes => {
-    // heuristic: capture card rows that have a right-arrow or look like a company row
-    const arr: {text:string, idx:number}[] = [];
-    let i = 0;
-    for (const n of nodes) {
-      const t = (n.textContent||"").trim();
-      if (t && t.length < 120 && /ltd|limited|security|cloud|solutions|systems|consult/i.test(t)) {
-        arr.push({ text: t.replace(/\s+/g," "), idx: i++ });
-      }
-    }
-    return arr.slice(0, 80);
-  });
-
-  for (const c of companies) {
-    // try to click a sibling "arrow" in the same row by text anchor
-    const locator = page.locator(`:text("${c.text}")`).first();
-    await locator.scrollIntoViewIfNeeded().catch(()=>{});
-    // click nearest arrow-like control
-    const arrow = locator.locator('xpath=..').locator('css=a:has(svg), a:has-text("→"), button:has(svg)');
-    if (await arrow.count().catch(()=>0)) {
-      await arrow.first().click({ timeout: 3000 }).catch(()=>{});
-      await page.waitForTimeout(500);
-      // on detail: try to find "Visit Website"
-      const visit = page.locator('a:has-text("Visit Website"), a:has-text("Website")').first();
-      let site: string | null = null;
-      if (await visit.count().catch(()=>0)) site = await visit.getAttribute("href").catch(()=>null);
-      const name = c.text;
-      out.push({ company: name, profile_url: page.url(), website: site, certifications: [] });
-      // go back (UI back or history)
-      await page.goBack({ waitUntil: "domcontentloaded" }).catch(()=>{});
-      await page.waitForTimeout(300);
-    }
-    if (out.length >= 50) break;
-  }
-
-  await browser.close();
-  return dedupeBy(out, x => x.company.toLowerCase());
-}
-
-function extractFromJSON(payloads: any[]): IndexItem[] {
-  const out: IndexItem[] = [];
-  const push = (company:string, profile?:string|null, website?:string|null, certs?:string[]) => {
-    if (!company) return;
-    out.push({ company:company.trim(), profile_url: profile??null, website: website??null, certifications: (certs??[]).map(String) });
-  };
-  const visit = (obj:any) => {
-    if (!obj || typeof obj!=="object") return;
-    if (Array.isArray(obj)) { obj.forEach(visit); return; }
-    const keys = Object.keys(obj).map(k=>k.toLowerCase());
-    const name = obj.company ?? obj.companyName ?? obj.name ?? obj.title;
-    const prof = obj.profileUrl ?? obj.profile ?? obj.url ?? null;
-    const site = obj.website ?? obj.site ?? null;
-    const cert = obj.certifications ?? obj.badges ?? obj.labels ?? [];
-    if (typeof name === "string" && name.length>1) push(name, prof, site, Array.isArray(cert)?cert:[]);
-    for (const v of Object.values(obj)) visit(v);
-  };
-  payloads.forEach(visit);
-  return out;
-}
-function dedupeBy<T>(arr:T[], key:(t:T)=>string){ const s=new Set<string>(); const o:T[]=[]; for(const x of arr){const k=key(x); if(!s.has(k)){s.add(k); o.push(x);} } return o; }
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/worker/website/discovery.ts">import normalizeUrl from "normalize-url";
-
-export async function discoverWebsite(opts: {
-  displayName: string; profileUrl: string|null; knownWebsite: string|null;
-  retries: number; timeoutMs: number; delayMs: number; sources: Set<string>;
-}) {
-  if (opts.knownWebsite) {
-    const u = safe(opts.knownWebsite); if (u) { opts.sources.add(u); return { website:u, domain:new URL(u).hostname }; }
-  }
-  if (opts.profileUrl) {
-    const html = await fetchText(opts.profileUrl, opts.timeoutMs, opts.retries);
-    const link = firstUrl(html, u => !isSocial(u));
-    if (link) { const u = safe(link); if (u){ opts.sources.add(opts.profileUrl); opts.sources.add(u); return { website:u, domain:new URL(u).hostname }; } }
-  }
-  const q = `${opts.displayName} official site`;
-  const results = await ddg(q, opts.timeoutMs, opts.retries, opts.delayMs);
-  const pick = pickOfficial(results, opts.displayName);
-  if (pick) { const u = safe(pick); if (u) { opts.sources.add(u); return { website:u, domain:new URL(u).hostname }; } }
-  return { website: null as string|null, domain: null as string|null };
-}
-
-function isSocial(u:string){ return /linkedin|facebook|twitter|x\.com|instagram|tiktok|youtube|youtu\.be/i.test(u); }
-function firstUrl(text:string, pred:(u:string)=>boolean){ const urls=(text.match(/https?:\/\/[^\s"'<>]+/g)||[]); return urls.find(pred) || null; }
-function safe(u:string){ try{ return normalizeUrl(u, { forceHttps:true, removeTrailingSlash:false, stripWWW:false }); }catch{ return null; } }
-
-async function fetchText(url:string, timeout:number, retries:number){
-  for(let a=0;a<=retries;a++){
-    try{
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), timeout);
-      const res = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": UA, "accept":"text/html,*/*" }});
-      clearTimeout(t);
-      if(!res.ok) throw new Error(String(res.status));
-      return await res.text();
-    }catch{ await new Promise(r=>setTimeout(r, 300*Math.pow(2,a)*(0.5+Math.random()))); }
-  }
-  return "";
-}
-const UA = "Mozilla/5.0 (compatible; IASMEResearchApp/1.1; +https://example.invalid/bot)";
-
-async function ddg(q:string, timeout:number, retries:number, delay:number){
-  await new Promise(r=>setTimeout(r, 200+Math.random()*delay));
-  const html = await fetchText("https://html.duckduckgo.com/html/?q="+encodeURIComponent(q), timeout, retries);
-  return Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]).slice(0,10);
-}
-function pickOfficial(urls:string[], name:string){
-  const base = name.toLowerCase().replace(/\b(limited|ltd|llp|plc|uk|the)\b/g, "").replace(/\s+/g,"").trim();
-  const score = (u:string) => {
-    try{
-      const h = new URL(u).hostname.toLowerCase();
-      let s=0;
-      if(h.includes(base)) s+=3;
-      if(/\.(co\.uk|com|io|net)$/.test(h)) s+=1;
-      if(/wixsite|wordpress|facebook|linkedin|x\.com|google|cloudfront|amazonaws/.test(h)) s-=2;
-      return s;
-    }catch{ return -99; }
-  };
-  return urls.sort((a,b)=>score(b)-score(a))[0]||null;
-}
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/worker/website/enrich.ts">export async function enrichContacts(opts: {
-  website: string|null; retries: number; timeoutMs: number; delayMs: number; sources: Set<string>;
-}) {
-  const emails = new Set<string>();
-  const phones = new Set<string>();
-  let address: string|null = null;
-  let linkedinCompany: string|null = null;
-
-  if (!opts.website) return { emails, phones, address, linkedinCompany };
-
-  const root = rootOf(opts.website);
-  const tails = ["","contact","about","team","leadership","people","careers","jobs","privacy","impressum"];
-  for (const t of tails) {
-    const url = root + (t ? t + "/" : "");
-    const html = await fetchText(url, opts.timeoutMs, opts.retries).catch(()=> "");
-    if (!html) continue;
-    opts.sources.add(url);
-
-    for (const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
-      const e = m[0].toLowerCase();
-      if (sameDomain(e, root)) emails.add(e); else if (emails.size===0) emails.add(e);
-    }
-    for (const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)) {
-      const p = m[0].replace(/\s+/g," ").trim();
-      if (p.length >= 10) phones.add(p);
-    }
-    const lc = (html.match(/https?:\/\/(?:www\.)?linkedin\.com\/company\/[a-z0-9\-_%/]+/i)||[null])[0];
-    if (lc) linkedinCompany = lc;
-
-    if (!address) {
-      const block = pickAddress(html);
-      if (block) address = block;
-    }
-  }
-
-  return { emails, phones, address, linkedinCompany };
-}
-
-function rootOf(u:string){ const p = new URL(u); return `${p.protocol}//${p.host}/`; }
-function sameDomain(email:string, siteRoot:string){
-  try{
-    const host = new URL(siteRoot).hostname.split(".").slice(-2).join(".");
-    const dom = email.split("@")[1].split(".").slice(-2).join(".");
-    return host===dom;
-  }catch{ return false; }
-}
-function pickAddress(html:string){
-  const m = html.match(/(?:address|registered office|head office|headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
-  if (!m) return null;
-  return m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
-}
-async function fetchText(url:string, timeout:number, retries:number){
-  for(let a=0;a<=retries;a++){
-    try{
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), timeout);
-      const res = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": UA, "accept":"text/html,*/*" }});
-      clearTimeout(t);
-      if(!res.ok) throw new Error(String(res.status));
-      return await res.text();
-    }catch{ await new Promise(r=>setTimeout(r, 300*Math.pow(2,a)*(0.5+Math.random()))); }
-  }
-  return "";
-}
-const UA = "Mozilla/5.0 (compatible; IASMEResearchApp/1.1; +https://example.invalid/bot)";
-</script>
-
-  <script type="text/plain" data-path="iasme-research/src/worker/website/roles.ts">import type { OutputRow } from "../../types.js";
-
-const IT = ['cio','chief information officer','cto','chief technology officer','it director','head of it','it manager','technology director','infrastructure','systems','network'];
-const PM = ['project manager','programme manager','program manager','project director','head of projects','delivery manager','pmo'];
-
-export async function discoverRoles(opts: { website:string|null; retries:number; timeoutMs:number; delayMs:number; sources:Set<string> }) {
-  if (!opts.website) return { it: null as any, pm: null as any };
-  const root = rootOf(opts.website);
-  const pages = ["","team","leadership","people","about","management","our-team","careers","jobs","news","press"].map(t => root + (t? t+"/": ""));
-  const itCands = []; const pmCands = [];
-
-  for (const url of pages) {
-    const html = await fetchText(url, opts.timeoutMs, opts.retries).catch(()=> "");
-    if (!html) continue;
-    opts.sources.add(url);
-    const text = html.replace(/<[^>]+>/g," ").replace(/\s+/g," ");
-
-    for (const kw of IT) itCands.push(...extract(text, kw, url));
-    for (const kw of PM) pmCands.push(...extract(text, kw, url));
-  }
-
-  const it = pickBest(itCands);
-  const pm = pickBest(pmCands);
-  return { it, pm };
-}
-
-function extract(text:string, kw:string, source:string){
-  const re = new RegExp(`(.{0,160}\\b${escapeRe(kw)}\\b.{0,160})`, "ig");
-  const out: any[] = [];
-  let m; while((m = re.exec(text))){ 
-    const window = m[1];
-    const name = (window.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g)||[]).find(Boolean) || null;
-    const title = window.match(/[A-Z][A-Za-z/&\-\s]{3,60}/g)?.find(t => new RegExp(escapeRe(kw), "i").test(t)) || kw;
-    const email = (window.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[null])[0];
-    const linkedin = (window.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_/%]+/i)||[null])[0];
-    const score = scoreTitle(title||"");
-    out.push({ name, title, email, linkedin, score, source });
-  }
-  return out;
-}
-function pickBest(list:any[]){ if(!list.length) return null; list.sort((a,b)=>b.score-a.score); const t=list[0]; return { name: t.name||null, title: t.title||null, email: t.email||null, linkedin: t.linkedin||null }; }
-function scoreTitle(t:string){ t=t.toLowerCase(); if(/chief|cio|cto|cpo|director/.test(t)) return 100; if(/head/.test(t)) return 80; if(/manager|lead/.test(t)) return 60; return 10; }
-function escapeRe(s:string){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
-function rootOf(u:string){ const p = new URL(u); return `${p.protocol}//${p.host}/`; }
-async function fetchText(url:string, timeout:number, retries:number){
-  for(let a=0;a<=retries;a++){
-    try{
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), timeout);
-      const res = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": UA, "accept":"text/html,*/*" }});
-      clearTimeout(t);
-      if(!res.ok) throw new Error(String(res.status));
-      return await res.text();
-    }catch{ await new Promise(r=>setTimeout(r, 300*Math.pow(2,a)*(0.5+Math.random()))); }
-  }
-  return "";
-}
-const UA = "Mozilla/5.0 (compatible; IASMEResearchApp/1.1; +https://example.invalid/bot)";
-</script>
-
-  <script type="text/plain" data-path="iasme-research/ui/index.html"><!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>IASME Researcher — Preview</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<style>
-  :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--accent:#22c55e}
+  :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--ok:#22c55e;--warn:#fbbf24;--err:#f87171}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-  .wrap{max-width:1200px;margin:30px auto;padding:0 14px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
+  .wrap{max-width:1200px;margin:32px auto;padding:0 14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
   h1{margin:0 0 6px}
-  label{display:inline-block;margin-right:8px}
+  label{display:inline-flex;align-items:center;margin-right:10px;gap:6px}
   input{background:#0e1117;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
-  button{background:linear-gradient(135deg,#22c55e,#10b981);color:#05110a;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
-  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
-  th,td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
-  th{position:sticky;top:0;background:#0f1117}
+  input[type=number]{width:90px}
+  button{background:linear-gradient(135deg,#22c55e,#10b981);color:#04150b;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+  button.secondary{background:transparent;border:1px solid var(--border);color:var(--fg)}
   .muted{color:var(--muted)}
-  .chip{display:inline-block;border:1px solid var(--border);padding:2px 6px;border-radius:999px;margin:2px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  th,td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
+  th{position:sticky;top:0;background:#0f1117;z-index:1}
   a{color:#93c5fd;text-decoration:none}
+  .log{max-height:180px;overflow:auto;border:1px dashed var(--border);border-radius:10px;padding:8px;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+  .ok{color:#22c55e}.warn{color:#fbbf24}.err{color:#f87171}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>IASME Researcher — Live Preview</h1>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <label>Index URL <input id="index" size="40" value="https://iasme.co.uk/network-directory/"/></label>
-      <label>Max <input id="max" type="number" value="50" min="1" style="width:80px"/></label>
-      <label>Concurrency <input id="conc" type="number" value="4" min="1" style="width:80px"/></label>
+    <h1>IASME Network Directory — Client-side Scraper</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <label>Base domain <input id="base" size="28" value="https://iasme.co.uk"></label>
+      <label>Max companies <input id="max" type="number" value="120" min="1"></label>
+      <label>Concurrency <input id="conc" type="number" value="4" min="1"></label>
       <button id="start">Start</button>
-      <a id="dl" class="chip" href="/download.jsonl">Download JSONL</a>
+      <button id="dl" class="secondary" disabled>Download JSONL</button>
       <span id="status" class="muted"></span>
     </div>
+    <div class="log muted" id="log"></div>
+
     <table id="tbl">
       <thead>
         <tr>
@@ -566,8 +46,9 @@ const UA = "Mozilla/5.0 (compatible; IASMEResearchApp/1.1; +https://example.inva
           <th>Website</th>
           <th>Phones</th>
           <th>Emails</th>
-          <th>IT Lead</th>
-          <th>Project Lead</th>
+          <th>Address</th>
+          <th>IT Contact</th>
+          <th>HR Contact</th>
           <th>Sources</th>
         </tr>
       </thead>
@@ -575,109 +56,326 @@ const UA = "Mozilla/5.0 (compatible; IASMEResearchApp/1.1; +https://example.inva
     </table>
   </div>
 </div>
+
 <script>
-  const tbody = document.querySelector("#tbl tbody");
-  const status = document.getElementById("status");
-  const startBtn = document.getElementById("start");
+/* ===== helpers ===== */
+const $ = s => document.querySelector(s);
+const tbody = $("#tbl tbody");
+const logEl = $("#log");
+const statusEl = $("#status");
+const startBtn = $("#start");
+const dlBtn = $("#dl");
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const uniq = arr => { const s=new Set(),o=[]; for(const x of arr){const k=String(x); if(!s.has(k)){s.add(k); o.push(x);} } return o; };
+function esc(s){ return (s??"").toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function log(t,cls=''){ const d=document.createElement('div'); d.textContent=t; if(cls) d.className=cls; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+function rootOf(u){ const p=new URL(u); return `${p.protocol}//${p.host}/`; }
 
-  const evt = new EventSource("/events");
-  let i=0;
-  evt.addEventListener("preview", (e) => {
-    const r = JSON.parse(e.data);
-    addRow(r);
-  });
-  evt.addEventListener("progress", (e) => {
-    const p = JSON.parse(e.data || "{}");
-    status.textContent = `Processed ${p.i||0}/${p.total||"?"} ${p.company?("— "+p.company):""}`;
-  });
-  evt.addEventListener("done", () => status.textContent = "Done");
-  evt.addEventListener("error", (e) => console.log("SSE error", e));
+/* CORS-friendly fetch: direct -> r.jina.ai proxy */
+async function fetchText(url){
+  try{
+    const r = await fetch(url, { headers:{'accept':'text/html,*/*'} });
+    if (r.ok) return await r.text();
+  } catch {}
+  const prox = 'https://r.jina.ai/http://' + url.replace(/^https?:\/\//,'');
+  const r2 = await fetch(prox, { headers:{'accept':'text/plain'} });
+  if (!r2.ok) throw new Error('Fetch failed: '+url);
+  return await r2.text();
+}
+async function fetchXML(url){
+  const t = await fetchText(url);
+  const dom = new DOMParser().parseFromString(t,'text/xml');
+  return dom;
+}
+function textContentAll(el, sel){
+  return Array.from(el.querySelectorAll(sel)).map(n=>n.textContent? n.textContent.trim(): '').filter(Boolean);
+}
 
-  function esc(s){ return (s??"").toString().replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-  function a(u){ return u?`<a href="${esc(u)}" target="_blank">link</a>`:""; }
+/* ===== 1) Discover IASME profile URLs via sitemaps, then fallback to search ===== */
+async function discoverProfilesViaSitemaps(base){
+  const roots = uniq([`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`, `${base}/sitemap-index.xml`]);
+  const urls = new Set();
+  const toVisit = [];
 
-  function addRow(r){
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${++i}</td>
-      <td>${esc(r.company)}</td>
-      <td>${r.website ? `<a href="${esc(r.website)}" target="_blank">${esc(r.domain||r.website)}</a>` : ""}</td>
-      <td>${(r.phones||[]).map(esc).join("<br/>")}</td>
-      <td>${(r.emails||[]).map(e => `<a href="mailto:${esc(e)}">${esc(e)}</a>`).join("<br/>")}</td>
-      <td>${fmtPerson(r.it_contact)}</td>
-      <td>${fmtPerson(r.project_contact)}</td>
-      <td style="max-width:280px">${(r.sources||[]).map(u=>`<a href="${esc(u)}" target="_blank">src</a>`).join(" ")}</td>
-    `;
-    tbody.appendChild(row);
-  }
-  function fmtPerson(p){
-    if(!p) return "";
-    const parts = [];
-    if(p.name) parts.push(`<strong>${esc(p.name)}</strong>`);
-    if(p.title) parts.push(`<span class="muted">${esc(p.title)}</span>`);
-    if(p.email) parts.push(`<div><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`);
-    if(p.linkedin) parts.push(`<div><a href="${esc(p.linkedin)}" target="_blank">LinkedIn</a></div>`);
-    return parts.join("<br/>");
-  }
-
-  startBtn.addEventListener("click", async () => {
-    startBtn.disabled = true;
-    tbody.innerHTML = "";
-    i=0;
-    const body = {
-      indexUrl: document.getElementById("index").value.trim(),
-      maxCompanies: Number(document.getElementById("max").value||50),
-      concurrency: Number(document.getElementById("conc").value||4)
-    };
-    await fetch("/start", { method:"POST", headers: { "content-type":"application/json" }, body: JSON.stringify(body) });
-  });
-</script>
-</body>
-</html>
-</script>
-
-  <!-- ===================== ZIP BUILDER ===================== -->
-  <script>
-    const statusEl = document.getElementById('status');
-    const listEl = document.getElementById('list');
-    const files = Array.from(document.querySelectorAll('script[type="text/plain"][data-path]'))
-      .map(s => ({ path: s.dataset.path, content: s.textContent.replace(/\r?\n$/, '') }));
-    files.forEach(f => { const li=document.createElement('li'); li.textContent=f.path; listEl.appendChild(li); });
-
-    document.getElementById('zip').addEventListener('click', () => {
-      const root = ''; // already includes 'iasme-research/' in paths
-      const entries = files.map(f => ({ name: root + f.path, data: new TextEncoder().encode(f.content) }));
-      const blob = makeZip(entries);
-      const a = document.createElement('a');
-      a.download = 'iasme-research.zip';
-      a.href = URL.createObjectURL(blob);
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
-      statusEl.textContent = '📦 Downloaded iasme-research.zip';
-    });
-
-    // --- Minimal ZIP (store) ---
-    function u32(n){ return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]); }
-    function u16(n){ return new Uint8Array([n&255,(n>>>8)&255]); }
-    function toUTF8(s){ return new TextEncoder().encode(s); }
-    const CRC_TABLE = (()=>{let c,t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
-    function crc32(buf){let c=0^-1; for(let i=0;i<buf.length;i++) c=(c>>>8)^CRC_TABLE[(c^buf[i])&0xFF]; return (c^-1)>>>0; }
-    function dosDateTime(d=new Date()){ return { time:(d.getHours()<<11)|(d.getMinutes()<<5)|(Math.floor(d.getSeconds()/2)), date:(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate()) }; }
-    function makeZip(entries){
-      const local=[]; const central=[]; let offset=0; const {time,date}=dosDateTime();
-      for(const e of entries){
-        const name=toUTF8(e.name); const data=e.data; const crc=crc32(data); const sz=data.length;
-        local.push(toUTF8("PK\u0003\u0004"), u16(20), u16(0), u16(0), u16(time), u16(date), u32(crc), u32(sz), u32(sz), u16(name.length), u16(0), name, data);
-        central.push(toUTF8("PK\u0001\u0002"), u16(20), u16(20), u16(0), u16(0), u16(time), u16(date), u32(crc), u32(sz), u32(sz), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), name);
-        offset += 30 + name.length + sz;
+  for (const u of roots) {
+    try {
+      const xml = await fetchXML(u);
+      // collect child sitemaps
+      const locs = textContentAll(xml, 'sitemap > loc, urlset > url > loc, loc');
+      for (const loc of locs) {
+        if (/network-directory/i.test(loc)) urls.add(loc);
+        else if (/sitemap/i.test(loc)) toVisit.push(loc);
       }
-      const csz = central.reduce((n,b)=>n+b.length,0);
-      const lsz = local.reduce((n,b)=>n+b.length,0);
-      const trailer = [toUTF8("PK\u0005\u0006"), u16(0), u16(0), u16(entries.length), u16(entries.length), u32(csz), u32(lsz), u16(0)];
-      return new Blob([...local, ...central, ...trailer], { type: "application/zip" });
+      // if this root already contains URLs, continue
+    } catch { /* ignore */ }
+  }
+
+  // Traverse child sitemaps
+  for (const sm of toVisit.slice(0, 50)) {
+    try {
+      const xml = await fetchXML(sm);
+      const locs = textContentAll(xml, 'url > loc, loc');
+      for (const loc of locs) if (/\/network-directory\/[^/]+\/?$/i.test(loc)) urls.add(loc.replace(/#.*$/,''));
+    } catch { /* ignore */ }
+  }
+
+  return Array.from(urls);
+}
+
+async function discoverProfilesViaSearch(base, limit){
+  const seeds = [
+    `site:${new URL(base).host} "Network Directory"`,
+    `site:${new URL(base).host}/network-directory/`,
+    `site:${new URL(base).host} "Organisational Overview" "Network Directory"`
+  ];
+  const set = new Set();
+  for (const q of seeds) {
+    try {
+      const url = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(q);
+      const html = await fetchText(url);
+      const hits = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
+      for (const h of hits) if (/\/network-directory\/[^/]+\/?$/i.test(h)) set.add(h.replace(/#.*$/,''));
+      await sleep(400);
+      if (set.size >= limit) break;
+    } catch {}
+  }
+  return Array.from(set).slice(0, limit);
+}
+
+/* ===== 2) Parse IASME profile page to pick company + “Visit Website” ===== */
+async function parseIasmeProfile(url){
+  const html = await fetchText(url);
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const h = doc.querySelector('h1, h2, .entry-title')?.textContent?.trim() || null;
+  const name = h ? h.replace(/\s*[-|•].*$/,'').trim() : null;
+  const visit = Array.from(doc.querySelectorAll('a,button')).find(a => /visit website/i.test(a.textContent||''));
+  const website = visit?.getAttribute('href') || null;
+
+  // Try to pull a postal block
+  let address = null;
+  const text = doc.body?.textContent || '';
+  const m = text.match(/(?:Office Locations|Address|Head Office|Headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
+  if (m) address = m[1].replace(/\s+/g,' ').trim();
+
+  // naive certification pick
+  const certs = Array.from(doc.querySelectorAll('img[alt], .badge, .chip, .tag'))
+    .map(e => (e.getAttribute('alt')||e.textContent||'').trim())
+    .filter(Boolean).filter(s => /cyber|iasme|advisor|gdpr|standard/i.test(s));
+  return { name, website, address, certifications: uniq(certs).slice(0,8) };
+}
+
+/* ===== 3) Enrich from company site ===== */
+const TAILS = ['','contact','about','team','leadership','people','careers','jobs','privacy','impressum'];
+function sameBase(email, siteRoot){
+  try{
+    const host = new URL(siteRoot).hostname.split('.').slice(-2).join('.');
+    const dom  = email.split('@')[1].split('.').slice(-2).join('.');
+    return host===dom;
+  }catch{ return false; }
+}
+async function enrichFromSite(site){
+  if(!site) return { emails:[], phones:[], address:null, linkedin:null, sources:[] };
+  const root = rootOf(site);
+  const emails = new Set(), phones = new Set(), sources = new Set();
+  let address = null, linkedin = null;
+
+  for (const t of TAILS) {
+    const url = root + (t? t+'/' : '');
+    try {
+      const html = await fetchText(url);
+      sources.add(url);
+      for (const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
+        const e = m[0].toLowerCase();
+        if (sameBase(e, root)) emails.add(e); else if (emails.size===0) emails.add(e);
+      }
+      for (const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)) {
+        const p = m[0].replace(/\s+/g,' ').trim();
+        if (p.length>=10) phones.add(p);
+      }
+      if (!linkedin) {
+        const l = (html.match(/https?:\/\/(?:www\.)?linkedin\.com\/company\/[a-z0-9\-_/%]+/i)||[null])[0];
+        if (l) linkedin=l;
+      }
+      if (!address) {
+        const mm = html.match(/(?:address|registered office|head office|headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
+        if (mm) address = mm[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      }
+    } catch {}
+  }
+  return { emails:[...emails], phones:[...phones], address, linkedin, sources:[...sources] };
+}
+
+/* ===== 4) Roles (IT + HR) from site + public web snippets ===== */
+const IT_KW = ['cio','chief information officer','cto','chief technology officer','it director','head of it','it manager','technology director','infrastructure','systems','network'];
+const HR_KW = ['chief people officer','cpo','hr director','head of hr','head of people','people director','talent lead','recruiting lead','hr manager','people manager'];
+
+function scoreTitle(t){ t=(t||'').toLowerCase(); if(/chief|cio|cto|cpo|director/.test(t))return 100; if(/head/.test(t))return 80; if(/manager|lead/.test(t))return 60; return 10; }
+function pickBest(list){ if(!list.length) return null; list.sort((a,b)=>b.score-a.score); const x=list[0]; return { name:x.name||null, title:x.title||null, email:x.email||null, linkedin:x.linkedin||null }; }
+
+function extractCandidates(text, kws, src){
+  const out=[];
+  const clean = text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  for(const kw of kws){
+    const re = new RegExp(`(.{0,160}\\b${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b.{0,160})`,'ig');
+    let m; while((m=re.exec(clean))){
+      const w=m[1];
+      const name=(w.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g)||[]).find(Boolean)||null;
+      const title=w.match(/[A-Z][A-Za-z/&\-\s]{3,60}/g)?.find(t=>new RegExp(kw,'i').test(t))||kw;
+      const email=(w.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[null])[0];
+      const linkedin=(w.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_/%]+/i)||[null])[0];
+      out.push({ name, title, email, linkedin, score:scoreTitle(title), src });
     }
-  </script>
+  }
+  return out;
+}
+
+async function discoverRoles(companyName, site){
+  const IT=[], HR=[];
+  // On-site pages
+  if(site){
+    const root = rootOf(site);
+    for(const t of ['','team','leadership','people','about','management','our-team','careers','jobs','news','press']){
+      const url = root + (t? t+'/' : '');
+      try{ const html = await fetchText(url); IT.push(...extractCandidates(html, IT_KW, url)); HR.push(...extractCandidates(html, HR_KW, url)); }catch{}
+    }
+  }
+  // Public web (LinkedIn/press snippets) — best-effort
+  try{
+    const url1 = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(`${companyName} CIO OR CTO OR "IT Director" site:linkedin.com OR site:.uk OR site:.com`);
+    const html1 = await fetchText(url1);
+    IT.push(...extractCandidates(html1, IT_KW, url1));
+  }catch{}
+  try{
+    const url2 = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(`${companyName} "HR Director" OR "Head of HR" OR "Chief People Officer" site:linkedin.com OR site:.uk OR site:.com`);
+    const html2 = await fetchText(url2);
+    HR.push(...extractCandidates(html2, HR_KW, url2));
+  }catch{}
+  return { it: pickBest(IT), hr: pickBest(HR) };
+}
+
+/* ===== 5) Pipeline + UI ===== */
+function newRecord(){
+  return {
+    company: null, domain: null, website: null,
+    emails: [], phones: [], address: null,
+    linkedin_company: null, it_contact: null, hr_contact: null,
+    certifications: [], profile_url: null,
+    sources: [], last_seen: new Date().toISOString().slice(0,10)
+  };
+}
+function addRow(r, i){
+  const tr=document.createElement('tr');
+  tr.innerHTML = `
+    <td>${i}</td>
+    <td>${esc(r.company)}</td>
+    <td>${r.website?`<a target="_blank" href="${esc(r.website)}">${esc(r.domain||r.website)}</a>`:''}</td>
+    <td>${(r.phones||[]).map(esc).join('<br>')}</td>
+    <td>${(r.emails||[]).map(e=>`<a href="mailto:${esc(e)}">${esc(e)}</a>`).join('<br>')}</td>
+    <td>${esc(r.address||'')}</td>
+    <td>${fmtPerson(r.it_contact)}</td>
+    <td>${fmtPerson(r.hr_contact)}</td>
+    <td style="max-width:260px">${(r.sources||[]).map(u=>`<a target="_blank" href="${esc(u)}">src</a>`).join(' ')}</td>`;
+  tbody.appendChild(tr);
+}
+function fmtPerson(p){
+  if(!p) return '';
+  const parts=[]; if(p.name) parts.push(`<strong>${esc(p.name)}</strong>`); if(p.title) parts.push(`<span class="muted">${esc(p.title)}</span>`);
+  if(p.email) parts.push(`<div><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`); if(p.linkedin) parts.push(`<div><a target="_blank" href="${esc(p.linkedin)}">LinkedIn</a></div>`);
+  return parts.join('<br>');
+}
+
+startBtn.addEventListener('click', run);
+dlBtn.addEventListener('click', ()=> setTimeout(()=> URL.revokeObjectURL(dlBtn.href), 2000));
+
+async function run(){
+  startBtn.disabled=true; dlBtn.disabled=true; tbody.innerHTML=''; logEl.textContent=''; statusEl.textContent='';
+  const base = $("#base").value.replace(/\/$/,'');
+  const max = Math.max(1, +$("#max").value||100);
+  const conc = Math.max(1, +$("#conc").value||4);
+
+  log('Looking for sitemaps…');
+  let profiles = await discoverProfilesViaSitemaps(base).catch(()=>[]);
+  profiles = profiles.filter(u=>/\/network-directory\/[^/]+\/?$/i.test(u));
+  if (profiles.length) {
+    log(`Found ${profiles.length} profiles via sitemap`, 'ok');
+  } else {
+    log('No sitemap profiles found — falling back to search…', 'warn');
+    profiles = await discoverProfilesViaSearch(base, max*2).catch(()=>[]);
+  }
+
+  if (!profiles.length) {
+    log('No profiles found. You can also change Base domain or run later.', 'err');
+    startBtn.disabled=false; return;
+  }
+
+  profiles = uniq(profiles).slice(0, max);
+  const queue = profiles.map((u,i)=>({ url:u, i:i+1 }));
+  let idx=0, active=0, done=0;
+  const rows=[]; let jsonl='';
+
+  const worker = async () => {
+    if (idx>=queue.length) return;
+    const me = queue[idx++]; active++;
+    try {
+      statusEl.textContent = `Processing ${me.i}/${queue.length}…`;
+      const rec = newRecord(); rec.profile_url = me.url; rec.sources.push(me.url);
+
+      const prof = await parseIasmeProfile(me.url);
+      if (prof.name) rec.company = prof.name;
+      if (prof.address) rec.address = rec.address || prof.address;
+      if (prof.certifications?.length) rec.certifications = prof.certifications.slice(0,8);
+
+      let site = prof.website || null;
+      if (!site && rec.company) {
+        try {
+          const q = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(rec.company + ' official site');
+          const html = await fetchText(q);
+          const hits = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
+          site = hits.find(u=>!/linkedin|facebook|twitter|x\.com|instagram|tiktok|youtube|google|amazonaws|cloudfront/i.test(u)) || null;
+        } catch {}
+      }
+      if (site) {
+        rec.website = site;
+        try { rec.domain = new URL(site).hostname; } catch {}
+      }
+
+      const enrich = await enrichFromSite(rec.website);
+      rec.emails = uniq([...(rec.emails||[]), ...(enrich.emails||[])]);
+      rec.phones = uniq([...(rec.phones||[]), ...(enrich.phones||[])]);
+      rec.address = rec.address || enrich.address || null;
+      rec.linkedin_company = enrich.linkedin || null;
+      rec.sources = uniq([...(rec.sources||[]), ...(enrich.sources||[]), ...(rec.website?[rec.website]:[])]);
+
+      const roles = await discoverRoles(rec.company||'', rec.website);
+      rec.it_contact = roles.it;
+      rec.hr_contact = roles.hr;
+
+      if(!rec.company) rec.company='(Unknown)';
+      if(!rec.sources.length) rec.sources=[me.url];
+
+      rows.push(rec); jsonl += JSON.stringify(rec)+'\n';
+      addRow(rec, me.i);
+      log(`✓ ${rec.company}`, 'ok');
+    } catch (e) {
+      log(`✗ ${me.url} — ${e}`, 'err');
+    } finally {
+      active--; done++;
+      if (idx<queue.length) worker(); // start next
+    }
+  };
+
+  const n = Math.min(conc, queue.length);
+  for (let k=0;k<n;k++) worker();
+  while (done<queue.length) await sleep(200);
+
+  // download
+  const blob = new Blob([jsonl], { type: 'application/jsonl;charset=utf-8' });
+  const href = URL.createObjectURL(blob);
+  dlBtn.href = href; dlBtn.download = 'iasme_companies.jsonl'; dlBtn.disabled=false;
+  statusEl.textContent = `Done — ${rows.length} records`;
+  startBtn.disabled=false;
+}
+</script>
 </body>
 </html>
+
