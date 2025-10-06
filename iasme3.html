@@ -2,40 +2,67 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>IASME Scraper — Single-File (Sitemap + Search)</title>
+<title>IASME Scraper — Single File (Sitemap + Bookmarklet Fallback)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
   :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--ok:#22c55e;--warn:#fbbf24;--err:#f87171}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-  .wrap{max-width:1200px;margin:32px auto;padding:0 14px}
+  .wrap{max-width:1200px;margin:28px auto;padding:0 14px}
   .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  h1{margin:0 0 6px}
-  label{display:inline-flex;align-items:center;margin-right:10px;gap:6px}
-  input{background:#0e1117;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+  h1{margin:0 0 8px}
+  label{display:inline-flex;align-items:center;margin-right:12px;gap:6px}
+  input,textarea{background:#0e1117;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
   input[type=number]{width:90px}
+  textarea{width:100%;min-height:90px}
   button{background:linear-gradient(135deg,#22c55e,#10b981);color:#04150b;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
   button.secondary{background:transparent;border:1px solid var(--border);color:var(--fg)}
   .muted{color:var(--muted)}
   table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
   th,td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
   th{position:sticky;top:0;background:#0f1117;z-index:1}
-  a{color:#93c5fd;text-decoration:none}
   .log{max-height:180px;overflow:auto;border:1px dashed var(--border);border-radius:10px;padding:8px;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
-  .ok{color:#22c55e}.warn{color:#fbbf24}.err{color:#f87171}
+  a{color:#93c5fd;text-decoration:none}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+  .note{font-size:13px;color:var(--muted)}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>IASME Network Directory — Client-side Scraper</h1>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-      <label>Base domain <input id="base" size="28" value="https://iasme.co.uk"></label>
-      <label>Max companies <input id="max" type="number" value="120" min="1"></label>
+    <h1>IASME Network Directory — Single-File Scraper</h1>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <label>Base <input id="base" size="40" value="https://iasme.co.uk"></label>
+      <label>Max companies <input id="max" type="number" value="150" min="1"></label>
       <label>Concurrency <input id="conc" type="number" value="4" min="1"></label>
       <button id="start">Start</button>
       <button id="dl" class="secondary" disabled>Download JSONL</button>
       <span id="status" class="muted"></span>
     </div>
+
+    <details style="margin-top:10px">
+      <summary>Bookmarklet fallback (no CORS/proxy needed)</summary>
+      <div class="note" style="margin:6px 0 10px">
+        1) Drag this to your bookmarks bar → 
+        <a id="bm" class="pill" href="#">IASME Harvest</a><br>
+        2) Open <code>https://iasme.co.uk/network-directory/</code> and click the bookmarklet.  
+        3) It will click through A–Z, collect all profile URLs, copy them to clipboard, and pop a box with the list.  
+        4) Paste the URLs into the box below and click <b>Start</b>.
+      </div>
+      <textarea id="manual" placeholder="Paste IASME profile URLs here (one per line)"></textarea>
+    </details>
+
+    <details style="margin-top:10px">
+      <summary>What this does</summary>
+      <div class="note">
+        • Gets all IASME <code>/network-directory/&lt;company&gt;/</code> profiles (via sitemap or your pasted list).<br>
+        • For each profile: finds “Visit Website”, crawls likely contact pages, extracts phones/emails/address & LinkedIn company.<br>
+        • Finds senior IT & HR leads from public pages (company site + public LinkedIn URLs found via search). No logins used.<br>
+        • Outputs JSONL with <code>sources[]</code> and <code>last_seen</code>. Everything happens in your browser; one file only.
+      </div>
+    </details>
+
     <div class="log muted" id="log"></div>
 
     <table id="tbl">
@@ -47,8 +74,8 @@
           <th>Phones</th>
           <th>Emails</th>
           <th>Address</th>
-          <th>IT Contact</th>
-          <th>HR Contact</th>
+          <th>IT Lead</th>
+          <th>HR Lead</th>
           <th>Sources</th>
         </tr>
       </thead>
@@ -58,212 +85,244 @@
 </div>
 
 <script>
-/* ===== helpers ===== */
+/* ============================ UI helpers ============================ */
 const $ = s => document.querySelector(s);
 const tbody = $("#tbl tbody");
 const logEl = $("#log");
 const statusEl = $("#status");
 const startBtn = $("#start");
 const dlBtn = $("#dl");
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-const uniq = arr => { const s=new Set(),o=[]; for(const x of arr){const k=String(x); if(!s.has(k)){s.add(k); o.push(x);} } return o; };
-function esc(s){ return (s??"").toString().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-function log(t,cls=''){ const d=document.createElement('div'); d.textContent=t; if(cls) d.className=cls; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+function log(line, cls=''){ const p=document.createElement('div'); p.textContent=line; if(cls) p.className=cls; logEl.appendChild(p); logEl.scrollTop=logEl.scrollHeight; }
+function esc(s){ return (s??"").toString().replace(/[&<>]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+function uniq(arr){ const s=new Set(), o=[]; for(const x of arr){ const k=String(x); if(!s.has(k)){s.add(k); o.push(x);} } return o; }
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
 function rootOf(u){ const p=new URL(u); return `${p.protocol}//${p.host}/`; }
+function sameReg(email, siteRoot){ try{ const host=new URL(siteRoot).hostname.split('.').slice(-2).join('.'); const dom=email.split('@')[1].split('.').slice(-2).join('.'); return host===dom; }catch{ return false; }}
 
-/* CORS-friendly fetch: direct -> r.jina.ai proxy */
+/* ============================ Bookmarklet ============================ */
+(function makeBookmarklet(){
+  const code = `
+  (async function(){
+    const wait = ms=>new Promise(r=>setTimeout(r,ms));
+    const seen=new Set();
+    const out=[];
+    async function harvest(){
+      document.querySelectorAll('a[href*="/network-directory/"]').forEach(a=>{
+        const u=a.href.split('#')[0]; if(/\\/network-directory\\/[^/]+\\/?$/.test(u)) if(!seen.has(u)){seen.add(u); out.push(u);}
+      });
+    }
+    // click through "ALL 0 1 2 ... A B C ... Z" if present
+    const tabs=[...document.querySelectorAll('a,button')].filter(x=>/^[0-9A-Z]$/.test((x.textContent||'').trim()));
+    if(tabs.length){
+      for(const t of tabs){ t.click(); await wait(400); await harvest(); }
+    } else {
+      await harvest();
+    }
+    const txt = out.join('\\n');
+    try { await navigator.clipboard.writeText(txt); alert('Copied '+out.length+' URLs to clipboard.'); }
+    catch(e){ prompt('Copy URLs:', txt); }
+  })();`;
+  $("#bm").href = "javascript:" + encodeURIComponent(code);
+})();
+
+/* ============================ Robust fetch ============================ */
+/* Multiple fallbacks: direct → r.jina.ai → allorigins → thingproxy */
 async function fetchText(url){
+  // 1) direct
   try{
-    const r = await fetch(url, { headers:{'accept':'text/html,*/*'} });
-    if (r.ok) return await r.text();
-  } catch {}
-  const prox = 'https://r.jina.ai/http://' + url.replace(/^https?:\/\//,'');
-  const r2 = await fetch(prox, { headers:{'accept':'text/plain'} });
-  if (!r2.ok) throw new Error('Fetch failed: '+url);
-  return await r2.text();
-}
-async function fetchXML(url){
-  const t = await fetchText(url);
-  const dom = new DOMParser().parseFromString(t,'text/xml');
-  return dom;
-}
-function textContentAll(el, sel){
-  return Array.from(el.querySelectorAll(sel)).map(n=>n.textContent? n.textContent.trim(): '').filter(Boolean);
+    const r=await fetch(url,{headers:{'accept':'text/html,*/*'},mode:'cors',credentials:'omit'});
+    if(r.ok && r.status<400) return await r.text();
+  }catch{}
+  // 2) r.jina.ai mirror (read-only, strips scripts; good for static text)
+  try{
+    const prox='https://r.jina.ai/http://'+url.replace(/^https?:\/\//,'');
+    const r=await fetch(prox,{headers:{'accept':'text/plain'},mode:'cors',credentials:'omit'});
+    if(r.ok && r.status<400) return await r.text();
+  }catch{}
+  // 3) allorigins
+  try{
+    const prox='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+    const r=await fetch(prox,{mode:'cors',credentials:'omit'});
+    if(r.ok && r.status<400) return await r.text();
+  }catch{}
+  // 4) thingproxy (best-effort)
+  try{
+    const prox='https://thingproxy.freeboard.io/fetch/'+url;
+    const r=await fetch(prox,{mode:'cors',credentials:'omit'});
+    if(r.ok && r.status<400) return await r.text();
+  }catch{}
+  throw new Error('fetch failed for '+url);
 }
 
-/* ===== 1) Discover IASME profile URLs via sitemaps, then fallback to search ===== */
-async function discoverProfilesViaSitemaps(base){
-  const roots = uniq([`${base}/wp-sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap.xml`, `${base}/sitemap-index.xml`]);
+/* ============================ Sitemap crawl ============================ */
+async function getSitemapURLs(base){
+  const smIndex = new URL('/sitemap_index.xml', base).href;
+  const fallbacks = [
+    smIndex,
+    new URL('/page-sitemap.xml', base).href,
+    new URL('/sitemap.xml', base).href
+  ];
   const urls = new Set();
-  const toVisit = [];
-
-  for (const u of roots) {
-    try {
-      const xml = await fetchXML(u);
-      // collect child sitemaps
-      const locs = textContentAll(xml, 'sitemap > loc, urlset > url > loc, loc');
-      for (const loc of locs) {
-        if (/network-directory/i.test(loc)) urls.add(loc);
-        else if (/sitemap/i.test(loc)) toVisit.push(loc);
+  for(const sm of fallbacks){
+    try{
+      const xml = await fetchText(sm);
+      const locs = Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map(m=>m[1]);
+      if(!locs.length) continue;
+      for(const u of locs){
+        if(/\/network-directory\//i.test(u)) urls.add(u.replace(/#.*$/,''));
+        // recurse into sub-sitemaps
+        if(/sitemap.*\.xml$/i.test(u) && !/image|video/i.test(u)){
+          try{
+            const sub = await fetchText(u);
+            const sublocs = Array.from(sub.matchAll(/<loc>([^<]+)<\/loc>/g)).map(m=>m[1]);
+            for(const s of sublocs) if(/\/network-directory\//i.test(s)) urls.add(s.replace(/#.*$/,''));
+          }catch{}
+        }
       }
-      // if this root already contains URLs, continue
-    } catch { /* ignore */ }
+    }catch{}
   }
-
-  // Traverse child sitemaps
-  for (const sm of toVisit.slice(0, 50)) {
-    try {
-      const xml = await fetchXML(sm);
-      const locs = textContentAll(xml, 'url > loc, loc');
-      for (const loc of locs) if (/\/network-directory\/[^/]+\/?$/i.test(loc)) urls.add(loc.replace(/#.*$/,''));
-    } catch { /* ignore */ }
-  }
-
   return Array.from(urls);
 }
 
-async function discoverProfilesViaSearch(base, limit){
-  const seeds = [
-    `site:${new URL(base).host} "Network Directory"`,
-    `site:${new URL(base).host}/network-directory/`,
-    `site:${new URL(base).host} "Organisational Overview" "Network Directory"`
-  ];
-  const set = new Set();
-  for (const q of seeds) {
-    try {
-      const url = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(q);
-      const html = await fetchText(url);
-      const hits = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
-      for (const h of hits) if (/\/network-directory\/[^/]+\/?$/i.test(h)) set.add(h.replace(/#.*$/,''));
-      await sleep(400);
-      if (set.size >= limit) break;
-    } catch {}
-  }
-  return Array.from(set).slice(0, limit);
-}
+/* ============================ IASME profile parse ============================ */
+function parseHTML(html){ return new DOMParser().parseFromString(html,'text/html'); }
 
-/* ===== 2) Parse IASME profile page to pick company + “Visit Website” ===== */
 async function parseIasmeProfile(url){
   const html = await fetchText(url);
-  const doc = new DOMParser().parseFromString(html,'text/html');
-  const h = doc.querySelector('h1, h2, .entry-title')?.textContent?.trim() || null;
-  const name = h ? h.replace(/\s*[-|•].*$/,'').trim() : null;
-  const visit = Array.from(doc.querySelectorAll('a,button')).find(a => /visit website/i.test(a.textContent||''));
-  const website = visit?.getAttribute('href') || null;
+  const dom  = parseHTML(html);
 
-  // Try to pull a postal block
+  let name = dom.querySelector('h1, h2, .entry-title')?.textContent?.trim() || null;
+  if(name) name = name.replace(/\s*[-|•].*$/,'').trim();
+
+  let website = null;
+  const anchors = Array.from(dom.querySelectorAll('a'));
+  for(const a of anchors){
+    const txt=(a.textContent||'').trim();
+    if(/visit website/i.test(txt)){ website = a.getAttribute('href'); break; }
+  }
+  if(!website){
+    const content = dom.querySelector('main, .entry-content, article') || dom.body;
+    const ext = Array.from(content.querySelectorAll('a[href^="http"]'))
+      .map(a=>a.getAttribute('href'))
+      .find(h=>h && !/iasme\.co\.uk/i.test(h));
+    if(ext) website = ext;
+  }
+
   let address = null;
-  const text = doc.body?.textContent || '';
+  const text = dom.body?.textContent || '';
   const m = text.match(/(?:Office Locations|Address|Head Office|Headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
-  if (m) address = m[1].replace(/\s+/g,' ').trim();
+  if(m){ address = m[1].replace(/\s+/g,' ').trim(); }
 
-  // naive certification pick
-  const certs = Array.from(doc.querySelectorAll('img[alt], .badge, .chip, .tag'))
-    .map(e => (e.getAttribute('alt')||e.textContent||'').trim())
-    .filter(Boolean).filter(s => /cyber|iasme|advisor|gdpr|standard/i.test(s));
-  return { name, website, address, certifications: uniq(certs).slice(0,8) };
+  return { name, website, address };
 }
 
-/* ===== 3) Enrich from company site ===== */
-const TAILS = ['','contact','about','team','leadership','people','careers','jobs','privacy','impressum'];
-function sameBase(email, siteRoot){
-  try{
-    const host = new URL(siteRoot).hostname.split('.').slice(-2).join('.');
-    const dom  = email.split('@')[1].split('.').slice(-2).join('.');
-    return host===dom;
-  }catch{ return false; }
-}
+/* ============================ Company site enrich ============================ */
+const CONTACT_TAILS = ['','contact','about','team','leadership','people','careers','jobs','privacy','impressum'];
+
 async function enrichFromSite(site){
   if(!site) return { emails:[], phones:[], address:null, linkedin:null, sources:[] };
   const root = rootOf(site);
-  const emails = new Set(), phones = new Set(), sources = new Set();
-  let address = null, linkedin = null;
+  const emails=new Set(), phones=new Set(), sources=new Set();
+  let address=null, linkedin=null;
 
-  for (const t of TAILS) {
+  for(const t of CONTACT_TAILS){
     const url = root + (t? t+'/' : '');
-    try {
+    try{
       const html = await fetchText(url);
       sources.add(url);
-      for (const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
-        const e = m[0].toLowerCase();
-        if (sameBase(e, root)) emails.add(e); else if (emails.size===0) emails.add(e);
+
+      for(const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)){
+        const e=m[0].toLowerCase();
+        if(sameReg(e, root)) emails.add(e); else if(emails.size===0) emails.add(e);
       }
-      for (const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)) {
-        const p = m[0].replace(/\s+/g,' ').trim();
-        if (p.length>=10) phones.add(p);
+      for(const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)){
+        const p=m[0].replace(/\s+/g,' ').trim(); if(p.length>=10) phones.add(p);
       }
-      if (!linkedin) {
-        const l = (html.match(/https?:\/\/(?:www\.)?linkedin\.com\/company\/[a-z0-9\-_/%]+/i)||[null])[0];
-        if (l) linkedin=l;
+      if(!linkedin){
+        const lc=(html.match(/https?:\/\/(?:www\.)?linkedin\.com\/company\/[a-z0-9\-_/%]+/i)||[null])[0];
+        if(lc) linkedin = lc;
       }
-      if (!address) {
-        const mm = html.match(/(?:address|registered office|head office|headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
-        if (mm) address = mm[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+      if(!address){
+        const am = html.match(/(?:address|registered office|head office|headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
+        if(am){ address = am[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
       }
-    } catch {}
+    }catch{}
   }
   return { emails:[...emails], phones:[...phones], address, linkedin, sources:[...sources] };
 }
 
-/* ===== 4) Roles (IT + HR) from site + public web snippets ===== */
+/* ============================ Role discovery ============================ */
 const IT_KW = ['cio','chief information officer','cto','chief technology officer','it director','head of it','it manager','technology director','infrastructure','systems','network'];
 const HR_KW = ['chief people officer','cpo','hr director','head of hr','head of people','people director','talent lead','recruiting lead','hr manager','people manager'];
-
-function scoreTitle(t){ t=(t||'').toLowerCase(); if(/chief|cio|cto|cpo|director/.test(t))return 100; if(/head/.test(t))return 80; if(/manager|lead/.test(t))return 60; return 10; }
+function scoreTitle(t){ t=(t||'').toLowerCase(); if(/chief|cio|cto|cpo|director/.test(t)) return 100; if(/head/.test(t)) return 80; if(/manager|lead/.test(t)) return 60; return 10; }
 function pickBest(list){ if(!list.length) return null; list.sort((a,b)=>b.score-a.score); const x=list[0]; return { name:x.name||null, title:x.title||null, email:x.email||null, linkedin:x.linkedin||null }; }
-
-function extractCandidates(text, kws, src){
-  const out=[];
-  const clean = text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+function addFromText(txt, kws, src, bucket){
+  const text=txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
   for(const kw of kws){
-    const re = new RegExp(`(.{0,160}\\b${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b.{0,160})`,'ig');
-    let m; while((m=re.exec(clean))){
-      const w=m[1];
-      const name=(w.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g)||[]).find(Boolean)||null;
-      const title=w.match(/[A-Z][A-Za-z/&\-\s]{3,60}/g)?.find(t=>new RegExp(kw,'i').test(t))||kw;
-      const email=(w.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[null])[0];
-      const linkedin=(w.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_/%]+/i)||[null])[0];
-      out.push({ name, title, email, linkedin, score:scoreTitle(title), src });
+    const re=new RegExp(`(.{0,160}\\b${kw.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')}\\b.{0,160})`,'ig');
+    let m; while((m=re.exec(text))){
+      const win=m[1];
+      const name=(win.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g)||[]).find(Boolean)||null;
+      const title=win.match(/[A-Z][A-Za-z/&\-\s]{3,60}/g)?.find(t=>new RegExp(kw,'i').test(t))||kw;
+      const email=(win.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[null])[0];
+      const linkedin=(win.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_/%]+/i)||[null])[0];
+      bucket.push({ name,title,email,linkedin,score:scoreTitle(title),src });
     }
   }
-  return out;
 }
-
 async function discoverRoles(companyName, site){
-  const IT=[], HR=[];
-  // On-site pages
+  const itC=[], hrC=[];
   if(site){
-    const root = rootOf(site);
+    const root=rootOf(site);
     for(const t of ['','team','leadership','people','about','management','our-team','careers','jobs','news','press']){
-      const url = root + (t? t+'/' : '');
-      try{ const html = await fetchText(url); IT.push(...extractCandidates(html, IT_KW, url)); HR.push(...extractCandidates(html, HR_KW, url)); }catch{}
+      const url = root+(t? t+'/':'');
+      try{
+        const html = await fetchText(url);
+        addFromText(html, IT_KW, url, itC);
+        addFromText(html, HR_KW, url, hrC);
+      }catch{}
     }
   }
-  // Public web (LinkedIn/press snippets) — best-effort
-  try{
-    const url1 = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(`${companyName} CIO OR CTO OR "IT Director" site:linkedin.com OR site:.uk OR site:.com`);
-    const html1 = await fetchText(url1);
-    IT.push(...extractCandidates(html1, IT_KW, url1));
-  }catch{}
-  try{
-    const url2 = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(`${companyName} "HR Director" OR "Head of HR" OR "Chief People Officer" site:linkedin.com OR site:.uk OR site:.com`);
-    const html2 = await fetchText(url2);
-    HR.push(...extractCandidates(html2, HR_KW, url2));
-  }catch{}
-  return { it: pickBest(IT), hr: pickBest(HR) };
+  // light web check via DuckDuckGo HTML (proxied); ok if it fails
+  const duck = async (q) => {
+    try{
+      const html = await fetchText('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q));
+      const items = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>/gi));
+      for(const m of items){
+        const href=m[1]; const title=(m[2]||'').replace(/<[^>]+>/g,' ');
+        if(/linkedin\.com\/in\//i.test(href) && /director|head|manager|cio|cto|people|hr/i.test(title)){
+          const nm = title.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/);
+          if(/hr|people/i.test(title)) hrC.push({ name:nm?nm[0]:null, title, email:null, linkedin:href, score:scoreTitle(title), src:href });
+          if(/cio|cto|it|technology|infrastructure|systems|network|director/i.test(title)) itC.push({ name:nm?nm[0]:null, title, email:null, linkedin:href, score:scoreTitle(title), src:href });
+        }
+      }
+    }catch{}
+  };
+  await duck(`${companyName} site:linkedin.com (CIO OR CTO OR "IT Director" OR "Head of IT")`);
+  await duck(`${companyName} site:linkedin.com ("HR Director" OR "Head of HR" OR "Chief People Officer")`);
+
+  return { it: pickBest(itC), hr: pickBest(hrC) };
 }
 
-/* ===== 5) Pipeline + UI ===== */
-function newRecord(){
+/* ============================ Pipeline ============================ */
+function emptyRow(){
   return {
-    company: null, domain: null, website: null,
-    emails: [], phones: [], address: null,
-    linkedin_company: null, it_contact: null, hr_contact: null,
-    certifications: [], profile_url: null,
-    sources: [], last_seen: new Date().toISOString().slice(0,10)
+    company: null,
+    domain: null,
+    website: null,
+    emails: [],
+    phones: [],
+    address: null,
+    linkedin_company: null,
+    it_contact: null,
+    hr_contact: null,
+    certifications: [],
+    profile_url: null,
+    sources: [],
+    last_seen: new Date().toISOString().slice(0,10)
   };
 }
-function addRow(r, i){
+function addPreviewRow(r, i){
   const tr=document.createElement('tr');
   tr.innerHTML = `
     <td>${i}</td>
@@ -279,103 +338,93 @@ function addRow(r, i){
 }
 function fmtPerson(p){
   if(!p) return '';
-  const parts=[]; if(p.name) parts.push(`<strong>${esc(p.name)}</strong>`); if(p.title) parts.push(`<span class="muted">${esc(p.title)}</span>`);
-  if(p.email) parts.push(`<div><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`); if(p.linkedin) parts.push(`<div><a target="_blank" href="${esc(p.linkedin)}">LinkedIn</a></div>`);
-  return parts.join('<br>');
+  const bits=[];
+  if(p.name) bits.push(`<strong>${esc(p.name)}</strong>`);
+  if(p.title) bits.push(`<span class="muted">${esc(p.title)}</span>`);
+  if(p.email) bits.push(`<div><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`);
+  if(p.linkedin) bits.push(`<div><a target="_blank" href="${esc(p.linkedin)}">LinkedIn</a></div>`);
+  return bits.join('<br>');
 }
 
-startBtn.addEventListener('click', run);
-dlBtn.addEventListener('click', ()=> setTimeout(()=> URL.revokeObjectURL(dlBtn.href), 2000));
-
 async function run(){
-  startBtn.disabled=true; dlBtn.disabled=true; tbody.innerHTML=''; logEl.textContent=''; statusEl.textContent='';
-  const base = $("#base").value.replace(/\/$/,'');
-  const max = Math.max(1, +$("#max").value||100);
+  startBtn.disabled=true; dlBtn.disabled=true; statusEl.textContent='';
+  tbody.innerHTML=''; logEl.textContent='';
+
+  const base = $("#base").value.trim().replace(/\/$/,'');
+  const max  = Math.max(1, +$("#max").value||100);
   const conc = Math.max(1, +$("#conc").value||4);
 
-  log('Looking for sitemaps…');
-  let profiles = await discoverProfilesViaSitemaps(base).catch(()=>[]);
-  profiles = profiles.filter(u=>/\/network-directory\/[^/]+\/?$/i.test(u));
-  if (profiles.length) {
-    log(`Found ${profiles.length} profiles via sitemap`, 'ok');
+  // profile source = manual (bookmarklet paste) OR sitemap
+  let profiles = [];
+  const manual = $("#manual").value.trim();
+  if(manual){
+    profiles = manual.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    log(`Using ${profiles.length} profile URLs from pasted list`);
   } else {
-    log('No sitemap profiles found — falling back to search…', 'warn');
-    profiles = await discoverProfilesViaSearch(base, max*2).catch(()=>[]);
-  }
-
-  if (!profiles.length) {
-    log('No profiles found. You can also change Base domain or run later.', 'err');
-    startBtn.disabled=false; return;
+    try{
+      log('Enumerating sitemaps…');
+      profiles = await getSitemapURLs(base);
+      log(`Found ${profiles.length} profile URLs from sitemaps`);
+    }catch(e){
+      log('Sitemap fetch failed. Use the bookmarklet to collect URLs from the site and paste them here.', 'err');
+      startBtn.disabled=false; return;
+    }
   }
 
   profiles = uniq(profiles).slice(0, max);
-  const queue = profiles.map((u,i)=>({ url:u, i:i+1 }));
-  let idx=0, active=0, done=0;
-  const rows=[]; let jsonl='';
+  if(!profiles.length){ log('No profiles to process. Paste URLs and try again.', 'err'); startBtn.disabled=false; return; }
 
-  const worker = async () => {
-    if (idx>=queue.length) return;
-    const me = queue[idx++]; active++;
-    try {
+  const queue = profiles.map((u, i)=>({ url:u, i:i+1 }));
+  const results = [];
+  let jsonl = '';
+  let active=0, idx=0;
+
+  const worker = async ()=>{
+    if(idx>=queue.length) return;
+    const me=queue[idx++]; active++;
+    try{
       statusEl.textContent = `Processing ${me.i}/${queue.length}…`;
-      const rec = newRecord(); rec.profile_url = me.url; rec.sources.push(me.url);
+      const rec=emptyRow(); rec.profile_url = me.url;
 
       const prof = await parseIasmeProfile(me.url);
-      if (prof.name) rec.company = prof.name;
-      if (prof.address) rec.address = rec.address || prof.address;
-      if (prof.certifications?.length) rec.certifications = prof.certifications.slice(0,8);
-
-      let site = prof.website || null;
-      if (!site && rec.company) {
-        try {
-          const q = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(rec.company + ' official site');
-          const html = await fetchText(q);
-          const hits = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
-          site = hits.find(u=>!/linkedin|facebook|twitter|x\.com|instagram|tiktok|youtube|google|amazonaws|cloudfront/i.test(u)) || null;
-        } catch {}
-      }
-      if (site) {
-        rec.website = site;
-        try { rec.domain = new URL(site).hostname; } catch {}
-      }
+      rec.company = prof.name || '(Unknown)';
+      rec.address = prof.address || null;
+      if(prof.website){ rec.website = prof.website; try{ rec.domain=new URL(prof.website).hostname; }catch{} }
 
       const enrich = await enrichFromSite(rec.website);
       rec.emails = uniq([...(rec.emails||[]), ...(enrich.emails||[])]);
       rec.phones = uniq([...(rec.phones||[]), ...(enrich.phones||[])]);
       rec.address = rec.address || enrich.address || null;
       rec.linkedin_company = enrich.linkedin || null;
-      rec.sources = uniq([...(rec.sources||[]), ...(enrich.sources||[]), ...(rec.website?[rec.website]:[])]);
 
       const roles = await discoverRoles(rec.company||'', rec.website);
       rec.it_contact = roles.it;
       rec.hr_contact = roles.hr;
 
-      if(!rec.company) rec.company='(Unknown)';
-      if(!rec.sources.length) rec.sources=[me.url];
+      rec.sources = uniq([me.url, ...(enrich.sources||[]), ...(rec.website?[rec.website]:[])]);
+      if(!rec.sources.length) rec.sources = [me.url];
 
-      rows.push(rec); jsonl += JSON.stringify(rec)+'\n';
-      addRow(rec, me.i);
+      results.push(rec);
+      jsonl += JSON.stringify(rec) + '\n';
+      addPreviewRow(rec, me.i);
       log(`✓ ${rec.company}`, 'ok');
-    } catch (e) {
-      log(`✗ ${me.url} — ${e}`, 'err');
-    } finally {
-      active--; done++;
-      if (idx<queue.length) worker(); // start next
-    }
+    }catch(e){ log(`✗ ${me.url} — ${e}`, 'err'); }
+    finally{ active--; worker(); }
   };
 
-  const n = Math.min(conc, queue.length);
-  for (let k=0;k<n;k++) worker();
-  while (done<queue.length) await sleep(200);
+  const workers = Math.min(conc, queue.length);
+  for(let k=0;k<workers;k++) worker();
+  while(results.length < queue.length && (active>0 || idx<queue.length)) await sleep(200);
 
-  // download
-  const blob = new Blob([jsonl], { type: 'application/jsonl;charset=utf-8' });
+  const blob = new Blob([jsonl], { type:'application/jsonl;charset=utf-8' });
   const href = URL.createObjectURL(blob);
   dlBtn.href = href; dlBtn.download = 'iasme_companies.jsonl'; dlBtn.disabled=false;
-  statusEl.textContent = `Done — ${rows.length} records`;
+  statusEl.textContent = `Done — ${results.length} records`;
   startBtn.disabled=false;
 }
+
+startBtn.addEventListener('click', run);
+dlBtn.addEventListener('click', ()=> setTimeout(()=> URL.revokeObjectURL(dlBtn.href), 2000));
 </script>
 </body>
 </html>
-
