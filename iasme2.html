@@ -1,128 +1,391 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>IASME Scraper — 1-File GitHub Repo Generator</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<title>IASME Scraper — Single-File (Client-side)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
-  :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--accent:#22c55e}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
-  .wrap{max-width:980px;margin:40px auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  h1{margin:0 0 10px;font-size:26px}
+  :root{color-scheme:light dark;--bg:#0b0c0f;--fg:#e7e7ea;--muted:#9aa0a6;--card:#111218;--border:#2a2c36;--ok:#22c55e;--warn:#fbbf24;--err:#f87171}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto}
+  .wrap{max-width:1200px;margin:32px auto;padding:0 14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  h1{margin:0 0 6px}
+  label{display:inline-flex;align-items:center;margin-right:10px;gap:6px}
+  input{background:#0e1117;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+  input[type=number]{width:90px}
+  button{background:linear-gradient(135deg,#22c55e,#10b981);color:#04150b;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+  button.secondary{background:transparent;border:1px solid var(--border);color:var(--fg)}
   .muted{color:var(--muted)}
-  button{background:linear-gradient(135deg,#22c55e,#10b981);color:#05110a;border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
-  .small{font-size:14px}
-  .files{margin-top:12px;border:1px dashed var(--border);border-radius:12px;padding:10px;max-height:260px;overflow:auto}
-  ul{margin:.4rem 0 0 .8rem}
-  code{background:#0e1117;color:#e2e8f0;border:1px solid #1f2430;border-radius:8px;padding:.15em .4em}
-  pre{background:#0e1117;color:#e2e8f0;border:1px solid #1f2430;border-radius:10px;padding:10px;overflow:auto}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  th,td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
+  th{position:sticky;top:0;background:#0f1117;z-index:1}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--border);border-radius:999px;margin:2px}
   a{color:#93c5fd;text-decoration:none}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+  .log{max-height:160px;overflow:auto;border:1px dashed var(--border);border-radius:10px;padding:8px;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>IASME Network Directory — Scraper/Researcher (Single-file repo)</h1>
-    <p class="muted">Click the button to download a complete repo (<code>repo.zip</code>) with a Playwright-based scraper, schema validation, and a GitHub Actions workflow that runs the scraper and commits the JSONL.</p>
-    <button id="zipBtn">Download repo.zip</button>
-    <span id="status" class="small muted" style="margin-left:10px"></span>
-
-    <h3 style="margin:16px 0 6px">How to use</h3>
-    <ol class="small">
-      <li>Unzip <code>repo.zip</code> → open the folder <code>iasme-research</code>.</li>
-      <li>Create a new repo on GitHub → push the contents.</li>
-      <li>Go to <strong>Actions</strong> → <strong>IASME Scrape</strong> → <strong>Run workflow</strong> (or wait for the schedule).</li>
-      <li>Download the artifact or use the committed file at <code>data/iasme_companies.jsonl</code>.</li>
-    </ol>
-
-    <div class="files small">
-      <strong>Files inside repo.zip</strong>
-      <ul id="filelist"></ul>
+    <h1>IASME Network Directory — Client-side Scraper</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <label>Search seed
+        <input id="seed" size="44"
+               value='site:iasme.co.uk/network-directory/ "Organisational Overview"'>
+      </label>
+      <label>Max companies <input id="max" type="number" value="80" min="1"></label>
+      <label>Concurrency <input id="conc" type="number" value="4" min="1"></label>
+      <button id="start">Start</button>
+      <button id="dl" class="secondary" disabled>Download JSONL</button>
+      <span id="status" class="muted"></span>
     </div>
+    <div class="log muted" id="log"></div>
 
-    <h3 style="margin:16px 0 6px">Run locally (optional)</h3>
-    <pre>cd iasme-research
-npm i
-npx playwright install --with-deps chromium
-npm run build
-node dist/bin/iasme-research.js \
-  --index https://iasme.co.uk/network-directory/ \
-  --format jsonl --output out/iasme_companies.jsonl \
-  --max-companies 200 --concurrency 4 --delay-ms 500 --retries 3</pre>
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Company</th>
+          <th>Website</th>
+          <th>Phones</th>
+          <th>Emails</th>
+          <th>Address</th>
+          <th>IT Contact</th>
+          <th>HR Contact</th>
+          <th>Sources</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 </div>
 
-<!-- ===================== EMBEDDED REPO FILES ===================== -->
+<script>
+/* --------------------------- Small helpers --------------------------- */
+const $ = s => document.querySelector(s);
+const tbody = $("#tbl tbody");
+const logEl = $("#log");
+const statusEl = $("#status");
+const startBtn = $("#start");
+const dlBtn = $("#dl");
 
-<!-- package.json -->
-<script type="text/plain" data-path="iasme-research/package.json">{
-  "name": "iasme-research",
-  "version": "1.2.0",
-  "private": true,
-  "type": "module",
-  "bin": { "iasme-research": "dist/bin/iasme-research.js" },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/bin/iasme-research.js",
-    "test": "echo \"(tests omitted)\""
-  },
-  "dependencies": {
-    "playwright": "^1.48.2",
-    "p-limit": "^5.0.0",
-    "yargs": "^17.7.2",
-    "zod": "^3.23.8",
-    "normalize-url": "^8.0.1",
-    "dayjs": "^1.11.13"
-  },
-  "devDependencies": {
-    "@types/node": "^22.7.4",
-    "typescript": "^5.6.3"
+function log(line, cls=''){ const p=document.createElement('div'); p.textContent=line; if(cls) p.className=cls; logEl.appendChild(p); logEl.scrollTop=logEl.scrollHeight; }
+function esc(s){ return (s??"").toString().replace(/[&<>]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+function uniq(arr){ const s=new Set(); const out=[]; for(const x of arr){const k=String(x); if(!s.has(k)){s.add(k); out.push(x);} } return out; }
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
+const TAILS = ['','contact','about','team','leadership','people','careers','jobs','privacy','impressum'];
+
+/* CORS-safe fetch: try direct; fall back to r.jina.ai proxy (GET only) */
+async function fetchText(url){
+  try{
+    const r = await fetch(url, { headers:{'accept':'text/html,*/*'} });
+    if(r.ok) return await r.text();
+  }catch{}
+  // proxy fallback
+  const prox = 'https://r.jina.ai/http://' + url.replace(/^https?:\/\//,'');
+  const r2 = await fetch(prox, { headers:{'accept':'text/plain'} });
+  if(!r2.ok) throw new Error('Fetch failed: '+url);
+  return await r2.text();
+}
+async function fetchJSON(url){
+  try{
+    const r = await fetch(url, { headers:{'accept':'application/json'} });
+    if(r.ok) return await r.json();
+  }catch{}
+  const prox = 'https://r.jina.ai/http://' + url.replace(/^https?:\/\//,'');
+  const r2 = await fetch(prox, { headers:{'accept':'text/plain'} });
+  if(!r2.ok) throw new Error('Fetch JSON failed: '+url);
+  const t = await r2.text(); try { return JSON.parse(t); } catch { return null; }
+}
+function parseHTML(html){ return new DOMParser().parseFromString(html, 'text/html'); }
+function rootOf(u){ const p=new URL(u); return `${p.protocol}//${p.host}/`; }
+
+/* ------------------------ IASME profile discovery ------------------------ */
+/* Use DuckDuckGo HTML (via proxy) to find many /network-directory/<slug>/ pages */
+async function ddgProfiles(seed, limit){
+  const q = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(seed);
+  const html = await fetchText(q);
+  const urls = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
+  const prof = urls
+    .filter(u=>/iasme\.co\.uk\/network-directory\/[^#?]+/i.test(u))
+    .map(u=>u.replace(/#.*$/,'').replace(/\?.*$/,''));
+  return uniq(prof).slice(0, limit);
+}
+
+/* Extract from IASME company profile page */
+async function parseIasmeProfile(url){
+  const html = await fetchText(url);
+  const dom = parseHTML(html);
+  const title = dom.querySelector('h1, .entry-title, h2')?.textContent?.trim() || null;
+  // “Visit Website” button
+  const visit = Array.from(dom.querySelectorAll('a,button'))
+    .find(a => /visit website/i.test(a.textContent||''));
+  const website = visit?.getAttribute('href') || null;
+
+  // Try to pick address block (e.g., “Office Locations …”)
+  let address = null;
+  const text = dom.body?.textContent || '';
+  const m = text.match(/(?:Office Locations|Address|Head Office)\s*[:\-]?\s*([\s\S]{0,260})/i);
+  if(m){ address = m[1].replace(/\s+/g,' ').trim(); }
+
+  const name = title ? title.replace(/\s*[-|•].*$/,'').trim() : null;
+
+  return { name, profile:url, website, address };
+}
+
+/* -------------------------- Company site enrich -------------------------- */
+function sameBase(email, siteRoot){
+  try{
+    const host = new URL(siteRoot).hostname.split('.').slice(-2).join('.');
+    const dom = email.split('@')[1].split('.').slice(-2).join('.');
+    return host===dom;
+  }catch{ return false; }
+}
+async function enrichFromSite(site){
+  if(!site) return { emails:[], phones:[], address:null, linkedin:null, sources:[] };
+  const root = rootOf(site);
+  const emails = new Set(), phones = new Set(), sources = new Set();
+  let address = null, linkedin = null;
+
+  for(const t of TAILS){
+    const url = root + (t? t+'/' : '');
+    try{
+      const html = await fetchText(url);
+      sources.add(url);
+      for(const m of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)){
+        const e=m[0].toLowerCase();
+        if(sameBase(e, root)) emails.add(e); else if(emails.size===0) emails.add(e);
+      }
+      for(const m of html.matchAll(/(?:(?:\+?\d{1,3}\s?)?(?:\(?0\)?\s?)?\d{2,5}[\s-]?\d{3,4}[\s-]?\d{3,4})/g)){
+        const p=m[0].replace(/\s+/g,' ').trim(); if(p.length>=10) phones.add(p);
+      }
+      if(!linkedin){
+        const l=(html.match(/https?:\/\/(?:www\.)?linkedin\.com\/company\/[a-z0-9\-_%/]+/i)||[null])[0];
+        if(l) linkedin=l;
+      }
+      if(!address){
+        const mm = html.match(/(?:address|registered office|head office|headquarters)\s*[:\-]?\s*([\s\S]{0,260})/i);
+        if(mm){ address = mm[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
+      }
+    }catch{}
   }
+  return { emails:[...emails], phones:[...phones], address, linkedin, sources:[...sources] };
 }
-</script>
 
-<!-- tsconfig.json -->
-<script type="text/plain" data-path="iasme-research/tsconfig.json">{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Bundler",
-    "outDir": "dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true
-  },
-  "include": ["src", "bin"]
+/* ------------------------------ Role lookup ------------------------------ */
+const IT_KW = ['cio','chief information officer','cto','chief technology officer','it director','head of it','it manager','technology director','infrastructure','systems','network'];
+const HR_KW = ['chief people officer','cpo','hr director','head of hr','head of people','people director','talent lead','recruiting lead','hr manager','people manager'];
+
+function scoreTitle(t){
+  t=(t||'').toLowerCase();
+  if(/chief|cio|cto|cpo|director/.test(t)) return 100;
+  if(/head/.test(t)) return 80;
+  if(/manager|lead/.test(t)) return 60;
+  return 10;
 }
+function pickBest(list){ if(!list.length) return null; list.sort((a,b)=>b.score-a.score); const x=list[0]; return { name:x.name||null, title:x.title||null, email:x.email||null, linkedin:x.linkedin||null }; }
+
+/* on-site scan first, then public DDG -> LinkedIn (no login) */
+async function discoverRoles(companyName, site){
+  const candidatesIT=[], candidatesHR=[];
+  const addFromText = (txt, src, kws, bucket) => {
+    const text = txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+    for(const kw of kws){
+      const re = new RegExp(`(.{0,160}\\b${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b.{0,160})`,'ig');
+      let m; while((m=re.exec(text))){
+        const win=m[1];
+        const name=(win.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/g)||[]).find(Boolean)||null;
+        const title=win.match(/[A-Z][A-Za-z/&\-\s]{3,60}/g)?.find(t=>new RegExp(kw,'i').test(t))||kw;
+        const email=(win.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[null])[0];
+        const linkedin=(win.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_/%]+/i)||[null])[0];
+        bucket.push({ name,title,email,linkedin,score:scoreTitle(title),src });
+      }
+    }
+  };
+
+  // On-site pages
+  if(site){
+    const root = rootOf(site);
+    for(const t of ['','team','leadership','people','about','management','our-team','careers','jobs','news','press']){
+      const url = root + (t? t+'/' : '');
+      try{
+        const html = await fetchText(url);
+        addFromText(html, url, IT_KW, candidatesIT);
+        addFromText(html, url, HR_KW, candidatesHR);
+      }catch{}
+    }
+  }
+
+  // Web search (public LinkedIn/press)
+  const ddg = async (q) => {
+    const url = 'https://html.duckduckgo.com/html/?q='+encodeURIComponent(q);
+    return await fetchText(url);
+  };
+  const digest = (html, kws, bucket) => {
+    // capture result blocks
+    const rx = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"/gi));
+    for(const m of rx){
+      const href = m[1]; const title = m[2]?.replace(/<[^>]+>/g,' ')||'';
+      if(!/linkedin\.com|press|news|conference|gov|\.uk|\.com|\.net/i.test(href)) continue; // prefer reputable pages
+      const lcand = /linkedin\.com/.test(href) ? href : null;
+      const hasKw = kws.some(kw=>new RegExp(kw,'i').test(title) || new RegExp(kw,'i').test(href));
+      if(hasKw){
+        const nm = title.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){0,3})\b/);
+        bucket.push({ name: nm?nm[0]:null, title: title.trim().slice(0,60), email:null, linkedin:lcand, score: scoreTitle(title), src: href });
+      }
+    }
+  };
+
+  try{
+    const itHtml = await ddg(`${companyName} (${new URL(site||'https://example.com').hostname}) CIO OR CTO OR "IT Director" site:linkedin.com OR site:.uk OR site:.com`);
+    digest(itHtml, IT_KW, candidatesIT);
+  }catch{}
+  try{
+    const hrHtml = await ddg(`${companyName} "HR Director" OR "Head of HR" OR "Chief People Officer" site:linkedin.com OR site:.uk OR site:.com`);
+    digest(hrHtml, HR_KW, candidatesHR);
+  }catch{}
+
+  return { it: pickBest(candidatesIT), hr: pickBest(candidatesHR) };
+}
+
+/* ------------------------------ Main pipeline ------------------------------ */
+function rowTemplate(){
+  return {
+    company: null,
+    domain: null,
+    website: null,
+    emails: [],
+    phones: [],
+    address: null,
+    linkedin_company: null,
+    it_contact: null,
+    hr_contact: null,
+    certifications: [],
+    profile_url: null,
+    sources: [],
+    last_seen: new Date().toISOString().slice(0,10)
+  };
+}
+
+function addPreviewRow(r, i){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${i}</td>
+    <td>${esc(r.company)}</td>
+    <td>${r.website ? `<a target="_blank" href="${esc(r.website)}">${esc(r.domain||r.website)}</a>`:''}</td>
+    <td>${(r.phones||[]).map(esc).join('<br>')}</td>
+    <td>${(r.emails||[]).map(e=>`<a href="mailto:${esc(e)}">${esc(e)}</a>`).join('<br>')}</td>
+    <td>${esc(r.address||'')}</td>
+    <td>${fmtPerson(r.it_contact)}</td>
+    <td>${fmtPerson(r.hr_contact)}</td>
+    <td style="max-width:260px">${(r.sources||[]).map(u=>`<a target="_blank" href="${esc(u)}">src</a>`).join(' ')}</td>`;
+  tbody.appendChild(tr);
+}
+function fmtPerson(p){
+  if(!p) return '';
+  const bits=[];
+  if(p.name) bits.push(`<strong>${esc(p.name)}</strong>`);
+  if(p.title) bits.push(`<span class="muted">${esc(p.title)}</span>`);
+  if(p.email) bits.push(`<div><a href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`);
+  if(p.linkedin) bits.push(`<div><a target="_blank" href="${esc(p.linkedin)}">LinkedIn</a></div>`);
+  return bits.join('<br>');
+}
+
+async function run(){
+  startBtn.disabled = true; dlBtn.disabled = true; statusEl.textContent='';
+  tbody.innerHTML = ''; logEl.textContent='';
+  const seed = $("#seed").value.trim();
+  const max = +$("#max").value || 50;
+  const conc = Math.max(1, +$("#conc").value || 2);
+
+  log('Searching IASME profiles…');
+  let profiles = [];
+  try{
+    profiles = await ddgProfiles(seed, max*2); // over-collect; we’ll dedupe later
+  }catch(e){ log('DuckDuckGo fetch failed; adjust seed or try again.', 'err'); }
+  if(!profiles.length){ log('No profiles found. You can also paste an IASME profile URL list into the Search seed box.', 'warn'); startBtn.disabled=false; return; }
+
+  // Dedupe & cap
+  profiles = uniq(profiles).slice(0, max);
+  log(`Found ~${profiles.length} company profile URLs`);
+
+  const queue = profiles.map((u, i) => ({ url:u, i:i+1 }));
+  const results = [];
+  let jsonl = '';
+
+  // Simple worker pool
+  let active = 0, idx = 0;
+  const runNext = async () => {
+    if(idx >= queue.length) return;
+    const me = queue[idx++]; active++;
+    try {
+      statusEl.textContent = `Processing ${me.i}/${queue.length}…`;
+      const base = rowTemplate();
+      base.profile_url = me.url;
+      const prof = await parseIasmeProfile(me.url);
+      if(prof.name) base.company = prof.name;
+      if(prof.address) base.address = base.address || prof.address;
+      const discoveredWebsite = prof.website || null;
+
+      // website discovery fallback via search if missing
+      let website = discoveredWebsite;
+      if(!website && prof.name){
+        try{
+          const q = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(prof.name+' official site')}`;
+          const html = await fetchText(q);
+          const urls = Array.from(html.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/g)).map(m=>m[1]);
+          website = urls.find(u => !/linkedin|facebook|twitter|x\.com|instagram|tiktok|youtube|google|amazonaws|cloudfront/i.test(u)) || null;
+        }catch{}
+      }
+      if(website){
+        base.website = website;
+        try{ base.domain = new URL(website).hostname; }catch{}
+      }
+
+      const enrich = await enrichFromSite(base.website);
+      base.emails = uniq([...(base.emails||[]), ...(enrich.emails||[])]);
+      base.phones = uniq([...(base.phones||[]), ...(enrich.phones||[])]);
+      base.address = base.address || enrich.address || null;
+      base.linkedin_company = enrich.linkedin || null;
+      base.sources = uniq([me.url, ...(enrich.sources||[]), ...(base.website?[base.website]:[])]);
+
+      const roles = await discoverRoles(base.company||'', base.website);
+      base.it_contact = roles.it;
+      base.hr_contact = roles.hr;
+
+      // Ensure requireds
+      if(!base.company) base.company = '(Unknown)';
+      if(!base.sources || !base.sources.length) base.sources = [me.url];
+      results.push(base);
+      jsonl += JSON.stringify(base) + '\n';
+      addPreviewRow(base, me.i);
+      log(`✓ ${base.company}`, 'ok');
+    } catch(e){
+      log(`✗ ${me.url} — ${e}`, 'err');
+    } finally {
+      active--; runNext(); // kick next
+    }
+  };
+  // kick off
+  const workers = Math.min(conc, queue.length);
+  for(let k=0;k<workers;k++) runNext();
+  while(results.length < queue.length && (active>0 || idx<queue.length)){
+    await sleep(200);
+  }
+
+  // Enable download
+  const blob = new Blob([jsonl], { type: 'application/jsonl;charset=utf-8' });
+  const href = URL.createObjectURL(blob);
+  dlBtn.href = href; dlBtn.download = 'iasme_companies.jsonl'; dlBtn.disabled = false;
+  statusEl.textContent = `Done — ${results.length} records`;
+  startBtn.disabled = false;
+}
+
+startBtn.addEventListener('click', run);
+dlBtn.addEventListener('click', ()=> setTimeout(()=> URL.revokeObjectURL(dlBtn.href), 2000));
 </script>
-
-<!-- README -->
-<script type="text/plain" data-path="iasme-research/README.md"># IASME Network Directory — Scraper/Researcher
-
-- Scrapes the IASME directory via Playwright (renders A–Z tabs + filters; or calls a sniffed JSON feed if exposed).
-- Resolves each company's website from profile/visit link/search fallback.
-- Crawls likely contact pages and extracts phones, emails, address, LinkedIn company.
-- Role discovery: picks the most senior **IT** and **HR** contacts from public pages (company site, press, public LinkedIn URLs found on the web), never logs in.
-- Outputs validated JSONL matching the requested schema, with `sources[]` and `last_seen`.
-
-## GitHub Actions
-
-On push or manual dispatch, the workflow runs:
-1. install deps + Playwright
-2. build TS
-3. run the scraper
-4. upload artifact and commit `data/iasme_companies.jsonl`.
-
-## Local
-
-See the root `index.html` generator for local commands, or:
-
-```bash
-npm i
-npx playwright install --with-deps chromium
-npm run build
-node dist/bin/iasme-research.js --index https://iasme.co.uk/network-directory/ --format jsonl --output out/iasme_companies.jsonl
+</body>
+</html>
 
