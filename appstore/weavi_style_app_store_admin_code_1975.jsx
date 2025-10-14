@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+const { useEffect, useMemo, useState } = React;
 
 // Weavi-style App Store — single-file React component
 // - Left nav, rounded cards, purple theme
@@ -57,7 +57,7 @@ function cx(...classes) {
 }
 
 // ------------------ Root Component ------------------
-export default function WeaviAppStore() {
+function WeaviAppStore() {
   const [apps, setApps] = useLocalStorageArray(LS_KEY, demoApps);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
