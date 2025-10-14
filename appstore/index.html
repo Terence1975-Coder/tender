@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weavi-style App Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-[#F6F1FF]">
+    <div id="root"></div>
+
+    <!-- React (UMD) + Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Load your JSX file (place it in this same folder) -->
+    <script type="text/babel" src="./weavi_style_app_store_admin_code_1975.jsx"></script>
+
+    <!-- Mount -->
+    <script type="text/babel">
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<WeaviAppStore />);
+    </script>
+  </body>
+</html>
