@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SupaChargeAI Knowledge Quest — A2IA (v2, fixed)</title>
+<style>
+:root{
+  --bg:#0b1020; --panel:#121a2f; --border:#1f2a44; --accent:#7c3aed; --accent2:#22c55e;
+  --text:#e5e7eb; --muted:#94a3b8; --danger:#ef4444; --warn:#f59e0b;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;color:var(--text);
+  background: radial-gradient(1200px 800px at 80% -10%, #1f2653 0%, #0b1020 60%) no-repeat, var(--bg);}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.glass{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--border);
+  border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.4);backdrop-filter:blur(5px)}
+.heading{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--border)}
+.btn{appearance:none;border:1px solid #26365f;border-radius:12px;padding:10px 14px;font-weight:700;background:#10172a;color:#e5e7eb;cursor:pointer}
+.btn.primary{background:linear-gradient(160deg,var(--accent),#6527d7);border-color:transparent;color:#fff}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.pill{padding:.25rem .55rem;border:1px solid var(--border);border-radius:999px;font-size:12px;color:#cbd5e1}
+.card{background:linear-gradient(180deg,#0e1530,#0b1227);border:1px solid var(--border);border-radius:16px;padding:16px}
+.grid{display:grid;gap:16px}
+@media(min-width:960px){.grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))} .grid.cols-2{grid-template-columns:repeat(2,1fr)}}
+.progress{height:12px;background:#0b1020;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--accent),#22d3ee);width:0%}
+.muted{color:var(--muted)} .title{font-size:clamp(24px,2.4vw,34px);margin:0}
+.board{background:#0c1327;border:1px dashed #30406d;border-radius:16px;min-height:240px;position:relative;overflow:hidden}
+.node{position:absolute;padding:10px 12px;border-radius:12px;background:#101a35;border:1px solid #2c3f6f;color:#cbd5e1;cursor:grab;user-select:none}
+.hidden{display:none !important}
+.center{text-align:center}
+/* Certificate */
+.certificate{width:960px;aspect-ratio:16/11;background:radial-gradient(900px 600px at 50% 0%,#18244b,#0b1020);color:#e5e7eb;border:8px solid #223160;border-radius:24px;padding:28px;position:relative;overflow:hidden}
+.certificate .border{position:absolute;inset:14px;border:2px dashed #41538f;border-radius:20px;pointer-events:none}
+.ribbon{position:absolute;right:-40px;top:28px;rotate:20deg;padding:10px 50px;background:linear-gradient(90deg,#22c55e,#06b6d4);font-weight:800;color:#032330}
+.cert-watermark{position:absolute;inset:auto 0 18px 0;text-align:center;color:#93c5fd;opacity:.35;font-weight:900;letter-spacing:2px;font-size:22px}
+dialog{border:1px solid var(--border);border-radius:16px;padding:0;color:var(--text);background:#0b1020;width:min(860px,96vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dlg-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.dlg-body{padding:16px 20px}
+</style>
+</head>
+<body>
+<header class="container glass">
+  <div class="heading">
+    <div style="display:flex;gap:12px;align-items:center">
+      <svg width="36" height="36" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs>
+        <circle cx="32" cy="32" r="30" stroke="url(#g1)" stroke-width="4"/>
+        <path d="M22 42l9-20 11 20" stroke="#9ae6b4" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1 class="title">SupaChargeAI — Knowledge Quest (A2IA)</h1>
+        <p class="muted">AI Zones • Missions • Feedback • Certification</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="pill" id="badgeLabel">New Recruit</span>
+      <button class="btn" id="btnHow">How it works</button>
+      <button class="btn primary" id="btnStart">Start / Resume</button>
+    </div>
+  </div>
+</header>
+
+<main class="container" id="app">
+  <section class="glass card">
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1 1 320px">
+        <h2 style="margin:0 0 6px">Player Profile</h2>
+        <p class="muted">Enter details to personalize missions & certificate.</p>
+        <div class="grid cols-2">
+          <label class="card">
+            <span class="muted">Full Name</span>
+            <input id="inpName" placeholder="e.g., Jordan Lee" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0c142c;color:#fff"/>
+          </label>
+          <label class="card">
+            <span class="muted">Cohort (optional)</span>
+            <input id="inpCohort" placeholder="e.g., A2IA-2025-S1" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0c142c;color:#fff"/>
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn primary" id="btnSaveProfile">Save Profile</button>
+          <button class="btn" id="btnReset">Reset Progress</button>
+        </div>
+      </div>
+      <div class="card" style="flex:1 1 320px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="muted">Overall Progress</div><div id="kpiScore" style="font-weight:800;font-size:22px">0 pts</div></div>
+          <div class="pill" id="pillZones">0/6 zones</div>
+        </div>
+        <div class="progress" style="margin-top:8px"><div id="barOverall"></div></div>
+        <p class="muted" style="margin-top:10px">Complete zones to unlock or preview your certificate.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid cols-3" id="zonesGrid"></section>
+
+  <section class="glass card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0">Endgame & Certification</h2>
+        <p class="muted" id="certMsg">Complete your first mission to preview your certificate.</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="btnPreviewCert" disabled>Preview</button>
+        <button class="btn primary" id="btnPrintCert" disabled>Print / Save as PDF</button>
+      </div>
+    </div>
+    <div class="center">
+      <div id="certCanvas" class="certificate hidden" role="img" aria-label="Certificate preview">
+        <div class="border"></div>
+        <div class="ribbon" id="certBadge">Prompt Engineer Pro</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <svg width="36" height="36" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs>
+              <circle cx="32" cy="32" r="30" stroke="url(#g2)" stroke-width="4"/>
+              <path d="M22 42l9-20 11 20" stroke="#9ae6b4" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div><div style="font-size:30px;font-weight:800">SupaChargeAI — A2IA</div><div class="muted">Applied AI Associate</div></div>
+          </div>
+          <img alt="Signature" style="height:48px" src="data:image/svg+xml,%3Csvg width='320' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 50 Q40 10 70 40 T130 35 T190 45 T250 30 T300 42' stroke='%23a5b4fc' stroke-width='4' fill='none'/%3E%3C/svg%3E"/>
+        </div>
+        <h2 style="font-size:44px;font-weight:900;margin:8px 0 0">Certificate of Achievement</h2>
+        <div style="height:1px;background:#283b76;margin:10px 0 18px"></div>
+        <div class="center">
+          <div class="muted">This certifies that</div>
+          <div id="certName" style="font-size:40px;font-weight:900;margin-top:6px">Student Name</div>
+          <div class="muted" style="margin-top:6px">has successfully completed the Knowledge Quest with distinction.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px">
+          <div class="card">
+            <div class="muted">Final Score</div>
+            <div id="certScore" style="font-size:34px;font-weight:900">0 / 600</div>
+            <div class="muted">Knowledge • Creativity • Application</div>
+          </div>
+          <div class="card">
+            <div class="muted">Issued By</div>
+            <div style="font-size:20px;font-weight:800">Blue Screen IT Ltd.</div>
+            <div class="muted">Instructor • A2IA Programme</div>
+          </div>
+        </div>
+        <div style="height:1px;background:#283b76;margin:10px 0 18px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="muted">Date: <span id="certDate"></span></div>
+          <div class="muted">Badge: <span id="certBadgeLabel">Prompt Engineer Pro</span></div>
+        </div>
+        <div id="certDraft" class="cert-watermark hidden">DRAFT PREVIEW — COMPLETE ALL ZONES TO FINALIZE</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <div class="dlg-header">
+    <div style="display:flex;gap:10px;align-items:center">
+      <span class="pill" id="dlgZoneTag">Zone</span>
+      <strong id="dlgTitle">Mission</strong>
+    </div>
+    <button class="btn" id="btnCloseDlg">Close</button>
+  </div>
+  <div class="dlg-body" id="dlgBody"></div>
+</dialog>
+
+<footer class="container" style="text-align:center;color:#8ea2c5;padding:24px">
+  © 2025 Blue Screen IT Ltd. | SupaChargeAI A2IA
+</footer>
+
+<script>
+(()=>{"use strict";
+
+// ---------- Data ----------
+const ZONES = [
+  { id:"fundamentals", title:"AI Fundamentals", desc:"Concepts, terms, and value of AI in business.",
+    missions:[
+      { type:"quiz", id:"f-quiz-1", title:"Core Concepts Quiz", points:60, questions:[
+        { q:"Which statement best describes 'Applied AI' in business?", opts:["A set of sci-fi algorithms","A practical use of AI tools to drive outcomes","A programming language","Automation that replaces all jobs"], a:1 },
+        { q:"Prompt engineering is about…", opts:["Training neural nets","Crafting inputs to guide AI outputs","Designing chips","Hiring data scientists"], a:1 },
+        { q:"Good practice for verifying AI outputs is…", opts:["Blind trust","Copy-paste everything","Cross-checking with sources","Ignoring discrepancies"], a:2 }
+      ]},
+      { type:"subjective", id:"f-subj-1", title:"Explain AI in Plain English", points:40,
+        prompt:"In 120–180 words, explain to a non-technical colleague how AI can help in your current role.",
+        rubric:{ clarity:0.4, completeness:0.35, creativity:0.25 } }
+    ]},
+  { id:"productivity", title:"AI for Productivity", desc:"Automation, communication, data handling for efficiency.",
+    missions:[
+      { type:"whiteboard", id:"p-board-1", title:"Workflow Sketch", points:60,
+        prompt:"Sketch a 3-step workflow: Capture → Process → Deliver. Place nodes and connect logically.",
+        starter:["Capture Email","Summarize","Create Task"] },
+      { type:"quiz", id:"p-quiz-1", title:"Efficiency Scenarios", points:40, questions:[
+        { q:"Best use of AI for email overload:", opts:["Ignore emails","Ask AI to draft sorted summaries","Delete inbox","Outsource entirely"], a:1 },
+        { q:"For CSV insights you should:", opts:["Upload blindly","Ask AI to describe distributions & outliers","Only look at first row","Skip cleaning"], a:1 }
+      ]}
+    ]},
+  { id:"decision", title:"Decision-Making", desc:"Research, forecasting, meetings with AI support.",
+    missions:[
+      { type:"simulation", id:"d-sim-1", title:"Decision Brief", points:60,
+        role:"Ops Lead", scenario:"Choose a channel strategy for a new product with limited budget.",
+        fields:["Assumptions","Options Considered","Risks","Recommendation"] },
+      { type:"quiz", id:"d-quiz-1", title:"Forecasting Basics", points:40, questions:[
+        { q:"Forecasts from AI models are:", opts:["Certain","Probabilistic with confidence limits","Random","Legal guarantees"], a:1 },
+        { q:"Meeting support tools help by:", opts:["Adding noise","Capturing actions & summaries","Replacing teams","Blocking debate"], a:1 }
+      ]}
+    ]},
+  { id:"engagement", title:"Customer Engagement", desc:"Support, personalization, and market intelligence.",
+    missions:[
+      { type:"simulation", id:"e-sim-1", title:"CX Playbook", points:60,
+        role:"Support Manager", scenario:"Design a triage flow combining chatbot + human escalation.",
+        fields:["Intent Detection","Self-Serve Content","Escalation Rules","Quality Metrics"] },
+      { type:"quiz", id:"e-quiz-1", title:"Ethics in CX", points:40, questions:[
+        { q:"Personalization boundaries require:", opts:["Collect everything","Privacy by design & consent","Ignore laws","Shadow profiles"], a:1 }
+      ]}
+    ]},
+  { id:"creativity", title:"Creativity", desc:"Brainstorming, content, and visual ideation.",
+    missions:[
+      { type:"subjective", id:"c-subj-1", title:"Prompt Remix", points:60,
+        prompt:"Draft a 2-prompt sequence that turns a raw idea into a compelling campaign headline.",
+        rubric:{ clarity:0.35, completeness:0.3, creativity:0.35 } },
+      { type:"quiz", id:"c-quiz-1", title:"Content Licensing", points:40, questions:[
+        { q:"When generating images, you must:", opts:["Ignore attribution","Check licensing & usage rights","Assume public domain","Resell everything"], a:1 }
+      ]}
+    ]},
+  { id:"ethics", title:"Implementation & Ethics", desc:"Adoption plans, bias, transparency, and governance.",
+    missions:[
+      { type:"whiteboard", id:"i-board-1", title:"Adoption Roadmap", points:60,
+        prompt:"Lay out a phased plan: Pilot → Measure → Scale with risk controls.", starter:["Pilot Use-Case","KPIs","Guardrails"] },
+      { type:"subjective", id:"i-subj-1", title:"Responsible AI Guideline", points:40,
+        prompt:"Write 5 practical guidelines for responsible AI in your team.",
+        rubric:{ clarity:0.3, completeness:0.4, creativity:0.3 } }
+    ]}
+];
+
+// ---------- Storage ----------
+const store = {
+  get profile(){ try{return JSON.parse(localStorage.getItem("a2ia_profile")||"{}");}catch{return{};} },
+  set profile(v){ localStorage.setItem("a2ia_profile", JSON.stringify(v)); },
+  get progress(){ try{return JSON.parse(localStorage.getItem("a2ia_progress")||"{}");}catch{return{};} },
+  set progress(v){ localStorage.setItem("a2ia_progress", JSON.stringify(v)); }
+};
+
+// ---------- DOM helpers ----------
+const $ = (s)=>document.querySelector(s);
+const el = (tag, props={}, children=[])=>{
+  const n = Object.assign(document.createElement(tag), props);
+  if(props.style){ for(const [k,v] of Object.entries(props.style)) n.style[k]=v; }
+  for(const c of children) n.append(c);
+  return n;
+};
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+// ---------- Game Master ----------
+const GM = {
+  say(text){ $("#dlgBody").append(el("p",{textContent:text})); },
+  greet(name){ this.say(`Welcome, ${name||"Explorer"}! Six AI Zones await. Complete missions to level up.`); },
+  hint(zone){ const map={fundamentals:"Define, then apply.",productivity:"Automate first, then refine.",decision:"State assumptions; compare options.",engagement:"Blend bots + humans; measure CX.",creativity:"Diverge then converge.",ethics:"Guardrails & transparency."}; this.say(`Hint: ${map[zone]||"Stay curious."}`); },
+  feedback(pts){ this.say(pts>0?`Nice! +${pts} pts.`:"Not quite—try a different approach."); }
+};
+
+// ---------- Render ----------
+function init(){
+  const prof=store.profile;
+  $("#inpName").value = prof.name||"";
+  $("#inpCohort").value = prof.cohort||"";
+  renderZones();
+  updateKPI();
+  updateCertState();
+}
+
+function renderZones(){
+  const grid=$("#zonesGrid"); grid.innerHTML="";
+  const prog=store.progress;
+  ZONES.forEach(z=>{
+    const done=(prog[z.id]?.done)||0;
+    const score=(prog[z.id]?.score)||0;
+    const total=z.missions.reduce((a,m)=>a+(m.points||0),0);
+    const pct=Math.round(100*done/z.missions.length);
+    const card=el("div",{className:"glass card"});
+    const header=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}},[
+      el("div",{},[el("div",{textContent:z.title,style:{fontWeight:"800",fontSize:"18px"}}),
+                   el("div",{textContent:z.desc,className:"muted",style:{marginTop:"4px"}})]),
+      el("span",{className:"pill",textContent:`${score}/${total} pts`})
+    ]);
+    const bar=el("div",{className:"progress"},[el("div",{style:{width:`${pct}%`}})]);
+    const actions=el("div",{style:{display:"flex",gap:"8px",marginTop:"10px"}},[]);
+    const btnOpen=el("button",{className:"btn",textContent:"Open Missions"});
+    btnOpen.onclick=()=>openZone(z);
+    const btnHint=el("button",{className:"btn",textContent:"Hint"});
+    btnHint.onclick=()=>{ openDialog(z.title,z.id,el("div",{},[])); GM.hint(z.id); };
+    actions.append(btnOpen,btnHint);
+    card.append(header,el("div",{style:{height:"10px"}}),bar,actions);
+    grid.append(card);
+  });
+}
+
+function openZone(zone){
+  const body=el("div");
+  zone.missions.forEach((m,i)=>{
+    const b=el("div",{className:"card",style:{marginBottom:"12px"}});
+    b.append(el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},[
+      el("strong",{textContent:`${i+1}. ${m.title}`}), el("span",{className:"pill",textContent:`${m.points} pts`})
+    ]));
+    b.append(el("div",{className:"muted",textContent:describeMission(m)}));
+    const go=el("button",{className:"btn primary",textContent:"Launch"});
+    go.onclick=()=>launchMission(zone,m);
+    b.append(el("div",{style:{height:"8px"}}),go);
+    body.append(b);
+  });
+  openDialog(zone.title,zone.id,body);
+}
+
+function describeMission(m){
+  if(m.type==="quiz") return "Multiple-choice & scenario questions.";
+  if(m.type==="whiteboard") return "Drag nodes and label steps.";
+  if(m.type==="subjective") return "Short writing scored by clarity/completeness/creativity.";
+  if(m.type==="simulation") return "Decision brief with assumptions, options, risks, recommendation.";
+  return "";
+}
+
+function openDialog(title, zoneTag, content){
+  $("#dlgTitle").textContent=title;
+  $("#dlgZoneTag").textContent=zoneTag;
+  const body=$("#dlgBody"); body.innerHTML=""; body.append(content);
+  $("#dlg").showModal();
+}
+function closeDialog(){ $("#dlg").close(); }
+
+// ---------- Missions ----------
+function launchMission(zone,mission){
+  if(mission.type==="quiz") renderQuiz(zone,mission);
+  else if(mission.type==="whiteboard") renderWhiteboard(zone,mission);
+  else if(mission.type==="subjective") renderSubjective(zone,mission);
+  else if(mission.type==="simulation") renderSimulation(zone,mission);
+}
+
+function recordScore(zoneId, missionId, points, meta){
+  const prog=store.progress;
+  const z=prog[zoneId] || {score:0,done:0,missions:{}};
+  if(!z.missions[missionId]){ z.done+=1; z.score+=points; z.missions[missionId]={points,meta}; }
+  else if(points>z.missions[missionId].points){ z.score += (points - z.missions[missionId].points); z.missions[missionId]={points,meta}; }
+  prog[zoneId]=z; store.progress=prog;
+
+  // Critical: instantly reflect new totals on cards & footer
+  renderZones();
+  updateKPI();
+  updateCertState();
+  GM.feedback(points);
+}
+
+// Quiz
+function renderQuiz(zone,mission){
+  const wrap=el("div");
+  mission.questions.forEach((qq,idx)=>{
+    const card=el("div",{className:"card",style:{marginBottom:"10px"}});
+    card.append(el("div",{textContent:`${idx+1}. ${qq.q}`}));
+    const list=el("div",{style:{display:"grid",gap:"8px",marginTop:"6px"}});
+    qq.opts.forEach((opt,i)=>{
+      const label=el("label",{className:"glass",style:{padding:"8px 10px",borderRadius:"12px",border:"1px solid var(--border)"}});
+      const inp=el("input",{type:"radio",name:`q-${mission.id}-${idx}`,value:String(i),style:{marginRight:"8px"}});
+      label.append(inp,el("span",{textContent:opt})); list.append(label);
+    });
+    card.append(list); wrap.append(card);
+  });
+  const submit=el("button",{className:"btn primary",textContent:"Submit Answers"});
+  submit.onclick=()=>{
+    let correct=0;
+    mission.questions.forEach((qq,idx)=>{
+      const chosen=document.querySelector(`input[name="q-${mission.id}-${idx}"]:checked`);
+      if(chosen && Number(chosen.value)===Number(qq.a)) correct++;
+    });
+    const pts=Math.round(mission.points * (correct/mission.questions.length));
+    recordScore(zone.id,mission.id,pts,{correct});
+    wrap.append(el("p",{textContent:`You answered ${correct}/${mission.questions.length}. Scored ${pts} pts.`}));
+  };
+  wrap.append(submit);
+  openDialog(`${zone.title} • ${mission.title}`,zone.id,wrap);
+}
+
+// Whiteboard
+function renderWhiteboard(zone,mission){
+  const wrap=el("div");
+  wrap.append(el("p",{className:"muted",textContent:mission.prompt}));
+  const board=el("div",{className:"board"});
+  (mission.starter||[]).forEach((t,i)=>addNode(board,t,40+i*140,40));
+  const addBtn=el("button",{className:"btn",textContent:"Add Node"});
+  addBtn.onclick=()=>addNode(board,"Step",60,60);
+  const submit=el("button",{className:"btn primary",textContent:"Submit Board"});
+  submit.onclick=()=>{
+    const nodes=Array.from(board.querySelectorAll(".node")).map(n=>({text:n.textContent,x:n.offsetLeft,y:n.offsetTop}));
+    const score=scoreBoard(nodes);
+    const pts=Math.round(mission.points*score);
+    recordScore(zone.id,mission.id,pts,{nodes});
+    wrap.append(el("p",{textContent:`Board reviewed. Scored ${pts} pts.`}));
+  };
+  wrap.append(board,el("div",{style:{height:"8px"}}),el("div",{style:{display:"flex",gap:"8px"}},[addBtn,submit]));
+  openDialog(`${zone.title} • ${mission.title}`,zone.id,wrap);
+}
+function addNode(board,text,x,y){
+  const n=el("div",{className:"node",textContent:text}); n.style.left=x+"px"; n.style.top=y+"px";
+  let g=false,sx=0,sy=0,ox=0,oy=0;
+  n.addEventListener("pointerdown",(e)=>{g=true;n.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;ox=n.offsetLeft;oy=n.offsetTop;});
+  n.addEventListener("pointermove",(e)=>{if(!g)return; n.style.left=(ox+e.clientX-sx)+"px"; n.style.top=(oy+e.clientY-sy)+"px";});
+  n.addEventListener("pointerup",()=>{g=false;});
+  n.onclick=(e)=>{ if(e.detail===2){ const nt=prompt("Edit label",n.textContent); if(nt!==null) n.textContent=nt.trim()||n.textContent; } };
+  board.append(n);
+}
+function scoreBoard(nodes){
+  if(nodes.length<3) return 0.4;
+  const uniq=new Set(nodes.map(n=>n.text.toLowerCase().trim())).size;
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const spreadX=Math.max(...xs)-Math.min(...xs);
+  const spreadY=Math.max(...ys)-Math.min(...ys);
+  const coverage=Math.min(1,(spreadX*spreadY)/(300*200));
+  const diversity=uniq/Math.max(3,nodes.length);
+  return clamp(0.4*coverage+0.6*diversity,0,1);
+}
+
+// Subjective
+function renderSubjective(zone,mission){
+  const wrap=el("div");
+  wrap.append(el("p",{className:"muted",textContent:mission.prompt}));
+  const ta=el("textarea",{rows:8,style:{width:"100%",background:"#0c142c",color:"#fff",border:"1px solid var(--border)",borderRadius:"12px",padding:"10px"}});
+  const btn=el("button",{className:"btn primary",textContent:"Analyze & Score"});
+  btn.onclick=()=>{
+    const txt=(ta.value||"").trim();
+    const result=subjectiveScore(txt,mission.rubric);
+    const pts=Math.round(mission.points*result.score);
+    recordScore(zone.id,mission.id,pts,{breakdown:result.breakdown,text:txt});
+    const panel=el("div",{className:"card"});
+    panel.append(el("div",{textContent:`Score: ${pts} pts`}));
+    panel.append(el("div",{className:"muted",textContent:`Clarity ${Math.round(result.breakdown.clarity*100)}%, Completeness ${Math.round(result.breakdown.completeness*100)}%, Creativity ${Math.round(result.breakdown.creativity*100)}%`}));
+    panel.append(el("div",{textContent:`Feedback: ${result.feedback}`}));
+    wrap.append(panel);
+  };
+  wrap.append(ta,el("div",{style:{height:"8px"}}),btn);
+  openDialog(`${zone.title} • ${mission.title}`,zone.id,wrap);
+}
+function subjectiveScore(text,weights){
+  const words=text.split(/\s+/).filter(Boolean); const len=words.length;
+  const hasStructure=/\b(assumption|option|risk|recommend|therefore|first|second|finally)\b/i.test(text);
+  const hasExamples=/for example|e\.g\.|case|scenario|metric|kpi/i.test(text);
+  const clarity=clamp(1-((text.match(/[!?]{2,}/g)||[]).length/5),0,1);
+  const completeness=clamp((len>=120?1:len/120)*(hasStructure?1:0.85),0,1);
+  const creativity=clamp((hasExamples?1:0.75)*(new Set(text.toLowerCase().split(/\W+/)).size/Math.max(12,len)),0,1);
+  const breakdown={clarity,completeness,creativity};
+  const weighted=clarity*weights.clarity + completeness*weights.completeness + creativity*weights.creativity;
+  const fb=[]; if(len<120) fb.push("Add detail (~120–180 words)."); if(!hasStructure) fb.push("Use structure (assumptions → steps → outcome)."); if(!hasExamples) fb.push("Add a concrete example or metric.");
+  if(fb.length===0) fb.push("Strong, well-structured response.");
+  return {score:clamp(weighted,0,1),breakdown,feedback:fb.join(" ")};
+}
+
+// Simulation
+function renderSimulation(zone,mission){
+  const wrap=el("div");
+  wrap.append(el("p",{className:"muted",textContent:`Role: ${mission.role} • Scenario: ${mission.scenario}`}));
+  const fields=mission.fields.map(label=>{
+    const d=el("div",{className:"card"});
+    d.append(el("div",{textContent:label}));
+    const ta=el("textarea",{rows:4,style:{width:"100%",background:"#0c142c",color:"#fff",border:"1px solid var(--border)",borderRadius:"12px",padding:"10px"}});
+    d.append(ta); wrap.append(d); return {label,ta};
+  });
+  const btn=el("button",{className:"btn primary",textContent:"Submit Decision Brief"});
+  btn.onclick=()=>{
+    const content=Object.fromEntries(fields.map(f=>[f.label,f.ta.value.trim()]));
+    const pts=scoreSimulation(content,mission.points);
+    recordScore(zone.id,mission.id,pts,content);
+    wrap.append(el("p",{textContent:`Brief reviewed. Scored ${pts} pts.`}));
+  };
+  wrap.append(btn);
+  openDialog(`${zone.title} • ${mission.title}`,zone.id,wrap);
+}
+function scoreSimulation(content,maxPts){
+  const vals=Object.values(content);
+  const filled=vals.filter(v=>v&&v.length>20).length;
+  const structure=/(assumption|option|risk|recommend)/i.test(vals.join(" "));
+  const depth=vals.join(" ").split(/\s+/).length;
+  const quality=clamp((filled/Object.keys(content).length)*(structure?1:0.85)*Math.min(1,depth/160),0,1);
+  return Math.round(maxPts*quality);
+}
+
+// ---------- KPI & Certificate ----------
+function totalScore(){ const prog=store.progress; return ZONES.reduce((s,z)=>s+((prog[z.id]?.score)||0),0); }
+function zonesCompleted(){ const prog=store.progress; return ZONES.filter(z=> ((prog[z.id]?.done)||0)>=z.missions.length).length; }
+function badgeFor(total){
+  if(total>=520) return "AI Strategy Builder";
+  if(total>=420) return "Prompt Engineer Pro";
+  if(total>=320) return "Applied AI Practitioner";
+  return "New Recruit";
+}
+function updateKPI(){
+  const t=totalScore(), z=zonesCompleted();
+  $("#kpiScore").textContent = `${t} pts`;
+  $("#pillZones").textContent = `${z}/${ZONES.length} zones`;
+  $("#barOverall").style.width = `${(100*t/600)}%`;
+  $("#badgeLabel").textContent = badgeFor(t);
+}
+function updateCertState(){
+  const t=totalScore();
+  const z=zonesCompleted();
+  const unlocked=(z>=ZONES.length);
+  const previewEnabled = (t>0) || unlocked;
+  const printEnabled = unlocked || (t>=320);
+  $("#btnPreviewCert").disabled = !previewEnabled;
+  $("#btnPrintCert").disabled = !printEnabled;
+
+  let msg="";
+  if(unlocked){ msg="All zones complete! Preview and print your certificate."; }
+  else if(printEnabled){ msg="Score threshold reached — you can print your certificate now."; }
+  else if(previewEnabled){ msg="Preview available. Complete all zones to finalize and print."; }
+  else { msg="Complete your first mission to preview your certificate."; }
+  $("#certMsg").textContent = msg;
+
+  if(previewEnabled){
+    const prof=store.profile;
+    $("#certName").textContent = prof.name || "A2IA Graduate";
+    const badge=badgeFor(t);
+    $("#certScore").textContent = `${t} / 600`;
+    $("#certBadge").textContent = badge;
+    $("#certBadgeLabel").textContent = badge;
+    $("#certDate").textContent = new Date().toLocaleDateString();
+    $("#certDraft").classList.toggle("hidden", unlocked);
+  }
+}
+function previewCert(){ $("#certCanvas").classList.toggle("hidden"); }
+function printCert(){
+  const w=window.open("","_blank");
+  const css=document.querySelector("style").outerHTML;
+  const node=$("#certCanvas").cloneNode(true); node.classList.remove("hidden");
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Certificate</title>${css}</head><body style="display:flex;align-items:center;justify-content:center;padding:24px;background:#0b1020">${node.outerHTML}<script>window.onload=()=>window.print();<\/script></body></html>`;
+  w.document.write(html); w.document.close();
+}
+
+// ---------- Events ----------
+$("#btnHow").onclick=()=>{
+  const body=el("div");
+  body.append(el("p",{innerHTML:"Complete <strong>6 AI Zones</strong> with quizzes, whiteboards, simulations, and writing tasks."}));
+  body.append(el("p",{innerHTML:"Scores combine Knowledge, Creativity, and Application. Finish all zones to unlock your <strong>certificate</strong>."}));
+  body.append(el("ul",{className:"muted"},[
+    el("li",{textContent:"Whiteboard: drag nodes; double-click to rename."}),
+    el("li",{textContent:"Subjective Analyzer: use structure + examples."}),
+    el("li",{textContent:"Simulation: cover assumptions, options, risks, recommendation."})
+  ]));
+  openDialog("How it works","Guide",body);
+};
+$("#btnStart").onclick=()=>{ GM.greet($("#inpName").value.trim()); openDialog("Choose a Zone","Zones",el("div",{textContent:"Select a zone card, then launch a mission."})); };
+$("#btnSaveProfile").onclick=()=>{ store.profile={name:$("#inpName").value.trim(),cohort:$("#inpCohort").value.trim()}; updateCertState(); };
+$("#btnReset").onclick=()=>{ if(confirm("Reset all progress?")){ localStorage.removeItem("a2ia_progress"); renderZones(); updateKPI(); updateCertState(); } };
+$("#btnCloseDlg").onclick=closeDialog;
+$("#btnPreviewCert").onclick=previewCert;
+$("#btnPrintCert").onclick=printCert;
+
+// ---------- Boot ----------
+init();
+
+})();</script>
+</body>
+</html>
