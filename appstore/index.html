@@ -19,6 +19,60 @@
     <script type="text/babel" src="./weavi_appstore.jsx"></script>
 
     <!-- Mount the component -->
+    <!-- Firebase: init + Firestore (CDN, ESM) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+  import {
+    getFirestore, collection, doc, setDoc, deleteDoc,
+    onSnapshot, getDocs
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  // Your config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAR5AgVGMSZHHMoBPrCCXipqWl1T37Yz1A",
+    authDomain: "appstore-2c265.firebaseapp.com",
+    projectId: "appstore-2c265",
+    storageBucket: "appstore-2c265.firebasestorage.app",
+    messagingSenderId: "867650321319",
+    appId: "1:867650321319:web:a7f44643cbdf650fc69482",
+    measurementId: "G-WYEJ36VHJV"
+  };
+  const app = initializeApp(firebaseConfig);
+  // Analytics works only on https + not in some browsers’ private mode:
+  try { getAnalytics(app); } catch (e) { /* optional */ }
+
+  const db = getFirestore(app);
+
+  // Expose minimal helpers for your JSX (attached to window)
+  window.FIREBASE = {
+    db,
+    appsCol: (userId = "public") => collection(db, "appstore", userId, "apps"),
+    // Write or update one app
+    saveApp: async (userId, app) => {
+      const ref = doc(db, "appstore", userId, "apps", app.id);
+      await setDoc(ref, app, { merge: true });
+    },
+    // Delete one app
+    deleteApp: async (userId, id) => {
+      const ref = doc(db, "appstore", userId, "apps", id);
+      await deleteDoc(ref);
+    },
+    // Live subscribe to all apps
+    subscribeApps: (userId, cb) => {
+      const colRef = collection(db, "appstore", userId, "apps");
+      return onSnapshot(colRef, (snap) => {
+        cb(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+    },
+    // One-off load (fallback)
+    loadAppsOnce: async (userId) => {
+      const colRef = collection(db, "appstore", userId, "apps");
+      const snap = await getDocs(colRef);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+  };
+</script>
     <script type="text/babel">
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<WeaviAppStore />);
