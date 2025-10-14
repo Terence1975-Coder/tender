@@ -1,0 +1,322 @@
+<!-- File: /best-cornish-pasties/index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Best Cornish Pasties Bakery — Sales & Ingredients Starter App</title>
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#f59e0b; --ok:#22c55e; --warn:#ef4444; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:20px 16px;border-bottom:1px solid #1f2937;background:#0b1220;position:sticky;top:0;z-index:10}
+    h1{margin:0 0 8px;font-size:22px;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:13px}
+    main{padding:16px;max-width:1200px;margin:0 auto}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .card{background:var(--panel);border:1px solid #1f2937;border-radius:14px;padding:14px}
+    .grow{flex:1 1 360px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="date"]{background:#0b1220;border:1px solid #27324a;color:var(--text);padding:10px 12px;border-radius:10px;width:100%}
+    button{background:#1f2937;color:var(--text);border:1px solid #27324a;padding:10px 14px;border-radius:10px;cursor:pointer}
+    button.primary{background:var(--accent);border-color:#a16207;color:#111}
+    button.ghost{background:transparent}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    thead th{font-size:12px;color:var(--muted);text-align:left;padding:0 10px}
+    tbody td{background:#0b1220;border:1px solid #1f2937;border-left:none;border-right:none;padding:10px}
+    tbody tr{border-radius:10px}
+    tbody td:first-child{border-left:1px solid #1f2937;border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tbody td:last-child{border-right:1px solid #1f2937;border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .kpi{display:flex;gap:14px;flex-wrap:wrap}
+    .pill{padding:8px 10px;background:#0b1220;border:1px solid #1f2937;border-radius:999px;font-size:12px;color:var(--muted)}
+    .footer{margin-top:24px;font-size:12px;color:var(--muted)}
+    .note{font-size:12px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;color:#cbd5e1}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Best Cornish Pasties Bakery — Cornwall</h1>
+    <div class="sub">Starter app for students: sales data, ingredient calculator, and buying plan by shelf life. Extend this into a full dashboard.</div>
+  </header>
+  <main>
+    <section class="row">
+      <div class="card grow">
+        <label>Pick analysis range (inclusive)</label>
+        <div class="row">
+          <div class="grow">
+            <label for="start">Start date</label>
+            <input id="start" type="date" />
+          </div>
+          <div class="grow">
+            <label for="end">End date</label>
+            <input id="end" type="date" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="btnCompute" class="primary">Compute ingredients</button>
+          <button id="btnReset" class="ghost">Reset</button>
+          <button id="btnCSV">Download sales CSV</button>
+        </div>
+        <div class="kpi" style="margin-top:12px">
+          <div class="pill">Records: <span id="kpiRecords">0</span></div>
+          <div class="pill">Total pies: <span id="kpiPies">0</span></div>
+          <div class="pill">Unique products: <span id="kpiProducts">0</span></div>
+        </div>
+      </div>
+      <div class="card grow">
+        <strong>Teacher notes</strong>
+        <ol class="note">
+          <li>Students should build: totals by day & week, charts, and purchase schedules.</li>
+          <li>Ingredients are grams per pie; convert to kg as needed.</li>
+          <li>Shelf life rules below drive Daily/Weekly/Bulk suggestions.</li>
+          <li>Stretch: handle wastage %, multi-shop branches, lead times.</li>
+        </ol>
+        <details class="note" style="margin-top:8px"><summary>Data dictionary</summary>
+          <div class="mono">sale = { date: YYYY-MM-DD, town, product, qty }</div>
+        </details>
+      </div>
+    </section>
+
+    <section class="row" style="margin-top:16px">
+      <div class="card grow">
+        <h3 style="margin:0 0 8px">Ingredient totals (selected period)</h3>
+        <table>
+          <thead><tr><th>Ingredient</th><th>Total (g)</th><th>Total (kg)</th></tr></thead>
+          <tbody id="tblTotals"></tbody>
+        </table>
+      </div>
+      <div class="card grow">
+        <h3 style="margin:0 0 8px">Buying plan (by shelf life)</h3>
+        <table>
+          <thead><tr><th>Ingredient</th><th>Rule</th><th>Amount</th><th>Notes</th></tr></thead>
+          <tbody id="tblPlan"></tbody>
+        </table>
+        <div class="note">Rules: ≤3d → Daily, ≤7d → Weekly, else Bulk for full period.</div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 8px">Raw sales (50 rows)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Town</th>
+            <th>Product</th>
+            <th>Qty</th>
+          </tr>
+        </thead>
+        <tbody id="tblSales"></tbody>
+      </table>
+    </section>
+
+    <div class="footer">© 2025 Best Cornish Pasties Bakery (fictional data). Built for classroom use.</div>
+  </main>
+
+  <script>
+    // --- Recipes: grams per pie (kept simple for teaching) ---
+    const RECIPES = {
+      "Traditional Pasty": { flour:180, potato:120, onion:40, swede:60, beef:130, seasoning:5 },
+      "Steak Pasty":       { flour:185, potato:110, onion:35, swede:55, beef:150, seasoning:6 },
+      "Cheese & Onion":    { flour:170, potato:90,  onion:80, cheese:120, seasoning:5 },
+      "Chicken & Leek":    { flour:175, potato:80,  leek:90,  chicken:140, seasoning:5 },
+      "Vegan Pasty":       { flour:175, potato:110, onion:45, swede:50, vegan_mince:140, seasoning:5 }
+    };
+
+    // --- Shelf life (days) — tune to your lesson ---
+    const SHELF_LIFE = {
+      beef:2, chicken:2, vegan_mince:3, cheese:3, leek:5, onion:10, potato:14, swede:14,
+      flour:90, seasoning:365
+    };
+
+    // --- 50 fake sales rows across Sept–Oct 2025 ---
+    const TOWNS = ["Truro","St Ives","Penzance","Falmouth","Newquay","Bodmin","Launceston","Redruth"]; 
+    const SALES = [
+      {date:"2025-09-01",town:"Truro",product:"Traditional Pasty",qty:62},
+      {date:"2025-09-01",town:"Truro",product:"Cheese & Onion",qty:31},
+      {date:"2025-09-02",town:"St Ives",product:"Steak Pasty",qty:48},
+      {date:"2025-09-02",town:"St Ives",product:"Vegan Pasty",qty:22},
+      {date:"2025-09-03",town:"Falmouth",product:"Chicken & Leek",qty:35},
+      {date:"2025-09-03",town:"Falmouth",product:"Traditional Pasty",qty:54},
+      {date:"2025-09-04",town:"Penzance",product:"Steak Pasty",qty:52},
+      {date:"2025-09-04",town:"Penzance",product:"Cheese & Onion",qty:28},
+      {date:"2025-09-05",town:"Newquay",product:"Traditional Pasty",qty:73},
+      {date:"2025-09-05",town:"Newquay",product:"Vegan Pasty",qty:30},
+      {date:"2025-09-06",town:"Bodmin",product:"Steak Pasty",qty:46},
+      {date:"2025-09-06",town:"Bodmin",product:"Chicken & Leek",qty:26},
+      {date:"2025-09-07",town:"Launceston",product:"Traditional Pasty",qty:58},
+      {date:"2025-09-07",town:"Launceston",product:"Cheese & Onion",qty:24},
+      {date:"2025-09-08",town:"Redruth",product:"Vegan Pasty",qty:27},
+      {date:"2025-09-08",town:"Redruth",product:"Steak Pasty",qty:44},
+      {date:"2025-09-09",town:"Truro",product:"Chicken & Leek",qty:33},
+      {date:"2025-09-09",town:"Truro",product:"Traditional Pasty",qty:61},
+      {date:"2025-09-10",town:"St Ives",product:"Cheese & Onion",qty:29},
+      {date:"2025-09-10",town:"St Ives",product:"Vegan Pasty",qty:21},
+      {date:"2025-09-11",town:"Falmouth",product:"Traditional Pasty",qty:65},
+      {date:"2025-09-11",town:"Falmouth",product:"Steak Pasty",qty:47},
+      {date:"2025-09-12",town:"Penzance",product:"Chicken & Leek",qty:32},
+      {date:"2025-09-12",town:"Penzance",product:"Cheese & Onion",qty:26},
+      {date:"2025-09-13",town:"Newquay",product:"Traditional Pasty",qty:70},
+      {date:"2025-09-13",town:"Newquay",product:"Steak Pasty",qty:51},
+      {date:"2025-09-14",town:"Bodmin",product:"Vegan Pasty",qty:25},
+      {date:"2025-09-14",town:"Bodmin",product:"Traditional Pasty",qty:57},
+      {date:"2025-09-15",town:"Launceston",product:"Cheese & Onion",qty:23},
+      {date:"2025-09-15",town:"Launceston",product:"Chicken & Leek",qty:28},
+      {date:"2025-09-16",town:"Redruth",product:"Steak Pasty",qty:49},
+      {date:"2025-09-16",town:"Redruth",product:"Traditional Pasty",qty:63},
+      {date:"2025-09-17",town:"Truro",product:"Vegan Pasty",qty:24},
+      {date:"2025-09-17",town:"Truro",product:"Cheese & Onion",qty:27},
+      {date:"2025-09-18",town:"St Ives",product:"Chicken & Leek",qty:31},
+      {date:"2025-09-18",town:"St Ives",product:"Traditional Pasty",qty:59},
+      {date:"2025-09-19",town:"Falmouth",product:"Steak Pasty",qty:45},
+      {date:"2025-09-19",town:"Falmouth",product:"Cheese & Onion",qty:25},
+      {date:"2025-09-20",town:"Penzance",product:"Traditional Pasty",qty:68},
+      {date:"2025-09-20",town:"Penzance",product:"Vegan Pasty",qty:29},
+      {date:"2025-09-21",town:"Newquay",product:"Chicken & Leek",qty:34},
+      {date:"2025-09-21",town:"Newquay",product:"Steak Pasty",qty:52},
+      {date:"2025-09-22",town:"Bodmin",product:"Cheese & Onion",qty:22},
+      {date:"2025-09-22",town:"Bodmin",product:"Traditional Pasty",qty:55},
+      {date:"2025-09-23",town:"Launceston",product:"Vegan Pasty",qty:26},
+      {date:"2025-09-23",town:"Launceston",product:"Steak Pasty",qty:50},
+      {date:"2025-09-24",town:"Redruth",product:"Traditional Pasty",qty:64},
+      {date:"2025-09-24",town:"Redruth",product:"Chicken & Leek",qty:30},
+      {date:"2025-09-25",town:"Truro",product:"Cheese & Onion",qty:28},
+      {date:"2025-09-25",town:"Truro",product:"Traditional Pasty",qty:60}
+    ];
+
+    // --- Utilities ---
+    const toDate = (s) => new Date(s + 'T00:00:00');
+    const fmt = (d) => d.toISOString().slice(0,10);
+    const inRange = (s, a, b) => (!a || s >= a) && (!b || s <= b);
+    const sum = (arr) => arr.reduce((t,n)=>t+n,0);
+
+    function getRangeSales(start, end){
+      const a = start ? fmt(toDate(start)) : null;
+      const b = end ? fmt(toDate(end)) : null;
+      return SALES.filter(r => inRange(r.date, a, b));
+    }
+
+    function renderSales(rows){
+      const tb = document.getElementById('tblSales');
+      tb.innerHTML = rows.map(r => `<tr><td>${r.date}</td><td>${r.town}</td><td>${r.product}</td><td>${r.qty}</td></tr>`).join('');
+    }
+
+    function computeIngredients(rows){
+      const totals = {};
+      for(const r of rows){
+        const recipe = RECIPES[r.product];
+        if(!recipe) continue; // minimal guard
+        for(const [ing, gramsPerPie] of Object.entries(recipe)){
+          totals[ing] = (totals[ing]||0) + gramsPerPie * r.qty;
+        }
+      }
+      return totals; // grams
+    }
+
+    function renderTotals(grams){
+      const entries = Object.entries(grams).sort((a,b)=>a[0].localeCompare(b[0]));
+      const tb = document.getElementById('tblTotals');
+      tb.innerHTML = entries.map(([ing,g])=>{
+        const kg = g/1000;
+        return `<tr><td>${ing}</td><td>${g.toFixed(0)}</td><td>${kg.toFixed(2)}</td></tr>`;
+      }).join('');
+    }
+
+    function daysBetween(start, end){
+      const ms = toDate(end) - toDate(start);
+      return Math.max(1, Math.round(ms / 86400000) + 1);
+    }
+
+    function dailyUsage(rows){
+      const byDate = {};
+      for(const r of rows){
+        const rec = RECIPES[r.product];
+        if(!rec) continue;
+        byDate[r.date] = byDate[r.date] || {};
+        for(const [ing,gpp] of Object.entries(rec)){
+          byDate[r.date][ing] = (byDate[r.date][ing]||0) + gpp * r.qty;
+        }
+      }
+      return byDate; // {date: {ingredient: grams}}
+    }
+
+    function planBuying(rows, start, end){
+      const total = computeIngredients(rows);
+      const ndays = start && end ? daysBetween(start,end) : 1;
+      const perDayAvg = {}; // average grams/day across period
+      for(const [ing, g] of Object.entries(total)) perDayAvg[ing] = g / ndays;
+
+      const planRows = [];
+      for(const [ing, totalG] of Object.entries(total)){
+        const life = SHELF_LIFE[ing] ?? 7; // default safety
+        if(life <= 3){
+          planRows.push({ing, rule:'Daily', amount:`~${perDayAvg[ing].toFixed(0)} g / day`, notes:`Shelf life ${life}d`});
+        } else if(life <= 7){
+          const perWeek = perDayAvg[ing] * Math.min(7, ndays);
+          planRows.push({ing, rule:'Weekly', amount:`~${perWeek.toFixed(0)} g / week`, notes:`Shelf life ${life}d`});
+        } else {
+          planRows.push({ing, rule:'Bulk', amount:`${totalG.toFixed(0)} g (for full period)`, notes:`Shelf life ${life}d`});
+        }
+      }
+      return planRows.sort((a,b)=>a.ing.localeCompare(b.ing));
+    }
+
+    function renderPlan(plan){
+      const tb = document.getElementById('tblPlan');
+      tb.innerHTML = plan.map(r=>`<tr><td>${r.ing}</td><td>${r.rule}</td><td>${r.amount}</td><td>${r.notes}</td></tr>`).join('');
+    }
+
+    function updateKpis(rows){
+      const totalPies = sum(rows.map(r=>r.qty));
+      const products = new Set(rows.map(r=>r.product)).size;
+      document.getElementById('kpiRecords').textContent = rows.length;
+      document.getElementById('kpiPies').textContent = totalPies;
+      document.getElementById('kpiProducts').textContent = products;
+    }
+
+    function downloadCSV(rows){
+      const header = ['date','town','product','qty'];
+      const lines = [header.join(',')].concat(rows.map(r=>`${r.date},${r.town},${r.product},${r.qty}`));
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'best-cornish-pasties-sales.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // --- Wire up UI ---
+    function compute(){
+      const s = document.getElementById('start').value;
+      const e = document.getElementById('end').value;
+      const rows = getRangeSales(s,e);
+      updateKpis(rows);
+      renderSales(rows);
+      const totals = computeIngredients(rows);
+      renderTotals(totals);
+      renderPlan(planBuying(rows, s || rows[0]?.date, e || rows.at(-1)?.date));
+    }
+
+    document.getElementById('btnCompute').addEventListener('click', compute);
+    document.getElementById('btnReset').addEventListener('click', () => {
+      document.getElementById('start').value = '';
+      document.getElementById('end').value = '';
+      renderSales(SALES);
+      updateKpis(SALES);
+      const totals = computeIngredients(SALES);
+      renderTotals(totals);
+      renderPlan(planBuying(SALES, SALES[0].date, SALES.at(-1).date));
+    });
+    document.getElementById('btnCSV').addEventListener('click', ()=>downloadCSV(SALES));
+
+    // --- Initial render ---
+    renderSales(SALES);
+    updateKpis(SALES);
+    renderTotals(computeIngredients(SALES));
+    renderPlan(planBuying(SALES, SALES[0].date, SALES.at(-1).date));
+  </script>
+</body>
+</html>
