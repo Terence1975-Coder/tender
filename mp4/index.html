@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MP4 → Word Transcriber</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f7f7fb}
+    header{padding:16px 20px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:0;z-index:2}
+    h1{font-size:18px;margin:0}
+    .wrap{height:calc(100% - 66px)}
+    iframe{width:100%;height:100%;border:0}
+    .bar{display:flex;align-items:center;gap:10px;justify-content:space-between}
+    .link{font-size:14px}
+  </style>
+</head>
+<body>
+  <header class="bar">
+    <h1>📝 MP4 → Word Transcriber</h1>
+    <div class="link"><a href="YOUR_STREAMLIT_URL" target="_blank" rel="noopener">Open in new tab ↗</a></div>
+  </header>
+  <div class="wrap">
+    <iframe src="YOUR_STREAMLIT_URL" allow="clipboard-write *;"></iframe>
+  </div>
+</body>
+</html>
