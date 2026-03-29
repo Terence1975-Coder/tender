@@ -17,7 +17,6 @@
       --accent: #7dd3fc;
       --accent-strong: #38bdf8;
       --success: #34d399;
-      --warning: #fbbf24;
       --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
       --radius-xl: 28px;
       --radius-lg: 22px;
@@ -234,12 +233,16 @@
 
     .demo-stage {
       margin-top: 2px;
-      height: 200px;
+      height: 260px;
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
       background: radial-gradient(circle at top, rgba(125, 211, 252, 0.2), rgba(255,255,255,0.03));
       position: relative;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
     }
 
     .demo-label {
@@ -250,81 +253,31 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.35;
+      z-index: 2;
+      background: rgba(2, 6, 23, 0.45);
+      border-radius: 10px;
+      padding: 6px 8px;
     }
 
-    .floor {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 28px;
-      height: 8px;
-      background: rgba(255,255,255,0.14);
+    .demo-gif {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 16px;
+      margin-top: 26px;
     }
 
-   
-    emoji: "🧱",
-    gif: "https://www.inspireusafoundation.org/wp-content/uploads/2022/01/plank.gif",
-    demoLabel: "Forearm plank: keep a straight line from shoulders to ankles."
-  },
-  {
-    name: "Side Plank Right",
-    duration: 15,
-    detail: "Hold for 10–20 seconds",
-    cues: [
-      "Lift hips up",
-      "Straight line from head to feet",
-      "Bend knees if needed",
-      "Keep breathing"
-    ],
-    emoji: "➡️",
-    gif: "https://media1.popsugar-assets.com/files/thumbor/__1uNt1_rn2IPGICbF7Fbdd9JTY/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2021/08/27/589/n/1922729/6c65851366545d8b_IMB_IFJw6V/i/Side-Plank-Reach-Through-Right-Side.GIF",
-    demoLabel: "Right side plank: elbow under shoulder, hips lifted."
-  },
-  {
-    name: "Side Plank Left",
-    duration: 15,
-    detail: "Hold for 10–20 seconds",
-    cues: [
-      "Lift hips up",
-      "Straight line from head to feet",
-      "Bend knees if needed",
-      "Keep breathing"
-    ],
-    emoji: "⬅️",
-    gif: "https://media1.popsugar-assets.com/files/thumbor/__1uNt1_rn2IPGICbF7Fbdd9JTY/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2021/08/27/589/n/1922729/6c65851366545d8b_IMB_IFJw6V/i/Side-Plank-Reach-Through-Right-Side.GIF",
-    demoLabel: "Left side plank: same movement on the other side."
-  },
-  {
-    name: "Bird Dogs",
-    duration: 40,
-    detail: "About 5 slow reps each side",
-    cues: [
-      "Reach opposite arm and leg",
-      "Keep back flat",
-      "Move slowly",
-      "Pause each rep"
-    ],
-    emoji: "🐦",
-    gif: "https://i.pinimg.com/originals/2f/0e/da/2f0eda75322c445e9f007d479ba5dcdf.gif",
-    demoLabel: "Bird dog: opposite arm and leg extend with control."
-  },
-  {
-    name: "Dead Bugs",
-    duration: 40,
-    detail: "About 6–10 slow reps each side",
-    cues: [
-      "Keep lower back pressed down",
-      "Move one side at a time",
-      "Slow and controlled",
-      "Do not arch back"
-    ],
-    emoji: "🪲",
-    gif: "https://svc.heygainz.com/storage/exercises/2103/380012-dead-bug-version-2-female.gif",
-    demoLabel: "Dead bug: controlled alternating movement on your back."
-  }
-];
+    .demo-fallback {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 20px;
+      line-height: 1.5;
+    }
 
-     .timer-box {
+    .timer-box {
       margin: 0 18px;
       background: rgba(2,6,23,0.65);
       border: 1px solid var(--border);
@@ -387,12 +340,6 @@
     .action-btn.secondary {
       background: rgba(255,255,255,0.08);
       color: var(--text);
-    }
-
-    .action-btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
     }
 
     .section-title, .steps-title {
@@ -499,7 +446,25 @@
       display: block;
     }
 
-    </style>
+    @media (max-width: 360px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .rounds-box {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-stage {
+        height: 220px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -598,7 +563,7 @@
           "Stop if sharp pain"
         ],
         emoji: "🧱",
-        demoClass: "plank-demo",
+        gif: "https://www.inspireusafoundation.org/wp-content/uploads/2022/01/plank.gif",
         demoLabel: "Forearm plank: keep a straight line from shoulders to ankles."
       },
       {
@@ -612,7 +577,7 @@
           "Keep breathing"
         ],
         emoji: "➡️",
-        demoClass: "side-demo",
+        gif: "https://media1.popsugar-assets.com/files/thumbor/__1uNt1_rn2IPGICbF7Fbdd9JTY/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2021/08/27/589/n/1922729/6c65851366545d8b_IMB_IFJw6V/i/Side-Plank-Reach-Through-Right-Side.GIF",
         demoLabel: "Right side plank: elbow under shoulder, hips lifted."
       },
       {
@@ -626,8 +591,8 @@
           "Keep breathing"
         ],
         emoji: "⬅️",
-        demoClass: "side-demo",
-        demoLabel: "Left side plank: same shape on the other side."
+        gif: "https://media1.popsugar-assets.com/files/thumbor/__1uNt1_rn2IPGICbF7Fbdd9JTY/fit-in/2048xorig/filters:format_auto-!!-:strip_icc-!!-/2021/08/27/589/n/1922729/6c65851366545d8b_IMB_IFJw6V/i/Side-Plank-Reach-Through-Right-Side.GIF",
+        demoLabel: "Left side plank: same movement on the other side."
       },
       {
         name: "Bird Dogs",
@@ -640,22 +605,22 @@
           "Pause each rep"
         ],
         emoji: "🐦",
-        demoClass: "bird-demo",
-        demoLabel: "Bird dog: reach one arm forward and the opposite leg back."
+        gif: "https://i.pinimg.com/originals/2f/0e/da/2f0eda75322c445e9f007d479ba5dcdf.gif",
+        demoLabel: "Bird dog: opposite arm and leg extend with control."
       },
       {
         name: "Dead Bugs",
         duration: 40,
         detail: "About 6–10 slow reps each side",
         cues: [
-          "Keep lower back gently pressed down",
+          "Keep lower back pressed down",
           "Move one side at a time",
           "Slow and controlled",
-          "Do not arch lower back"
+          "Do not arch back"
         ],
         emoji: "🪲",
-        demoClass: "dead-demo",
-        demoLabel: "Dead bug: lie on your back and move slowly with control."
+        gif: "https://svc.heygainz.com/storage/exercises/2103/380012-dead-bug-version-2-female.gif",
+        demoLabel: "Dead bug: controlled alternating movement on your back."
       }
     ];
 
@@ -759,22 +724,17 @@
       return Math.max(exercises.length - currentIndex - (timeLeft === 0 ? 1 : 0), 0);
     }
 
-function renderDemo(exercise) {
-  els.demoStage.innerHTML = `
-    <div class="demo-label">${exercise.demoLabel}</div>
-    <img 
-      src="${exercise.gif}" 
-      alt="${exercise.name}" 
-      style="
-        width:100%;
-        height:100%;
-        object-fit:contain;
-        border-radius:16px;
-        padding:10px;
-      "
-    />
-  `;
-}
+    function renderDemo(exercise) {
+      els.demoStage.innerHTML = `
+        <div class="demo-label">${exercise.demoLabel}</div>
+        <img
+          class="demo-gif"
+          src="${exercise.gif}"
+          alt="${exercise.name}"
+          onerror="this.outerHTML='<div class=&quot;demo-fallback&quot;>Could not load this exercise GIF.<br>Please check the image link or host the GIF in your own GitHub repo.</div>';"
+        />
+      `;
+    }
 
     function renderCues(cues) {
       els.cuesList.innerHTML = '';
