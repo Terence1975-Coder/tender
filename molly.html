@@ -261,51 +261,7 @@
       background: rgba(255,255,255,0.14);
     }
 
-    .person {
-      position: absolute;
-      left: 50%;
-      top: 58%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 130px;
-    }
-
-    .head {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fde68a;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
-    }
-
-    .body, .limb {
-      position: absolute;
-      height: 8px;
-      border-radius: 999px;
-      transform-origin: left center;
-    }
-
-    .body {
-      height: 10px;
-      background: var(--accent-strong);
-    }
-
-    .limb {
-      background: var(--accent);
-    }
-
-    const baseExercises = [
-  {
-    name: "Plank",
-    duration: 30,
-    detail: "Hold for 20–30 seconds",
-    cues: [
-      "Keep body straight from shoulders to ankles",
-      "Elbows under shoulders",
-      "Brace tummy gently",
-      "Stop if sharp pain"
-    ],
+   
     emoji: "🧱",
     gif: "https://www.inspireusafoundation.org/wp-content/uploads/2022/01/plank.gif",
     demoLabel: "Forearm plank: keep a straight line from shoulders to ankles."
@@ -543,60 +499,7 @@
       display: block;
     }
 
-    @keyframes plankFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-
-    @keyframes sideLift {
-      0%, 100% { transform: rotate(-18deg) translateY(0); }
-      50% { transform: rotate(-18deg) translateY(-5px); }
-    }
-
-    @keyframes birdReachArm {
-      0%, 100% { transform: rotate(14deg); }
-      50% { transform: rotate(-18deg); }
-    }
-
-    @keyframes birdReachLeg {
-      0%, 100% { transform: rotate(96deg); }
-      50% { transform: rotate(22deg); }
-    }
-
-    @keyframes deadArm {
-      0%, 100% { transform: rotate(210deg); }
-      50% { transform: rotate(255deg); }
-    }
-
-    @keyframes deadLeg {
-      0%, 100% { transform: rotate(330deg); }
-      50% { transform: rotate(285deg); }
-    }
-
-    @media (max-width: 360px) {
-      .stats {
-        grid-template-columns: 1fr;
-      }
-
-      .rounds-box {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .buttons {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-  </style>
+    </style>
 </head>
 <body>
   <div class="app">
