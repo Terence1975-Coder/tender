@@ -1,266 +1,617 @@
-<HTML>
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Play, Pause, RotateCcw, CheckCircle2, Timer, Heart, Shield } from "lucide-react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Molly's 10-Minute Core Reset</title>
+  <style>
+    :root {
+      --bg1: #020617;
+      --bg2: #0f172a;
+      --panel: rgba(255,255,255,0.08);
+      --panel-2: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #7dd3fc;
+      --accent-2: #38bdf8;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --shadow: 0 12px 30px rgba(0,0,0,0.35);
+      --radius: 22px;
+    }
 
-const exercises = [
-  {
-    name: "Plank",
-    duration: 30,
-    detail: "Hold 20–30 seconds",
-    cues: [
-      "Keep body straight",
-      "Elbows under shoulders",
-      "Brace tummy gently",
-      "Stop if sharp pain",
-    ],
-    emoji: "🧱",
-    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Side Plank Right",
-    duration: 15,
-    detail: "Hold 10–20 seconds",
-    cues: [
-      "Lift hips up",
-      "Straight line head to feet",
-      "Bend knees if needed",
-      "Keep breathing",
-    ],
-    emoji: "➡️",
-    image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Side Plank Left",
-    duration: 15,
-    detail: "Hold 10–20 seconds",
-    cues: [
-      "Lift hips up",
-      "Straight line head to feet",
-      "Bend knees if needed",
-      "Keep breathing",
-    ],
-    emoji: "⬅️",
-    image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Bird Dogs",
-    duration: 40,
-    detail: "5 slow reps each side",
-    cues: [
-      "Opposite arm and leg",
-      "Keep back flat",
-      "Move slowly",
-      "Pause each rep",
-    ],
-    emoji: "🐦",
-    image: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    name: "Dead Bugs",
-    duration: 40,
-    detail: "6–10 reps each side",
-    cues: [
-      "Back gently pressed down",
-      "Move one side at a time",
-      "Slow and controlled",
-      "Do not arch lower back",
-    ],
-    emoji: "🪲",
-    image: "https://images.unsplash.com/photo-1598971639058-a6eb32fa5cf8?auto=format&fit=crop&w=1200&q=80",
-  },
-];
+    * { box-sizing: border-box; }
 
-const totalDuration = exercises.reduce((sum, ex) => sum + ex.duration, 0);
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+      color: var(--text);
+      min-height: 100vh;
+    }
 
-export default function MollyCoreMobileApp() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(exercises[0].duration);
-  const [isRunning, setIsRunning] = useState(false);
-  const [completed, setCompleted] = useState<number[]>([]);
+    .app {
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 14px 14px 30px;
+    }
 
-  const current = exercises[currentIndex];
-  const elapsedInCurrent = current.duration - timeLeft;
-  const currentProgress = (elapsedInCurrent / current.duration) * 100;
-  const overallProgress = useMemo(() => {
-    const completedSeconds = completed.reduce((sum, index) => sum + exercises[index].duration, 0);
-    return ((completedSeconds + elapsedInCurrent) / totalDuration) * 100;
-  }, [completed, elapsedInCurrent]);
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
 
-  useEffect(() => {
-    if (!isRunning) return;
+    .hero {
+      padding: 18px;
+      margin-bottom: 14px;
+    }
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev > 1) return prev - 1;
+    .eyebrow {
+      color: var(--accent);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      margin: 0 0 6px;
+    }
 
-        setCompleted((old) => (old.includes(currentIndex) ? old : [...old, currentIndex]));
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.05;
+    }
 
-        if (currentIndex < exercises.length - 1) {
-          setCurrentIndex((idx) => idx + 1);
-          return exercises[currentIndex + 1].duration;
-        }
+    .sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
 
-        setIsRunning(false);
-        return 0;
-      });
-    }, 1000);
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
 
-    return () => clearInterval(timer);
-  }, [isRunning, currentIndex]);
+    .stat {
+      background: var(--panel-2);
+      border-radius: 18px;
+      padding: 12px;
+      border: 1px solid var(--border);
+    }
 
-  const startPause = () => setIsRunning((v) => !v);
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
 
-  const resetAll = () => {
-    setIsRunning(false);
-    setCurrentIndex(0);
-    setTimeLeft(exercises[0].duration);
-    setCompleted([]);
-  };
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+    }
 
-  const goToExercise = (index: number) => {
-    setIsRunning(false);
-    setCurrentIndex(index);
-    setTimeLeft(exercises[index].duration);
-  };
+    .progress-wrap {
+      margin-top: 16px;
+    }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-      <div className="mx-auto w-full max-w-md px-4 py-4 pb-24">
-        <div className="mb-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-sky-300">Molly&apos;s Routine</p>
-              <h1 className="mt-1 text-2xl font-bold leading-tight">10-Minute Core Reset</h1>
-              <p className="mt-1 text-sm text-slate-300">Gentle daily support for back stability.</p>
-            </div>
-            <div className="rounded-2xl bg-sky-400/10 p-3">
-              <Heart className="h-6 w-6 text-sky-300" />
-            </div>
-          </div>
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-white/5 p-3">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Timer className="h-4 w-4" />
-                <span className="text-xs">Total Time</span>
-              </div>
-              <p className="mt-1 text-lg font-semibold">{Math.floor(totalDuration / 60)}m {totalDuration % 60}s</p>
-            </div>
-            <div className="rounded-2xl bg-white/5 p-3">
-              <div className="flex items-center gap-2 text-slate-300">
-                <Shield className="h-4 w-4" />
-                <span className="text-xs">Rule</span>
-              </div>
-              <p className="mt-1 text-lg font-semibold">No sharp pain</p>
-            </div>
-          </div>
+    .bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
 
-          <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between text-xs text-slate-300">
-              <span>Overall progress</span>
-              <span>{Math.round(overallProgress)}%</span>
-            </div>
-            <Progress value={overallProgress} className="h-2 bg-white/10" />
-          </div>
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.25s ease;
+    }
+
+    .exercise-card {
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .exercise-top {
+      padding: 20px 18px 12px;
+      background: linear-gradient(180deg, rgba(125,211,252,0.18), rgba(2,6,23,0.12));
+    }
+
+    .exercise-emoji {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      background: rgba(0,0,0,0.22);
+      margin-bottom: 14px;
+    }
+
+    .exercise-step {
+      color: var(--accent);
+      font-size: 13px;
+      margin: 0 0 6px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .detail {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .timer-box {
+      margin: 14px 18px 0;
+      background: rgba(2,6,23,0.65);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .timer-label {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .timer {
+      font-size: 58px;
+      font-weight: bold;
+      margin: 8px 0 10px;
+      letter-spacing: -0.03em;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 14px 18px 0;
+    }
+
+    button {
+      border: none;
+      border-radius: 18px;
+      padding: 15px 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #082f49;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .section {
+      padding: 18px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+    }
+
+    .cue {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .steps-title {
+      margin: 16px 0 10px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+    }
+
+    .step-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 22px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .step-btn.active {
+      background: rgba(125,211,252,0.14);
+      border-color: rgba(125,211,252,0.55);
+    }
+
+    .step-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .step-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .step-detail {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.18);
+      white-space: nowrap;
+    }
+
+    .done {
+      color: var(--good);
+      font-size: 18px;
+      margin-left: 8px;
+    }
+
+    .safety {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(251,191,36,0.12);
+      border: 1px solid rgba(251,191,36,0.22);
+      color: #fef3c7;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .exercise-image {
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .exercise-image img {
+      display: block;
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+    }
+
+    .exercise-image p {
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card hero">
+      <p class="eyebrow">Molly's Routine</p>
+      <h1>10-Minute Core Reset</h1>
+      <p class="sub">Gentle daily support for back stability.</p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Total Time</div>
+          <div class="stat-value" id="totalTime"></div>
         </div>
-
-        <Card className="overflow-hidden rounded-[28px] border-white/10 bg-white/5 text-white shadow-2xl backdrop-blur">
-          <div className="relative h-56 w-full overflow-hidden">
-            <img src={current.image} alt={current.name} className="h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
-            <div className="absolute left-4 top-4 rounded-2xl bg-black/35 px-3 py-2 text-3xl backdrop-blur">
-              {current.emoji}
-            </div>
-            <div className="absolute bottom-4 left-4 right-4">
-              <p className="text-sm text-sky-300">Exercise {currentIndex + 1} of {exercises.length}</p>
-              <h2 className="text-3xl font-bold">{current.name}</h2>
-              <p className="text-sm text-slate-200">{current.detail}</p>
-            </div>
-          </div>
-
-          <CardContent className="p-4">
-            <div className="rounded-3xl bg-slate-950/60 p-4 text-center">
-              <p className="text-sm text-slate-400">Time remaining</p>
-              <div className="mt-2 text-6xl font-bold tabular-nums tracking-tight">{timeLeft}s</div>
-              <div className="mt-4">
-                <Progress value={currentProgress} className="h-2 bg-white/10" />
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button
-                onClick={startPause}
-                className="h-14 rounded-2xl bg-sky-400 text-slate-950 hover:bg-sky-300"
-              >
-                {isRunning ? <Pause className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
-                {isRunning ? "Pause" : "Start"}
-              </Button>
-              <Button
-                onClick={resetAll}
-                variant="outline"
-                className="h-14 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-              >
-                <RotateCcw className="mr-2 h-5 w-5" />
-                Reset
-              </Button>
-            </div>
-
-            <div className="mt-5">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Technique cues</h3>
-              <div className="space-y-2">
-                {current.cues.map((cue) => (
-                  <div key={cue} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-100">
-                    {cue}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="mt-5">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Routine steps</h3>
-          <div className="space-y-3">
-            {exercises.map((exercise, index) => {
-              const done = completed.includes(index) || (index === currentIndex && timeLeft === 0);
-              const active = index === currentIndex;
-              return (
-                <button
-                  key={exercise.name}
-                  onClick={() => goToExercise(index)}
-                  className={`w-full rounded-3xl border p-4 text-left transition ${
-                    active
-                      ? "border-sky-300/60 bg-sky-400/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold">{exercise.emoji} {exercise.name}</p>
-                      <p className="text-sm text-slate-300">{exercise.detail}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-xl bg-black/25 px-2 py-1 text-xs text-slate-200">{exercise.duration}s</span>
-                      {done ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : null}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-5 rounded-3xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm text-amber-50">
-          <p className="font-semibold">Safety</p>
-          <p className="mt-1 text-amber-100/90">
-            This routine should feel like gentle effort, not pain. Skip any move that causes sharp back pain and consider a physio or GP review if symptoms persist.
-          </p>
+        <div class="stat">
+          <div class="stat-label">Rule</div>
+          <div class="stat-value">No sharp pain</div>
         </div>
       </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Overall progress</span>
+          <span id="overallPercent">0%</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="overallBar"></div></div>
+      </div>
     </div>
-  );
-}
-</HTML>
+
+    <div class="card exercise-card">
+      <div class="exercise-top">
+        <div class="exercise-emoji" id="exerciseEmoji"></div>
+        <p class="exercise-step" id="exerciseStep"></p>
+        <h2 id="exerciseName"></h2>
+        <p class="detail" id="exerciseDetail"></p>
+      </div>
+
+      <div class="section">
+        <div class="image-grid" id="imageGrid"></div>
+      </div>
+
+      <div class="timer-box">
+        <p class="timer-label">Time remaining</p>
+        <div class="timer" id="timerText">30s</div>
+        <div class="bar"><div class="bar-fill" id="exerciseBar"></div></div>
+      </div>
+
+      <div class="buttons">
+        <button class="primary" id="startPauseBtn">▶ Start</button>
+        <button class="secondary" id="resetBtn">↺ Reset</button>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Technique cues</p>
+        <div id="cuesList"></div>
+      </div>
+    </div>
+
+    <p class="steps-title">Routine steps</p>
+    <div id="stepsList"></div>
+
+    <div class="safety">
+      <strong>Safety</strong><br>
+      This routine should feel like gentle effort, not pain. Skip any move that causes sharp back pain and consider a physio or GP review if symptoms persist.
+    </div>
+  </div>
+
+  <script>
+    const exercises = [
+      {
+        name: "Plank",
+        duration: 30,
+        detail: "Hold 20–30 seconds",
+        cues: [
+          "Keep body straight",
+          "Elbows under shoulders",
+          "Brace tummy gently",
+          "Stop if sharp pain"
+        ],
+        emoji: "🧱",
+        images: [
+          { src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80", label: "Forearm plank" },
+          { src: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&q=80", label: "Core tight, body straight" }
+        ]
+      },
+      {
+        name: "Side Plank Right",
+        duration: 15,
+        detail: "Hold 10–20 seconds",
+        cues: [
+          "Lift hips up",
+          "Straight line head to feet",
+          "Bend knees if needed",
+          "Keep breathing"
+        ],
+        emoji: "➡️",
+        images: [
+          { src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80", label: "Right side plank" },
+          { src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&q=80", label: "Knees bent option" }
+        ]
+      },
+      {
+        name: "Side Plank Left",
+        duration: 15,
+        detail: "Hold 10–20 seconds",
+        cues: [
+          "Lift hips up",
+          "Straight line head to feet",
+          "Bend knees if needed",
+          "Keep breathing"
+        ],
+        emoji: "⬅️",
+        images: [
+          { src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&q=80", label: "Left side plank" },
+          { src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80", label: "Stacked posture" }
+        ]
+      },
+      {
+        name: "Bird Dogs",
+        duration: 40,
+        detail: "5 slow reps each side",
+        cues: [
+          "Opposite arm and leg",
+          "Keep back flat",
+          "Move slowly",
+          "Pause each rep"
+        ],
+        emoji: "🐦",
+        images: [
+          { src: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=900&q=80", label: "Bird dog setup" },
+          { src: "https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?auto=format&fit=crop&w=900&q=80", label: "Reach long, stay steady" }
+        ]
+      },
+      {
+        name: "Dead Bugs",
+        duration: 40,
+        detail: "6–10 reps each side",
+        cues: [
+          "Back gently pressed down",
+          "Move one side at a time",
+          "Slow and controlled",
+          "Do not arch lower back"
+        ],
+        emoji: "🪲",
+        images: [
+          { src: "https://images.unsplash.com/photo-1598971639058-a6eb32fa5cf8?auto=format&fit=crop&w=900&q=80", label: "Dead bug position" },
+          { src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80", label: "Move slowly and control core" }
+        ]
+      }
+    ];
+
+    const totalDuration = exercises.reduce((sum, ex) => sum + ex.duration, 0);
+    let currentIndex = 0;
+    let timeLeft = exercises[0].duration;
+    let isRunning = false;
+    let completed = [];
+    let timer = null;
+
+    const totalTimeEl = document.getElementById('totalTime');
+    const overallPercentEl = document.getElementById('overallPercent');
+    const overallBarEl = document.getElementById('overallBar');
+    const exerciseEmojiEl = document.getElementById('exerciseEmoji');
+    const exerciseStepEl = document.getElementById('exerciseStep');
+    const exerciseNameEl = document.getElementById('exerciseName');
+    const exerciseDetailEl = document.getElementById('exerciseDetail');
+    const timerTextEl = document.getElementById('timerText');
+    const exerciseBarEl = document.getElementById('exerciseBar');
+    const cuesListEl = document.getElementById('cuesList');
+    const stepsListEl = document.getElementById('stepsList');
+    const imageGridEl = document.getElementById('imageGrid');
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    totalTimeEl.textContent = `${Math.floor(totalDuration / 60)}m ${totalDuration % 60}s`;
+
+    function render() {
+      const current = exercises[currentIndex];
+      const elapsedInCurrent = current.duration - timeLeft;
+      const currentProgress = (elapsedInCurrent / current.duration) * 100;
+      const completedSeconds = completed.reduce((sum, index) => sum + exercises[index].duration, 0);
+      const overallProgress = ((completedSeconds + elapsedInCurrent) / totalDuration) * 100;
+
+      exerciseEmojiEl.textContent = current.emoji;
+      exerciseStepEl.textContent = `Exercise ${currentIndex + 1} of ${exercises.length}`;
+      exerciseNameEl.textContent = current.name;
+      exerciseDetailEl.textContent = current.detail;
+      timerTextEl.textContent = `${timeLeft}s`;
+      exerciseBarEl.style.width = `${Math.max(0, Math.min(currentProgress, 100))}%`;
+      overallBarEl.style.width = `${Math.max(0, Math.min(overallProgress, 100))}%`;
+      overallPercentEl.textContent = `${Math.round(overallProgress)}%`;
+      startPauseBtn.textContent = isRunning ? '⏸ Pause' : '▶ Start';
+
+      cuesListEl.innerHTML = '';
+      current.cues.forEach((cue) => {
+        const div = document.createElement('div');
+        div.className = 'cue';
+        div.textContent = cue;
+        cuesListEl.appendChild(div);
+      });
+
+      imageGridEl.innerHTML = '';
+      current.images.forEach((image) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'exercise-image';
+        wrapper.innerHTML = `<img src="${image.src}" alt="${image.label}"><p>${image.label}</p>`;
+        imageGridEl.appendChild(wrapper);
+      });
+
+      stepsListEl.innerHTML = '';
+      exercises.forEach((exercise, index) => {
+        const button = document.createElement('button');
+        button.className = `step-btn ${index === currentIndex ? 'active' : ''}`;
+        const done = completed.includes(index) || (index === currentIndex && timeLeft === 0);
+        button.innerHTML = `
+          <div class="step-top-row">
+            <div>
+              <div class="step-name">${exercise.emoji} ${exercise.name}</div>
+              <div class="step-detail">${exercise.detail}</div>
+            </div>
+            <div>
+              <span class="badge">${exercise.duration}s</span>
+              ${done ? '<span class="done">✓</span>' : ''}
+            </div>
+          </div>
+        `;
+        button.addEventListener('click', () => {
+          stopTimer();
+          currentIndex = index;
+          timeLeft = exercises[index].duration;
+          render();
+        });
+        stepsListEl.appendChild(button);
+      });
+    }
+
+    function stopTimer() {
+      isRunning = false;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    function startTimer() {
+      if (timer) return;
+      isRunning = true;
+      timer = setInterval(() => {
+        if (timeLeft > 1) {
+          timeLeft -= 1;
+          render();
+          return;
+        }
+
+        if (!completed.includes(currentIndex)) completed.push(currentIndex);
+
+        if (currentIndex < exercises.length - 1) {
+          currentIndex += 1;
+          timeLeft = exercises[currentIndex].duration;
+          render();
+          return;
+        }
+
+        timeLeft = 0;
+        stopTimer();
+        render();
+      }, 1000);
+      render();
+    }
+
+    startPauseBtn.addEventListener('click', () => {
+      if (isRunning) {
+        stopTimer();
+        render();
+      } else {
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      stopTimer();
+      currentIndex = 0;
+      timeLeft = exercises[0].duration;
+      completed = [];
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
