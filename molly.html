@@ -2,47 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
   <title>Molly's 10-Minute Core Reset</title>
   <style>
     :root {
-      --bg1: #020617;
-      --bg2: #0f172a;
-      --panel: rgba(255,255,255,0.08);
-      --panel-2: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.12);
+      --bg-a: #020617;
+      --bg-b: #0f172a;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-2: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.12);
       --text: #f8fafc;
       --muted: #cbd5e1;
       --accent: #7dd3fc;
-      --accent-2: #38bdf8;
-      --good: #34d399;
-      --warn: #fbbf24;
-      --shadow: 0 12px 30px rgba(0,0,0,0.35);
-      --radius: 22px;
+      --accent-strong: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
 
     * { box-sizing: border-box; }
 
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      min-height: 100%;
       font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(180deg, var(--bg1), var(--bg2), var(--bg1));
+      background: linear-gradient(180deg, var(--bg-a), var(--bg-b), var(--bg-a));
       color: var(--text);
-      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
     }
 
     .app {
       max-width: 460px;
       margin: 0 auto;
-      padding: 14px 14px 30px;
+      padding: calc(14px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
     }
 
     .card {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 28px;
+      border-radius: var(--radius-xl);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
     }
 
     .hero {
@@ -53,21 +69,28 @@
     .eyebrow {
       color: var(--accent);
       font-size: 11px;
-      text-transform: uppercase;
       letter-spacing: 0.22em;
+      text-transform: uppercase;
       margin: 0 0 6px;
     }
 
     h1 {
       margin: 0;
-      font-size: 34px;
+      font-size: clamp(30px, 8vw, 36px);
       line-height: 1.05;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(26px, 7vw, 32px);
+      line-height: 1.1;
     }
 
     .sub {
       margin: 8px 0 0;
       color: var(--muted);
       font-size: 15px;
+      line-height: 1.45;
     }
 
     .stats {
@@ -79,9 +102,9 @@
 
     .stat {
       background: var(--panel-2);
+      border: 1px solid var(--border);
       border-radius: 18px;
       padding: 12px;
-      border: 1px solid var(--border);
     }
 
     .stat-label {
@@ -92,7 +115,53 @@
 
     .stat-value {
       font-size: 20px;
-      font-weight: bold;
+      font-weight: 700;
+    }
+
+    .rounds-box {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+    }
+
+    .round-buttons {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .round-btn, .action-btn, .step-btn {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .round-btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 46px;
+    }
+
+    .round-btn.active {
+      background: rgba(125, 211, 252, 0.18);
+      border-color: rgba(125, 211, 252, 0.5);
+      color: var(--accent);
+    }
+
+    .round-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
     }
 
     .progress-wrap {
@@ -102,6 +171,7 @@
     .progress-label {
       display: flex;
       justify-content: space-between;
+      gap: 10px;
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 6px;
@@ -110,15 +180,16 @@
     .bar {
       width: 100%;
       height: 10px;
-      background: rgba(255,255,255,0.08);
       border-radius: 999px;
+      background: rgba(255,255,255,0.08);
       overflow: hidden;
     }
 
     .bar-fill {
-      height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-strong));
       transition: width 0.25s ease;
     }
 
@@ -129,7 +200,7 @@
 
     .exercise-top {
       padding: 20px 18px 12px;
-      background: linear-gradient(180deg, rgba(125,211,252,0.18), rgba(2,6,23,0.12));
+      background: linear-gradient(180deg, rgba(125,211,252,0.18), rgba(2,6,23,0.1));
     }
 
     .exercise-emoji {
@@ -140,47 +211,149 @@
       align-items: center;
       justify-content: center;
       font-size: 34px;
-      background: rgba(0,0,0,0.22);
+      background: rgba(0,0,0,0.24);
       margin-bottom: 14px;
     }
 
     .exercise-step {
+      margin: 0 0 6px;
       color: var(--accent);
       font-size: 13px;
-      margin: 0 0 6px;
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 30px;
     }
 
     .detail {
       margin: 6px 0 0;
       color: var(--muted);
       font-size: 15px;
+      line-height: 1.4;
     }
 
+    .section {
+      padding: 18px;
+    }
+
+    .demo-stage {
+      margin-top: 2px;
+      height: 200px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at top, rgba(125, 211, 252, 0.2), rgba(255,255,255,0.03));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-label {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .floor {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 28px;
+      height: 8px;
+      background: rgba(255,255,255,0.14);
+    }
+
+    .person {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 130px;
+    }
+
+    .head {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
+    }
+
+    .body, .limb {
+      position: absolute;
+      height: 8px;
+      border-radius: 999px;
+      transform-origin: left center;
+    }
+
+    .body {
+      height: 10px;
+      background: var(--accent-strong);
+    }
+
+    .limb {
+      background: var(--accent);
+    }
+
+    .plank-demo .head { left: 24px; top: 54px; }
+    .plank-demo .body { left: 42px; top: 58px; width: 92px; animation: plankFloat 1.8s ease-in-out infinite; }
+    .plank-demo .arm1 { left: 38px; top: 66px; width: 26px; transform: rotate(74deg); }
+    .plank-demo .arm2 { left: 58px; top: 66px; width: 24px; transform: rotate(92deg); }
+    .plank-demo .leg1 { left: 132px; top: 60px; width: 30px; transform: rotate(-20deg); }
+    .plank-demo .leg2 { left: 132px; top: 60px; width: 30px; transform: rotate(14deg); }
+
+    .side-demo .head { left: 62px; top: 34px; }
+    .side-demo .body { left: 62px; top: 58px; width: 88px; transform: rotate(-18deg); animation: sideLift 1.8s ease-in-out infinite; }
+    .side-demo .arm1 { left: 54px; top: 60px; width: 30px; transform: rotate(98deg); }
+    .side-demo .arm2 { left: 86px; top: 42px; width: 30px; transform: rotate(30deg); }
+    .side-demo .leg1 { left: 140px; top: 58px; width: 30px; transform: rotate(-8deg); }
+    .side-demo .leg2 { left: 140px; top: 58px; width: 30px; transform: rotate(8deg); }
+
+    .bird-demo .head { left: 72px; top: 36px; }
+    .bird-demo .body { left: 78px; top: 68px; width: 70px; }
+    .bird-demo .arm1 { left: 76px; top: 68px; width: 48px; transform: rotate(14deg); animation: birdReachArm 2s ease-in-out infinite; }
+    .bird-demo .arm2 { left: 76px; top: 68px; width: 24px; transform: rotate(86deg); }
+    .bird-demo .leg1 { left: 140px; top: 68px; width: 48px; transform: rotate(96deg); animation: birdReachLeg 2s ease-in-out infinite; }
+    .bird-demo .leg2 { left: 138px; top: 68px; width: 24px; transform: rotate(96deg); }
+
+    .dead-demo .head { left: 86px; top: 38px; }
+    .dead-demo .body { left: 86px; top: 64px; width: 72px; transform: rotate(90deg); }
+    .dead-demo .arm1 { left: 90px; top: 56px; width: 36px; transform: rotate(210deg); animation: deadArm 2s ease-in-out infinite; }
+    .dead-demo .arm2 { left: 90px; top: 56px; width: 36px; transform: rotate(320deg); }
+    .dead-demo .leg1 { left: 108px; top: 118px; width: 40px; transform: rotate(330deg); animation: deadLeg 2s ease-in-out infinite; }
+    .dead-demo .leg2 { left: 108px; top: 118px; width: 40px; transform: rotate(35deg); }
+
     .timer-box {
-      margin: 14px 18px 0;
+      margin: 0 18px;
       background: rgba(2,6,23,0.65);
       border: 1px solid var(--border);
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       padding: 16px;
       text-align: center;
     }
 
     .timer-label {
+      margin: 0;
       color: var(--muted);
       font-size: 14px;
-      margin: 0;
     }
 
     .timer {
-      font-size: 58px;
-      font-weight: bold;
       margin: 8px 0 10px;
+      font-size: clamp(52px, 14vw, 64px);
+      font-weight: 700;
       letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .meta-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
     }
 
     .buttons {
@@ -190,53 +363,57 @@
       padding: 14px 18px 0;
     }
 
-    button {
-      border: none;
+    .action-btn {
+      border: 1px solid var(--border);
       border-radius: 18px;
       padding: 15px 12px;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 700;
       cursor: pointer;
+      min-height: 54px;
+      transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
     }
 
-    .primary {
+    .action-btn:active, .round-btn:active, .step-btn:active {
+      transform: scale(0.98);
+    }
+
+    .action-btn.primary {
       background: var(--accent);
       color: #082f49;
     }
 
-    .secondary {
+    .action-btn.secondary {
       background: rgba(255,255,255,0.08);
       color: var(--text);
-      border: 1px solid var(--border);
     }
 
-    .section {
-      padding: 18px;
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
     }
 
-    .section-title {
+    .section-title, .steps-title {
       margin: 0 0 10px;
       font-size: 12px;
-      text-transform: uppercase;
       letter-spacing: 0.22em;
+      text-transform: uppercase;
       color: var(--muted);
     }
 
     .cue {
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: var(--radius-md);
       padding: 12px;
       margin-bottom: 8px;
       font-size: 15px;
+      line-height: 1.4;
     }
 
     .steps-title {
-      margin: 16px 0 10px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.22em;
-      color: var(--muted);
+      margin-top: 16px;
     }
 
     .step-btn {
@@ -245,9 +422,10 @@
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--border);
       color: var(--text);
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       padding: 14px;
       margin-bottom: 10px;
+      cursor: pointer;
     }
 
     .step-btn.active {
@@ -263,8 +441,8 @@
     }
 
     .step-name {
-      font-size: 20px;
-      font-weight: bold;
+      font-size: 19px;
+      font-weight: 700;
       margin-bottom: 4px;
     }
 
@@ -274,175 +452,69 @@
     }
 
     .badge {
+      display: inline-block;
       font-size: 12px;
       padding: 6px 8px;
       border-radius: 12px;
       background: rgba(0,0,0,0.18);
       white-space: nowrap;
+      vertical-align: middle;
     }
 
     .done {
-      color: var(--good);
-      font-size: 18px;
+      display: inline-block;
       margin-left: 8px;
+      color: var(--success);
+      font-size: 18px;
+      vertical-align: middle;
     }
 
     .safety {
       margin-top: 14px;
       padding: 16px;
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       background: rgba(251,191,36,0.12);
       border: 1px solid rgba(251,191,36,0.22);
       color: #fef3c7;
       font-size: 14px;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
-    .demo-stage {
-      margin-top: 10px;
-      height: 190px;
-      border-radius: 22px;
-      border: 1px solid var(--border);
-      background: radial-gradient(circle at top, rgba(125,211,252,0.18), rgba(255,255,255,0.03));
-      position: relative;
-      overflow: hidden;
-    }
-
-    .floor {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 26px;
-      height: 8px;
-      background: rgba(255,255,255,0.14);
-    }
-
-    .demo-label {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .person {
-      position: absolute;
-      left: 50%;
-      top: 58%;
-      transform: translate(-50%, -50%);
-    }
-
-    .head {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fde68a;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.06);
-    }
-
-    .limb {
-      position: absolute;
-      height: 8px;
-      border-radius: 999px;
-      background: #7dd3fc;
-      transform-origin: left center;
-    }
-
-    .body {
-      position: absolute;
-      height: 10px;
-      border-radius: 999px;
-      background: #38bdf8;
-      transform-origin: left center;
-    }
-
-    .rounds-box {
-      margin-top: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 12px;
-    }
-
-    .round-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .round-btn {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 14px;
+    .toast {
+      position: sticky;
+      bottom: 10px;
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid rgba(52, 211, 153, 0.28);
+      color: #d1fae5;
       font-size: 14px;
-      font-weight: bold;
+      display: none;
     }
 
-    .round-btn.active {
-      background: rgba(125,211,252,0.2);
-      border-color: rgba(125,211,252,0.5);
-      color: var(--accent);
+    .toast.show {
+      display: block;
     }
-
-    .round-note {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .plank-demo .head { left: 26px; top: 54px; }
-    .plank-demo .body { left: 42px; top: 58px; width: 92px; animation: plankFloat 1.8s ease-in-out infinite; }
-    .plank-demo .arm1 { left: 36px; top: 66px; width: 26px; transform: rotate(75deg); }
-    .plank-demo .arm2 { left: 56px; top: 66px; width: 24px; transform: rotate(90deg); }
-    .plank-demo .leg1 { left: 130px; top: 60px; width: 28px; transform: rotate(-22deg); }
-    .plank-demo .leg2 { left: 130px; top: 60px; width: 28px; transform: rotate(14deg); }
-
-    .side-demo .head { left: 62px; top: 34px; }
-    .side-demo .body { left: 62px; top: 58px; width: 88px; transform: rotate(-18deg); animation: sideLift 1.8s ease-in-out infinite; }
-    .side-demo .arm1 { left: 54px; top: 60px; width: 30px; transform: rotate(98deg); }
-    .side-demo .arm2 { left: 86px; top: 42px; width: 30px; transform: rotate(30deg); }
-    .side-demo .leg1 { left: 140px; top: 58px; width: 30px; transform: rotate(-8deg); }
-    .side-demo .leg2 { left: 140px; top: 58px; width: 30px; transform: rotate(8deg); }
-
-    .bird-demo .head { left: 72px; top: 36px; }
-    .bird-demo .body { left: 78px; top: 66px; width: 70px; transform: rotate(0deg); }
-    .bird-demo .arm1 { left: 76px; top: 68px; width: 48px; transform: rotate(-20deg); animation: birdReachArm 2s ease-in-out infinite; }
-    .bird-demo .arm2 { left: 76px; top: 68px; width: 24px; transform: rotate(85deg); }
-    .bird-demo .leg1 { left: 140px; top: 68px; width: 48px; transform: rotate(22deg); animation: birdReachLeg 2s ease-in-out infinite; }
-    .bird-demo .leg2 { left: 138px; top: 68px; width: 24px; transform: rotate(96deg); }
-
-    .dead-demo .head { left: 86px; top: 38px; }
-    .dead-demo .body { left: 86px; top: 64px; width: 72px; transform: rotate(90deg); }
-    .dead-demo .arm1 { left: 90px; top: 56px; width: 36px; transform: rotate(210deg); animation: deadArm 2s ease-in-out infinite; }
-    .dead-demo .arm2 { left: 90px; top: 56px; width: 36px; transform: rotate(320deg); }
-    .dead-demo .leg1 { left: 108px; top: 118px; width: 40px; transform: rotate(330deg); animation: deadLeg 2s ease-in-out infinite; }
-    .dead-demo .leg2 { left: 108px; top: 118px; width: 40px; transform: rotate(35deg); }
 
     @keyframes plankFloat {
-      0%, 100% { transform: translateY(0px); }
+      0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-4px); }
     }
 
     @keyframes sideLift {
-      0%, 100% { transform: rotate(-18deg) translateY(0px); }
+      0%, 100% { transform: rotate(-18deg) translateY(0); }
       50% { transform: rotate(-18deg) translateY(-5px); }
     }
 
     @keyframes birdReachArm {
-      0%, 100% { transform: rotate(15deg); }
+      0%, 100% { transform: rotate(14deg); }
       50% { transform: rotate(-18deg); }
     }
 
     @keyframes birdReachLeg {
-      0%, 100% { transform: rotate(95deg); }
+      0%, 100% { transform: rotate(96deg); }
       50% { transform: rotate(22deg); }
     }
 
@@ -455,6 +527,30 @@
       0%, 100% { transform: rotate(330deg); }
       50% { transform: rotate(285deg); }
     }
+
+    @media (max-width: 360px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .rounds-box {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -462,7 +558,7 @@
     <div class="card hero">
       <p class="eyebrow">Molly's Routine</p>
       <h1>10-Minute Core Reset</h1>
-      <p class="sub">Gentle daily support for back stability.</p>
+      <p class="sub">Gentle daily support for back stability. Focus on slow control, good shape, and no sharp pain.</p>
 
       <div class="stats">
         <div class="stat">
@@ -481,19 +577,19 @@
           <div class="stat-value" id="roundsText">2 rounds</div>
         </div>
         <div class="round-buttons">
-          <button class="round-btn" id="round1Btn" type="button">1</button>
-          <button class="round-btn active" id="round2Btn" type="button">2</button>
+          <button class="round-btn" id="round1Btn" type="button" aria-pressed="false">1</button>
+          <button class="round-btn active" id="round2Btn" type="button" aria-pressed="true">2</button>
         </div>
       </div>
 
-      <div class="round-note">One pass through all exercises is about 2 minutes 20 seconds. For Molly, 2 rounds is the better target, which makes the routine about 5 minutes plus a little time to change position.</div>
+      <div class="round-note" id="roundNote"></div>
 
       <div class="progress-wrap">
         <div class="progress-label">
           <span>Overall progress</span>
           <span id="overallPercent">0%</span>
         </div>
-        <div class="bar"><div class="bar-fill" id="overallBar"></div></div>
+        <div class="bar" aria-hidden="true"><div class="bar-fill" id="overallBar"></div></div>
       </div>
     </div>
 
@@ -506,18 +602,22 @@
       </div>
 
       <div class="section">
-        <div class="demo-stage" id="demoStage"></div>
+        <div class="demo-stage" id="demoStage" aria-live="polite"></div>
       </div>
 
       <div class="timer-box">
         <p class="timer-label">Time remaining</p>
         <div class="timer" id="timerText">30s</div>
-        <div class="bar"><div class="bar-fill" id="exerciseBar"></div></div>
+        <div class="bar" aria-hidden="true"><div class="bar-fill" id="exerciseBar"></div></div>
+        <div class="meta-row">
+          <span id="currentRoundText"></span>
+          <span id="remainingExercisesText"></span>
+        </div>
       </div>
 
       <div class="buttons">
-        <button class="primary" id="startPauseBtn">▶ Start</button>
-        <button class="secondary" id="resetBtn">↺ Reset</button>
+        <button class="action-btn primary" id="startPauseBtn" type="button">▶ Start</button>
+        <button class="action-btn secondary" id="resetBtn" type="button">↺ Reset</button>
       </div>
 
       <div class="section">
@@ -533,6 +633,8 @@
       <strong>Safety</strong><br>
       This routine should feel like gentle effort, not pain. Skip any move that causes sharp back pain and consider a physio or GP review if symptoms persist.
     </div>
+
+    <div class="toast" id="toast">Routine complete. Great job.</div>
   </div>
 
   <script>
@@ -540,9 +642,9 @@
       {
         name: "Plank",
         duration: 30,
-        detail: "Hold 20–30 seconds",
+        detail: "Hold for 20–30 seconds",
         cues: [
-          "Keep body straight",
+          "Keep body straight from shoulders to ankles",
           "Elbows under shoulders",
           "Brace tummy gently",
           "Stop if sharp pain"
@@ -554,10 +656,10 @@
       {
         name: "Side Plank Right",
         duration: 15,
-        detail: "Hold 10–20 seconds",
+        detail: "Hold for 10–20 seconds",
         cues: [
           "Lift hips up",
-          "Straight line head to feet",
+          "Straight line from head to feet",
           "Bend knees if needed",
           "Keep breathing"
         ],
@@ -568,10 +670,10 @@
       {
         name: "Side Plank Left",
         duration: 15,
-        detail: "Hold 10–20 seconds",
+        detail: "Hold for 10–20 seconds",
         cues: [
           "Lift hips up",
-          "Straight line head to feet",
+          "Straight line from head to feet",
           "Bend knees if needed",
           "Keep breathing"
         ],
@@ -582,9 +684,9 @@
       {
         name: "Bird Dogs",
         duration: 40,
-        detail: "5 slow reps each side",
+        detail: "About 5 slow reps each side",
         cues: [
-          "Opposite arm and leg",
+          "Reach opposite arm and leg",
           "Keep back flat",
           "Move slowly",
           "Pause each rep"
@@ -596,9 +698,9 @@
       {
         name: "Dead Bugs",
         duration: 40,
-        detail: "6–10 reps each side",
+        detail: "About 6–10 slow reps each side",
         cues: [
-          "Back gently pressed down",
+          "Keep lower back gently pressed down",
           "Move one side at a time",
           "Slow and controlled",
           "Do not arch lower back"
@@ -611,85 +713,109 @@
 
     let rounds = 2;
     let exercises = buildExercises(rounds);
+    let currentIndex = 0;
+    let timeLeft = exercises[0].duration;
+    let isRunning = false;
+    let timerId = null;
+    let completed = [];
+
+    const els = {
+      totalTime: document.getElementById('totalTime'),
+      roundsText: document.getElementById('roundsText'),
+      roundNote: document.getElementById('roundNote'),
+      round1Btn: document.getElementById('round1Btn'),
+      round2Btn: document.getElementById('round2Btn'),
+      overallPercent: document.getElementById('overallPercent'),
+      overallBar: document.getElementById('overallBar'),
+      exerciseEmoji: document.getElementById('exerciseEmoji'),
+      exerciseStep: document.getElementById('exerciseStep'),
+      exerciseName: document.getElementById('exerciseName'),
+      exerciseDetail: document.getElementById('exerciseDetail'),
+      demoStage: document.getElementById('demoStage'),
+      timerText: document.getElementById('timerText'),
+      exerciseBar: document.getElementById('exerciseBar'),
+      currentRoundText: document.getElementById('currentRoundText'),
+      remainingExercisesText: document.getElementById('remainingExercisesText'),
+      startPauseBtn: document.getElementById('startPauseBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      cuesList: document.getElementById('cuesList'),
+      stepsList: document.getElementById('stepsList'),
+      toast: document.getElementById('toast')
+    };
 
     function buildExercises(roundCount) {
       const list = [];
       for (let round = 1; round <= roundCount; round += 1) {
-        baseExercises.forEach((exercise) => {
-          list.push({ ...exercise, round });
+        baseExercises.forEach((exercise, exerciseIndex) => {
+          list.push({ ...exercise, round, exerciseIndex });
         });
       }
       return list;
     }
 
-    function getTotalDuration() {
-      return exercises.reduce((sum, ex) => sum + ex.duration, 0);
+    function totalDuration() {
+      return exercises.reduce((sum, item) => sum + item.duration, 0);
     }
 
-    let totalDuration = getTotalDuration();
-    let currentIndex = 0;
-    let timeLeft = exercises[0].duration;
-    let isRunning = false;
-    let completed = [];
-    let timer = null;
-
-    const totalTimeEl = document.getElementById('totalTime');
-    const overallPercentEl = document.getElementById('overallPercent');
-    const overallBarEl = document.getElementById('overallBar');
-    const exerciseEmojiEl = document.getElementById('exerciseEmoji');
-    const exerciseStepEl = document.getElementById('exerciseStep');
-    const exerciseNameEl = document.getElementById('exerciseName');
-    const exerciseDetailEl = document.getElementById('exerciseDetail');
-    const timerTextEl = document.getElementById('timerText');
-    const exerciseBarEl = document.getElementById('exerciseBar');
-    const cuesListEl = document.getElementById('cuesList');
-    const stepsListEl = document.getElementById('stepsList');
-    const demoStageEl = document.getElementById('demoStage');
-    const round1Btn = document.getElementById('round1Btn');
-    const round2Btn = document.getElementById('round2Btn');
-    const roundsTextEl = document.getElementById('roundsText');
-    const startPauseBtn = document.getElementById('startPauseBtn');
-    const resetBtn = document.getElementById('resetBtn');
-
-    function updateTotalTime() {
-      totalDuration = getTotalDuration();
-      totalTimeEl.textContent = `${Math.floor(totalDuration / 60)}m ${totalDuration % 60}s`;
-      roundsTextEl.textContent = `${rounds} round${rounds > 1 ? 's' : ''}`;
-      round1Btn.classList.toggle('active', rounds === 1);
-      round2Btn.classList.toggle('active', rounds === 2);
+    function formatSeconds(totalSeconds) {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${mins}m ${secs}s`;
     }
 
-    updateTotalTime();
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      window.clearTimeout(showToast._timeout);
+      showToast._timeout = window.setTimeout(() => {
+        els.toast.classList.remove('show');
+      }, 2200);
+    }
 
-    function render() {
-      const current = exercises[currentIndex];
-      const elapsedInCurrent = current.duration - timeLeft;
-      const currentProgress = (elapsedInCurrent / current.duration) * 100;
-      const completedSeconds = completed.reduce((sum, index) => sum + exercises[index].duration, 0);
-      const overallProgress = ((completedSeconds + elapsedInCurrent) / totalDuration) * 100;
+    function updateRoundUi() {
+      els.totalTime.textContent = formatSeconds(totalDuration());
+      els.roundsText.textContent = `${rounds} round${rounds > 1 ? 's' : ''}`;
+      els.round1Btn.classList.toggle('active', rounds === 1);
+      els.round2Btn.classList.toggle('active', rounds === 2);
+      els.round1Btn.setAttribute('aria-pressed', String(rounds === 1));
+      els.round2Btn.setAttribute('aria-pressed', String(rounds === 2));
 
-      exerciseEmojiEl.textContent = current.emoji;
-      exerciseStepEl.textContent = `Round ${current.round} · Exercise ${((currentIndex % baseExercises.length) + 1)} of ${baseExercises.length}`;
-      exerciseNameEl.textContent = current.name;
-      exerciseDetailEl.textContent = current.detail;
-      timerTextEl.textContent = `${timeLeft}s`;
-      exerciseBarEl.style.width = `${Math.max(0, Math.min(currentProgress, 100))}%`;
-      overallBarEl.style.width = `${Math.max(0, Math.min(overallProgress, 100))}%`;
-      overallPercentEl.textContent = `${Math.round(overallProgress)}%`;
-      startPauseBtn.textContent = isRunning ? '⏸ Pause' : '▶ Start';
+      const oneRound = baseExercises.reduce((sum, item) => sum + item.duration, 0);
+      const total = totalDuration();
+      els.roundNote.textContent = rounds === 1
+        ? `One round is about ${formatSeconds(oneRound)}. This is good for sore days or a gentle starter.`
+        : `One round is about ${formatSeconds(oneRound)}. Two rounds is about ${formatSeconds(total)} and is the better everyday target, plus a little time to change position.`;
+    }
 
-      cuesListEl.innerHTML = '';
-      current.cues.forEach((cue) => {
-        const div = document.createElement('div');
-        div.className = 'cue';
-        div.textContent = cue;
-        cuesListEl.appendChild(div);
-      });
+    function stopTimer() {
+      isRunning = false;
+      if (timerId !== null) {
+        window.clearInterval(timerId);
+        timerId = null;
+      }
+    }
 
-      demoStageEl.innerHTML = `
-        <div class="demo-label">${current.demoLabel}</div>
+    function setRounds(value) {
+      if (value === rounds) return;
+      stopTimer();
+      rounds = value;
+      exercises = buildExercises(rounds);
+      currentIndex = 0;
+      timeLeft = exercises[0].duration;
+      completed = [];
+      updateRoundUi();
+      render();
+    }
+
+    function remainingExerciseCount() {
+      return Math.max(exercises.length - currentIndex - (timeLeft === 0 ? 1 : 0), 0);
+    }
+
+    function renderDemo(exercise) {
+      els.demoStage.innerHTML = `
+        <div class="demo-label">${exercise.demoLabel}</div>
         <div class="floor"></div>
-        <div class="person ${current.demoClass}">
+        <div class="person ${exercise.demoClass}" aria-hidden="true">
           <div class="head"></div>
           <div class="body"></div>
           <div class="limb arm1"></div>
@@ -698,16 +824,25 @@
           <div class="limb leg2"></div>
         </div>
       `;
-        wrapper.className = 'exercise-image';
-        wrapper.innerHTML = `<img src="${image.src}" alt="${image.label}"><p>${image.label}</p>`;
-        imageGridEl.appendChild(wrapper);
-      });
+    }
 
-      stepsListEl.innerHTML = '';
+    function renderCues(cues) {
+      els.cuesList.innerHTML = '';
+      cues.forEach((cue) => {
+        const div = document.createElement('div');
+        div.className = 'cue';
+        div.textContent = cue;
+        els.cuesList.appendChild(div);
+      });
+    }
+
+    function renderSteps() {
+      els.stepsList.innerHTML = '';
       exercises.forEach((exercise, index) => {
         const button = document.createElement('button');
-        button.className = `step-btn ${index === currentIndex ? 'active' : ''}`;
-        const done = completed.includes(index) || (index === currentIndex && timeLeft === 0);
+        button.type = 'button';
+        button.className = `step-btn${index === currentIndex ? ' active' : ''}`;
+        const done = completed.includes(index);
         button.innerHTML = `
           <div class="step-top-row">
             <div>
@@ -726,45 +861,67 @@
           timeLeft = exercises[index].duration;
           render();
         });
-        stepsListEl.appendChild(button);
+        els.stepsList.appendChild(button);
       });
     }
 
-    function stopTimer() {
-      isRunning = false;
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
+    function render() {
+      const current = exercises[currentIndex];
+      const elapsed = current.duration - timeLeft;
+      const currentProgress = Math.max(0, Math.min((elapsed / current.duration) * 100, 100));
+      const completedSeconds = completed.reduce((sum, index) => sum + exercises[index].duration, 0);
+      const overallProgress = Math.max(0, Math.min(((completedSeconds + elapsed) / totalDuration()) * 100, 100));
+
+      els.exerciseEmoji.textContent = current.emoji;
+      els.exerciseStep.textContent = `Round ${current.round} · Exercise ${current.exerciseIndex + 1} of ${baseExercises.length}`;
+      els.exerciseName.textContent = current.name;
+      els.exerciseDetail.textContent = current.detail;
+      els.timerText.textContent = `${timeLeft}s`;
+      els.exerciseBar.style.width = `${currentProgress}%`;
+      els.overallBar.style.width = `${overallProgress}%`;
+      els.overallPercent.textContent = `${Math.round(overallProgress)}%`;
+      els.currentRoundText.textContent = `Current: Round ${current.round}`;
+      els.remainingExercisesText.textContent = `${remainingExerciseCount()} step${remainingExerciseCount() === 1 ? '' : 's'} left`;
+      els.startPauseBtn.textContent = isRunning ? '⏸ Pause' : '▶ Start';
+
+      renderDemo(current);
+      renderCues(current.cues);
+      renderSteps();
+    }
+
+    function advanceStep() {
+      if (!completed.includes(currentIndex)) {
+        completed.push(currentIndex);
       }
+
+      if (currentIndex < exercises.length - 1) {
+        currentIndex += 1;
+        timeLeft = exercises[currentIndex].duration;
+        render();
+        return;
+      }
+
+      timeLeft = 0;
+      stopTimer();
+      render();
+      showToast('Routine complete. Great job.');
     }
 
     function startTimer() {
-      if (timer) return;
+      if (timerId !== null) return;
       isRunning = true;
-      timer = setInterval(() => {
+      render();
+      timerId = window.setInterval(() => {
         if (timeLeft > 1) {
           timeLeft -= 1;
           render();
-          return;
+        } else {
+          advanceStep();
         }
-
-        if (!completed.includes(currentIndex)) completed.push(currentIndex);
-
-        if (currentIndex < exercises.length - 1) {
-          currentIndex += 1;
-          timeLeft = exercises[currentIndex].duration;
-          render();
-          return;
-        }
-
-        timeLeft = 0;
-        stopTimer();
-        render();
       }, 1000);
-      render();
     }
 
-    startPauseBtn.addEventListener('click', () => {
+    els.startPauseBtn.addEventListener('click', () => {
       if (isRunning) {
         stopTimer();
         render();
@@ -773,28 +930,27 @@
       }
     });
 
-    resetBtn.addEventListener('click', () => {
+    els.resetBtn.addEventListener('click', () => {
       stopTimer();
       currentIndex = 0;
       timeLeft = exercises[0].duration;
       completed = [];
       render();
+      showToast('Routine reset.');
     });
 
-    function setRounds(value) {
-      stopTimer();
-      rounds = value;
-      exercises = buildExercises(rounds);
-      currentIndex = 0;
-      timeLeft = exercises[0].duration;
-      completed = [];
-      updateTotalTime();
-      render();
-    }
+    els.round1Btn.addEventListener('click', () => setRounds(1));
+    els.round2Btn.addEventListener('click', () => setRounds(2));
 
-    round1Btn.addEventListener('click', () => setRounds(1));
-    round2Btn.addEventListener('click', () => setRounds(2));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && isRunning) {
+        stopTimer();
+        render();
+        showToast('Timer paused while the page was in the background.');
+      }
+    });
 
+    updateRoundUi();
     render();
   </script>
 </body>
